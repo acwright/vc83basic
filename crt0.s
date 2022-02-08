@@ -1,3 +1,5 @@
+.import putline_ptr1
+
 ; cc65 runtime
 .include "zeropage.inc"
 .import push1, pusha0, pushax
@@ -25,13 +27,12 @@ startup:
         sta     sp
         stx     sp+1            ; Set up C stack
 
-        jsr     push1           ; Push file descriptor 1
         lda     #<message
-        ldx     #>message
-        jsr     pushax          ; Push message address
+        sta     ptr1
+        lda     #>message
+        sta     ptr1+1
         lda     #13
-        ldx     #0              ; Length into AX
-        jsr     _write          ; Call write
+        jsr     putline_ptr1
 
         ldx     #$00
         lda     #$00
