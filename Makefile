@@ -1,4 +1,4 @@
-SOURCES = crt0.s
+SOURCES = crt0.s io.s
 OBJECTS = $(SOURCES:.s=.o)
 
 TARGET = sim6502
