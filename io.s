@@ -16,19 +16,19 @@ io_char := $02FF
 ; Returns the length in A.
 
 getline:
-        ldx     #0              ; Use X to track write index
+        ldy     #0              ; Use Y to track write index
 @next:
-        txa                     ; Save X before calling functions
+        tya                     ; Save Y before calling functions
         pha
         jsr     getchar         ; Read one character
         cmp     #$0A            ; EOL?
         beq     @done           ; Yes
-        tay                     ; Restore X while preserving A
+        tax                     ; Restore Y while preserving A
         pla
-        tax
-        tya    
-        sta     buffer,x        ; Otherwise store character in buffer
-        inx                     ; Increment write index
+        tay
+        txa    
+        sta     buffer,y        ; Otherwise store character in buffer
+        iny                     ; Increment write index
         jmp     @next
 @done:
         pla
