@@ -1,17 +1,18 @@
 SOURCES = crt0.s arch_sim6502.s
 OBJECTS = $(SOURCES:.s=.o)
 
-TARGET = sim6502
-
 CC = cl65
-ASMFLAGS = -t $(TARGET) --create-dep $(<:.s=.d)
-LDFLAGS = -t $(TARGET) -m $@.map
+ARCH = -t sim6502
+ASMFLAGS = $(ARCH) --create-dep $(<:.s=.d)
+LDFLAGS = $(ARCH) -m $@.map
 
-basic: $(OBJECTS)
+TARGET = basic
+
+$(TARGET): $(OBJECTS)
 	$(CC) $(LDFLAGS) -o $@ $^
 
 %.o: %.s
 	$(CC) -c $(ASMFLAGS) -o $@ $<
 
 clean:
-	rm -f basic $(OBJECTS) *.d *.map
+	rm -f $(TARGET) *.o *.d *.map
