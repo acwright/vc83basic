@@ -1,4 +1,4 @@
-SOURCES = crt0.s arch_sim6502.s
+SOURCES = startup.s arch_sim6502.s
 OBJECTS = $(SOURCES:.s=.o)
 
 CC = cl65
@@ -16,4 +16,3 @@ $(TARGET): $(OBJECTS)
 
 clean:
 	rm -f $(TARGET) *.o *.d *.map
-	
