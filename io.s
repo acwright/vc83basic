@@ -7,11 +7,10 @@
 
 .export getline, getchar, putline, putline_buffer, putchar
 
-; 256-byte buffer for I/O functions
-buffer := $0200
-
 .bss
 
+; 256-byte buffer for I/O functions
+buffer:         .res 256
 io_char:        .res 1
 
 .code
