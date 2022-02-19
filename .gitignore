@@ -2,3 +2,4 @@
 *.d
 *.map
 basic
+*_test
