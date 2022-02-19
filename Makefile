@@ -14,5 +14,9 @@ $(TARGET): $(OBJECTS)
 %.o: %.s
 	$(CL65) -c $(ASMFLAGS) -o $@ $<
 
+ifneq ($(MAKECMDGOALS), clean)
+-include $(SOURCES:.s=.d)
+endif
+
 clean:
 	rm -f $(TARGET) *.o *.d *.map
