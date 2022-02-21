@@ -1,9 +1,9 @@
-SOURCES = startup.s arch_sim6502.s util.s
+SOURCES = startup.s arch_sim6502.s program.s util.s
 OBJECTS = $(SOURCES:.s=.o)
 
 TEST_COMMON_SOURCES = c_wrappers.s
 TEST_COMMON_OBJECTS = $(TEST_COMMON_SOURCES:.s=.o)
-TEST_SOURCES = util_test.c
+TEST_SOURCES = program_test.c util_test.c
 TEST_OBJECTS = $(TEST_SOURCES:.c=.o)
 TESTS = $(TEST_SOURCES:.c=)
 RUN_TESTS = $(addsuffix .run, $(TESTS))

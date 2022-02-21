@@ -8,7 +8,9 @@
 .include "zeropage.inc"
 .import popptr1, incsp2
 
-.import copy_bytes, copy_bytes_back
+.include "basic.inc"
+
+.export _initialize_program, _copy_bytes, _copy_bytes_back
 
 ; Same as popptr1 but for ptr2.
 popptr2:
@@ -20,8 +22,11 @@ popptr2:
         sta     ptr2
         jmp     incsp2
 
+_initialize_program:
+        jsr     initialize_program
+        rts
+
 _copy_bytes:
-.export _copy_bytes
         sta     sreg
         stx     sreg+1
         jsr     popptr1
@@ -29,7 +34,6 @@ _copy_bytes:
         jmp     copy_bytes
 
 _copy_bytes_back:
-.export _copy_bytes_back
         sta     sreg
         stx     sreg+1
         jsr     popptr1

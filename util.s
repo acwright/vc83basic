@@ -1,5 +1,6 @@
 ; cc65 runtime
 .include "zeropage.inc"
+.include "basic.inc"
 
 ; Copies bytes from a source address to a destination address.
 ; The source and destination byte ranges must not overlap unless the destination address is lower than the
@@ -10,7 +11,6 @@
 ; sreg = number of bytes to copy
 
 copy_bytes:
-.export copy_bytes
         ldy     #0                  ; Y = 0 meaning 256 bytes per block
         ldx     sreg+1              ; Number of 256-byte blocks
         beq     @remaining          ; If no blocks, just do remaining bytes
@@ -46,7 +46,6 @@ copy_bytes:
 ; sreg = number of bytes to copy
 
 copy_bytes_back:
-.export copy_bytes_back
         clc
         lda     ptr1                ; Add sreg (the length) to ptr1 and ptr2
         pha                         ; and save the original values on the stack
@@ -105,7 +104,7 @@ copy_bytes_back:
         sta     (ptr2),y  
         jmp     @copy               ; TODO: optimize for 65C02
 @copy_last_byte:
-        lda     (ptr1),y            ; Copy last byte (Y will be 0) TODO: optimize for 65C02
+        lda     (ptr1),y            ; Copy last byte (Y will be 0) (TODO: optimize for 65C02)
         sta     (ptr2),y
 @skip_copy:
         rts

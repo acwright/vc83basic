@@ -5,7 +5,7 @@
 ; sim65 vectors
 .import _read, _write
 
-.export getline, getchar, putline, putline_buffer, putchar
+.include "basic.inc"
 
 .bss
 

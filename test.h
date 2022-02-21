@@ -32,6 +32,7 @@ void hexdump(const char* name, const char* data, size_t length) {
 
 // Prototypes for C wrapper functions
 
+void initialize_program(void);
 void copy_bytes(char* to, const char* from, size_t size);
 void copy_bytes_back(char* to, const char* from, size_t size);
 
