@@ -1,15 +1,16 @@
 ; cc65 runtime
 .include "zeropage.inc"
 
-.export memcpy_lower, memcpy_higher
-
-; Copy bytes from an address in memory to a lower address.
+; Copies bytes from a source address to a destination address.
+; The source and destination byte ranges must not overlap unless the destination address is lower than the
+; source address.
 ; Alters ptr1 and ptr2.
 ; ptr1 = source
 ; ptr2 = destination (must be <=ptr1)
 ; sreg = number of bytes to copy
 
-memcpy_lower:
+copy_bytes:
+.export copy_bytes
         ldy     #0                  ; Y = 0 meaning 256 bytes per block
         ldx     sreg+1              ; Number of 256-byte blocks
         beq     @remaining          ; If no blocks, just do remaining bytes
@@ -32,18 +33,20 @@ memcpy_lower:
         lda     (ptr1),y            ; Otherwise move one more byte
         sta     (ptr2),y           
         iny
-        jmp     @remaining
+        jmp     @remaining          ; TODO: optimize for 65C02
 
 @return:
         rts
 
-; Copy bytes from an address in memory to a higher address.
+; Copy bytes backwards from a source address to a destination address.
+; Used when the source and destination byte ranges overlap and destination address is higher than the source address.
 ; Alters ptr1 and ptr2.
 ; ptr1 = source
 ; ptr2 = destination (must be <=ptr1)
 ; sreg = number of bytes to copy
 
-memcpy_higher:
+copy_bytes_back:
+.export copy_bytes_back
         clc
         lda     ptr1                ; Add sreg (the length) to ptr1 and ptr2
         pha                         ; and save the original values on the stack
@@ -66,10 +69,6 @@ memcpy_higher:
 ; The stack contains the original ptr1 and ptr2; we'll use these to move the last bytes.
 ; The current values of ptr1 and ptr2 are one past the end of the move ranges.
 ; The number of bytes to move is in sreg.
-; We start out by incrementing number of blocks by 1 so we can stop when it's zero.
-; If X was 255 then it would be 0 (meaning 256) but that's okay, and in any case it would
-; never happen because, with page 0 and 1 devoted to system use, we'll never have to
-; copy that many bytes.
 
         ldy     #0                  ; Y = 0 meaning 256 bytes per block
         ldx     sreg+1              ; Number of 256-byte blocks
@@ -78,7 +77,7 @@ memcpy_higher:
         beq     @remaining          ; No more blocks, copy remaining bytes
         dec     ptr1+1              ; Subtract 256 from ptr1
         dec     ptr2+1              ; and ptr2
-        jsr     @copy_bytes
+        jsr     @copy
         dex                         ; Done with this block
         bne     @next_block         ; More to copy
 
@@ -94,23 +93,21 @@ memcpy_higher:
         pla
         sta     ptr1
         ldy     sreg                ; Number of bytes left to copy (may be 0)
-        beq     @skip_copy_bytes    ; No bytes to copy
-        jsr     @copy_bytes         ; Y>0; copy that many bytes
-@skip_copy_bytes:
-        rts
+        beq     @skip_copy          ; No bytes to copy, otherwise fall through to @copy
 
 ; Copies bytes from offsets Y-1 to 0. Will copy 256 bytes if Y = 0.
 ; Y will be 0 on exit.
 
-@copy_bytes:
+@copy:
         dey                         ; Decrement Y
         beq     @copy_last_byte     ; Y is 0 but we still have to copy one last byte
         lda     (ptr1),y            ; Copy one byte
         sta     (ptr2),y  
-        jmp     @copy_bytes
+        jmp     @copy               ; TODO: optimize for 65C02
 @copy_last_byte:
-        lda     (ptr1),y            ; Copy last byte (Y will be 0)
+        lda     (ptr1),y            ; Copy last byte (Y will be 0) TODO: optimize for 65C02
         sta     (ptr2),y
+@skip_copy:
         rts
 
 
