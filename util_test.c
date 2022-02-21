@@ -22,56 +22,56 @@ void verify_test_data(const char* p, size_t size) {
     ASSERT_EQ(p[size - 1], (char)(size - 1));
 }
 
-void test_memcpy_lower_case(size_t size, size_t offset) {
+void test_copy_bytes_case(size_t size, size_t offset) {
     memset(buffer, 0, sizeof buffer);
     // Set up test data in buffer + offset and try to copy it to the lower position.
     fill_test_data(buffer + offset, size);
     HEXDUMP(buffer + offset, 16);
-    memcpy_lower(buffer, buffer + offset, size);
+    copy_bytes(buffer, buffer + offset, size);
     HEXDUMP(buffer, 16);
     verify_test_data(buffer, size);
 }
 
-void test_memcpy_lower(void) {
+void test_copy_bytes(void) {
     PRINT_TEST_NAME();
 
-    test_memcpy_lower_case(10, 1);
-    test_memcpy_lower_case(10, 100);
-    test_memcpy_lower_case(10, 256);
-    test_memcpy_lower_case(256, 1);
-    test_memcpy_lower_case(256, 100);
-    test_memcpy_lower_case(256, 256);
-    test_memcpy_lower_case(4000, 1);
-    test_memcpy_lower_case(4000, 100);
-    test_memcpy_lower_case(4000, 256);
+    test_copy_bytes_case(10, 1);
+    test_copy_bytes_case(10, 100);
+    test_copy_bytes_case(10, 256);
+    test_copy_bytes_case(256, 1);
+    test_copy_bytes_case(256, 100);
+    test_copy_bytes_case(256, 256);
+    test_copy_bytes_case(4000, 1);
+    test_copy_bytes_case(4000, 100);
+    test_copy_bytes_case(4000, 256);
 }
 
-void test_memcpy_higher_case(size_t size, size_t offset) {
+void test_copy_bytes_back_case(size_t size, size_t offset) {
     memset(buffer, 0, sizeof buffer);
     // Set up test data in buffer and try to copy it to the higher position.
     fill_test_data(buffer, size);
     HEXDUMP(buffer, 16);
-    memcpy_higher(buffer + offset, buffer, size);
+    copy_bytes_back(buffer + offset, buffer, size);
     HEXDUMP(buffer + offset, 16);
     verify_test_data(buffer + offset, size);
 }
 
-void test_memcpy_higher(void) {
+void test_copy_bytes_back(void) {
     PRINT_TEST_NAME();
 
-    test_memcpy_higher_case(10, 1);
-    test_memcpy_higher_case(10, 100);
-    test_memcpy_higher_case(10, 256);
-    test_memcpy_higher_case(256, 1);
-    test_memcpy_higher_case(256, 100);
-    test_memcpy_higher_case(256, 256);
-    test_memcpy_higher_case(4000, 1);
-    test_memcpy_higher_case(4000, 100);
-    test_memcpy_higher_case(4000, 256);
+    test_copy_bytes_back_case(10, 1);
+    test_copy_bytes_back_case(10, 100);
+    test_copy_bytes_back_case(10, 256);
+    test_copy_bytes_back_case(256, 1);
+    test_copy_bytes_back_case(256, 100);
+    test_copy_bytes_back_case(256, 256);
+    test_copy_bytes_back_case(4000, 1);
+    test_copy_bytes_back_case(4000, 100);
+    test_copy_bytes_back_case(4000, 256);
 }
 
 int main(void) {
-    test_memcpy_lower();
-    test_memcpy_higher();
+    test_copy_bytes();
+    test_copy_bytes_back();
     return 0;
 }

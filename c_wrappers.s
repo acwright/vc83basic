@@ -8,9 +8,7 @@
 .include "zeropage.inc"
 .import popptr1, incsp2
 
-.import memcpy_lower, memcpy_higher
-
-.export _memcpy_lower, _memcpy_higher
+.import copy_bytes, copy_bytes_back
 
 ; Same as popptr1 but for ptr2.
 popptr2:
@@ -22,17 +20,18 @@ popptr2:
         sta     ptr2
         jmp     incsp2
 
-_memcpy_lower:
+_copy_bytes:
+.export _copy_bytes
         sta     sreg
         stx     sreg+1
         jsr     popptr1
         jsr     popptr2
-        jmp     memcpy_lower
+        jmp     copy_bytes
 
-_memcpy_higher:
+_copy_bytes_back:
+.export _copy_bytes_back
         sta     sreg
         stx     sreg+1
         jsr     popptr1
         jsr     popptr2
-        jmp     memcpy_higher
-
+        jmp     copy_bytes_back
