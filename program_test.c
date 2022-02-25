@@ -164,9 +164,9 @@ static void test_insert_or_update_line(void) {
 
 int main(void) {
     initialize_arch();
-    // test_initalize_program();
-    // test_reset_line_ptr();
-    // test_advance_line_ptr();
+    test_initalize_program();
+    test_reset_line_ptr();
+    test_advance_line_ptr();
     test_find_line();
     test_insert_or_update_line();
     return 0;
