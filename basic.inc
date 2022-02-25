@@ -29,6 +29,7 @@ ERR_FAIL                    = $FF   ; General failure
 ; util.s
 .global copy_bytes, copy_bytes_back
 .global return_error, return_internal_error, return_status, return_status_ok
+.global mul10, div10
 
 ; Macros
 
