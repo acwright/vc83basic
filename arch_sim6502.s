@@ -14,7 +14,11 @@
 
 ; 256-byte buffer for I/O functions
 buffer: .res 256
+
+; The length of the data currently in the buffer
 buffer_length: .res 1
+
+; A single-byte buffer for the char operations
 io_char: .res 1
 
 .code
@@ -34,24 +38,19 @@ initialize_arch:
 ; Reads a line from the console into the buffer.
 ; Returns the length in A and also sets buffer_length.
 
-getline:
+readline:
         ldy     #0              ; Use Y to track write index
 @next:
-        tya                     ; Save Y before calling functions
-        pha
+        sty     buffer_length   ; Store buffer_length; getchar will clobber Y
         jsr     getchar         ; Read one character
+        ldy     buffer_length   ; Save to reload Y from buffer_length now
         cmp     #$0A            ; EOL?
         beq     @done           ; Yes
-        tax                     ; Restore Y while preserving A
-        pla
-        tay
-        txa    
         sta     buffer,y        ; Otherwise store character in buffer
         iny                     ; Increment write index
         jmp     @next
 @done:
-        pla
-        sta     buffer_length   ; Save buffer length
+        tya                     ; Return buffer_length in A
         rts
 
 ; Reads a single character from the console.
@@ -69,128 +68,39 @@ getchar:
         rts
 
 ; Writes a line to the console. Defaults to write from buffer.
-; The putline_ptr1 entry point writes from the buffer address in ptr1.
-; AX = a pointer to the buffer to write (putline_buffer sets this to buffer)
-; Y = the number of bytes to write (putline_buffer sets this to buffer_length)
+; The write_ptr1 entry point writes from the buffer address in ptr1.
+; AX = a pointer to the buffer to write (write_buffer sets this to buffer)
+; Y = the number of bytes to write (write_buffer sets this to buffer_length)
 
-putline_buffer:
+write_buffer:
         lda     #<buffer
         ldx     #>buffer
         ldy     buffer_length
-putline:
+write:
         sta     ptr1
         stx     ptr1+1
-        tya
-        pha                     ; Park the length
+        sty     tmp1            ; Park the length
         jsr     push1           ; File descriptor 1 (stdout)
         lda     ptr1
         ldx     ptr1+1
         jsr     pushax          ; Push buffer pointer onto C stack
-        pla                     ; Length back into A
+        lda     tmp1            ; Length back into A
         ldx     #0              ; High byte of length
         jsr     _write
         rts
+
+; Starts a new line on the console.
+
+newline:
+.export newline
+        lda     #$0A            ; Load LF into A then fall through to putchar
 
 ; Writes a single character to the console.
 ; A = the character to output
 
 putchar:
         sta     io_char         ; Store character in io_char
-        jsr     push1           ; File descriptor 1 (stdout)
         lda     #<io_char       ; Load io_char address into AX
         ldx     #>io_char
-        jsr     pushax          ; Push onto C stack
-        lda     #1              ; Length
-        ldx     #0 
-        jsr     _write
-        rts
-
-; Debugging helpers
-
-.zeropage
-
-save_pc: .res 2
-
-.bss
-
-save_a: .res 1
-save_x: .res 1
-save_y: .res 1
-save_sp: .res 1
-
-.macro  push8   value
-        lda     value
-        pha 
-.endmacro
-
-.macro  push16  value
-        push8   value
-        push8   value+1
-.endmacro
-
-.macro  pull8   value
-        pla
-        sta     value
-.endmacro
-
-.macro  pull16  value
-        pull8   value+1
-        pull8   value
-.endmacro
-
-.code
-
-format: .byte "$%02X: A=%02X X=%02X Y=%02X SP=%02X", $0A, $00
-
-; Prints the register values to stderr.
-debug_handler:
-        cld                     ; Clear decimal flag (just in case)
-        sta     save_a          ; Save the registers
-        stx     save_x
-        sty     save_y
-        tsx                     ; Get stack pointer into X
-        stx     save_sp         ; Save it so we can print it
-        ldy     $102,x          ; PC low byte
-        sty     save_pc
-        ldy     $103,x          ; PC high byte
-        dey                     ; Subtract 256 from PC; we will index with Y = 255 to get PC-1
-        sty     save_pc+1
-        push8   tmp1
-        push8   tmp2
-        push8   tmp3
-        push8   tmp4
-        push16  ptr1  
-        push16  ptr2
-        push16  sreg
-        push16  regsave  
-        lda     _stderr         ; fprintf(stderr, ...
-        ldx     _stderr+1
-        jsr     pushax
-        lda     #<format        ; format, ...
-        ldx     #>format
-        jsr     pushax
-        ldy     #$FF
-        lda     (save_pc),y     ; id, ...
-        jsr     pusha0          
-        lda     save_a          ; A, ...
-        jsr     pusha0
-        lda     save_x          ; X, ...
-        jsr     pusha0
-        lda     save_y          ; Y, ...
-        jsr     pusha0
-        lda     save_sp         ; SP)
-        jsr     pusha0
-        ldy     #14             ; 14 bytes on the C stack
-        jsr     _fprintf
-        pull16  regsave
-        pull16  sreg
-        pull16  ptr2
-        pull16  ptr1
-        pull8   tmp4
-        pull8   tmp3
-        pull8   tmp2
-        pull8   tmp1
-        lda     save_a
-        ldx     save_x
-        ldy     save_y
-        rti
+        ldy     #1
+        jmp     write
