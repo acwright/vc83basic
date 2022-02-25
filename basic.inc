@@ -5,18 +5,35 @@
 .globalzp line_ptr
 .global program_start, program_end
 
+.globalzp status
+
+; Status and error codes
+
+STATUS_OK                   = $00   ; Everything OK; used to clear status
+ERR_FAIL                    = $FF   ; General failure
+
 ; Functions
 
 ; arch_sim6502.s
 .global initialize_arch, readline, getchar, write, write_buffer, putchar, newline
+
+; main.s
+.global main
+
+; parser.s
+.global parse_number, char_to_digit, skip_whitespace
 
 ; program.s
 .global initialize_program, reset_line_ptr, find_line, advance_line_ptr, insert_or_update_line
 
 ; util.s
 .global copy_bytes, copy_bytes_back
+.global return_error, return_internal_error, return_status, return_status_ok
 
 ; Macros
+
+; Inserts a BRK instruction followed by a value.
+; On the sim6502 platform the BRK will print the value followed by the 6502 registers.
 
 .macro  debug   value
         brk

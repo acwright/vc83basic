@@ -42,7 +42,7 @@ static void test_advance_line_ptr(void) {
 }
 
 static void test_find_line(void) {
-    int result;
+    int err;
 
     PRINT_TEST_NAME();
 
@@ -73,33 +73,33 @@ static void test_find_line(void) {
     program_end = line_ptr;
 
     // Test if we can find each line separately.
-    result = find_line(10);
-    ASSERT_EQ(result, 0);
+    err = find_line(10);
+    ASSERT_EQ(err, 0);
     ASSERT_EQ(line_ptr->number, 10);
-    result = find_line(256);
-    ASSERT_EQ(result, 0);
+    err = find_line(256);
+    ASSERT_EQ(err, 0);
     ASSERT_EQ(line_ptr->number, 256);
-    result = find_line(10000);
-    ASSERT_EQ(result, 0);
+    err = find_line(10000);
+    ASSERT_EQ(err, 0);
     ASSERT_EQ(line_ptr->number, 10000);
 
     // Test not finding a line at all.
     // In this case line_ptr should point to where the line would have been, i.e., line 256.
-    result = find_line(15);
-    ASSERT_NE(result, 0);
+    err = find_line(15);
+    ASSERT_NE(err, 0);
     ASSERT_EQ(line_ptr->number, 256);
 
     // Test finding a line that occurs earlier in the program.
-    result = find_line(10000);
+    err = find_line(10000);
     ASSERT_EQ(line_ptr->number, 10000);
-    ASSERT_EQ(result, 0);
-    result = find_line(10);
-    ASSERT_NE(result, 1);
+    ASSERT_EQ(err, 0);
+    err = find_line(10);
+    ASSERT_NE(err, 1);
     ASSERT_EQ(line_ptr->number, 10);
 }
 
 static void test_insert_or_update_line(void) {
-    int result;
+    int err;
 
     PRINT_TEST_NAME();
 
@@ -108,8 +108,8 @@ static void test_insert_or_update_line(void) {
     strcpy(buffer, "10 PRINT 1");
     buffer_length = 10;
     fprintf(stderr, "program_start = %p, program_end=%p\n", program_start, program_end);
-    result = insert_or_update_line(10, 3);
-    ASSERT_EQ(result, 0);
+    err = insert_or_update_line(10, 3);
+    ASSERT_EQ(err, 0);
     reset_line_ptr();
     ASSERT_EQ(line_ptr->number, 10);    
     ASSERT_EQ(line_ptr->length, 7);    
@@ -119,8 +119,8 @@ static void test_insert_or_update_line(void) {
     strcpy(buffer, "200 PRINT 3.14159");
     buffer_length = 16;
     fprintf(stderr, "program_start = %p, program_end=%p\n", program_start, program_end);
-    result = insert_or_update_line(200, 4);
-    ASSERT_EQ(result, 0);
+    err = insert_or_update_line(200, 4);
+    ASSERT_EQ(err, 0);
     reset_line_ptr();
     ASSERT_EQ(line_ptr->number, 10);    
     ASSERT_EQ(line_ptr->length, 7);    
@@ -133,8 +133,8 @@ static void test_insert_or_update_line(void) {
     // Test inserting a line before the other two.
     strcpy(buffer, "5 END");
     buffer_length = 5;
-    result = insert_or_update_line(5, 2);
-    ASSERT_EQ(result, 0);
+    err = insert_or_update_line(5, 2);
+    ASSERT_EQ(err, 0);
     reset_line_ptr();
     ASSERT_EQ(line_ptr->number, 5);    
     ASSERT_EQ(line_ptr->length, 3);    
@@ -150,8 +150,8 @@ static void test_insert_or_update_line(void) {
     // Test deleting a line.
     strcpy(buffer, "200");
     buffer_length = 3;
-    result = insert_or_update_line(200, 3);
-    ASSERT_EQ(result, 0);
+    err = insert_or_update_line(200, 3);
+    ASSERT_EQ(err, 0);
     reset_line_ptr();
     ASSERT_EQ(line_ptr->number, 5);    
     ASSERT_EQ(line_ptr->length, 3);    

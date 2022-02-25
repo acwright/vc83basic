@@ -43,6 +43,13 @@ typedef struct line {
 
 // Globals
 
+extern char status;
+#pragma zpsym ("status")
+
+extern int reg_ax;
+extern char reg_a;
+extern char reg_x;
+
 extern char buffer[];
 extern char buffer_length;
 
@@ -59,7 +66,10 @@ void reset_line_ptr(void);
 int find_line(int line_number);
 void advance_line_ptr(void);
 int insert_or_update_line(int line_number, char r);
+int parse_number(char r);
+int char_to_digit(char c);
 void copy_bytes(char* to, const char* from, size_t size);
 void copy_bytes_back(char* to, const char* from, size_t size);
+
 
 #endif

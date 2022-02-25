@@ -1,6 +1,16 @@
 ; cc65 runtime
 .include "zeropage.inc"
+
 .include "basic.inc"
+
+.zeropage
+
+; Contains the error code when a function returns with the carry set
+; to signal an error. May also be used to pass information about the outcome of a function,
+; for example if a function completed successfully (carry clear) but had no effect.
+status: .res 1
+
+.code
 
 ; Copies bytes from a source address to a destination address.
 ; The source and destination byte ranges must not overlap unless the destination address is lower than the
@@ -108,6 +118,30 @@ copy_bytes_back:
         sta     (ptr2),y
 @skip_copy:
         rts
+
+; Signals an error.
+; Only used by functions that use err to return error information.
+; A = the error code (set to ERR_FAILURE by return_fail)
+
+return_fail:
+        lda     #ERR_FAIL
+return_error:
+        sec
+        sta     status
+        rts
+
+; Signals that a function completed successfully.
+; Only used by functions that use err to signal status.
+; A = the status code (set to STATUS_OK by return_ok)
+
+return_ok:
+        lda     #STATUS_OK
+return_status:
+        sta     status
+        clc
+        rts
+
+
 
 
 

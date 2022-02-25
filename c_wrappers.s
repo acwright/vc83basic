@@ -24,6 +24,21 @@ _program_start = program_start
 _program_end = program_end
 .export _program_end
 
+_status = status
+.export _status
+
+.bss
+
+; The wrappers for functions that use the carry bit to flag errors return the carry to C and use these fields to
+; save the register values returned from the function.
+
+_reg_ax:
+_reg_a: .res 1
+_reg_x: .res 1
+.export _reg_ax, _reg_a, _reg_x
+
+.code
+
 ; Function wrappers
 
 ; Same as popptr1 but for ptr2.
@@ -36,8 +51,11 @@ popptr2:
         sta     ptr2
         jmp     incsp2
 
-; Returns 0 or 1 depending on the carry state.
+; Returns 0 or 1 depending on the carry state,
+; and sets _ax to whatever the function returned in AX.
 return_carry:
+        sta     _reg_a
+        stx     _reg_x
         bcs     @error
         jmp     return0
 @error:
@@ -70,6 +88,17 @@ _insert_or_update_line:
         jsr     popax           ; The line number will be on the stack
         ldy     tmp1            ; Recover offset into Y
         jsr     insert_or_update_line
+        jmp     return_carry
+
+_parse_number:
+.export _parse_number
+        tay                     ; Buffer offset into Y
+        jsr     parse_number
+        jmp     return_carry
+
+_char_to_digit:
+.export _char_to_digit
+        jsr     char_to_digit
         jmp     return_carry
 
 _copy_bytes:
