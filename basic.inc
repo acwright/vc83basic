@@ -8,7 +8,7 @@
 ; Functions
 
 ; arch_sim6502.s
-.global initialize_arch, getline, getchar, putline, putline_buffer, putchar
+.global initialize_arch, readline, getchar, write, write_buffer, putchar, newline
 
 ; program.s
 .global initialize_program, reset_line_ptr, find_line, advance_line_ptr, insert_or_update_line
