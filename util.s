@@ -141,8 +141,49 @@ return_status:
         clc
         rts
 
+; Multiplies the value in AX by 10 by shifting left twice, adding original value, shifting left once more.
+; AX = the value to multiply by 10
+; Returns the product in AX
 
+mul10:
+        sta     regsave             ; Store value in regsave
+        stx     regsave+1
+        asl     A                   ; Shift A + regsave+1 left 2
+        rol     regsave+1
+        asl     A                   
+        rol     regsave+1
+        clc
+        adc     regsave+0           ; Add in original value and save back
+        sta     regsave+0
+        txa
+        adc     regsave+1           ; Same thing for high byte
+        asl     regsave+0           ; Shift the value left once more; A is now the high byte
+        rol     A
+        tax
+        lda     regsave+0
+        rts
 
+; Divides the value in AX by 10. Unfortunately we have to do "real" division; there's no clever shortcut.
+; AX = the value to divide by 10
+; Returns the quotient in AX and the remainder in Y
 
-
-
+div10:
+        sta     regsave             ; Store value in regsave
+        stx     regsave+1
+        ldx     #16                 ; 16 bits
+        lda     #0                  ; Initialize remainder to 0
+@next_bit:
+        asl     regsave             ; Shift dividend left into A
+        rol     regsave+1
+        rol     A
+        cmp     #10                 ; Reached 10 yet?
+        bcc     @not_10
+        sbc     #10                 ; Subtract 10 from remainder; carry is set
+        inc     regsave             ; Set bit in quotient
+@not_10:
+        dex                         ; One bit down
+        bne     @next_bit           ; Some more to go
+        tay                         ; Remainder into Y
+        lda     regsave             ; Divisor into AX
+        ldx     regsave+1
+        rts

@@ -35,7 +35,8 @@ _status = status
 _reg_ax:
 _reg_a: .res 1
 _reg_x: .res 1
-.export _reg_ax, _reg_a, _reg_x
+_reg_y: .res 1
+.export _reg_ax, _reg_a, _reg_x, _reg_y
 
 .code
 
@@ -116,3 +117,13 @@ _copy_bytes_back:
         jsr     popptr1
         jsr     popptr2
         jmp     copy_bytes_back
+
+_mul10:
+.export _mul10
+        jmp     mul10
+
+_div10:
+.export _div10
+        jsr     div10
+        sty     _reg_y          ; Save remainder
+        rts
