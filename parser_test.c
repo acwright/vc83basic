@@ -1,7 +1,14 @@
 #include "test.h"
 
+static void set_buffer(const char* s) {
+    strcpy(buffer, s);
+    buffer_length = strlen(s);
+}
+
 static void test_char_to_digit(void) {
     int err;
+
+    PRINT_TEST_NAME();
 
     err = char_to_digit('0');
     ASSERT_EQ(err, 0);
@@ -17,6 +24,8 @@ static void test_char_to_digit(void) {
 
 static void test_parse_number(void) {
     int err;
+
+    PRINT_TEST_NAME();
 
     strcpy(buffer, "10 PRINT X");
     buffer_length = 10;
@@ -39,9 +48,27 @@ static void test_parse_number(void) {
     ASSERT_EQ(reg_ax, 10000);
 }
 
+void test_parse_keyword(void) {
+    int err;
+    const char* print = "PRIN\xD4";
+
+    PRINT_TEST_NAME();
+
+    set_buffer("PRINT");
+    err = parse_keyword("PRIN\xD4", 0); // \xD4 = 'T' with high bit set
+    ASSERT_EQ(err, 0);
+    err = parse_keyword("LIS\xD4", 0);
+    ASSERT_EQ(err, 1);
+    err = parse_keyword("PRINTE\xD2", 0);
+    ASSERT_EQ(err, 1);
+    err = parse_keyword("PRIN\xD4", 2);
+    ASSERT_EQ(err, 1);
+}
+
 int main(void) {
     initialize_arch();
     test_char_to_digit();
     test_parse_number();
+    test_parse_keyword();
     return 0;
 }

@@ -57,10 +57,19 @@ popptr2:
 return_carry:
         sta     _reg_a
         stx     _reg_x
-        bcs     @error
-        jmp     return0
-@error:
-        jmp     return1        
+        lda     #0
+        tax
+        rol     A
+        rts
+
+; Common logic for wrapper functions that accept the buffer offset as the last argument.
+; Moves the offset into Y and pops the value at the top of the C stack into AX.
+
+swap_ax_y:
+        sta     tmp1            ; The offset into buffer will be passed from C function in A; save in tmp1
+        jsr     popax           ; Some other argument will be on the stack
+        ldy     tmp1            ; Recover offset into Y
+        rts
 
 _initialize_arch:
 .export _initialize_arch
@@ -85,9 +94,7 @@ _advance_line_ptr:
 
 _insert_or_update_line:
 .export _insert_or_update_line
-        sta     tmp1            ; The offset into buffer will be passed from C function in A; save in tmp1
-        jsr     popax           ; The line number will be on the stack
-        ldy     tmp1            ; Recover offset into Y
+        jsr     swap_ax_y
         jsr     insert_or_update_line
         jmp     return_carry
 
@@ -100,6 +107,12 @@ _parse_number:
 _char_to_digit:
 .export _char_to_digit
         jsr     char_to_digit
+        jmp     return_carry
+
+_parse_keyword:
+.export _parse_keyword
+        jsr     swap_ax_y
+        jsr     parse_keyword
         jmp     return_carry
 
 _copy_bytes:

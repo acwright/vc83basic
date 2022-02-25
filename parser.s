@@ -55,6 +55,37 @@ char_to_digit:
         sec                     ; Set carry to indicate error
         rts
 
+; Tests the input against a keyword. The last letter of the keyword must have bit 7 set (but it is ignored
+; in the comparison).
+; AX = pointer to the keyword
+; Y = read index into buffer
+; Returns carry clear if the keyword matched, carry set if it didn't match.
+
+parse_keyword:
+        sta     ptr1            ; Keyword pointer into ptr1        
+        stx     ptr1+1
+        tya                     ; Use X to index the buffer in this function
+        tax
+        ldy     #0              ; Y will index the keyword
+@compare:
+        lda     (ptr1),y        ; Get keyword character
+        and     #$7F            ; Mask out the high bit
+        cmp     buffer,x        ; Compare with character from buffer
+        bne     @not_match      ; It's not a match (carry flag will be uncertain)
+        lda     (ptr1),y        ; Get keyword character again
+        bmi     @match          ; Last character so it's a match; carry will be set from cmp above
+        inx                     ; Next position
+        iny
+        jmp     @compare
+
+@match:
+        clc                     ; On match the carry flag will be set to have to clear it
+        rts
+
+@not_match:
+        sec
+        rts
+
 ; Skip past any whitespace in the buffer.
 ; Y = the read index
 
