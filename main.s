@@ -22,6 +22,9 @@ ready:
         ldy     #0                      ; Y will be the read pointer
         jsr     parse_number            ; Leaves line number in AX and Y points to next character in buffer
         bcs     @immediate_mode         ; Wasn't a number, maybe an immediate mode command
+        pha                             ; Save line number
+        jsr     skip_whitespace
+        pla
         jsr     insert_or_update_line   ; Delete an existing line, if it exists
         jmp     @wait_for_input
 

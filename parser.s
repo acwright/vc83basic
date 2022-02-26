@@ -64,8 +64,9 @@ char_to_digit:
 parse_keyword:
         sta     ptr1            ; Keyword pointer into ptr1        
         stx     ptr1+1
+        jsr     skip_whitespace
         tya                     ; Use X to index the buffer in this function
-        tax
+        tax                     
         ldy     #0              ; Y will index the keyword
 @compare:
         cpx     buffer_length   ; At the end of the buffer?
