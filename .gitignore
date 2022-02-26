@@ -1,4 +1,6 @@
+.vscode
 *.o
 *.d
 *.map
 basic
+*_test
