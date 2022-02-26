@@ -3,14 +3,21 @@
 
 .include "basic.inc"
 
+.zeropage
+
+; Read index.
+r: .res 1
+
+.code
+
 ; Parses a number from the buffer.
 ; If the first character is not a number, then return an error. Otherwise, parse up to the first non-digit.
-; Y = the read index
+; r = the read index
 ; Returns the number in AX, carry clear if ok, carry set if error
 
 parse_number:
         jsr     skip_whitespace
-        sty     tmp2            ; Save Y into tmp2; we'll use this to check if we read anything
+        ldy     r               ; Use Y to index buffer
         lda     #0              ; Intialize the value to 0
         tax
 @next:
@@ -31,8 +38,9 @@ parse_number:
         jmp     @next
 
 @finish:
-        cpy     tmp2            ; Did we parse anything?
+        cpy     r               ; Did we parse anything?
         beq     @nothing        ; Nope
+        sty     r               ; Update read index
         clc                     ; Clear carry to signal OK
         rts
 
@@ -58,15 +66,14 @@ char_to_digit:
 ; Tests the input against a keyword. The last letter of the keyword must have bit 7 set (but it is ignored
 ; in the comparison).
 ; AX = pointer to the keyword
-; Y = read index into buffer
+; r = read index into buffer
 ; Returns carry clear if the keyword matched, carry set if it didn't match.
 
 parse_keyword:
         sta     ptr1            ; Keyword pointer into ptr1        
         stx     ptr1+1
         jsr     skip_whitespace
-        tya                     ; Use X to index the buffer in this function
-        tax                     
+        ldx     r               ; Use X to index buffer in this function
         ldy     #0              ; Y will index the keyword
 @compare:
         cpx     buffer_length   ; At the end of the buffer?
@@ -82,9 +89,8 @@ parse_keyword:
         jmp     @compare
 
 @match:
-        txa                     ; Transfer read index back to Y
-        tay
-        iny                     ; Move past matched character
+        inx                     ; Move past matched character
+        stx     r               ; Update read index
         clc                     ; On match the carry flag will be set to have to clear it
         rts
 
@@ -93,12 +99,15 @@ parse_keyword:
         rts
 
 ; Skip past any whitespace in the buffer.
-; Y = the read index
+; r = the read index
 
-iny_skip_whitespace:
-        iny
 skip_whitespace:
+        ldy     r               ; Use Y to index buffer
+@next:
         lda     buffer,y
+        iny
         cmp     #' '
-        beq     iny_skip_whitespace
+        beq     @next
+        dey                     ; It wasn't whitespace so go back
+        sty     r               ; Update read index
         rts

@@ -20,7 +20,8 @@ main:
         jsr     print_ready
 @wait_for_input:
         jsr     readline
-        ldy     #0                      ; Y will be the read pointer
+        lda     #0                      ; Initialize the read pointer
+        sta     r
         jsr     parse_number            ; Leaves line number in AX and Y points to next character in buffer
         bcs     @immediate_mode         ; Wasn't a number, maybe an immediate mode command
         pha                             ; Save line number
@@ -97,7 +98,8 @@ run:
         lda     #>buffer
         sta     ptr2+1
         jsr     copy_bytes              ; Copy line into buffer
-        ldy     #0                      ; Start reading from offset 0
+        lda     #0                      ; Start reading from offset 0
+        sta     r
         lda     #<keyword_print         ; Check if the keyword is print
         ldx     #>keyword_print
         jsr     parse_keyword           ; Was it "PRINT"?

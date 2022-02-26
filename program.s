@@ -139,13 +139,12 @@ get_line_ptr_plus_a:
 ; buffer = the line data
 ; buffer_length = the buffer length
 ; AX = the line number
-; Y = a pointer to the read offset in buffer 
+; r = a pointer to the read offset in buffer 
 ; Returns carry clear if okay, carry set if error (e.g., out of memory).
 
 insert_or_update_line:
         sta     regsave             ; Stash the line number in regsave
         stx     regsave+1
-        sty     tmp1                ; Stash the offset in tmp1
         jsr     find_line           ; Search for an existing line
         bcs     @insert             ; Not found, just insert the new line
 
@@ -182,7 +181,7 @@ insert_or_update_line:
         stx     ptr1+1
         lda     buffer_length       ; Load buffer_length, which should be <= 252
         sec
-        sbc     tmp1                ; Subtract the offset saved earlier to get line length
+        sbc     r                   ; Subtract the buffer index to get line length
         beq     @finish             ; If they're the same, line is blank, nothing to insert
         pha                         ; Save the line length on the stack
         jsr     get_line_start_plus_a   ; Allocate space for new line plus header
@@ -204,7 +203,7 @@ insert_or_update_line:
         sta     sreg+1              ; Set high byte of sreg to 0
         clc
         lda     #<buffer            ; Buffer start address
-        adc     tmp1                ; Add Y position
+        adc     r                   ; Add buffer index
         sta     ptr1                ; Set source address
         lda     #>buffer            ; Do the same for the high byte (TODO: if buffer is fixed address we can remove)
         adc     #0                  ; This will leave carry clear

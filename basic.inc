@@ -2,6 +2,8 @@
 
 .global buffer, buffer_length
 
+.globalzp r
+
 .globalzp line_ptr
 .global program_start, program_end
 
