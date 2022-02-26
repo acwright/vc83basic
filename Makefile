@@ -1,4 +1,4 @@
-SOURCES = startup.s arch_sim6502.s
+SOURCES = arch_sim6502.s
 OBJECTS = $(SOURCES:.s=.o)
 
 CL65 = cl65
