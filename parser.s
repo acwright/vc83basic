@@ -78,10 +78,13 @@ parse_keyword:
         lda     (ptr1),y        ; Get keyword character again
         bmi     @match          ; Last character so it's a match; carry will be set from cmp above
         inx                     ; Next position
-        iny
+        iny                     
         jmp     @compare
 
 @match:
+        txa                     ; Transfer read index back to Y
+        tay
+        iny                     ; Move past matched character
         clc                     ; On match the carry flag will be set to have to clear it
         rts
 

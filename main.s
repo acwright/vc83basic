@@ -11,11 +11,12 @@ error_length = * - error_message
 
 keyword_list: .byte 'L', 'I', 'S', 'T'+$80
 keyword_run: .byte 'R', 'U', 'N'+$80
+keyword_print: .byte 'P', 'R', 'I', 'N', 'T'+$80
 
 main:
         jsr     initialize_arch
         jsr     initialize_program
-ready:
+@ready:
         jsr     print_ready
 @wait_for_input:
         jsr     readline
@@ -33,22 +34,22 @@ ready:
         ldx     #>keyword_list
         jsr     parse_keyword           ; Was it "LIST"?
         bcs     @not_list
-        jmp     list
+        jsr     list
+        jmp     @ready
 
 @not_list:
         lda     #<keyword_run
         ldx     #>keyword_run
         jsr     parse_keyword           ; Was it "RUN"?
         bcs     @not_run
-        jmp     run
+        jsr     run
+        jmp     @ready
 
 @not_run:
-        lda     #<error_message         ; Pass address of message in ptr1
-        ldx     #>error_message
-        ldy     #error_length
-        jsr     write
-        jsr     newline
+        jsr     print_error
         jmp     @wait_for_input
+
+; Scans through the program and prints each line.
 
 list:
         jsr     reset_line_ptr
@@ -72,10 +73,46 @@ list:
         jmp     @next_line
 
 @end:
-        jmp     ready
+        rts
+
+; Executes the program.
 
 run:
-        jmp     ready
+        jsr     reset_line_ptr
+@next_line:
+        ldy     #1                      ; High byte of line number
+        lda     (line_ptr),y
+        bmi     @end                    ; If MSB of line number is set, we're at end of program
+        ldy     #2                      ; Offset of line length
+        lda     (line_ptr),y            ; Get length
+        sta     buffer_length           ; Store in buffer_length
+        sta     sreg                    ; and sreg
+        lda     #0
+        sta     sreg+1
+        jsr     get_line_start          ; Start of line in AX
+        sta     ptr1                    ; Set source for copy
+        stx     ptr1+1
+        lda     #<buffer                ; Set destination for copy
+        sta     ptr2
+        lda     #>buffer
+        sta     ptr2+1
+        jsr     copy_bytes              ; Copy line into buffer
+        ldy     #0                      ; Start reading from offset 0
+        lda     #<keyword_print         ; Check if the keyword is print
+        ldx     #>keyword_print
+        jsr     parse_keyword           ; Was it "PRINT"?
+        bcs     @error                  ; Nope
+        jsr     parse_number            ; Get the number
+        bcs     @error                  ; Fail if not a number
+        jsr     print_number            ; Print the number
+        jsr     newline
+        jsr     advance_line_ptr
+        jmp     @next_line
+
+@error:
+        jsr     print_error
+@end:
+        rts
 
 ; Prints the number in AX to the console.
 
@@ -110,4 +147,13 @@ print_ready:
         jsr     write
         jsr     newline
         rts
-                                
+
+; Prints an error message.
+
+print_error:
+        lda     #<error_message         ; Pass address of message in ptr1
+        ldx     #>error_message
+        ldy     #error_length
+        jsr     write
+        jsr     newline
+        rts
