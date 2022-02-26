@@ -71,7 +71,7 @@ reset_line_ptr:
 ; If not found, they are left set to where the line would have been, i.e., pointing
 ; to the next-higher line.
 ; AX = the line number
-; Carry clear if ok (the was found), carry set if error (line not found)
+; Carry clear if ok (the was found), carry set if error (line not found).
 
 find_line:
         sta     sreg                ; Stash the line number
@@ -105,7 +105,7 @@ find_line_sreg:
 
 ; Advances the current line pointer to the next line.
 ; Operates directly on line_ptr.
-; Returns line line_ptr value in AX
+; Returns line line_ptr value in AX.
 
 advance_line_ptr:
         ldy     #2                  ; Need offset 2 to get length
@@ -118,7 +118,8 @@ advance_line_ptr:
 ; Returns a pointer to the start of data for the current line (identified by line_ptr).
 ; The get_line_ptr_plus_a entry point adds whatever is in A to line_ptr.
 ; The get_line_start_plus_a entry point adds the size of the line header.
-; Returns the pointer in AX
+; Returns the pointer in AX.
+; Does not change Y.
 
 get_line_start:
         lda     #0                  ; Add 0 extra bytes after header
@@ -139,7 +140,7 @@ get_line_ptr_plus_a:
 ; buffer_length = the buffer length
 ; AX = the line number
 ; Y = a pointer to the read offset in buffer 
-; Returns carry clear if okay, carry set if error (e.g., out of memory)
+; Returns carry clear if okay, carry set if error (e.g., out of memory).
 
 insert_or_update_line:
         sta     regsave             ; Stash the line number in regsave
@@ -202,10 +203,10 @@ insert_or_update_line:
         lda     #0
         sta     sreg+1              ; Set high byte of sreg to 0
         clc
-        lda     buffer              ; Buffer start address
+        lda     #<buffer            ; Buffer start address
         adc     tmp1                ; Add Y position
         sta     ptr1                ; Set source address
-        lda     buffer+1            ; Do the same for the high byte (TODO: if buffer is fixed address we can remove)
+        lda     #>buffer            ; Do the same for the high byte (TODO: if buffer is fixed address we can remove)
         adc     #0                  ; This will leave carry clear
         sta     ptr1+1
         jsr     get_line_start      ; Get destination address for copy
@@ -222,7 +223,7 @@ insert_or_update_line:
 
 ; Calculates the bytes to move for both compact and expand as
 ; program_end - line_ptr.
-; Returns the number of bytes in sreg
+; Returns the number of bytes in sreg.
 
 calculate_bytes_to_move:
         sec                         ; Calculate length as program_end - line_ptr

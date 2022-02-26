@@ -117,6 +117,7 @@ save_a: .res 1
 save_x: .res 1
 save_y: .res 1
 save_sp: .res 1
+save_cc65_regs: .res zpsavespace
 
 .macro  push8   value
         lda     value
@@ -143,9 +144,14 @@ save_sp: .res 1
 format: .byte "$%02X: A=%02X X=%02X Y=%02X SP=%02X", $0A, $00
 
 ; Prints the register values to stderr.
+; Since this function calls the C library function fprintf, it saves all the C zero page registers and
+; restores them before exiting.
+; Although calling into the C library from an interrupt handler is normally asking for trouble, since sim65
+; doesn't generate interrupts, this wil only be called by a BRK statement.
+
 debug_handler:
         cld                     ; Clear decimal flag (just in case)
-        sta     save_a          ; Save the registers
+        sta     save_a          ; Save 6502 registers
         stx     save_x
         sty     save_y
         tsx                     ; Get stack pointer into X
@@ -155,14 +161,20 @@ debug_handler:
         ldy     $103,x          ; PC high byte
         dey                     ; Subtract 256 from PC; we will index with Y = 255 to get PC-1
         sty     save_pc+1
+        ldx     #0              ; Prepare to save cc65 registers
+; @save_reg:
+;         lda     sp,x            ; sp is the first register
+;         sta     save_cc65_regs,x
+;         inx
+;         cpx     zpsavespace
+;         bne     @save_reg 
+        push16  sreg
         push8   tmp1
         push8   tmp2
-        push8   tmp3
-        push8   tmp4
-        push16  ptr1  
+        push16  ptr1
         push16  ptr2
-        push16  sreg
-        push16  regsave  
+        push16  ptr3
+        push16  ptr4
         lda     _stderr         ; fprintf(stderr, ...
         ldx     _stderr+1
         jsr     pushax
@@ -182,15 +194,21 @@ debug_handler:
         jsr     pusha0
         ldy     #14             ; 14 bytes on the C stack
         jsr     _fprintf
-        pull16  regsave
-        pull16  sreg
+        ldx     #0              ; Prepare to restore cc65 registers
+; @restore_reg:
+;         lda     save_cc65_regs,x
+;         sta     sp,x      
+;         inx
+;         cpx     zpsavespace
+;         bne     @restore_reg 
+        pull16  ptr4
+        pull16  ptr3
         pull16  ptr2
         pull16  ptr1
-        pull8   tmp4
-        pull8   tmp3
         pull8   tmp2
         pull8   tmp1
-        lda     save_a
+        pull16  sreg
+        lda     save_a          ; Restore 6502 registers
         ldx     save_x
         ldy     save_y
         rti

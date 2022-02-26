@@ -31,7 +31,7 @@ parse_number:
         jmp     @next
 
 @finish:
-        cpy     tmp1            ; Did we parse anything?
+        cpy     tmp2            ; Did we parse anything?
         beq     @nothing        ; Nope
         clc                     ; Clear carry to signal OK
         rts

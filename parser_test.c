@@ -46,6 +46,23 @@ static void test_parse_number(void) {
     err = parse_number(0);
     ASSERT_EQ(err, 0);
     ASSERT_EQ(reg_ax, 10000);
+
+    // The function should return carry set if an invalid number.
+    strcpy(buffer, "invalid");
+    buffer_length = 7;
+    err = parse_number(0);
+    ASSERT_NE(err, 0);
+
+    // The function should not read past the end of the buffer.
+    strcpy(buffer, "10000");
+    buffer_length = 3;
+    err = parse_number(0);
+    ASSERT_EQ(err, 0);
+    ASSERT_EQ(reg_ax, 100);
+
+    buffer_length = 0;
+    err = parse_number(0);
+    ASSERT_NE(err, 0);
 }
 
 void test_parse_keyword(void) {

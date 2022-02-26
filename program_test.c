@@ -112,7 +112,9 @@ static void test_insert_or_update_line(void) {
     ASSERT_EQ(err, 0);
     reset_line_ptr();
     ASSERT_EQ(line_ptr->number, 10);    
-    ASSERT_EQ(line_ptr->length, 7);    
+    ASSERT_EQ(line_ptr->length, 7);  
+    ASSERT_MEMORY_EQ(line_ptr->data, "PRINT 1", line_ptr->length);  
+    
     advance_line_ptr();
     ASSERT_EQ(line_ptr->number, -1);    
 
