@@ -1,7 +1,6 @@
-SOURCES = basic_sim6502.s
+SOURCES = arch_sim6502.s basic_sim6502.s
 OBJECTS = $(SOURCES:.s=.o)
 
-CL65 = cl65
 ARCH = -t sim6502
 ASMFLAGS = $(ARCH) --create-dep $(<:.s=.d)
 LDFLAGS = $(ARCH) -m $@.map
@@ -9,10 +8,10 @@ LDFLAGS = $(ARCH) -m $@.map
 TARGET = basic_sim6502
 
 $(TARGET): $(OBJECTS)
-	$(CL65) $(LDFLAGS) -o $@ $^
+	cl65 $(LDFLAGS) -o $@ $^
 
 %.o: %.s
-	$(CL65) -c $(ASMFLAGS) -o $@ $<
+	cl65 -c $(ASMFLAGS) -o $@ $<
 
 ifneq ($(MAKECMDGOALS), clean)
 -include $(SOURCES:.s=.d)
