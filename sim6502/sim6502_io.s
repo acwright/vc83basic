@@ -3,12 +3,12 @@
 .import push0, push1, pusha0, pushax
 
 ; sim65 vectors
-.import _read, _write
+.import _read, _write, exit
 
 ; C standard library functions
 .import _fprintf, _stderr
 
-.include "basic.inc"
+.include "../basic.inc"
 
 .bss
 
@@ -21,7 +21,7 @@ buffer_length: .res 1
 ; A single-byte buffer for the char operations
 io_char: .res 1
 
-.code
+.code 
 
 ; Architecture-specific initializations
 ; We point the BRK handler to the brk_handler function here.
@@ -86,8 +86,7 @@ write:
         jsr     pushax          ; Push buffer pointer onto C stack
         lda     tmp1            ; Length back into A
         ldx     #0              ; High byte of length
-        jsr     _write
-        rts
+        jmp     _write
 
 ; Starts a new line on the console.
 

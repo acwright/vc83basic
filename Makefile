@@ -1,43 +1,80 @@
-SOURCES = startup.s arch_sim6502.s main.s parser.s program.s util.s
-OBJECTS = $(SOURCES:.s=.o)
+TARGETS = sim6502 apple2
 
-TEST_COMMON_SOURCES = c_wrappers.s
+TEST_TARGET = sim6502
+
+COMMON_SOURCES = main.s parser.s program.s util.s
+COMMON_OBJECTS = $(COMMON_SOURCES:.s=.o)
+
+TESTS = parser_test program_test util_test
+
+TEST_COMMON_SOURCES = c_wrappers.s $(filter-out $(TEST_TARGET)/$(TEST_TARGET)_startup.s,$(wildcard $(TEST_TARGET)/*.s))
 TEST_COMMON_OBJECTS = $(TEST_COMMON_SOURCES:.s=.o)
-TEST_SOURCES = parser_test.c program_test.c util_test.c
-TEST_OBJECTS = $(TEST_SOURCES:.c=.o)
-TESTS = $(TEST_SOURCES:.c=)
-RUN_TESTS = $(addsuffix .run, $(TESTS))
 
-CL65 = cl65
-ARCH = -t sim6502
-ASMFLAGS = $(ARCH) --create-dep $(<:.s=.d)
-CCFLAGS = $(ARCH) --create-dep $(<:.c=.d)
-LDFLAGS = $(ARCH) -m $@.map
+ASMFLAGS = --create-dep $(@:.o=.d)
+CFLAGS = --create-dep $(@:.o=.d)
+LDFLAGS = -m $@.map
 
-all: basic $(TESTS)
+# create-target defines all the rules to build a single target.
 
-basic: $(OBJECTS)
-	$(CL65) $(LDFLAGS) -o $@ $^
+define create-target
 
-test: $(RUN_TESTS)
+TARGET_$1_SOURCES = $$(wildcard $1/*.s)
+TARGET_$1_OBJECTS = $$(TARGET_$1_SOURCES:.s=.o)
 
-$(TESTS): %: %.o $(TEST_COMMON_OBJECTS) $(filter-out startup.o, $(OBJECTS))
-	$(CL65) $(LDFLAGS) -o $@ $^
+TARGET_$1_COMMON_OBJECTS = $(COMMON_SOURCES:%.s=$1/%.o)
 
-$(RUN_TESTS): %.run: %
-	sim65 $^
+basic_$1: $$(TARGET_$1_OBJECTS) $$(TARGET_$1_COMMON_OBJECTS)
+	cl65 -t $1 $$(LDFLAGS) -o $$@ $$^
 
+# Builds a target-specific object from a common source
+$1/%.o: %.s
+	cl65 -t $1 -c $$(ASMFLAGS) -o $$@ $$<
+
+# Builds a target-specific object from a target-specific source
+$1/%.o: $1/%.s
+	cl65 -t $1 -c $$(ASMFLAGS) -o $$@ $$<
+
+-include $$(TARGET_$1_SOURCES:.s=.d)
+
+clean::
+	rm -f basic_$1 $1/*.o $1/*.d $1/*.map
+
+endef
+
+# create-test defines rules to build and run a test.
+
+define create-test
+
+run_$1: $1
+	sim65 $1
+
+$1: $1.o $$(TEST_COMMON_OBJECTS) $$(COMMON_OBJECTS)
+	cl65 -t $$(TEST_TARGET) $$(LDFLAGS) -o $$@ $$^
+
+-include $1.d
+
+clean::
+	rm $1
+
+endef
+
+all: $(addprefix basic_,$(TARGETS)) $(TESTS)
+
+test: $(addprefix run_,$(TESTS))
+
+$(foreach TARGET,$(TARGETS),$(eval $(call create-target,$(TARGET))))
+
+$(foreach TEST,$(TESTS),$(eval $(call create-test,$(TEST))))
+
+# Builds a common object from a common assembly language source; used by tests
 %.o: %.s
-	$(CL65) -c $(ASMFLAGS) -o $@ $<
+	cl65 -t $(TEST_TARGET) -c $(ASMFLAGS) -o $@ $<
 
+# Same but for a C source
 %.o: %.c
-	$(CL65) -c $(CCFLAGS) -o $@ $<
+	cl65 -t $(TEST_TARGET) -c $(CFLAGS) -o $@ $<
 
-ifneq ($(MAKECMDGOALS), clean)
--include $(SOURCES:.s=.d)
--include $(TEST_COMMON_SOURCES:.s=.d)
--include $(TEST_SOURCES:.c=.d)
-endif
+-include $$(COMMON_SOURCES:.s=.d)
 
-clean:
-	rm -f basic $(TESTS) *.o *.d *.map
+clean::
+	rm -f *.o *.d *.map
