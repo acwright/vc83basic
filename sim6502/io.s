@@ -16,10 +16,10 @@ buffer_length: .res 1
 ; A single-byte buffer for the char operations
 io_char: .res 1
 
+.code 
+
 ; Reads a line from the console into the buffer.
 ; Returns the length in A and also sets buffer_length.
-
-.code 
 
 readline:
 .export readline
@@ -73,8 +73,7 @@ write:
         jsr     pushax          ; Push buffer pointer onto C stack
         lda     tmp1            ; Length back into A
         ldx     #0              ; High byte of length
-        jsr     _write
-        rts
+        jmp     _write
 
 ; Starts a new line on the console.
 
