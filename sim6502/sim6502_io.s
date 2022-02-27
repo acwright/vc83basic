@@ -10,7 +10,7 @@
 .bss
 
 ; 256-byte buffer for I/O functions
-buffer: .res 256
+buffer := $200
 
 ; The length of the data currently in the buffer
 buffer_length: .res 1
