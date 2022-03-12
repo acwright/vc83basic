@@ -2,6 +2,8 @@
 
 .include "target.inc"
 
+; Globals
+
 .globalzp r
 .globalzp w
 
@@ -9,6 +11,39 @@
 .global program_start, program_end
 
 .globalzp status
+
+.globalzp name_table
+.globalzp name_index
+.globalzp save_name_table_byte
+
+.global statement_name_table
+
+; Value types
+
+TYPE_NONE           = $00
+TYPE_INT            = $01
+TYPE_FLOAT          = $02
+TYPE_STRING         = $04
+TYPE_ANY            = $07
+TYPE_VAR            = $08
+TYPE_CH             = $09
+TYPE_INPUT          = $0A
+TYPE_PRINT          = $0B
+TYPE_THEN           = $0C
+TYPE_STEP           = $0D
+TYPE_IGNORE         = $0F
+
+; Type modifiers
+
+TYPE_OPTIONAL       = $10
+TYPE_REPEATED       = $20
+
+; Name table definitions 
+
+NT_1ARG             = $01
+NT_2ARG             = NT_1ARG + 1
+NT_3ARG             = NT_1ARG + 2
+NT_END              = $80
 
 ; Status and error codes
 

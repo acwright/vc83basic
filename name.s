@@ -7,7 +7,7 @@
 
 name_table = ptr1               ; find_name
 name_index = tmp1               ; find_name
-save_name_table_byte = tmp4     ; find_name
+save_name_table_byte = tmp2     ; find_name
 
 .code
 
@@ -33,7 +33,7 @@ find_name:
 
 @compare_byte:
         lda     (name_table),y  ; Get name character
-        beq     @fail           ; If it's 0 then out of names to match
+        beq     @error          ; If it's 0 then out of names to match
         sta     save_name_table_byte
         and     #$60            ; Check if it's a string literal character
         beq     @match          ; If not, then we've reached the end of the string and have a match
@@ -64,7 +64,7 @@ find_name:
         inc     name_index      ; Increment to next index
         jmp     @compare_name
 
-@fail:
+@error:
         sec                     ; Signal failure
         rts
 

@@ -10,39 +10,10 @@ error_message: .byte "ERROR"
 error_length = * - error_message
 
 statement_name_table:
-        .byte 'L', 'I', 'S', 'T'+$80
-        .byte 'R', 'U', 'N'+$80
-        .byte 'P', 'R', 'I', 'N', 'T'+$80
-
-; Value types
-TYPE_NONE           = $00
-TYPE_INT            = $01
-TYPE_FLOAT          = $02
-TYPE_STRING         = $04
-TYPE_ANY            = $07
-TYPE_VAR            = $08
-TYPE_CH             = $09
-TYPE_INPUT          = $0A
-TYPE_PRINT          = $0B
-TYPE_THEN           = $0C
-TYPE_STEP           = $0D
-TYPE_IGNORE         = $0F
-
-; Type modifiers
-TYPE_OPTIONAL       = $10
-TYPE_REPEATED       = $20
-
-; Syntax 
-SYNTAX_1ARG         = $01
-SYNTAX_2ARG         = SYNTAX_1ARG + 1
-SYNTAX_3ARG         = SYNTAX_1ARG + 2
-SYNTAX_END_RULE     = $80
-
-statement_syntax_rule_table:
         .word   statement_signature_table
-        .byte   'L', 'I', 'S', 'T', SYNTAX_2ARG | SYNTAX_END_RULE
-        .byte   'R', 'U', 'N', SYNTAX_1ARG | SYNTAX_END_RULE
-        .byte   'P', 'R', 'I', 'N', 'T', SYNTAX_2ARG | SYNTAX_END_RULE
+        .byte   'L', 'I', 'S', 'T', NT_2ARG | NT_END
+        .byte   'R', 'U', 'N', NT_1ARG | NT_END
+        .byte   'P', 'R', 'I', 'N', 'T', NT_2ARG | NT_END
         .byte   0
 
 statement_signature_table:

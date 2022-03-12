@@ -11,6 +11,8 @@ r: .res 1
 w: .res 1
 
 digit_value = tmp1              ; parse_number
+argument_read_count = tmp3      ; parse_statement
+save_y = tmp4                   ; parse_statement
 
 .code
 
@@ -70,74 +72,110 @@ char_to_digit:
 ; Returns carry clear if the input matched a rule and the index of that rule in A, 
 ; or carry set if it didn't match any syntax rule.
 
-parse_syntax:
-        sta     ptr1            ; Syntax table pointer into ptr1        
-        stx     ptr1+1
-        ldy     #2
-        lda     (ptr1),y        ; High byte of signature table address
-        sta     ptr2+1          ; Store into ptr2
-        dey        
-        lda     (ptr1),y        ; Low byte
-        sta     ptr2            
-        clc
-        adc     #2              ; Advance ptr1 past the signature table address
-        sta     ptr1
-        txa                     ; High byte is still in X
-        adc     #0              ; Add the carry to it
-        sta     ptr1+1          ; Store back
-        lda     #0              ; Name index
-        sta     tmp1            ; Maintain in tmp1
-@next_syntax_rule:
-        ldx     r               ; Use X to index buffer
-        ldy     #0              ; Y will index the syntax rule pointed to by ptr1
-        sty     tmp2            ; tmp2 is the current signature table entry
-        lda     (ptr1),y        ; See what we have
-        beq     @fail           ; If it was 0 then we've reached the end of the table
-        iny                     ; Advance index
-        pha                     ; Save the value on the stack; we'll restore to check end of rule bit later
-        and     #$7F            ; 
-;        bit     #$60            ; Is it the start of a string literal?
-        bne     @not_literal    ; No
-@next_literal:
-        cmp     buffer,x        ; Compare literal 
-        inx
+parse_statement:
+        lda     #<statement_name_table
+        ldx     #>statement_name_table
+        jsr     find_name       ; Leaves name_table and Y pointing to next byte in name table
+        bcs     @error
+        lda     (name_table),y  ; Check if there are any arguments to read
+        sta     save_name_table_byte
+        and     #$70            ; If we're left with $10 then read arguments
+        cmp     #$10
+;         beq     @arguments
+
+
+
+
+; @arguments:
+;         lda     save_name_table_byte
+;         and     #$0F            ; Find out how many arguments we have to read
+;         sta     argument_read_count
+;         beq     @no_more_arguments
+; @next_argument:
+;         jsr     parse_argument
+;         dec     argument_read_count
+;         beq     @no_more_arguments
+;         jsr     parse_argument_separator
+;         jmp     @next_argument
+
+
+
+
+
+
+        and     #$70            
+
+
+
+;         sta     ptr1            ; Syntax table pointer into ptr1        
+;         stx     ptr1+1
+;         ldy     #2
+;         lda     (ptr1),y        ; High byte of signature table address
+;         sta     ptr2+1          ; Store into ptr2
+;         dey        
+;         lda     (ptr1),y        ; Low byte
+;         sta     ptr2            
+;         clc
+;         adc     #2              ; Advance ptr1 past the signature table address
+;         sta     ptr1
+;         txa                     ; High byte is still in X
+;         adc     #0              ; Add the carry to it
+;         sta     ptr1+1          ; Store back
+;         lda     #0              ; Name index
+;         sta     tmp1            ; Maintain in tmp1
+; @next_syntax_rule:
+;         ldx     r               ; Use X to index buffer
+;         ldy     #0              ; Y will index the syntax rule pointed to by ptr1
+;         sty     tmp2            ; tmp2 is the current signature table entry
+;         lda     (ptr1),y        ; See what we have
+;         beq     @fail           ; If it was 0 then we've reached the end of the table
+;         iny                     ; Advance index
+;         pha                     ; Save the value on the stack; we'll restore to check end of rule bit later
+;         and     #$7F            ; 
+; ;        bit     #$60            ; Is it the start of a string literal?
+;         bne     @not_literal    ; No
+; @next_literal:
+;         cmp     buffer,x        ; Compare literal 
+;         inx
         
 
 
 
-@not_literal:
+; @not_literal:
 
 
-        sty     tmp3            ; Park Y in tmp3 and re-use Y to access the signature table
-        ldy     tmp2
-        and     #$07            ; Low 3 bits are the number of signature table entries to read
-        beq     @skip_arguments ; No arguments (this is the mechanism that )
-        sta     tmp4            ; tmp4 is the number of signature table arguments to read
-@next_argument:
-        beq     @finish_arguments ; No more arguments
+;         sty     tmp3            ; Park Y in tmp3 and re-use Y to access the signature table
+;         ldy     tmp2
+;         and     #$07            ; Low 3 bits are the number of signature table entries to read
+;         beq     @skip_arguments ; No arguments (this is the mechanism that )
+;         sta     tmp4            ; tmp4 is the number of signature table arguments to read
+; @next_argument:
+;         beq     @finish_arguments ; No more arguments
         
 
 
 
-        dec     tmp4            ; Decrement the number of signature table entries
+;         dec     tmp4            ; Decrement the number of signature table entries
 
-@skip_arguments:
+; @skip_arguments:
 
-@finish_arguments:
-
-
+; @finish_arguments:
 
 
-        jsr     parse_string_literal    ; Try to parse as a string literal
+
+
+;         jsr     parse_string_literal    ; Try to parse as a string literal
         
 
-@fail:
+@error:
         sec                     ; Set carry to indicate failure
         rts
 
 
 parse_string_literal:
         rts
+
+
 
 parse_arguments:
         rts
