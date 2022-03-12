@@ -98,11 +98,11 @@ _char_to_digit:
         jsr     char_to_digit
         jmp     return_carry
 
-_parse_name:
-.export _parse_name
+_find_name:
+.export _find_name
         sta     r               ; Buffer index
         jsr     popax           ; Name table pointer
-        jsr     parse_name
+        jsr     find_name
         jmp     return_carry
 
 _copy_bytes:

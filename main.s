@@ -75,7 +75,7 @@ main:
 @immediate_mode:
         lda     #<statement_name_table
         ldx     #>statement_name_table
-        jsr     parse_name
+        jsr     find_name
         bcs     @error
         jsr     invoke_statement_handler
         jmp     @wait_for_input
@@ -149,7 +149,7 @@ exec_run:
         sta     r
         lda     #<statement_name_table    ; What statement was it?
         ldx     #>statement_name_table
-        jsr     parse_name
+        jsr     find_name
         bcs     @error
         jsr     invoke_statement_handler
         jsr     advance_line_ptr

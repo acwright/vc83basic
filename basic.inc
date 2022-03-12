@@ -3,6 +3,7 @@
 .include "target.inc"
 
 .globalzp r
+.globalzp w
 
 .globalzp line_ptr
 .global program_start, program_end
@@ -23,9 +24,11 @@ ST_PRINT    = 2
 
 ; Functions
 
+; name.s
+.global find_name, advance_y_next_name
+
 ; parser.s
 .global parse_number, char_to_digit
-.global parse_name
 .global skip_whitespace
 
 ; program.s

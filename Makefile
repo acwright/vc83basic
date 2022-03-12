@@ -2,10 +2,10 @@ TARGETS = sim6502 apple2
 
 TEST_TARGET = sim6502
 
-COMMON_SOURCES = main.s parser.s program.s util.s
+COMMON_SOURCES = main.s name.s parser.s program.s util.s
 COMMON_OBJECTS = $(COMMON_SOURCES:.s=.o)
 
-TESTS = parser_test program_test util_test
+TESTS = name_test parser_test program_test util_test
 
 TEST_COMMON_SOURCES = c_wrappers.s $(filter-out $(TEST_TARGET)/$(TEST_TARGET)_startup.s,$(wildcard $(TEST_TARGET)/*.s))
 TEST_COMMON_OBJECTS = $(TEST_COMMON_SOURCES:.s=.o)
@@ -13,6 +13,10 @@ TEST_COMMON_OBJECTS = $(TEST_COMMON_SOURCES:.s=.o)
 ASMFLAGS = --create-dep $(@:.o=.d)
 CFLAGS = --create-dep $(@:.o=.d)
 LDFLAGS = -m $@.map
+
+TEST_ASMFLAGS = $(ASMFLAGS)
+TEST_CFLAGS = -W -unused-func $(CFLAGS)
+TEST_LDFLAGS = $(LDFLAGS)
 
 # create-target defines all the rules to build a single target.
 
@@ -49,7 +53,7 @@ run_$1: $1
 	sim65 $1
 
 $1: $1.o $$(TEST_COMMON_OBJECTS) $$(COMMON_OBJECTS)
-	cl65 -t $$(TEST_TARGET) -C $(TEST_TARGET)/$(TEST_TARGET).cfg $$(LDFLAGS) -o $$@ $$^
+	cl65 -t $$(TEST_TARGET) -C $(TEST_TARGET)/$(TEST_TARGET).cfg $$(TEST_LDFLAGS) -o $$@ $$^
 
 -include $1.d
 
@@ -68,11 +72,11 @@ $(foreach TEST,$(TESTS),$(eval $(call create-test,$(TEST))))
 
 # Builds a common object from a common assembly language source; used by tests
 %.o: %.s
-	cl65 -t $(TEST_TARGET) -C $(TEST_TARGET)/$(TEST_TARGET).cfg -c $(ASMFLAGS) -o $@ $<
+	cl65 -t $(TEST_TARGET) -C $(TEST_TARGET)/$(TEST_TARGET).cfg -c $(TEST_ASMFLAGS) -o $@ $<
 
 # Same but for a C source
 %.o: %.c
-	cl65 -t $(TEST_TARGET) -C $(TEST_TARGET)/$(TEST_TARGET).cfg -c $(CFLAGS) -o $@ $<
+	cl65 -t $(TEST_TARGET) -C $(TEST_TARGET)/$(TEST_TARGET).cfg -c $(TEST_CFLAGS) -o $@ $<
 
 -include $$(COMMON_SOURCES:.s=.d)
 
