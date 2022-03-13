@@ -211,7 +211,7 @@ jsr_indexed_vector:
         sta     @vectors
         stx     @vectors+1
         tya
-        asl     A
+        asl     A                   ; Multiply by 2 since each vector is 2 bytes
         tay
         lda     (@vectors),y
         sta     jmpvec+1

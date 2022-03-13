@@ -26,7 +26,7 @@ parse_number:
 @digit_value = tmp1
 
         jsr     skip_whitespace
-        ldy     r               ; Use Y to index buffer
+        ldy     r               ; Use Y to index buffer (since AX will hold the number)
         lda     #0              ; Intialize the value to 0
         tax
 @next:
@@ -80,7 +80,8 @@ parse_statement:
 
 @save_y = tmp3
 
-        jsr     find_name       ; Sets name_table and Y points to next byte in name table
+        jsr     skip_whitespace
+        jsr     find_name       ; Sets Y to next byte in name table entry
         sty     @save_y         ; Remember the Y position
         bcs     @error
         pha                     ; Push the returned name index
@@ -103,6 +104,7 @@ parse_statement:
 
 @after_character_sequence:
         lda     (name_table),y  ; Check if there are any arguments to read
+        debug $00
         beq     @success
         and     #$60            ; If byte AND $60 is non-zero then it's another character sequence.
         bne     @success
@@ -113,8 +115,9 @@ parse_statement:
         lda     (name_table),y  ; Re-read name table byte
         pha                     ; Remember it in order to check bit 7 later
         iny
-        sty     @save_y         ; parse_arguments needs Y
+        debug $01
         and     #$0F            ; How many arguments to parse?
+        sty     @save_y         ; parse_arguments needs Y
         jsr     parse_arguments
         pla                     ; Pop name table byte before checking for error       
         bcs     @error
@@ -124,14 +127,17 @@ parse_statement:
 
         ldy     @save_y
         lda     (name_table),y
+        debug $10
         and     #$60            ; Is it a character sequence?
-        beq     @arguments      ; Nope, go handle more arguments
+        beq     @arguments      ; Nope, go handle more arguments (Y is good)
+        jsr     skip_whitespace
         jsr     match_character_sequence    ; Will advance Y past the matched sequence
-        bcc     @after_character_sequence   ; If matched then continue, else fall through to @error
+        bcc     @after_character_sequence   ; If matched then continue, else fall through to @error (Y is good)
 
 ; We never jump to @error without carry being set so don't have to set it again.
 
 @error:
+        debug $11
         rts
 
 @success:
@@ -175,6 +181,7 @@ parse_arguments:
 @next_argument:
         ldy     argument_index  ; Use Y to index signature
         lda     (signature),y   ; Load argument
+        debug $20
         and     $0F             ; Isolate argument type
         tay
         lda     #<argument_type_vectors
@@ -183,14 +190,15 @@ parse_arguments:
         bcs     @error
         inc     argument_index
         dec     @argument_count
-        lda     @argument_count
         beq     @done
         jsr     parse_argument_separator
         jmp     @next_argument
 @done:
+        debug $21
         rts
 
 @error:
+        debug $22
         sec
         rts
 
@@ -217,12 +225,12 @@ parse_expression:
 
 parse_argument_separator:
         jsr     skip_whitespace
-        ldy     r
-        lda     buffer,y
+        ldx     r
+        lda     buffer,x
         cmp     #','
         bne     @error
-        iny
-        sty     r
+        inx
+        stx     r
         clc
         rts
 
@@ -231,17 +239,16 @@ parse_argument_separator:
         rts
 
 ; Skip past any whitespace in the buffer.
+; This function is NOT exported because we want other modules to call parsing funtions, not this function.
 ; r = the read index (modified)
 
 skip_whitespace:
-        ldy     r               ; Use Y to index buffer
+        ldx     r               ; Use Y to index buffer
 @next:
-        lda     buffer,y
-        iny
+        lda     buffer,x
+        inx
         cmp     #' '
         beq     @next
-        dey                     ; It wasn't whitespace so go back
-        sty     r               ; Update read index
+        dex                     ; It wasn't whitespace so go back
+        stx     r               ; Update read index
         rts
-
-

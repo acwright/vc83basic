@@ -25,9 +25,7 @@ find_name:
 
         lda     #0              ; Name index
         sta     @count      
-        jsr     skip_whitespace
 @compare_name:
-        ldx     r               ; Use X to index buffer in this function
         ldy     #0              ; Y will index the name
         lda     (name_table),y  ; Get name character
         beq     @error          ; If it's 0 then out of names to match
@@ -38,7 +36,6 @@ find_name:
         jmp     @compare_name
 
 @match:
-        stx     r               ; Update read index
         clc                     ; Signal success
         lda     @count          ; Return number of matched name in A
         ldx     #0
@@ -81,6 +78,7 @@ match_character_sequence:
         ldx     r               ; Load read position into X
 @compare_byte:
         lda     (name_table),y  ; Get name character
+        debug $40
         and     #$60            ; Check if it's a string literal character
         beq     @match          ; If not, then we've reached the end of the string and have a match
         lda     (name_table),y  ; Reload the character from name table
@@ -97,7 +95,7 @@ match_character_sequence:
 ; TODO: if last character was letter, make sure next one in buffer is not letter.
 
 @match:
-        sty     r               ; Update r
+        stx     r               ; Update r
         clc                     ; Signal success
         rts
 

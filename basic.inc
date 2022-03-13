@@ -31,7 +31,7 @@
 .global parse_arguments
 .global parse_expression
 .global parse_argument_separator
-.global skip_whitespace
+.global skip_whitespace ; TODO: remove
 
 ; program.s
 .global initialize_program, reset_line_ptr, find_line, advance_line_ptr, insert_or_update_line

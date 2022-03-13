@@ -151,8 +151,19 @@ static void test_parse_arguments(void) {
 
 static void test_parse_statement(void) {
     int err;
-    char name_table[] = { 'P', 'L', 'O', 'T', 0x12+0x80, 'N', 'E', 'W'+0x80, 'G', 'R', 0x11+0x80, 0 };
-    char signature_table[] = { 0x01, 0x01, 0, 0, 0x01, 0 };
+    char name_table[] = { 
+        'P', 'L', 'O', 'T', 0x12+0x80, 
+        'N', 'E', 'W'+0x80, 
+        'G', 'R', 0x11+0x80,
+        'F', 'O', 'R', 0x11, 'T', 'O', 0x11+0x80,
+        0 
+    };
+    char signature_table[] = { 
+        0x01, 0x01,
+        0, 0, 
+        0x01, 0,
+        0x01, 0x01
+    };
 
     PRINT_TEST_NAME();
 
@@ -185,6 +196,19 @@ static void test_parse_statement(void) {
     ASSERT_EQ(output_buffer[1], 2);
     ASSERT_EQ(output_buffer[2], 8);
     ASSERT_EQ(output_buffer[3], 0);
+
+    set_buffer("FOR 1 TO 10000");
+    err = parse_statement(name_table, signature_table, 0, 0);
+    ASSERT_EQ(err, 0);
+    ASSERT_EQ(r, 14);
+    ASSERT_EQ(w, 7);
+    ASSERT_EQ(output_buffer[0], 3);
+    ASSERT_EQ(output_buffer[1], 2);
+    ASSERT_EQ(output_buffer[2], 1);
+    ASSERT_EQ(output_buffer[3], 0);
+    ASSERT_EQ(output_buffer[4], 2);
+    ASSERT_EQ(output_buffer[5], 16);
+    ASSERT_EQ(output_buffer[6], 39);
 }
 
 int main(void) {
