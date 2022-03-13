@@ -94,21 +94,23 @@ parse_statement:
         sta     argument_index  ; Opportunistically set argument_index to 0
         adc     signature+1
         sta     signature+1
+        ldy     @save_y
 
-; After parsing a character sequence, Y will point to one of:
-; 1. 0, meaning we matched the last sequence in the last entry.
-; 2. A character, which must be the *next* entry.
+; After a character sequence, Y will point to one of:
+; 1. 0, meaning we matched the last sequence in the last name table entry; stop.
+; 2. A character, which must be the *next* entry; stop.
 ; 3. An argument placeholder. In this case we keep reading arguments and/or character sequences.
 
-@ldy_next:
-        ldy     @save_y
-@next:
+@after_character_sequence:
         lda     (name_table),y  ; Check if there are any arguments to read
         beq     @success
-        and     #$70            ; If we're left with $10 then read arguments
-        cmp     #$10
-        bne     @character_sequence
-        lda     (name_table),y  ; Restore name table byte
+        and     #$60            ; If byte AND $60 is non-zero then it's another character sequence.
+        bne     @success
+
+; The next byte must be arguments.
+
+@arguments:
+        lda     (name_table),y  ; Re-read name table byte
         pha                     ; Remember it in order to check bit 7 later
         iny
         sty     @save_y         ; parse_arguments needs Y
@@ -116,22 +118,25 @@ parse_statement:
         jsr     parse_arguments
         pla                     ; Pop name table byte before checking for error       
         bcs     @error
+        bmi     @success        ; If bit 7 set then all done
 
-; After parsing the arguments, if bit 7 of the name table byte is set, then we're done,
-; otherwise continue.
-        bpl     @ldy_next
+; Just finished arguments. If there's a character sequence here then parse it, otherwise parse another argument.
 
-; If we're here then fall through to success.
+        ldy     @save_y
+        lda     (name_table),y
+        and     #$60            ; Is it a character sequence?
+        beq     @arguments      ; Nope, go handle more arguments
+        jsr     match_character_sequence    ; Will advance Y past the matched sequence
+        bcc     @after_character_sequence   ; If matched then continue, else fall through to @error
+
 ; We never jump to @error without carry being set so don't have to set it again.
 
-@success:
-        clc
 @error:
         rts
 
-@character_sequence:
-        jsr     match_character_sequence    ; Will advance Y
-        bcc     @next
+@success:
+        clc
+        rts
 
 argument_type_vectors:
         .word   parse_error
