@@ -70,131 +70,68 @@ char_to_digit:
 ; Parses and tokenizes a statement.
 ; The last byte of the buffer should be 0, which won't match anything. This avoids the need to keep checking
 ; the buffer length.
+; name = pointer to the first entry of the name table
+; signature = pointer to the first entry of the signature table
 ; r = read index into the bffer
 ; Returns carry clear if the input matched a rule and the index of that rule in A, 
 ; or carry set if it didn't match any syntax rule.
 
 parse_statement:
 
-@save_y = tmp1
+@save_y = tmp3
 
-        lda     #<statement_name_table
-        ldx     #>statement_name_table
-        jsr     find_name       ; Sets name_table and name_index and Y points to next byte in name table
+        jsr     find_name       ; Sets name_table and Y points to next byte in name table
+        sty     @save_y         ; Remember the Y position
         bcs     @error
-        sty     @save_y         ; Remember name table entry index
         pha                     ; Push the returned name index
-        ; jsr     encode_statement_name   ; Encode a statement name
+        jsr     encode_byte     ; Encode a statement name
+        pla                     ; Get the name index back before checking error
+        bcs     @error          ; encode_byte error
+        asl                     ; Calculate the address of the signature; each name gets 2 signature bytes
+        adc     signature       ; Carry clear because encode_byte succeeded
+        sta     signature
         lda     #0
-        sta     argument_index  ; Start out at argument index 0
-        
+        sta     argument_index  ; Opportunistically set argument_index to 0
+        adc     signature+1
+        sta     signature+1
 
-; After matching a name, Y will point to one of:
-; 1. 0, meaning we matched the last entry and there are no arguments.
+; After parsing a character sequence, Y will point to one of:
+; 1. 0, meaning we matched the last sequence in the last entry.
 ; 2. A character, which must be the *next* entry.
 ; 3. An argument placeholder. In this case we keep reading arguments and/or character sequences.
 
+@ldy_next:
+        ldy     @save_y
+@next:
         lda     (name_table),y  ; Check if there are any arguments to read
-        pha
+        beq     @success
         and     #$70            ; If we're left with $10 then read arguments
         cmp     #$10
-        pla
+        bne     @character_sequence
+        lda     (name_table),y  ; Restore name table byte
+        pha                     ; Remember it in order to check bit 7 later
+        iny
+        sty     @save_y         ; parse_arguments needs Y
         and     #$0F            ; How many arguments to parse?
-        jsr     parse_arguments        
+        jsr     parse_arguments
+        pla                     ; Pop name table byte before checking for error       
         bcs     @error
 
+; After parsing the arguments, if bit 7 of the name table byte is set, then we're done,
+; otherwise continue.
+        bpl     @ldy_next
 
+; If we're here then fall through to success.
+; We never jump to @error without carry being set so don't have to set it again.
 
-
-; @arguments:
-;         lda     save_name_table_byte
-;         and     #$0F            ; Find out how many arguments we have to read
-;         sta     argument_read_count
-;         beq     @no_more_arguments
-; @next_argument:
-;         jsr     parse_argument
-;         dec     argument_read_count
-;         beq     @no_more_arguments
-;         jsr     parse_argument_separator
-;         jmp     @next_argument
-
-
-
-
-
-
-        and     #$70            
-
-
-
-;         sta     ptr1            ; Syntax table pointer into ptr1        
-;         stx     ptr1+1
-;         ldy     #2
-;         lda     (ptr1),y        ; High byte of signature table address
-;         sta     ptr2+1          ; Store into ptr2
-;         dey        
-;         lda     (ptr1),y        ; Low byte
-;         sta     ptr2            
-;         clc
-;         adc     #2              ; Advance ptr1 past the signature table address
-;         sta     ptr1
-;         txa                     ; High byte is still in X
-;         adc     #0              ; Add the carry to it
-;         sta     ptr1+1          ; Store back
-;         lda     #0              ; Name index
-;         sta     tmp1            ; Maintain in tmp1
-; @next_syntax_rule:
-;         ldx     r               ; Use X to index buffer
-;         ldy     #0              ; Y will index the syntax rule pointed to by ptr1
-;         sty     tmp2            ; tmp2 is the current signature table entry
-;         lda     (ptr1),y        ; See what we have
-;         beq     @fail           ; If it was 0 then we've reached the end of the table
-;         iny                     ; Advance index
-;         pha                     ; Save the value on the stack; we'll restore to check end of rule bit later
-;         and     #$7F            ; 
-; ;        bit     #$60            ; Is it the start of a string literal?
-;         bne     @not_literal    ; No
-; @next_literal:
-;         cmp     buffer,x        ; Compare literal 
-;         inx
-        
-
-
-
-; @not_literal:
-
-
-;         sty     tmp3            ; Park Y in tmp3 and re-use Y to access the signature table
-;         ldy     tmp2
-;         and     #$07            ; Low 3 bits are the number of signature table entries to read
-;         beq     @skip_arguments ; No arguments (this is the mechanism that )
-;         sta     tmp4            ; tmp4 is the number of signature table arguments to read
-; @next_argument:
-;         beq     @finish_arguments ; No more arguments
-        
-
-
-
-;         dec     tmp4            ; Decrement the number of signature table entries
-
-; @skip_arguments:
-
-; @finish_arguments:
-
-
-
-
-;         jsr     parse_string_literal    ; Try to parse as a string literal
-        
-
+@success:
+        clc
 @error:
-        sec                     ; Set carry to indicate failure
         rts
 
-
-parse_string_literal:
-        rts
-
+@character_sequence:
+        jsr     match_character_sequence    ; Will advance Y
+        bcc     @next
 
 argument_type_vectors:
         .word   parse_error

@@ -19,7 +19,7 @@ void test_find_name(void) {
 
     // C adds a trailing 0 to these strings which terminates the name table.
     set_buffer("PRINT");
-    err = find_name("PRIN\xD4", 0); // \xD4 = 'T' with high bit set
+    err = find_name("PRIN\xD4", 0); // \xD4 = 'T' with bit 7 set
     ASSERT_EQ(err, 0);
     ASSERT_EQ(reg_ax, 0);
     ASSERT_EQ(reg_y, 5);

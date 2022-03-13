@@ -118,6 +118,20 @@ _char_to_digit:
         jsr     char_to_digit
         jmp     return_carry
 
+_parse_statement:
+.export _parse_statement
+        sta     w
+        jsr     popa
+        sta     r
+        jsr     popax
+        sta     signature
+        stx     signature+1
+        jsr     popax           ; Name table pointer
+        sta     name_table
+        stx     name_table+1
+        jsr     parse_statement
+        jmp     return_carry
+
 _parse_arguments:
 .export _parse_arguments
         sta     w
@@ -152,21 +166,20 @@ _find_name:
 .export _find_name
         sta     r               ; Buffer index
         jsr     popax           ; Name table pointer
+        sta     name_table
+        stx     name_table+1
         jsr     find_name
         jmp     return_carry
 
 _match_character_sequence:
 .export _match_character_sequence
-
-@save_index = tmp1
-
         sta     r
         jsr     popa
-        sta     @save_index
+        sta     regsave
         jsr     popax
         sta     name_table
         stx     name_table+1
-        ldy     @save_index
+        ldy     regsave
         jsr     match_character_sequence
         jmp     return_carry
 
@@ -208,10 +221,7 @@ _div10:
 
 _jsr_indexed_vector:
 .export _jsr_indexed_vector
-
-@save_index = tmp1
-
-        sta     @save_index     ; Index arrives in A; we need it in Y
+        sta     regsave         ; Index arrives in A; we need it in Y
         jsr     popax           ; Address of vector array
-        ldy     @save_index
+        ldy     regsave
         jmp     jsr_indexed_vector

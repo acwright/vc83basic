@@ -5,7 +5,7 @@
 .globalzp w
 .globalzp signature
 .globalzp argument_index
-.globalzp name_table, name_index
+.globalzp name_table
 .globalzp copy_from, copy_to, copy_length
 .globalzp line_ptr
 
@@ -27,6 +27,7 @@
 
 ; parser.s
 .global parse_number, char_to_digit
+.global parse_statement
 .global parse_arguments
 .global parse_expression
 .global parse_argument_separator

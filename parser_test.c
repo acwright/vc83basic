@@ -149,6 +149,27 @@ static void test_parse_arguments(void) {
     ASSERT_EQ(output_buffer[5], 1);
 }
 
+static void test_parse_statement(void) {
+    int err;
+    char name_table[] = { 'P', 'L', 'O', 'T', 0x12, 0 };
+    char signature_table[] = { 0x01, 0x01 };
+
+    PRINT_TEST_NAME();
+
+    set_buffer("PLOT 10,100");
+    err = parse_statement(name_table, signature_table, 0, 0);
+    ASSERT_EQ(err, 0);
+    ASSERT_EQ(r, 11);
+    ASSERT_EQ(w, 7);
+    ASSERT_EQ(output_buffer[0], 0);
+    ASSERT_EQ(output_buffer[1], 2);
+    ASSERT_EQ(output_buffer[2], 10);
+    ASSERT_EQ(output_buffer[3], 0);
+    ASSERT_EQ(output_buffer[4], 2);
+    ASSERT_EQ(output_buffer[5], 100);
+    ASSERT_EQ(output_buffer[6], 0);
+}
+
 int main(void) {
     initialize_target();
     test_char_to_digit();
@@ -156,5 +177,6 @@ int main(void) {
     test_parse_expression();
     test_parse_argument_separator();
     test_parse_arguments();
+    test_parse_statement();
     return 0;
 }

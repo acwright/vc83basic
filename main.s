@@ -11,7 +11,6 @@ error_message: .byte "ERROR"
 error_length = * - error_message
 
 statement_name_table:
-        .word   statement_signature_table
         .byte   'L', 'I', 'S', 'T', NT_2ARG | NT_END
         .byte   'R', 'U', 'N', NT_1ARG | NT_END
         .byte   'P', 'R', 'I', 'N', 'T', NT_2ARG | NT_END
