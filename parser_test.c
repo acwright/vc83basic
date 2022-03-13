@@ -120,6 +120,7 @@ static void test_parse_arguments(void) {
     ASSERT_EQ(err, 0);
     ASSERT_EQ(r, 1);
     ASSERT_EQ(w, 3);
+    ASSERT_EQ(argument_index, 1);
     ASSERT_EQ(output_buffer[0], 2);
     ASSERT_EQ(output_buffer[1], 1);
     ASSERT_EQ(output_buffer[2], 0);
@@ -129,6 +130,7 @@ static void test_parse_arguments(void) {
     ASSERT_EQ(err, 0);
     ASSERT_EQ(r, 1);
     ASSERT_EQ(w, 3);
+    ASSERT_EQ(argument_index, 1);
     ASSERT_EQ(output_buffer[0], 2);
     ASSERT_EQ(output_buffer[1], 1);
     ASSERT_EQ(output_buffer[2], 0);
@@ -138,6 +140,7 @@ static void test_parse_arguments(void) {
     ASSERT_EQ(err, 0);
     ASSERT_EQ(r, 7);
     ASSERT_EQ(w, 6);
+    ASSERT_EQ(argument_index, 2);
     ASSERT_EQ(output_buffer[0], 2);
     ASSERT_EQ(output_buffer[1], 1);
     ASSERT_EQ(output_buffer[2], 0);
