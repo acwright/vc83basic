@@ -18,9 +18,6 @@ copy_length: .res 2
 
 .code
 
-mul_div_tmp = regsave
-jump_table = ptr2              
-
 ; Copies bytes from a source address to a destination address.
 ; The source and destination byte ranges must not overlap unless the destination address is lower than the
 ; source address.
@@ -155,21 +152,24 @@ return_status:
 ; Returns the product in AX
 
 mul10:
-        sta     mul_div_tmp         ; Store value in mul_div_tmp
-        stx     mul_div_tmp+1
-        asl     A                   ; Shift A + mul_div_tmp+1 left 2
-        rol     mul_div_tmp+1
+
+@mul_tmp = regsave
+
+        sta     @mul_tmp            ; Store value in mul_tmp
+        stx     @mul_tmp+1
+        asl     A                   ; Shift A + mul_tmp+1 left 2
+        rol     @mul_tmp+1
         asl     A                   
-        rol     mul_div_tmp+1
+        rol     @mul_tmp+1
         clc
-        adc     mul_div_tmp+0       ; Add in original value and save back
-        sta     mul_div_tmp+0
+        adc     @mul_tmp+0          ; Add in original value and save back
+        sta     @mul_tmp+0
         txa
-        adc     mul_div_tmp+1       ; Same thing for high byte
-        asl     mul_div_tmp+0       ; Shift the value left once more; A is now the high byte
+        adc     @mul_tmp+1          ; Same thing for high byte
+        asl     @mul_tmp+0          ; Shift the value left once more; A is now the high byte
         rol     A
         tax
-        lda     mul_div_tmp+0
+        lda     @mul_tmp+0
         rts
 
 ; Divides the value in AX by 10. Unfortunately we have to do "real" division; there's no clever shortcut.
@@ -177,39 +177,45 @@ mul10:
 ; Returns the quotient in AX and the remainder in Y
 
 div10:
-        sta     mul_div_tmp         ; Store value in mul_div_tmp
-        stx     mul_div_tmp+1
+
+@div_tmp = regsave
+
+        sta     @div_tmp            ; Store value in div_tmp
+        stx     @div_tmp+1
         ldx     #16                 ; 16 bits
         lda     #0                  ; Initialize remainder to 0
 @next_bit:
-        asl     mul_div_tmp         ; Shift dividend left into A
-        rol     mul_div_tmp+1
+        asl     @div_tmp            ; Shift dividend left into A
+        rol     @div_tmp+1
         rol     A
         cmp     #10                 ; Reached 10 yet?
         bcc     @not_10
         sbc     #10                 ; Subtract 10 from remainder; carry is set
-        inc     mul_div_tmp         ; Set bit in quotient
+        inc     @div_tmp            ; Set bit in quotient
 @not_10:
         dex                         ; One bit down
         bne     @next_bit           ; Some more to go
         tay                         ; Remainder into Y
-        lda     mul_div_tmp         ; Divisor into AX
-        ldx     mul_div_tmp+1
+        lda     @div_tmp            ; Divisor into AX
+        ldx     @div_tmp+1
         rts
 
-; JSR to a jump table entry.
-; AX = address of the jump table.
-; Y = the index of the jump table entry
+; JSR to a vector selected from an array of vectors.
+; AX = address of the vector array
+; Y = the index of the vector
 
-jsr_to_table_entry:
-        sta     jump_table
-        stx     jump_table+1
+jsr_indexed_vector:
+
+@vectors = ptr2
+    
+        sta     @vectors
+        stx     @vectors+1
         tya
         asl     A
         tay
-        lda     (jump_table),y
+        lda     (@vectors),y
         sta     jmpvec+1
         iny 
-        lda     (jump_table),y
+        lda     (@vectors),y
         sta     jmpvec+2
         jmp     jmpvec              ; Handler function RTS will return from *this* function

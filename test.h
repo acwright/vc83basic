@@ -14,15 +14,26 @@ typedef struct line {
     char data[];
 } line;
 
-// Globals
+// Zero Page
 
 extern char status;
 #pragma zpsym ("status")
+extern char r;
+#pragma zpsym ("r")
+extern char w;
+#pragma zpsym ("w")
+extern void* signature;
+#pragma zpsym ("signature")
+extern char argument_index;
+#pragma zpsym ("argument_index")
+extern void* name_table;
+#pragma zpsym ("name_table")
+extern char name_index;
+#pragma zpsym ("name_index")
+extern line* line_ptr;
+#pragma zpsym ("line_ptr")
 
-extern int reg_ax;
-extern char reg_a;
-extern char reg_x;
-extern char reg_y;
+// Data
 
 extern char buffer[];
 extern char buffer_length;
@@ -30,15 +41,15 @@ extern char buffer_length;
 extern char output_buffer[];
 extern char output_buffer_length;
 
-extern line* line_ptr;
-#pragma zpsym ("line_ptr")
 extern line* program_start;
 extern line* program_end;
 
-extern char r;
-#pragma zpsym ("r")
-extern char w;
-#pragma zpsym ("w")
+// Used by c_wrappers.s
+
+extern int reg_ax;
+extern char reg_a;
+extern char reg_x;
+extern char reg_y;
 
 // Prototypes for C wrapper functions
 
@@ -46,11 +57,14 @@ extern char w;
 int find_name(const char* name, char r);
 
 // encode.s
-int encode_int(int int_value);
+int encode_int(int int_value, char w);
 
 // parser.s
 int parse_number(char r);
 int char_to_digit(char c);
+int parse_arguments(char count, void* signature, char argument_index, char r, char w);
+int parse_expression(char r, char w);
+int parse_argument_separator(char r);
 
 // program.s
 void initialize_target(void);
@@ -65,6 +79,7 @@ void copy_bytes(char* to, const char* from, size_t size);
 void copy_bytes_back(char* to, const char* from, size_t size);
 int mul10(int value);
 int div10(int value);
+int jsr_indexed_vector(void* vectors, char index);
 
 // Common functions and definitions used in tests
 

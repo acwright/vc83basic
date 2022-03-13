@@ -11,6 +11,9 @@ buffer := $200
 
 buffer_length: .res 1
 
+output_buffer: .res 256
+output_buffer_length: .res 1
+
 .code 
 
 getchar = KEYIN

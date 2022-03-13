@@ -11,19 +11,10 @@ r: .res 1
 ; Write index.
 w: .res 1
 
-.bss
-
-output_buffer: .res 256
-output_buffer_length: .res 1
+signature: .res 2
+argument_index: .res 1
 
 .code
-
-digit_value = tmp1              ; parse_number
-save_name_table_byte = tmp1     ; find_name
-save_y = tmp2                   ; parse_statement
-argument_index = tmp4           ; parse_statement, parse_arguments
-argument_count = tmp3           ; parse_arguments
-signature_entry = ptr1;         ; parse_arguments
 
 ; Parses a number from the buffer.
 ; If the first character is not a number, then return an error. Otherwise, parse up to the first non-digit.
@@ -31,6 +22,9 @@ signature_entry = ptr1;         ; parse_arguments
 ; Returns the number in AX, carry clear if ok, carry set if error
 
 parse_number:
+
+@digit_value = tmp1
+
         jsr     skip_whitespace
         ldy     r               ; Use Y to index buffer
         lda     #0              ; Intialize the value to 0
@@ -41,13 +35,13 @@ parse_number:
         pha                     ; Save A (low byte of value)
         lda     buffer,y
         jsr     char_to_digit   ; Doesn't touch X
-        sta     digit_value     ; Store the digit value
+        sta     @digit_value    ; Store the digit value
         pla                     ; Retrieve the low byte of value
         bcs     @finish         ; If there was an error in char_to_digit, stop parsing
         iny                     ; No error, increment read index
         jsr     mul10           ; Multiply the value by 10
         clc
-        adc     digit_value     ; Add the digit value
+        adc     @digit_value    ; Add the digit value
         bcc     @next           ; If carry clear then next digit
         inx                     ; Otherwise increment high byte
         jmp     @next
@@ -81,6 +75,9 @@ char_to_digit:
 ; or carry set if it didn't match any syntax rule.
 
 parse_statement:
+
+@save_y = tmp1
+
         lda     #<statement_name_table
         ldx     #>statement_name_table
         jsr     find_name       ; Sets name_table and name_index and Y points to next byte in name table
@@ -189,7 +186,7 @@ parse_string_literal:
         rts
 
 
-parse_type_vectors:
+argument_type_vectors:
         .word   parse_error
         .word   parse_expression
         .word   parse_expression
@@ -212,26 +209,31 @@ parse_type_vectors:
 ; In this function we don't pay attention to the name table anymore; we're only concerned with parsing some
 ; number of arguments based on the types in the signature table.
 ; A = the number of arguments to parse
-; r = the read index into buffer
-; signature_entry = the address of the signature table entry
-; argument_index = where to start reading arguments from signature table (updated by function)
+; signature = the address of the signature
+; argument_index = where to start reading arguments from signature table (will be updated)
+; r = the read index into buffer (will be updated)
+; w = the token write index (will be updated)
 
 parse_arguments:
-        sta     argument_count
+
+@argument_count = tmp2
+
+        sta     @argument_count
         beq     @done
 @next_argument:
-        ldy     argument_index  ; Use Y to index argument
-        lda     (signature_entry),y     ; Load argument
+        ldy     argument_index  ; Use Y to index signature
+        lda     (signature),y   ; Load argument
         and     $0F             ; Isolate argument type
         tay
-        lda     parse_type_vectors
-        ldx     parse_type_vectors+1
-        jsr     jsr_to_table_entry
+        lda     #<argument_type_vectors
+        ldx     #>argument_type_vectors
+        jsr     jsr_indexed_vector
         bcs     @error
-        dec     argument_count
         inc     argument_index
+        dec     @argument_count
+        lda     @argument_count
         beq     @done
-        jsr     skip_whitespace
+        jsr     parse_argument_separator
         jmp     @next_argument
 @done:
         rts
@@ -247,8 +249,8 @@ parse_error:
         rts
 
 ; Parses and tokenizes a expression.
-; r = the read index into buffer
-; w = the tokenization write index
+; r = the read index (will be modified)
+; w = the token write index (will be modified)
 
 parse_expression:
         jsr     parse_number
@@ -257,8 +259,27 @@ parse_expression:
 @error:
         rts
 
+; Parses a mandatory comma beween arguments.
+; r = the read index (will be updated)
+; Returns carry clear if the ',' was found or carry set if it was not.
+
+parse_argument_separator:
+        jsr     skip_whitespace
+        ldy     r
+        lda     buffer,y
+        cmp     #','
+        bne     @error
+        iny
+        sty     r
+        clc
+        rts
+
+@error:
+        sec
+        rts
+
 ; Skip past any whitespace in the buffer.
-; r = the read index
+; r = the read index (will be updated)
 
 skip_whitespace:
         ldy     r               ; Use Y to index buffer

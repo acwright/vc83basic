@@ -1,22 +1,21 @@
-; Global data
-
-.globalzp r
-.globalzp w
-
-.globalzp line_ptr
-.global program_start, program_end
+; Zero Page
 
 .globalzp status
-
-.global statement_name_table
-
-.globalzp copy_from, copy_to, copy_length
-
+.globalzp r
+.globalzp w
+.globalzp signature
+.globalzp argument_index
 .globalzp name_table, name_index
+.globalzp copy_from, copy_to, copy_length
+.globalzp line_ptr
 
-.global output_buffer, output_buffer_length
+; Data
 
-; Global functions
+.global program_start, program_end
+.global statement_name_table
+.global statement_signature_table
+
+; Functions
 
 ; encode.s
 .global encode_int
@@ -26,6 +25,9 @@
 
 ; parser.s
 .global parse_number, char_to_digit
+.global parse_arguments
+.global parse_expression
+.global parse_argument_separator
 .global skip_whitespace
 
 ; program.s
@@ -36,7 +38,7 @@
 .global copy_bytes, copy_bytes_back
 .global return_error, return_internal_error, return_status, return_status_ok
 .global mul10, div10
-.global jsr_to_table_entry
+.global jsr_indexed_vector
 
 ; Value types
 

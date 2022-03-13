@@ -11,8 +11,6 @@ name_index: .res 1
 
 .code
 
-save_name_table_byte = tmp1     ; find_name
-
 ; Matches the input against names from a table.
 ; The last letter of each name must have bit 7 set (but it is ignored in the comparison).
 ; A zero byte ends the name table.
@@ -22,6 +20,9 @@ save_name_table_byte = tmp1     ; find_name
 ; On match, returns the index of the name in A and the next position in the name table after the matched name in Y.
 
 find_name:
+
+@save_name_table_byte = tmp1
+
         sta     name_table      ; Name table pointer into name_table        
         stx     name_table+1
         lda     #0              ; Name index
@@ -36,16 +37,16 @@ find_name:
 @compare_byte:
         lda     (name_table),y  ; Get name character
         beq     @error          ; If it's 0 then out of names to match
-        sta     save_name_table_byte
+        sta     @save_name_table_byte
         and     #$60            ; Check if it's a string literal character
         beq     @match          ; If not, then we've reached the end of the string and have a match
-        lda     save_name_table_byte    ; Reload the character from name table
+        lda     @save_name_table_byte    ; Reload the character from name table
         and     #$7F            ; Clear the high bit, if it's set
         cmp     buffer,x        ; Compare with character from buffer
         bne     @no_match       ; Doesn't match
         iny                     ; Next position
         inx
-        lda     save_name_table_byte 
+        lda     @save_name_table_byte 
         bpl     @compare_byte   ; If high bit not set then continue
 
 ; We reached a character with the high bit set, or a non-character byte, so we have a match.

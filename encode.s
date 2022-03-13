@@ -11,15 +11,21 @@
 
 encode_int:
         pha
+        sec                            
         ldy     w
         lda     #TOKEN_INT
-        sta     output_buffer,y
+        sta     output_buffer,y         
         iny
+        beq     @error
         pla
         sta     output_buffer,y
         iny
+        beq     @error
         txa
         sta     output_buffer,y
         iny
+        beq     @error
         sty     w
+        clc
+@error:
         rts     

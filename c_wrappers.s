@@ -6,7 +6,7 @@
 
 ; cc65 runtime
 .include "zeropage.inc"
-.import popax, popptr1, incsp2, return0, return1
+.import popa, popax, popptr1, incsp2, return0, return1
 
 .include "target.inc"
 .include "basic.inc"
@@ -27,6 +27,9 @@
 
 .export _r = r
 .export _w = w;
+
+.export _signature = signature
+.export _argument_index = argument_index
 
 .bss
 
@@ -65,6 +68,15 @@ return_carry:
         tax
         rol     A
         rts
+
+; encode.s
+
+_encode_int:
+.export _encode_int
+        sta     w
+        jsr     popax
+        jsr     encode_int
+        jmp     return_carry
 
 ; program.s
 
@@ -109,18 +121,41 @@ _char_to_digit:
         jsr     char_to_digit
         jmp     return_carry
 
+_parse_arguments:
+.export _parse_arguments
+        sta     w
+        jsr     popa
+        sta     r
+        jsr     popa
+        sta     argument_index
+        jsr     popax
+        sta     signature
+        stx     signature+1
+        jsr     popa
+        jsr     parse_arguments
+        jmp     return_carry
+
+_parse_expression:
+.export _parse_expression
+        sta     w
+        jsr     popa
+        sta     r
+        jsr     parse_expression
+        jmp     return_carry
+
+_parse_argument_separator:
+.export _parse_argument_separator
+        sta     r
+        jsr     parse_argument_separator
+        jmp     return_carry
+
+; name.s
+
 _find_name:
 .export _find_name
         sta     r               ; Buffer index
         jsr     popax           ; Name table pointer
         jsr     find_name
-        jmp     return_carry
-
-; encode.s
-
-_encode_int:
-.export _encode_int
-        jsr     encode_int
         jmp     return_carry
 
 ; util.s
@@ -129,20 +164,24 @@ _copy_bytes:
 .export _copy_bytes
         sta     copy_length
         stx     copy_length+1
-        ldx     #copy_from
-        jsr     popzpword
-        ldx     #copy_to
-        jsr     popzpword
+        jsr     popax
+        sta     copy_from
+        stx     copy_from+1
+        jsr     popax
+        sta     copy_to
+        stx     copy_to+1
         jmp     copy_bytes
 
 _copy_bytes_back:
 .export _copy_bytes_back
         sta     copy_length
         stx     copy_length+1
-        ldx     #copy_from
-        jsr     popzpword
-        ldx     #copy_to
-        jsr     popzpword
+        jsr     popax
+        sta     copy_from
+        stx     copy_from+1
+        jsr     popax
+        sta     copy_to
+        stx     copy_to+1
         jmp     copy_bytes_back
 
 _mul10:
@@ -154,3 +193,13 @@ _div10:
         jsr     div10
         sty     _reg_y          ; Save remainder
         rts
+
+_jsr_indexed_vector:
+.export _jsr_indexed_vector
+
+@save_index = tmp1
+
+        sta     @save_index     ; Index arrives in A; we need it in Y
+        jsr     popax           ; Address of vector array
+        ldy     @save_index
+        jmp     jsr_indexed_vector

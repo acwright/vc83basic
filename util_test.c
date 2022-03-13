@@ -108,11 +108,36 @@ static void test_div10(void) {
     ASSERT_EQ(reg_y, 0);
 }
 
+static int f1(void) {
+    return 31415;
+}
+
+static int f2(void) {
+    return 7771;
+}
+
+static void test_jsr_indexed_vector(void) {
+    int result;
+    void* table[] = { f1, f2, f2, f1 };
+
+    PRINT_TEST_NAME();
+
+    result = jsr_indexed_vector(table, 0);
+    ASSERT_EQ(result, 31415);
+    result = jsr_indexed_vector(table, 1);
+    ASSERT_EQ(result, 7771);
+    result = jsr_indexed_vector(table, 2);
+    ASSERT_EQ(result, 7771);
+    result = jsr_indexed_vector(table, 3);
+    ASSERT_EQ(result, 31415);
+}
+
 int main(void) {
     initialize_target();
     test_copy_bytes();
     test_copy_bytes_back();
     test_mul10();
     test_div10();
+    test_jsr_indexed_vector();
     return 0;
 }

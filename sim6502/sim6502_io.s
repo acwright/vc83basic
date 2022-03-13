@@ -15,6 +15,9 @@ buffer := $200
 ; The length of the data currently in the buffer
 buffer_length: .res 1
 
+output_buffer: .res 256
+output_buffer_length: .res 1
+
 ; A single-byte buffer for the char operations
 io_char: .res 1
 

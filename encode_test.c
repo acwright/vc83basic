@@ -5,17 +5,16 @@ static void test_encode_int(void) {
 
     PRINT_TEST_NAME();
 
-    w = 0;
-    err = encode_int(0);
+    err = encode_int(0, 0);
     ASSERT_EQ(err, 0);
     ASSERT_EQ(output_buffer[0], 2);
     ASSERT_EQ(output_buffer[1], 0);
     ASSERT_EQ(output_buffer[2], 0);
     ASSERT_EQ(w, 3);
 
-    w = 0;
-    err = encode_int(256);
-    err = encode_int(1000);
+    err = encode_int(256, 0);
+    ASSERT_EQ(err, 0);
+    err = encode_int(1000, 3);
     ASSERT_EQ(err, 0);
     ASSERT_EQ(output_buffer[0], 2);
     ASSERT_EQ(output_buffer[1], 0);
@@ -24,6 +23,10 @@ static void test_encode_int(void) {
     ASSERT_EQ(output_buffer[4], 232);
     ASSERT_EQ(output_buffer[5], 3);
     ASSERT_EQ(w, 6);
+
+    // Encode at end of buffer should fail
+    err = encode_int(100, 254);
+    ASSERT_EQ(err, 1);
 }
 
 int main(void) {
