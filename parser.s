@@ -106,7 +106,7 @@ parse_statement:
 ; 3. An argument placeholder. In this case we keep reading arguments and/or character sequences.
 
 @after_character_sequence:
-        lda     (name_table),y  ; Check if there are any arguments to read
+        lda     (name_ptr),y    ; Check if there are any arguments to read
         beq     @success
         and     #$60            ; If byte AND $60 is non-zero then it's another character sequence.
         bne     @success
@@ -114,7 +114,7 @@ parse_statement:
 ; The next byte must be arguments.
 
 @arguments:
-        lda     (name_table),y  ; Re-read name table byte
+        lda     (name_ptr),y  ; Re-read name table byte
         pha                     ; Remember it in order to check bit 7 later
         iny
         and     #$0F            ; How many arguments to parse?
@@ -127,7 +127,7 @@ parse_statement:
 ; Just finished arguments. If there's a character sequence here then parse it, otherwise parse another argument.
 
         ldy     @save_y
-        lda     (name_table),y
+        lda     (name_ptr),y
         and     #$60            ; Is it a character sequence?
         beq     @arguments      ; Nope, go handle more arguments (Y is good)
         jsr     skip_whitespace
@@ -225,7 +225,7 @@ parse_number:
 ; Restores the non-alphanumeric character that was replaced with 0 before returning.
 
 parse_variable_name:
-        
+
 
 
 

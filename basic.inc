@@ -5,7 +5,7 @@
 .globalzp w
 .globalzp signature
 .globalzp argument_index
-.globalzp name_table
+.globalzp name_ptr
 .globalzp copy_from_ptr, copy_to_ptr, copy_length
 .globalzp line_ptr
 

@@ -26,8 +26,8 @@ extern void* signature;
 #pragma zpsym ("signature")
 extern char argument_index;
 #pragma zpsym ("argument_index")
-extern void* name_table;
-#pragma zpsym ("name_table")
+extern void* name_ptr;
+#pragma zpsym ("name_ptr")
 extern line* line_ptr;
 #pragma zpsym ("line_ptr")
 
@@ -53,7 +53,7 @@ extern char reg_y;
 // Prototypes for C wrapper functions
 
 // name.s
-int find_name(const char* name_table, char r);
+int find_name(const char* name_ptr, char r);
 int match_character_sequence(void* name_table_entry, char y, char r);
 
 // encode.s
@@ -63,7 +63,7 @@ int encode_byte(char byte_value, char w);
 // parser.s
 int read_number(char r);
 int char_to_digit(char c);
-int parse_statement(void* name_table, void* signature, char r, char w);
+int parse_statement(void* name_ptr, void* signature, char r, char w);
 int parse_arguments(char count, void* signature, char argument_index, char r, char w);
 int parse_expression(char r, char w);
 int parse_argument_separator(char r);

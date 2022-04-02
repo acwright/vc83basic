@@ -128,8 +128,8 @@ _parse_statement:
         sta     signature
         stx     signature+1
         jsr     popax           ; Name table pointer
-        sta     name_table
-        stx     name_table+1
+        sta     name_ptr
+        stx     name_ptr+1
         jsr     parse_statement
         jmp     return_carry
 
@@ -167,8 +167,8 @@ _find_name:
 .export _find_name
         sta     r               ; Buffer index
         jsr     popax           ; Name table pointer
-        sta     name_table
-        stx     name_table+1
+        sta     name_ptr
+        stx     name_ptr+1
         jsr     find_name
         jmp     return_carry
 
@@ -178,8 +178,8 @@ _match_character_sequence:
         jsr     popa
         sta     regsave
         jsr     popax
-        sta     name_table
-        stx     name_table+1
+        sta     name_ptr
+        stx     name_ptr+1
         ldy     regsave
         jsr     match_character_sequence
         jmp     return_carry
