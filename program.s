@@ -19,13 +19,13 @@ line_number: .res 2
 .bss
 
 ; A pointer to the start of the program
-program: .res 2
+program_ptr: .res 2
 
 ; The start of the variable name table
-variable_name_table: .res 2
+variable_name_table_ptr: .res 2
 
 ; The start of the heap
-heap: .res 2
+heap_ptr: .res 2
 
 .code
 
@@ -34,13 +34,13 @@ heap: .res 2
 
 initialize_program:
         clc
-        lda     #<__BSS_RUN__       ; Set program and line_ptr to end of BSS
+        lda     #<__BSS_RUN__       ; Set program_ptr and line_ptr to end of BSS
         adc     #<__BSS_SIZE__
-        sta     program
+        sta     program_ptr
         sta     line_ptr
         lda     #>__BSS_RUN__  
         adc     #>__BSS_SIZE__
-        sta     program+1
+        sta     program_ptr+1
         sta     line_ptr+1
         lda     #$FF                ; Line number = -1
         ldy     #0                  
@@ -50,17 +50,17 @@ initialize_program:
         lda     #0
         iny
         sta     (line_ptr),y        ; Line length
-        jsr     get_line_start_plus_a   ; Adding header + A (0) to line_start gives variable_name_table in AX
-        sta     variable_name_table
-        stx     variable_name_table+1
+        jsr     get_line_start_plus_a   ; Adding header + A (0) to line_start gives variable_name_table_ptr in AX
+        sta     variable_name_table_ptr
+        stx     variable_name_table_ptr+1
         rts
 
 ; Sets line_ptr to program.
 
 reset_line_ptr:
-        lda     program
+        lda     program_ptr
         sta     line_ptr
-        lda     program+1
+        lda     program_ptr+1
         sta     line_ptr+1
         rts
 
@@ -223,27 +223,27 @@ insert_or_update_line:
         rts
 
 ; Calculates the bytes to move for both compact and expand as
-; variable_name_table - line_ptr.
+; variable_name_table_ptr - line_ptr.
 ; Returns the number of bytes in copy_length (borrowed from util.s)
 
 calculate_bytes_to_move:
-        sec                         ; Calculate length as variable_name_table - line_ptr
-        lda     variable_name_table
+        sec                         ; Calculate length as variable_name_table_ptr - line_ptr
+        lda     variable_name_table_ptr
         sbc     line_ptr
         sta     copy_length         ; Store length
-        lda     variable_name_table+1
+        lda     variable_name_table_ptr+1
         sbc     line_ptr+1
         sta     copy_length+1       ; Store high byte of length
         rts
 
-; Updates variable_name_table by adding copy_length to line_ptr.
+; Updates variable_name_table_ptr by adding copy_length to line_ptr.
 
 update_program_end:
         clc
         lda     line_ptr
         adc     copy_length
-        sta     variable_name_table
+        sta     variable_name_table_ptr
         lda     line_ptr+1
         adc     copy_length+1
-        sta     variable_name_table+1
+        sta     variable_name_table_ptr+1
         rts

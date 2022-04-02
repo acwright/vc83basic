@@ -11,9 +11,9 @@
 
 ; Data
 
-.global program
-.global variable_name_table
-.global heap
+.global program_ptr
+.global variable_name_table_ptr
+.global heap_ptr
 .global statement_name_table
 .global statement_signature_table
 

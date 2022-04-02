@@ -20,9 +20,9 @@
 .export _output_buffer_length = output_buffer_length
 
 .export _line_ptr = line_ptr
-.export _program = program
-.export _variable_name_table = variable_name_table
-.export _heap = heap
+.export _program_ptr = program_ptr
+.export _variable_name_table_ptr = variable_name_table_ptr
+.export _heap_ptr = heap_ptr
 
 .export _status = status
 
