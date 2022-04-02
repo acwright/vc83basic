@@ -29,7 +29,7 @@
 .export _r = r
 .export _w = w;
 
-.export _signature = signature
+.export _signature_ptr = signature_ptr
 .export _argument_index = argument_index
 
 .bss
@@ -125,8 +125,8 @@ _parse_statement:
         jsr     popa
         sta     r
         jsr     popax
-        sta     signature
-        stx     signature+1
+        sta     signature_ptr
+        stx     signature_ptr+1
         jsr     popax           ; Name table pointer
         sta     name_ptr
         stx     name_ptr+1
@@ -141,8 +141,8 @@ _parse_arguments:
         jsr     popa
         sta     argument_index
         jsr     popax
-        sta     signature
-        stx     signature+1
+        sta     signature_ptr
+        stx     signature_ptr+1
         jsr     popa
         jsr     parse_arguments
         jmp     return_carry

@@ -11,7 +11,7 @@ r: .res 1
 ; Write position in output_buffer
 w: .res 1
 
-signature: .res 2
+signature_ptr: .res 2
 argument_index: .res 1
 
 .code
@@ -75,7 +75,7 @@ char_to_digit:
 ; The last byte of the buffer should be 0, which won't match anything. This avoids the need to keep checking
 ; the buffer length.
 ; name = pointer to the first entry of the name table
-; signature = pointer to the first entry of the signature table
+; signature_ptr = pointer to the first entry of the signature table
 ; Returns carry clear if the input matched a rule and the index of that rule in A, 
 ; or carry set if it didn't match any syntax rule.
 
@@ -92,12 +92,12 @@ parse_statement:
         pla                     ; Get the name index back before checking error
         bcs     @error          ; encode_byte error
         asl                     ; Calculate the address of the signature; each name gets 2 signature bytes
-        adc     signature       ; Carry clear because encode_byte succeeded
-        sta     signature
+        adc     signature_ptr   ; Carry clear because encode_byte succeeded
+        sta     signature_ptr
         lda     #0
         sta     argument_index  ; Opportunistically set argument_index to 0
-        adc     signature+1
-        sta     signature+1
+        adc     signature_ptr+1
+        sta     signature_ptr+1
         ldy     @save_y
 
 ; After a character sequence, Y will point to one of:
@@ -166,7 +166,7 @@ argument_type_vectors:
 ; In this function we don't pay attention to the name table anymore; we're only concerned with parsing some
 ; number of arguments based on the types in the signature table.
 ; A = the number of arguments to parse
-; signature = the address of the signature
+; signature_ptr = the address of the signature
 ; argument_index = where to start reading arguments from signature table (modified)
 
 parse_arguments:
@@ -177,7 +177,7 @@ parse_arguments:
         beq     @done
 @next_argument:
         ldy     argument_index  ; Use Y to index signature
-        lda     (signature),y   ; Load argument
+        lda     (signature_ptr),y   ; Load argument
         and     $0F             ; Isolate argument type
         tay
         lda     #<argument_type_vectors

@@ -3,7 +3,7 @@
 .globalzp status
 .globalzp r
 .globalzp w
-.globalzp signature
+.globalzp signature_ptr
 .globalzp argument_index
 .globalzp name_ptr
 .globalzp copy_from_ptr, copy_to_ptr, copy_length

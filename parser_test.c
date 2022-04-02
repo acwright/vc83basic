@@ -111,12 +111,12 @@ static void test_parse_argument_separator(void) {
 
 static void test_parse_arguments(void) {
     int err;
-    char signature[] = { 0x01, 0x01 };
+    char signature_table[] = { 0x01, 0x01 };
 
     PRINT_TEST_NAME();
 
     set_buffer("1");
-    err = parse_arguments(1, signature, 0, 0, 0);
+    err = parse_arguments(1, signature_table, 0, 0, 0);
     ASSERT_EQ(err, 0);
     ASSERT_EQ(r, 1);
     ASSERT_EQ(w, 3);
@@ -126,7 +126,7 @@ static void test_parse_arguments(void) {
     ASSERT_EQ(output_buffer[2], 0);
 
     set_buffer("1,");
-    err = parse_arguments(1, signature, 0, 0, 0);
+    err = parse_arguments(1, signature_table, 0, 0, 0);
     ASSERT_EQ(err, 0);
     ASSERT_EQ(r, 1);
     ASSERT_EQ(w, 3);
@@ -136,7 +136,7 @@ static void test_parse_arguments(void) {
     ASSERT_EQ(output_buffer[2], 0);
 
     set_buffer(" 1, 256");
-    err = parse_arguments(2, signature, 0, 0, 0);
+    err = parse_arguments(2, signature_table, 0, 0, 0);
     ASSERT_EQ(err, 0);
     ASSERT_EQ(r, 7);
     ASSERT_EQ(w, 6);

@@ -22,8 +22,8 @@ extern char r;
 #pragma zpsym ("r")
 extern char w;
 #pragma zpsym ("w")
-extern void* signature;
-#pragma zpsym ("signature")
+extern void* signature_ptr;
+#pragma zpsym ("signature_ptr")
 extern char argument_index;
 #pragma zpsym ("argument_index")
 extern void* name_ptr;
@@ -63,8 +63,8 @@ int encode_byte(char byte_value, char w);
 // parser.s
 int read_number(char r);
 int char_to_digit(char c);
-int parse_statement(void* name_ptr, void* signature, char r, char w);
-int parse_arguments(char count, void* signature, char argument_index, char r, char w);
+int parse_statement(void* name_ptr, void* signature_ptr, char r, char w);
+int parse_arguments(char count, void* signature_ptr, char argument_index, char r, char w);
 int parse_expression(char r, char w);
 int parse_argument_separator(char r);
 
