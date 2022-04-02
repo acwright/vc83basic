@@ -58,6 +58,7 @@ initialize_program:
         rts
 
 ; Sets line_ptr to program.
+; X SAFE, Y SAFE
 
 reset_line_ptr:
         lda     program_ptr
@@ -120,7 +121,7 @@ advance_line_ptr:
 ; The get_line_ptr_plus_a entry point adds whatever is in A to line_ptr.
 ; The get_line_start_plus_a entry point adds the size of the line header.
 ; Returns the pointer in AX.
-; Does not change Y.
+; Y SAFE
 
 get_line_start:
         lda     #0                  ; Add 0 extra bytes after header
@@ -145,10 +146,10 @@ get_line_ptr_plus_a:
 
 insert_or_update_line:
 
-@save_line_ptr = regsave
+@save_line_number = regsave
         
-        sta     @save_line_ptr      ; Stash the line number
-        stx     @save_line_ptr+1
+        sta     @save_line_number   ; Stash the line number
+        stx     @save_line_number+1
         jsr     find_line           ; Search for an existing line
         bcs     @insert             ; Not found, just insert the new line
 
@@ -158,21 +159,21 @@ insert_or_update_line:
 ; actually exists.
 
         lda     line_ptr            ; Current line_ptr
-        sta     copy_to_ptr             ; will be the target of the memcpy
+        sta     copy_to_ptr         ; will be the target of the memcpy
         pha                         ; Also push it on the stack so we can restore after advancing
         lda     line_ptr+1          ; High byte
         sta     copy_to_ptr+1
         pha
         jsr     advance_line_ptr    ; Move to line_ptr to next line (AX = line_ptr)
-        sta     copy_from_ptr           ; This will be the source for the copy
+        sta     copy_from_ptr       ; This will be the source for the copy
         stx     copy_from_ptr+1
-        jsr     calculate_bytes_to_move     ; Set copy_length to length of program from line_ptr
+        jsr     calculate_bytes_to_move ; Set copy_length to length of program from line_ptr
+        jsr     update_pointers     ; Knowing copy from and to, we can update pointers
         jsr     copy_bytes          ; Compact the program
         pla                         ; line_ptr now points to an invalid line so restore saved value
         sta     line_ptr+1
         pla
         sta     line_ptr
-        jsr     update_program_end
 
 ; Insert the new line, if there is one.
 ; There is a line if Y (recovered from tmp1) is less than buffer_length.
@@ -191,12 +192,13 @@ insert_or_update_line:
         jsr     get_line_start_plus_a   ; Allocate space for new line plus header
         sta     copy_to_ptr                
         stx     copy_to_ptr+1
-        jsr     calculate_bytes_to_move     ; Set copy_length to length of program from line_ptr
+        jsr     calculate_bytes_to_move ; Set copy_length to length of program from line_ptr
+        jsr     update_pointers     ; Knowing copy from and to, we can update pointers
         jsr     copy_bytes_back
-        lda     @save_line_ptr
+        lda     @save_line_number
         ldy     #0
         sta     (line_ptr),y        ; Save line item number low byte
-        lda     @save_line_ptr+1
+        lda     @save_line_number+1
         iny
         sta     (line_ptr),y        ; Save line item number high byte
         pla                         ; Get the line length saved earlier
@@ -213,39 +215,55 @@ insert_or_update_line:
         adc     #0                  ; This will leave carry clear
         sta     copy_from_ptr+1
         jsr     get_line_start      ; Get destination address for copy
-        sta     copy_to_ptr             ; Destination into copy_to_ptr
+        sta     copy_to_ptr         ; Destination into copy_to_ptr
         stx     copy_to_ptr+1
         jsr     copy_bytes          ; Copy data from buffer into program space
-        jsr     calculate_bytes_to_move     ; Reset copy_length
+        jsr     calculate_bytes_to_move ; Reset copy_length
         jsr     advance_line_ptr    ; Jump over the new line
-        jsr     update_program_end  ; Update program end
 
 @finish:
         clc
         rts
 
-; Calculates the bytes to move for both compact and expand as
-; variable_name_table_ptr - line_ptr.
+; Calculates the bytes to move for both compact and expand as heap_ptr - line_ptr.
 ; Returns the number of bytes in copy_length (borrowed from util.s)
 
 calculate_bytes_to_move:
-        sec                         ; Calculate length as variable_name_table_ptr - line_ptr
-        lda     variable_name_table_ptr
+        sec                       
+        lda     heap_ptr
         sbc     line_ptr
         sta     copy_length         ; Store length
-        lda     variable_name_table_ptr+1
+        lda     heap_ptr+1
         sbc     line_ptr+1
         sta     copy_length+1       ; Store high byte of length
         rts
 
-; Updates variable_name_table_ptr by adding copy_length to line_ptr.
+; Updates variable_name_table_ptr and heap_ptr by adding (copy_to_ptr - copy_from_ptr).
+; In other words, if we're moving everything to a higher address (copy_to_ptr > copy_from_ptr), then we have
+; to move the pointers up too, and vice versa. We're just shifting the pointers by however many bytes
+; we moved the end of the program.
+; Uses XY to store the difference value.
 
-update_program_end:
-        clc
-        lda     line_ptr
-        adc     copy_length
+update_pointers:
+        sec           
+        lda     copy_to_ptr
+        sbc     copy_from_ptr
+        tax                         ; Difference low byte in X
+        lda     copy_to_ptr+1
+        sbc     copy_from_ptr+1
+        tay                         ; Difference high byte in Y
+        clc                         ; Update variable_name_table_ptr
+        txa                      
+        adc     variable_name_table_ptr
         sta     variable_name_table_ptr
-        lda     line_ptr+1
-        adc     copy_length+1
+        tya
+        adc     variable_name_table_ptr+1
         sta     variable_name_table_ptr+1
+        clc                         ; Update heap_ptr
+        txa                      
+        adc     heap_ptr
+        sta     heap_ptr
+        tya
+        adc     heap_ptr+1
+        sta     heap_ptr+1
         rts

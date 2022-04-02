@@ -38,7 +38,7 @@ read_number:
         beq     @finish         ; Yes, return
         pha                     ; Save A (low byte of value)
         lda     buffer,y
-        jsr     char_to_digit   ; Doesn't touch X
+        jsr     char_to_digit   ; X SAFE function
         sta     @digit_value    ; Store the digit value
         pla                     ; Retrieve the low byte of value
         bcs     @finish         ; If there was an error in char_to_digit, stop parsing
@@ -62,8 +62,8 @@ read_number:
         rts
 
 ; Converts the character in A into a digit.
-; This function only uses A and does not touch X or Y.
 ; Returns the digit in A, carry clear if ok, carry set if error
+; X SAFE, Y SAFE
 
 char_to_digit:
         sec                     ; Set carry
@@ -233,6 +233,7 @@ parse_variable_name:
 
 ; Parses a mandatory comma beween arguments. Does not write any tokens.
 ; Returns carry clear if the ',' was found or carry set if it was not.
+; Y SAFE
 
 parse_argument_separator:
         jsr     skip_whitespace
@@ -252,6 +253,7 @@ parse_argument_separator:
 ; Skip past any whitespace in the buffer.
 ; This function is NOT exported because we want other modules to call parsing funtions, not this function.
 ; r = the read position (modified)
+; Y SAFE
 
 skip_whitespace:
         ldx     r               ; Use X to index buffer
