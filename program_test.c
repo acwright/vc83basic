@@ -9,6 +9,7 @@ static void test_initalize_program(void) {
     ASSERT_EQ(line_ptr->number, -1);
     ASSERT_EQ(line_ptr->length, 0);
     ASSERT_EQ(variable_name_table_ptr, program_ptr + 1); // sizeof *program_ptr == size of the line header
+    ASSERT_EQ(heap_ptr, variable_name_table_ptr); // Variable name table is empty
 }
 
 static void test_reset_line_ptr(void) {

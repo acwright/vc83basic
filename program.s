@@ -53,6 +53,8 @@ initialize_program:
         jsr     get_line_start_plus_a   ; Adding header + A (0) to line_start gives variable_name_table_ptr in AX
         sta     variable_name_table_ptr
         stx     variable_name_table_ptr+1
+        sta     heap_ptr            ; Nothing in the variable name table so heap_ptr is same
+        stx     heap_ptr+1
         rts
 
 ; Sets line_ptr to program.
