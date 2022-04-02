@@ -18,11 +18,14 @@ line_number: .res 2
 
 .bss
 
-; A pointer to the start of the program.
-program_start: .res 2
+; A pointer to the start of the program
+program: .res 2
 
-; A pointer to one byte past the end of the program.
-program_end: .res 2
+; The start of the variable name table
+variable_name_table: .res 2
+
+; The start of the heap
+heap: .res 2
 
 .code
 
@@ -31,13 +34,13 @@ program_end: .res 2
 
 initialize_program:
         clc
-        lda     #<__BSS_RUN__       ; Set program_start and line_ptr to end of BSS
+        lda     #<__BSS_RUN__       ; Set program and line_ptr to end of BSS
         adc     #<__BSS_SIZE__
-        sta     program_start
+        sta     program
         sta     line_ptr
         lda     #>__BSS_RUN__  
         adc     #>__BSS_SIZE__
-        sta     program_start+1
+        sta     program+1
         sta     line_ptr+1
         lda     #$FF                ; Line number = -1
         ldy     #0                  
@@ -47,17 +50,17 @@ initialize_program:
         lda     #0
         iny
         sta     (line_ptr),y        ; Line length
-        jsr     get_line_start_plus_a   ; Adding header + A (0) to line_start gives program_end in AX
-        sta     program_end
-        stx     program_end+1
+        jsr     get_line_start_plus_a   ; Adding header + A (0) to line_start gives variable_name_table in AX
+        sta     variable_name_table
+        stx     variable_name_table+1
         rts
 
-; Sets line_ptr to program_start.
+; Sets line_ptr to program.
 
 reset_line_ptr:
-        lda     program_start
+        lda     program
         sta     line_ptr
-        lda     program_start+1
+        lda     program+1
         sta     line_ptr+1
         rts
 
@@ -211,7 +214,7 @@ insert_or_update_line:
         sta     copy_to             ; Destination into copy_to
         stx     copy_to+1
         jsr     copy_bytes          ; Copy data from buffer into program space
-        jsr     calculate_bytes_to_move     ; Reset copy_length to the length from line_ptr to original program_end
+        jsr     calculate_bytes_to_move     ; Reset copy_length
         jsr     advance_line_ptr    ; Jump over the new line
         jsr     update_program_end  ; Update program end
 
@@ -220,27 +223,27 @@ insert_or_update_line:
         rts
 
 ; Calculates the bytes to move for both compact and expand as
-; program_end - line_ptr.
+; variable_name_table - line_ptr.
 ; Returns the number of bytes in copy_length (borrowed from util.s)
 
 calculate_bytes_to_move:
-        sec                         ; Calculate length as program_end - line_ptr
-        lda     program_end
+        sec                         ; Calculate length as variable_name_table - line_ptr
+        lda     variable_name_table
         sbc     line_ptr
         sta     copy_length         ; Store length
-        lda     program_end+1
+        lda     variable_name_table+1
         sbc     line_ptr+1
         sta     copy_length+1       ; Store high byte of length
         rts
 
-; Updates program_end by adding copy_length to line_ptr.
+; Updates variable_name_table by adding copy_length to line_ptr.
 
 update_program_end:
         clc
         lda     line_ptr
         adc     copy_length
-        sta     program_end
+        sta     variable_name_table
         lda     line_ptr+1
         adc     copy_length+1
-        sta     program_end+1
+        sta     variable_name_table+1
         rts

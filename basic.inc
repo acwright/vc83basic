@@ -11,7 +11,9 @@
 
 ; Data
 
-.global program_start, program_end
+.global program
+.global variable_name_table
+.global heap
 .global statement_name_table
 .global statement_signature_table
 

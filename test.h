@@ -39,8 +39,9 @@ extern char buffer_length;
 extern char output_buffer[];
 extern char output_buffer_length;
 
-extern line* program_start;
-extern line* program_end;
+extern line* program;
+extern void* variable_name_table;
+extern void* heap;
 
 // Used by c_wrappers.s
 
