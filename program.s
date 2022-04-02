@@ -214,7 +214,6 @@ insert_or_update_line:
         sta     copy_to_ptr         ; Destination into copy_to_ptr
         stx     copy_to_ptr+1
         jsr     copy_bytes          ; Copy data from buffer into program space
-        jsr     calculate_bytes_to_move ; Reset copy_length
         jsr     advance_line_ptr    ; Jump over the new line
 
 @finish:
