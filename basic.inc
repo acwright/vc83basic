@@ -78,17 +78,17 @@ TOKEN_EOL           = $00
 TOKEN_EOS           = $01
 TOKEN_INT           = $02
 
-; Status and error codes
-
-STATUS_OK                   = $00   ; Everything OK; used to clear status
-ERR_FAIL                    = $FF   ; General failure
-
 ; Statements
 ; Must match statement_name_table.
 
 ST_LIST     = 0
 ST_RUN      = 1
 ST_PRINT    = 2
+
+; Status and error codes
+
+STATUS_OK                   = $00   ; Everything OK; used to clear status
+ERR_FAIL                    = $FF   ; General failure
 
 ; Macros
 
