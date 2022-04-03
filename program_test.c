@@ -108,7 +108,6 @@ static void test_insert_or_update_line(void) {
 
     strcpy(buffer, "10 PRINT 1");
     buffer_length = 10;
-    fprintf(stderr, "program_ptr = %p, variable_name_table_ptr=%p\n", program_ptr, variable_name_table_ptr);
     err = insert_or_update_line(10, 3);
     ASSERT_EQ(err, 0);
     reset_line_ptr();
@@ -124,7 +123,6 @@ static void test_insert_or_update_line(void) {
 
     strcpy(buffer, "200 PRINT 3.14159");
     buffer_length = 16;
-    fprintf(stderr, "program_ptr = %p, variable_name_table_ptr=%p\n", program_ptr, variable_name_table_ptr);
     err = insert_or_update_line(200, 4);
     ASSERT_EQ(err, 0);
     reset_line_ptr();
