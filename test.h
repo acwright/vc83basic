@@ -85,13 +85,13 @@ int jsr_indexed_vector(void* vectors, char index);
 
 // Common functions and definitions used in tests
 
-static void set_buffer(const char* s) {
+void set_buffer(const char* s) {
     // strcpy adds terminating 0 to string in buffer.
     strcpy(buffer, s);
     buffer_length = strlen(s);
 }
 
-static void hexdump(const char* name, const char* data, size_t length) {
+void hexdump(const char* name, const char* data, size_t length) {
     unsigned i = 0;
     fprintf(stderr, "        %s ($%04X):\n", name, data);
     while (i < length) {
