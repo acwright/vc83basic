@@ -18,7 +18,7 @@ name_ptr: .res 2
 ; Returns carry clear if the name matched and carry set if it didn't match any name.
 ; On match, returns the number of the matched name in A and the next position in the name table
 ; after the matched name in Y.
-; If no match, then name_ptr points to the 0 at the end of the name table.
+; If no match, then A is the number of names in the name table and name_ptr points to the 0 at the end of the table.
 
 find_name:
 
@@ -35,12 +35,10 @@ find_name:
         inc     @index          ; Increment name table index
         jmp     @compare_name
 
-@match:
-        lda     @index          ; Return number of matched name in A
-        rts
-
 @error:
         sec                     ; Signal failure
+@match:
+        lda     @index          ; Return number of matched name in A
         rts
 
 ; Matches a character sequence from the name table with characters from buffer.
@@ -58,7 +56,6 @@ match_character_sequence:
         ldx     r               ; Load read position into X
 @next_character:
         lda     (name_ptr),y    ; Get name character
-        debug $00
         sta     @last           ; It's now the last-read character
         and     #$60            ; Check if it's a string literal character
         beq     @non_literal
@@ -116,11 +113,9 @@ match_character_sequence:
 
 check_name_continuation:
         lda     buffer-1,x      ; Get last matched character
-        debug $10
         jsr     is_name_character
         bcs     @done           ; Was not a name character, don't need to check the next one
         lda     buffer,x        ; Get this character
-        debug $11
         jsr     is_name_character
 @done:
         rts
@@ -141,6 +136,3 @@ is_name_character:
         cmp     #26             ; Sets carry if char was >'Z'
 @done:
         rts
-
-; Add a new name to the variable name table.
-

@@ -89,9 +89,11 @@ void test_find_name(void) {
     // Name in name table is longer than input namne
     err = find_name("PRINTE\xD2", 0);
     ASSERT_NE(err, 0);
+    ASSERT_EQ(reg_a, 1);
     ASSERT_EQ(r, 0);
     err = find_name("LIS\xD4PRINTE\xD2", 0);
     ASSERT_NE(err, 0);
+    ASSERT_EQ(reg_a, 2);
     ASSERT_EQ(r, 0);
 
     // Input name is longer than name in table
