@@ -24,40 +24,39 @@ find_name:
 
 @index = tmp1
 
-        lda     #0              ; Name index
+        lda     #0              ; Name table index
         sta     @index      
 @compare_name:
-        ldy     #0              ; Y will index the name
+        ldy     #0              ; Y is the read position in the name table entry
         lda     (name_ptr),y    ; Get name character
         beq     @error          ; If it's 0 then out of names to match
         jsr     match_character_sequence
         bcc     @match
         jsr     advance_y_next_name     ; No match, move to next entry
-        inc     @index          ; Increment name index
+        inc     @index          ; Increment name table index
         jmp     @compare_name
 
 @match:
         clc                     ; Signal success
         lda     @index          ; Return number of matched name in A
-        ldx     #0
         rts
 
 @error:
         sec                     ; Signal failure
         rts
 
-; Skips to the start of the next name in the name table. Sets name_ptr to the start of that rule.
+; Skips to the start of the next name in the name table. Sets name_ptr to the start of that name.
 ; name_ptr = the start of the current name
-; Y = the index into the rule
+; Y = the read position in the name table entry
 
 advance_y_next_name:
         lda     (name_ptr),y    ; Load current position
-        tax                     ; Can clobber X since it will be reloaded from r soon
+        tax                     ; Temporarily park in X
         iny                     ; Advance past
         txa                     ; Get the loaded character back to check bit 7
         bpl     advance_y_next_name     ; Keep searching if bit 7 not set
-        tya                     ; Y now points to the start of the next rule
-        clc                     ; Reset name_ptr to this position
+        tya                     ; Y is now the offset of the next rule
+        clc                     ; Add to name_ptr to get updated name_ptr
         adc     name_ptr      
         sta     name_ptr
         bcc     @return         ; Don't have to increment high byte
@@ -80,7 +79,7 @@ match_character_sequence:
         lda     (name_ptr),y    ; Get name character
         and     #$60            ; Check if it's a string literal character
         beq     @match          ; If not, then we've reached the end of the string and have a match
-        lda     (name_ptr),y  ; Reload the character from name table
+        lda     (name_ptr),y    ; Reload the character from name table
         pha                     ; Save it to check for end bit later
         and     #$7F            ; Clear bit 7, if it's set
         cmp     buffer,x        ; Compare with character from buffer
@@ -95,6 +94,7 @@ match_character_sequence:
 
 @match:
         stx     r               ; Update r
+
         clc                     ; Signal success
         rts
 
@@ -102,3 +102,6 @@ match_character_sequence:
         pla                     ; Get rid of the name table type previously saved
         sec                     ; Signal failure
         rts
+
+; Add a new name to the variable name table.
+
