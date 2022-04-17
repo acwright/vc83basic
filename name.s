@@ -24,21 +24,21 @@ find_name:
 
 @index = tmp2
 
-        lda     #0              ; Name table index
-        sta     @index      
-@next_name:
-        ldy     #0              ; Y is the read position in the name table entry
-        lda     (name_ptr),y    ; Get name character
-        beq     @error          ; If it's 0 then out of names to match
+        lda     #0                      ; Name table index
+        sta     @index              
+@next_name:     
+        ldy     #0                      ; Y is the read position in the name table entry
+        lda     (name_ptr),y            ; Get name character
+        beq     @error                  ; If it's 0 then out of names to match
         jsr     match_character_sequence
         bcc     @match
-        inc     @index          ; Increment name table index; doesn't affect carry
-        bcs     @next_name 
+        inc     @index                  ; Increment name table index; doesn't affect carry
+        bcs     @next_name      
 
-@error:
-        sec                     ; Signal failure
-@match:
-        lda     @index          ; Return number of matched name in A
+@error:     
+        sec                             ; Signal failure
+@match:     
+        lda     @index                  ; Return number of matched name in A
         rts
 
 ; Matches a character sequence from the name table with characters from buffer.
@@ -53,20 +53,20 @@ match_character_sequence:
 
 @last = tmp1
 
-        ldx     r               ; Load read position into X
-@next_character:
-        lda     (name_ptr),y    ; Get name character
-        sta     @last           ; It's now the last-read character
-        and     #$60            ; Check if it's a string literal character
-        beq     @non_literal
-        lda     @last           ; Reload last-read character
-        and     #$7F            ; Clear bit 7, if it's set
-        cmp     buffer,x        ; Compare with character from buffer
+        ldx     r                       ; Load read position into X
+@next_character:        
+        lda     (name_ptr),y            ; Get name character
+        sta     @last                   ; It's now the last-read character
+        and     #$60                    ; Check if it's a string literal character
+        beq     @non_literal        
+        lda     @last                   ; Reload last-read character
+        and     #$7F                    ; Clear bit 7, if it's set
+        cmp     buffer,x                ; Compare with character from buffer
         bne     @advance_y_next_entry   ; Doesn't match
-        iny                     ; Next position
+        iny                             ; Next position
         inx
-        lda     @last           ; Reload character once more
-        bpl     @next_character ; If bit 7 not set then continue
+        lda     @last                   ; Reload character once more
+        bpl     @next_character         ; If bit 7 not set then continue
 
 ; We've reached a character in the name table entry with bit 7 set and everything has matched so far.
 ; Check for name continuation. If the name continues, then return no match. Y already points to next entry.
@@ -83,26 +83,26 @@ match_character_sequence:
         bcs     @match
 
 @advance_y_next_entry:
-        lda     (name_ptr),y    ; Load current position
-        tax                     ; Temporarily park in X
-        iny                     ; Advance past
-        txa                     ; Get the loaded character back to check bit 7
+        lda     (name_ptr),y            ; Load current position
+        tax                             ; Temporarily park in X
+        iny                             ; Advance past
+        txa                             ; Get the loaded character back to check bit 7
         bpl     @advance_y_next_entry   ; Keep searching if bit 7 not set
 
 @no_match:
-        tya                     ; Y is now the offset of the next rule; add to name_ptr
-        clc                     ; Add to name_ptr to get updated name_ptr
-        adc     name_ptr      
-        sta     name_ptr
-        bcc     @done           ; Don't have to increment high byte
-        inc     name_ptr+1
-@done:
-        sec                     ; Set carry to indicate failure
-        rts
-
-@match:
-        stx     r               ; Update r
-        clc                     ; Signal success
+        tya                             ; Y is now the offset of the next rule; add to name_ptr
+        clc                             ; Add to name_ptr to get updated name_ptr
+        adc     name_ptr            
+        sta     name_ptr        
+        bcc     @done                   ; Don't have to increment high byte
+        inc     name_ptr+1      
+@done:      
+        sec                             ; Set carry to indicate failure
+        rts     
+        
+@match:     
+        stx     r                       ; Update r
+        clc                             ; Signal success
         rts
 
 ; Checks if the character at position X in buffer is a continuation of a name at position X-1.
@@ -112,10 +112,10 @@ match_character_sequence:
 ; X SAFE, Y SAFE
 
 check_name_continuation:
-        lda     buffer-1,x      ; Get last matched character
+        lda     buffer-1,x              ; Get last matched character
         jsr     is_name_character
-        bcs     @done           ; Was not a name character, don't need to check the next one
-        lda     buffer,x        ; Get this character
+        bcs     @done                   ; Was not a name character, don't need to check the next one
+        lda     buffer,x                ; Get this character
         jsr     is_name_character
 @done:
         rts
@@ -125,14 +125,14 @@ check_name_continuation:
 ; X SAFE, Y SAFE
 
 is_name_character:
-        sec                     ; Prepare for subtract
-        sbc     #'$'            ; First check '$' case        
-        cmp     #1              ; Sets carry if char was >'$'
-        bcc     @done           ; It was '$'
-        sbc     #'0'-'$'        ; Check range 0-9
-        cmp     #10             ; Sets carry if char was >'9'
-        bcc     @done           ; It was in range 0-9
-        sbc     #'A'-'0'        ; Check range 'A'-'Z'
-        cmp     #26             ; Sets carry if char was >'Z'
-@done:
+        sec                             ; Prepare for subtract
+        sbc     #'$'                    ; First check '$' case        
+        cmp     #1                      ; Sets carry if char was >'$'
+        bcc     @done                   ; It was '$'
+        sbc     #'0'-'$'                ; Check range 0-9
+        cmp     #10                     ; Sets carry if char was >'9'
+        bcc     @done                   ; It was in range 0-9
+        sbc     #'A'-'0'                ; Check range 'A'-'Z'
+        cmp     #26                     ; Sets carry if char was >'Z'
+@done:      
         rts

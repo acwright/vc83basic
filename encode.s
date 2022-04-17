@@ -46,9 +46,9 @@ encode:
 
 @error:
         sec
-        pla                     ; Discard the return address 
-        pla
-        rts                     ; Return to the caller's caller
+        pla                             ; Discard the return address 
+        pla     
+        rts                             ; Return to the caller's caller
 
 
 
