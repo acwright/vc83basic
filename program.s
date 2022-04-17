@@ -18,13 +18,8 @@ line_length: .res 1
 ; The curent line number; also used to store line number sought in find_line
 line_number: .res 2
 
-.bss
-
 ; A pointer to the start of the program
 program_ptr: .res 2
-
-; The number of variables in the program.
-variable_count: .res 1
 
 ; The start of the variable name table
 variable_name_table_ptr: .res 2
@@ -37,6 +32,9 @@ heap_ptr: .res 2
 
 ; The address of "high memory" that will not be touched by the interpreter
 himem_ptr: .res 2
+
+; The number of variables in the program.
+variable_count: .res 1
 
 .code
 
@@ -62,8 +60,16 @@ initialize_program:
         jsr     get_line_start_plus_a       ; Adding header + A (0) to line_start gives variable_name_table_ptr in AX
         sta     variable_name_table_ptr
         stx     variable_name_table_ptr+1
-        sta     value_table_ptr             ; No variables so value_table_ptr is same
-        stx     value_table_ptr+1
+        tay                                 ; Add 1 to variable_name_table_ptr for ending 0
+        iny
+        sty     value_table_ptr
+        bne     @no_carry                   ; Low byte did not wrap around to 0
+        inx                                 ; Increment high byte in X
+@no_carry:
+        stx     value_table_ptr+1           ; Save high byte
+        ldy     #0                          ; Write index 0
+        tya                                 ; Write 0
+        sta     (variable_name_table_ptr),y ; Initialize variable name table to 0
         lda     #<(__MAIN_START__ + __MAIN_SIZE__)
         sta     himem_ptr
         lda     #>(__MAIN_START__ + __MAIN_SIZE__)

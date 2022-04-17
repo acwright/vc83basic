@@ -23,6 +23,14 @@ encode_number:
         jsr     encode
         rts     
 
+; Encodes a variable by its ID.
+; A = the variable ID
+
+encode_variable:
+        ora     #$80                    ; Variables are encoded with the high bit set
+        jsr     encode
+        rts
+
 ; Encodes a single byte.
 ; A = the byte to encode
 
@@ -33,8 +41,9 @@ encode_byte:
 ; Encodes a single byte and returns to the caller's caller on failure.
 ; A = the byte to encode
 ; On error, pops the return address off the stack and then does RTS to the caller's return address. This is so
-; the caller doesn't have to handle the error. Of course this implies the caller *can't* handle the error.
-; Also, the caller can't have anything other than its own return address on the stack when calling this function.
+; the caller doesn't have to check error status after encoding each byte error. Of course this implies the caller
+; *can't* handle the error. Also, the caller can't have anything other than its own return address on the stack when
+; calling this function.
 
 encode:
         ldy     w
@@ -45,9 +54,9 @@ encode:
         rts
 
 @error:
-        sec
         pla                             ; Discard the return address 
         pla     
+        sec
         rts                             ; Return to the caller's caller
 
 

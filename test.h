@@ -22,14 +22,25 @@ extern char r;
 #pragma zpsym ("r")
 extern char w;
 #pragma zpsym ("w")
+extern const char* name_ptr;
+#pragma zpsym ("name_ptr")
 extern void* signature_ptr;
 #pragma zpsym ("signature_ptr")
 extern char argument_index;
 #pragma zpsym ("argument_index")
-extern void* name_ptr;
-#pragma zpsym ("name_ptr")
 extern line* line_ptr;
 #pragma zpsym ("line_ptr")
+
+extern line* program_ptr;
+#pragma zpsym ("program_ptr")
+extern const char* variable_name_table_ptr;
+#pragma zpsym ("variable_name_table_ptr")
+extern void* value_table_ptr;
+#pragma zpsym ("value_table_ptr")
+extern void* heap_ptr;
+#pragma zpsym ("heap_ptr")
+extern char variable_count;
+#pragma zpsym ("variable_count")
 
 // Data
 
@@ -38,11 +49,6 @@ extern char buffer_length;
 
 extern char output_buffer[];
 extern char output_buffer_length;
-
-extern line* program_ptr;
-extern void* variable_name_table_ptr;
-extern void* value_table_ptr;
-extern void* heap_ptr;
 
 // Used by c_wrappers.s
 
@@ -55,8 +61,9 @@ extern char reg_y;
 
 // name.s
 int find_name(const char* name_ptr, char r);
-int match_character_sequence(void* name_table_entry, char y, char r);
+int match_character_sequence(const char* name_ptr, char y, char r);
 int is_name_character(char c);
+int add_variable(void);
 
 // encode.s
 int encode_number(int number, char w);
@@ -65,7 +72,7 @@ int encode_byte(char byte_value, char w);
 // parser.s
 int read_number(char r);
 int char_to_digit(char c);
-int parse_statement(void* name_ptr, void* signature_ptr, char r, char w);
+int parse_statement(const char* name_ptr, void* signature_ptr, char r, char w);
 int parse_arguments(char count, void* signature_ptr, char argument_index, char r, char w);
 int parse_expression(char r, char w);
 int parse_argument_separator(char r);

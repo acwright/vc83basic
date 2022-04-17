@@ -67,6 +67,8 @@ static void test_parse_expression(void) {
 
     PRINT_TEST_NAME();
 
+    initialize_program();
+
     set_buffer("1");
     err = parse_expression(0, 0);
     ASSERT_EQ(err, 0);
@@ -76,11 +78,11 @@ static void test_parse_expression(void) {
     ASSERT_EQ(r, 1);
     ASSERT_EQ(w, 3);
 
-    set_buffer("x");
+    set_buffer("X");
     err = parse_expression(0, 0);
-    ASSERT_NE(err, 0);
-    ASSERT_EQ(r, 0);
-    ASSERT_EQ(w, 0);
+    ASSERT_EQ(err, 0);
+    ASSERT_EQ(r, 1);
+    ASSERT_EQ(w, 1);
 }
 
 static void test_parse_argument_separator(void) {

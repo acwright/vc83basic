@@ -13,7 +13,7 @@ name_ptr: .res 2
 ; Matches the input against names from a table.
 ; Each name table entry consists of a name, which is a sequence of character bytes in the range $20-$5F,
 ; followed by any number of extra data bytes. The last byte of the name table entry must have bit 7 set.
-; name_ptr = pointer to the first entry of the name table
+; AX = pointer to the first entry of the name table
 ; r = read position in buffer (updated on success)
 ; Returns carry clear if the name matched and carry set if it didn't match any name.
 ; On match, returns the number of the matched name in A and the next position in the name table
@@ -24,6 +24,8 @@ find_name:
 
 @index = tmp2
 
+        sta     name_ptr
+        stx     name_ptr+1
         lda     #0                      ; Name table index
         sta     @index              
 @next_name:     
@@ -136,3 +138,54 @@ is_name_character:
         cmp     #26                     ; Sets carry if char was >'Z'
 @done:      
         rts
+
+; Extends the variable name table by adding a new name.
+; This will clobber the current program state and prevent the user from using CONT to resume execution.
+; The new name consists of all the name characters from buffer starting with the position in r.
+; name_ptr = a pointer to the 0 at the end of the variable name table (left there by find_name)
+; Returns carry clear on success or carry set on failure.
+; On success, updates variable_value_table and variable_count, and returns ID of new variable in A.
+
+add_variable:
+
+@length = tmp1
+
+        lda     variable_count          ; Check if too many variables already
+        bmi     @fail                   ; variable_count >= 128
+        ldx     r                       ; Read position in buffer
+@find_end:
+        inx                             ; We'll never have a zero-length name so inc first
+        lda     buffer,x                ; Look for non-name character
+        jsr     is_name_character
+        bcc     @find_end               ; Still a name character
+        txa                             ; Carry guaranteed to be set; handy!
+        sbc     r                       ; Subtract r to find length of name
+        sta     @length                 ; Save length
+        jsr     grow_a                  ; Increase variable_value_ptr
+        bcs     @fail
+        ldx     r                       ; Reload r
+        ldy     #0                      ; Write position relative to name_ptr
+@copy:
+        lda     buffer,x                ; Load one char       
+        sta     (name_ptr),y            ; Store it
+        inx
+        iny
+        dec     @length                 ; Use DEC here so carry isn't modified
+        bne     @copy
+        stx     r                       ; Update r
+        ora     #$80                    ; Set high bit in last value
+        dey
+        sta     (name_ptr),y            ; Save it again
+        iny
+        lda     #0
+        sta     (name_ptr),y            ; Store 0
+        lda     variable_count          ; This will become the return value
+        tax
+        inx
+        stx     variable_count          ; Add one to variable count
+        rts                             ; Notice carry still clear from grow_a check
+
+@fail:
+        sec
+        rts
+        

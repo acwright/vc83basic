@@ -3,20 +3,20 @@
 .globalzp status
 .globalzp r
 .globalzp w
+.globalzp name_ptr
 .globalzp signature_ptr
 .globalzp argument_index
-.globalzp name_ptr
 .globalzp copy_from_ptr, copy_to_ptr, copy_length
 .globalzp line_ptr
+.globalzp program_ptr
+.globalzp variable_name_table_ptr
+.globalzp value_table_ptr
+.globalzp heap_ptr
+.globalzp himem_ptr
+.globalzp variable_count
 
 ; Data
 
-.global program_ptr
-.global variable_count
-.global variable_name_table_ptr
-.global value_table_ptr
-.global heap_ptr
-.global himem_ptr
 .global statement_name_table
 .global statement_signature_table
 
@@ -24,12 +24,14 @@
 
 ; encode.s
 .global encode_number
+.global encode_variable
 .global encode_byte
 
 ; name.s
 .global find_name
 .global match_character_sequence
 .global is_name_character
+.global add_variable
 
 ; parser.s
 .global read_number, char_to_digit
@@ -38,7 +40,6 @@
 .global parse_expression
 .global parse_argument_separator
 .global skip_whitespace
-.global add_variable
 
 ; program.s
 .global initialize_program, reset_line_ptr, find_line, advance_line_ptr, insert_or_update_line

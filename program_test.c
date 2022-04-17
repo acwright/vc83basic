@@ -9,7 +9,8 @@ static void test_initalize_program(void) {
     ASSERT_EQ(line_ptr->number, -1);
     ASSERT_EQ(line_ptr->length, 0);
     ASSERT_EQ(variable_name_table_ptr, (void*)(program_ptr + 1)); // sizeof *program_ptr == size of the line header
-    ASSERT_EQ(value_table_ptr, variable_name_table_ptr); // Variable name table is empty
+    ASSERT_EQ(value_table_ptr, variable_name_table_ptr + 1); // Variable name table is empty with terminating 0
+    ASSERT_EQ(*variable_name_table_ptr, 0);
 }
 
 static void test_reset_line_ptr(void) {
@@ -119,7 +120,7 @@ static void test_insert_or_update_line(void) {
     ASSERT_EQ(line_ptr->number, -1);    
     advance_line_ptr();
     ASSERT_EQ(variable_name_table_ptr, (void*)line_ptr);
-    ASSERT_EQ(value_table_ptr, (void*)line_ptr);
+    ASSERT_EQ(value_table_ptr, variable_name_table_ptr + 1);
 
     strcpy(buffer, "200 PRINT 3.14159");
     buffer_length = 16;
@@ -135,7 +136,7 @@ static void test_insert_or_update_line(void) {
     ASSERT_EQ(line_ptr->number, -1);    
     advance_line_ptr();
     ASSERT_EQ(variable_name_table_ptr, (void*)line_ptr);
-    ASSERT_EQ(value_table_ptr, (void*)line_ptr);
+    ASSERT_EQ(value_table_ptr, variable_name_table_ptr + 1);
 
     // Test inserting a line before the other two.
     strcpy(buffer, "5 END");
@@ -155,7 +156,7 @@ static void test_insert_or_update_line(void) {
     ASSERT_EQ(line_ptr->number, -1);    
     advance_line_ptr();
     ASSERT_EQ(variable_name_table_ptr, (void*)line_ptr);
-    ASSERT_EQ(value_table_ptr, (void*)line_ptr);
+    ASSERT_EQ(value_table_ptr, variable_name_table_ptr + 1);
 
     // Test deleting a line.
     strcpy(buffer, "200");
@@ -172,7 +173,7 @@ static void test_insert_or_update_line(void) {
     ASSERT_EQ(line_ptr->number, -1);    
     advance_line_ptr();
     ASSERT_EQ(variable_name_table_ptr, (void*)line_ptr);
-    ASSERT_EQ(value_table_ptr, (void*)line_ptr);
+    ASSERT_EQ(value_table_ptr, variable_name_table_ptr + 1);
 }
 
 int main(void) {

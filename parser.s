@@ -81,12 +81,9 @@ char_to_digit:
 
 parse_statement:
 
-@save_y = tmp3
+@save_y = tmp4
 
-        sta     name_ptr                ; Initialize name_ptr
-        ldx     name_ptr+1        
-        jsr     skip_whitespace
-        jsr     find_name               ; Sets Y to next byte in name table entry
+        jsr     find_name               ; Sets Y to next byte in name table entry (AX passed to find_name)
         sty     @save_y                 ; Remember the Y position
         bcs     @error  
         pha                             ; Push the returned name index
@@ -154,7 +151,7 @@ argument_type_vectors:
         .word   parse_error
         .word   parse_error
         .word   parse_error
-        .word   parse_variable_name
+        .word   parse_variable
         .word   parse_error
         .word   parse_error
         .word   parse_error
@@ -173,14 +170,14 @@ argument_type_vectors:
 
 parse_arguments:
 
-@argument_count = tmp2
+@argument_count = tmp3
 
         sta     @argument_count
         beq     @done
 @next_argument:
         ldy     argument_index          ; Use Y to index signature
         lda     (signature_ptr),y       ; Load argument
-        and     $0F                     ; Isolate argument type
+        and     #$0F                    ; Isolate argument type
         tay
         lda     #<argument_type_vectors
         ldx     #>argument_type_vectors
@@ -208,7 +205,9 @@ parse_error:
 
 parse_expression:
         jsr     parse_number
-@error:
+        bcc     @done
+        jsr     parse_variable
+@done:
         rts
 
 ; Parses a number from the buffer.
@@ -224,13 +223,23 @@ parse_number:
 ; Tries to match the current buffer at position r with the names in the variable name table.
 ; If the name is not found, then extends the variable name table.
 
-parse_variable_name:
+parse_variable:
+        ldx     r                       ; Load read position into X
+        lda     buffer,x                ; Load current character
+        sec
+        sbc     #'A'                    ; Check if first character is in range A-Z
+        cmp     #26
+        bcs     @done
         lda     variable_name_table_ptr
         ldx     variable_name_table_ptr+1
         jsr     find_name
         bcc     @found
         jsr     add_variable
+        bcs     @done
 @found:
+        jsr     encode_variable       
+@done:
+        rts
 
 ; Parses a mandatory comma beween arguments. Does not write any tokens.
 ; Returns carry clear if the ',' was found or carry set if it was not.
@@ -265,53 +274,4 @@ skip_whitespace:
         beq     @next       
         dex                             ; It wasn't whitespace so go back
         stx     r                       ; Update read position
-        rts
-
-; Extends the variable name table by adding a new name.
-; This will clobber the current program state and prevent the user from using CONT to resume execution.
-; The new name consists of all the name characters from buffer starting with the position in r.
-; name_ptr = a pointer to the 0 at the end of the variable name table (left there by find_name)
-; Returns carry clear on success or carry set on failure.
-; On success, updates variable_value_table and variable_count, and returns ID of new variable in A.
-
-add_variable:
-
-@length = tmp1
-
-        lda     variable_count          ; Check if too many variables already
-        bmi     @fail                   ; variable_count >= 128
-        ldx     r                       ; Read position in buffer
-@find_end:
-        inx                             ; We'll never have a zero-length name so inc first
-        lda     buffer,x                ; Look for non-name character
-        jsr     is_name_character
-        bcc     @find_end               ; Still a name character
-        txa                             ; Carry guaranteed to be set; handy!
-        sbc     r                       ; Subtract r to find length of name
-        sta     @length                 ; Save length
-        jsr     grow_a                  ; Increase variable_value_ptr
-        bcs     @fail
-        ldx     r                       ; Reload r
-        ldy     #0                      ; Write position relative to name_ptr
-@copy:
-        lda     buffer,x                ; Load one char       
-        sta     (name_ptr),y            ; Store it
-        inx
-        iny
-        cpy     @length                 ; Keep copying until y = length
-        bne     @copy
-        ora     #$80                    ; Set high bit in last value
-        dey
-        sta     (name_ptr),y            ; Save it again
-        iny
-        lda     #0
-        sta     (name_ptr),y            ; Store 0
-        lda     variable_count          ; This will become the return value
-        tax
-        inx
-        stx     variable_count          ; Add one to variable count
-        rts
-
-@fail:
-        sec
         rts

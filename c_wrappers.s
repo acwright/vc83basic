@@ -24,11 +24,14 @@
 .export _variable_name_table_ptr = variable_name_table_ptr
 .export _value_table_ptr = value_table_ptr
 .export _heap_ptr = heap_ptr
+.export _variable_count = variable_count;
 
 .export _status = status
 
 .export _r = r
 .export _w = w;
+
+.export _name_ptr = name_ptr;
 
 .export _signature_ptr = signature_ptr
 .export _argument_index = argument_index
@@ -168,6 +171,11 @@ _parse_argument_separator:
         jsr     parse_argument_separator
         jmp     return_carry
 
+_add_variable:
+.export _add_variable
+        jsr     add_variable
+        jmp     return_carry
+
 ; name.s
 
 _is_name_character:
@@ -179,8 +187,6 @@ _find_name:
 .export _find_name
         sta     r                       ; Buffer index
         jsr     popax                   ; Name table pointer
-        sta     name_ptr
-        stx     name_ptr+1
         jsr     find_name
         jmp     return_carry
 
