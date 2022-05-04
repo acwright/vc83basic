@@ -177,6 +177,29 @@ static void test_find_name_operators(void) {
     ASSERT_EQ(name_ptr, name_table_3 + 1);
 }
 
+static void test_get_name_table_entry(void) {
+    int err;
+    const char* name_table = "LIST\x92" "PRIN\xD4" "FOR\x11=\x11TO\x91" "RU\xCE";
+
+    PRINT_TEST_NAME();
+
+    err = get_name_table_entry(name_table, 0);
+    ASSERT_EQ(err, 0);
+    ASSERT_EQ(name_ptr, name_table);
+
+    err = get_name_table_entry(name_table, 1);
+    ASSERT_EQ(err, 0);
+    ASSERT_EQ(name_ptr, name_table + 5);
+
+    err = get_name_table_entry(name_table, 2);
+    ASSERT_EQ(err, 0);
+    ASSERT_EQ(name_ptr, name_table + 5 + 5);
+
+    err = get_name_table_entry(name_table, 3);
+    ASSERT_EQ(err, 0);
+    ASSERT_EQ(name_ptr, name_table + 5 + 5 + 9);
+}
+
 static void test_add_variable(void) {
     int err;
 
@@ -203,6 +226,7 @@ int main(void) {
     test_match_character_sequence();
     test_find_name();
     test_find_name_operators();
+    test_get_name_table_entry();
     test_add_variable();
     return 0;
 }

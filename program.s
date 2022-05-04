@@ -88,32 +88,27 @@ reset_program:
 ; This function needs to be reasonably fast because it will be called every time the program executes GOTO, 
 ; GOSUB, RESTORE, or any other function that requires a line number.
 ; AX = the line number
-; The find_line_number entry point uses the line number in line_number.
+; The find_line_sreg entry point uses the line number in sreg.
 ; Carry clear if ok (the was found), carry set if error (line not found).
 ; Sets line_ptr, line_number, and line_length if the line was found.
 ; If not found, line_ptr is left set to where the line would have been, i.e., pointing
 ; to the next-higher line.
 
 find_line:
-        stax    line_number
-find_line_number:
+        stax    sreg
+find_line_sreg:
         jsr     reset_line_ptr          ; Set line_ptr to beginning of program
 next_line:      
         ldy     #1                      ; Set Y to 1 for getting high byte of line number
         lda     (line_ptr),y        
-        cmp     line_number+1       
+        cmp     sreg+1       
         bcc     @continue               ; Line number high byte is <target; go to next line
         bne     @return                 ; Return with carry set
         dey                             ; High byte is equal; decrement Y to 0
         lda     (line_ptr),y            ; Check the low byte of line number
-        cmp     line_number             ; Same logic for low byte
+        cmp     sreg                    ; Same logic for low byte
         bcc     @continue       
-        bne     @return                 ; Return with carry set
-        iny                             ; Y = 1
-        iny                             ; Y = 2 to get the length byte
-        lda     (line_ptr),y            ; Line length
-        sta     line_length             ; Save it
-        clc                             ; Signal ok
+        beq     update_line_fields      ; Update line fields and return; otherwise return with carry bit set
 @return:        
         rts     
 
@@ -121,15 +116,33 @@ next_line:
         jsr     advance_line_ptr        ; Advance to the next line    
         jmp     next_line
 
-; Advances the current line pointer to the next line.
-; Operates directly on line_ptr.
-; Returns line line_ptr value in AX.
+; Advances the current line pointer to the next line. This is called from find_line so we don't set line_number
+; or line_length or assume they've been set, because in find_line we want to scan the program as quickly as possible.
+; line_ptr = current line (updated)
+; Returns new line_ptr value in AX.
 
 advance_line_ptr:
         ldy     #2                      ; Need offset 2 to get length
         lda     (line_ptr),y            ; Get length of current line
         jsr     get_line_start_plus_a
         stax    line_ptr                ; Store back into line_ptr
+        rts
+
+; Updates the line_number and line_length fields from line_ptr. 
+; line_ptr = current line
+; On return, line_number and line_length are set, and Y = 2.
+
+update_line_fields:
+        ldy     #0
+        lda     (line_ptr),y            ; Low byte
+        sta     line_number
+        iny
+        lda     (line_ptr),y            ; High byte
+        sta     line_number+1
+        iny
+        lda     (line_ptr),y            ; Get length of current line
+        sta     line_length
+        clc                             ; In case we're wrapping up a function that clears carry on success
         rts
 
 ; Returns a pointer to the start of data for the current line (identified by line_ptr).
@@ -181,13 +194,15 @@ delete_line:
         rts
 
 ; Inserts a new line, or does nothing if the line to insert is empty.
-; line_number = the insertion point for the new line (previously set by find_line)
-; line_ptr = a pointer to the line to replace (previously set by find_line)
+; line_ptr = a pointer to the insertion point (previously set by find_line)
+; AX = the number of the new line (from find_line)
 ; output_buffer = the buffer holding the tokenized data
 ; w = the write position in output_buffer, which is the length of the data
 ; Returns carry clear on success, carry set on error.
 
 insert_line:
+        stax    sreg
+insert_line_sreg:
         mvax    line_ptr, copy_from_ptr ; Initialize copy_from_ptr to line_ptr
         lda     w                       ; Load the length of the token data
         beq     @finish                 ; Line is empty
@@ -197,10 +212,10 @@ insert_line:
         jsr     calculate_bytes_to_move ; Set copy_length to length of program from line_ptr
         jsr     update_pointers         ; Knowing copy from and to, we can update pointers
         jsr     copy_bytes_back     
-        lda     line_number     
+        lda     sreg                    ; Line number low byte     
         ldy     #0      
         sta     (line_ptr),y            ; Save line item number low byte
-        lda     line_number+1       
+        lda     sreg+1                  ; Line number high byte
         iny     
         sta     (line_ptr),y            ; Save line item number high byte
         pla                             ; Get the line length saved earlier

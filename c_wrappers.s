@@ -173,11 +173,6 @@ _parse_argument_separator:
         jsr     parse_argument_separator
         jmp     return_carry
 
-_add_variable:
-.export _add_variable
-        jsr     add_variable
-        jmp     return_carry
-
 ; name.s
 
 _is_name_character:
@@ -202,6 +197,19 @@ _match_character_sequence:
         stx     name_ptr+1
         ldy     regsave
         jsr     match_character_sequence
+        jmp     return_carry
+
+_get_name_table_entry:
+.export _get_name_table_entry
+        sta     regsave                 ; Index arrives in A; we need it in Y
+        jsr     popax                   ; Name table pointer
+        ldy     regsave                 ; Load index into Y
+        jsr     get_name_table_entry
+        jmp     return_carry
+
+_add_variable:
+.export _add_variable
+        jsr     add_variable
         jmp     return_carry
 
 ; util.s

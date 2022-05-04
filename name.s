@@ -64,7 +64,7 @@ match_character_sequence:
         lda     @last                   ; Reload last-read character
         and     #$7F                    ; Clear bit 7, if it's set
         cmp     buffer,x                ; Compare with character from buffer
-        bne     @advance_y_next_entry   ; Doesn't match
+        bne     @mismatch               ; Doesn't match
         iny                             ; Next position
         inx
         lda     @last                   ; Reload character once more
@@ -75,7 +75,7 @@ match_character_sequence:
 
         jsr     check_name_continuation
         bcs     @match
-        jmp     @no_match
+        jmp     @continued_name
 
 ; We're reached a non-literal character and everything has matched so far.
 ; Check for name continuation. If the name continues, then advance to next entry and return no match.
@@ -83,22 +83,10 @@ match_character_sequence:
 @non_literal:
         jsr     check_name_continuation
         bcs     @match
-
-@advance_y_next_entry:
-        lda     (name_ptr),y            ; Load current position
-        tax                             ; Temporarily park in X
-        iny                             ; Advance past
-        txa                             ; Get the loaded character back to check bit 7
-        bpl     @advance_y_next_entry   ; Keep searching if bit 7 not set
-
-@no_match:
-        tya                             ; Y is now the offset of the next rule; add to name_ptr
-        clc                             ; Add to name_ptr to get updated name_ptr
-        adc     name_ptr            
-        sta     name_ptr        
-        bcc     @done                   ; Don't have to increment high byte
-        inc     name_ptr+1      
-@done:      
+@mismatch:
+        jsr     advance_y_next_entry
+@continued_name:
+        jsr     advance_name_ptr
         sec                             ; Set carry to indicate failure
         rts     
         
@@ -139,6 +127,59 @@ is_name_character:
 @done:      
         rts
 
+; Advances Y until it points to the next name table entry.
+; name_ptr = a pointer to the current name table entry
+; Y = the read position within the name table entry (updated)
+
+advance_y_next_entry:
+        lda     (name_ptr),y            ; Load current position
+        tax                             ; Temporarily park in X
+        iny                             ; Advance past
+        txa                             ; Get the loaded character back to check bit 7
+        bpl     advance_y_next_entry    ; Keep searching if bit 7 not set
+        rts
+
+; Adds Y to name_ptr.
+; name_ptr = a pointer to the current name table entry
+; Y = the value to add, which should be the position of the next name table entry relative to this one
+
+advance_name_ptr:
+        tya                             ; Y is now the offset of the next rule; add to name_ptr
+        clc                             ; Add to name_ptr to get updated name_ptr
+        adc     name_ptr            
+        sta     name_ptr        
+        bcc     @done                   ; Don't have to increment high byte
+        inc     name_ptr+1
+@done:
+        rts
+
+; Finds a name entry by its index.
+; AX = pointer to the first entry in the name table
+; Y = the index of the entry to find
+; Returns carry clear on success, carry set on error. On success, name_ptr points to the name table entry.
+
+get_name_table_entry:
+
+@index = tmp2
+
+        stax    name_ptr                ; Initialize name_ptr
+        sty     @index                  ; Save index
+@next_name:
+        dec     @index
+        bmi     @found                  ; If @index is now <0 then we're done (this limits name table to 128 entries)
+        ldy     #0                      ; Y is now the index into the name table entry
+        lda     (name_ptr),y            ; Check if at end of name table
+        beq     @not_found
+        jsr     advance_y_next_entry    ; Advance Y until it points to the next entry
+        jsr     advance_name_ptr        ; Add Y to name_ptr
+        jmp     @next_name
+@found:
+        clc
+        rts
+@not_found:
+        sec
+        rts
+        
 ; Extends the variable name table by adding a new name.
 ; This will clobber the current program state and prevent the user from using CONT to resume execution.
 ; The new name consists of all the name characters from buffer starting with the position in r.

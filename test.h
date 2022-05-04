@@ -63,6 +63,7 @@ extern char reg_y;
 int find_name(const char* name_ptr, char r);
 int match_character_sequence(const char* name_ptr, char y, char r);
 int is_name_character(char c);
+int get_name_table_entry(const char* name_ptr, char index);
 int add_variable(void);
 
 // encode.s
@@ -84,7 +85,7 @@ void reset_line_ptr(void);
 int find_line(int line_number);
 void advance_line_ptr(void);
 int delete_line(void);
-int insert_line(void);
+int insert_line(int line_number);
 int check_himem(void* ptr);
 
 // util.s

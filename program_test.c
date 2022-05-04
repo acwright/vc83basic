@@ -114,7 +114,7 @@ static void test_delete_insert_line(void) {
     w = sizeof tokens_1;
     err = find_line(10);
     ASSERT_NE(err, 0);
-    err = insert_line();
+    err = insert_line(10);
     ASSERT_EQ(err, 0);
     reset_line_ptr();
     ASSERT_EQ(line_ptr->number, 10);    
@@ -130,7 +130,7 @@ static void test_delete_insert_line(void) {
     w = sizeof tokens_2;
     err = find_line(200);
     ASSERT_NE(err, 0);
-    err = insert_line();
+    err = insert_line(200);
     ASSERT_EQ(err, 0);
     reset_line_ptr();
     ASSERT_EQ(line_ptr->number, 10);    
@@ -150,7 +150,7 @@ static void test_delete_insert_line(void) {
     err = find_line(5);
     ASSERT_NE(err, 0);
     ASSERT_EQ(line_ptr->number, 10);    
-    err = insert_line();
+    err = insert_line(5);
     ASSERT_EQ(err, 0);
     reset_line_ptr();
     ASSERT_EQ(line_ptr->number, 5);    

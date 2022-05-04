@@ -27,7 +27,6 @@ statement_exec_vectors:
         .word   exec_print
 
 main:
-
         jsr     initialize_target
         jsr     initialize_program
 @ready:
@@ -40,14 +39,14 @@ main:
         jsr     skip_whitespace
         jsr     read_number             ; Leaves line number in AX and Y points to next character in buffer
         bcs     @immediate_mode
-        stax    line_number
+        stax    sreg
         jsr     @get_statement
         bcs     @error
-        jsr     find_line_number
+        jsr     find_line_sreg
         bcs     @insert                 ; Line not found, just insert the new one
         jsr     delete_line             ; Delete the existing line
 @insert:
-        jsr     insert_line             ; Insert the new line
+        jsr     insert_line_sreg        ; Insert the new line
         jmp     @wait_for_input
 
 @immediate_mode:
@@ -81,20 +80,18 @@ invoke_statement_handler:
 exec_list:
         jsr     reset_line_ptr
 @next_line:
-        ldy     #1                      ; High byte of line number
-        lda     (line_ptr),y
+        jsr     update_line_fields
+        ldx     line_number+1           ; High byte of line number
         bmi     @end                    ; If MSB of line number is set, we're at end of program
-        tax
-        dey
-        lda     (line_ptr),y            ; Low byte of line number
+        lda     line_number             ; Low byte of line number
         jsr     print_number
         lda     #' '
         jsr     putchar
-        ldy     #2                      ; Line length
-        lda     (line_ptr),y
+        ldy     #3                      ; Start of line data
+        lda     (line_ptr),y            ; Get statement token
         tay
-        jsr     get_line_start          ; Puts pointer to start of line data in AX
-        jsr     write
+        ldax    #statement_name_table
+        jsr     list_element
         jsr     newline
         jsr     advance_line_ptr
         jmp     @next_line
@@ -149,6 +146,66 @@ exec_print:
 @error:
         jsr     print_error
 @end:
+        rts
+
+; Outputs a syntax element.
+; Y = the index of the syntax element
+; AX = pointer to the first entry in the name table
+
+list_element:
+
+@save_y = tmp3
+@last = tmp4
+
+        jsr     get_name_table_entry    ; Sets name_ptr
+        ldy     #0                      ; Start at position 0
+@next_char:
+        lda     (name_ptr),y            ; Load the character
+        sta     @last                   ; Remember it
+        iny                             ; Next position
+        sty     @save_y
+        and     #$60                    ; Is it a literal?
+        beq     @handle_arguments       ; Nope
+        lda     @last                   ; Load character again
+        and     #$7F                    ; Clear high bit if set
+        jsr     putchar                 ; Print the character
+
+@loop:
+        ldy     @save_y
+        lda     @last                   ; Character again
+        bpl     @next_char              ; Next character
+        rts                             ; High bit is set; end of name table entry
+
+@handle_arguments:
+        lda     #' '                    ; Print a space
+        jsr     putchar
+        lda     @last                   ; Get the last character again
+        and     #$0F                    ; Number of arguments
+        jsr     list_arguments          ; List them
+        jmp     @loop
+
+; Prints statement or function arguments from the token stream.
+; Unlike parse_arguments, this function does not use the signature table. Instead, we just print arguments using
+; the types in the token stream.
+; r = read position in token stream (updated) 
+
+list_arguments:
+
+@argument_count = tmp2
+
+        sta     @argument_count         ; Save the argument count
+        ldy     r                       ; Load read position into Y
+@next_argument:
+
+        lda     #'0'                    ; Just output 0 for each one
+        jsr     putchar
+        dec     @argument_count
+        beq     @done
+        lda     #','
+        jsr     putchar
+        jmp     @next_argument
+@done:
+        stx     r
         rts
 
 ; Prints the number in AX to the console.
