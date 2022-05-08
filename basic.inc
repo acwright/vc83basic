@@ -4,6 +4,7 @@
 .globalzp r
 .globalzp w
 .globalzp name_ptr
+.globalzp n
 .globalzp signature_ptr
 .globalzp argument_index
 .globalzp copy_from_ptr, copy_to_ptr, copy_length

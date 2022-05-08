@@ -1,11 +1,10 @@
 ; cc65 runtime
-.include "zeropage.inc"
-
 .include "target.inc"
 .include "basic.inc"
 
 .zeropage
 
+; Pointer to current name table entry
 name_ptr: .res 2
 
 .code
@@ -21,25 +20,22 @@ name_ptr: .res 2
 ; If no match, then A is the number of names in the name table and name_ptr points to the 0 at the end of the table.
 
 find_name:
-
-@index = tmp2
-
         stax    name_ptr
-        lda     #0                      ; Name table index
-        sta     @index              
+        lda     #0                      ; Track name table index in B
+        sta     B              
 @next_name:     
         ldy     #0                      ; Y is the read position in the name table entry
         lda     (name_ptr),y            ; Get name character
         beq     @error                  ; If it's 0 then out of names to match
         jsr     match_character_sequence
         bcc     @match
-        inc     @index                  ; Increment name table index; doesn't affect carry
+        inc     B                       ; Increment name table index; doesn't affect carry
         bcs     @next_name      
 
 @error:     
         sec                             ; Signal failure
 @match:     
-        lda     @index                  ; Return number of matched name in A
+        lda     B                       ; Return number of matched name in A
         rts
 
 ; Matches a character sequence from the name table with characters from buffer.
@@ -49,25 +45,23 @@ find_name:
 ; Returns carry clear if the name matched and carry set if it didn't match any name.
 ; On success, Y will point to the next byte past the matched word, and name_ptr will be unchanged.
 ; On failure, name_ptr will be set to the next name table entry.
+; B SAFE
 
 match_character_sequence:
-
-@last = tmp1
-
         ldx     r                       ; Load read position into X
 @next_character:        
         lda     (name_ptr),y            ; Get name character
-        sta     @last                   ; It's now the last-read character
+        sta     C                       ; Store last character in C
         and     #$60                    ; Check if it's a string literal character
-        beq     @non_literal        
-        lda     @last                   ; Reload last-read character
+        beq     @non_literal
+        lda     C                       ; Reload last-read character
         and     #$7F                    ; Clear bit 7, if it's set
         cmp     buffer,x                ; Compare with character from buffer
         bne     @mismatch               ; Doesn't match
-        iny                             ; Next position
-        inx
-        lda     @last                   ; Reload character once more
-        bpl     @next_character         ; If bit 7 not set then continue
+        inx                             ; Next position
+        iny
+        lda     C                       ; Reload character once more
+        bpl     @next_character         ; Keep reading characters if this isn't the last one
 
 ; We've reached a character in the name table entry with bit 7 set and everything has matched so far.
 ; Check for name continuation. If the name continues, then return no match. Y already points to next entry.
@@ -98,7 +92,7 @@ match_character_sequence:
 ; We consider it a continuation if the X-1 character was a name character and the X character is also
 ; a name character.
 ; Returns carry clear if the name is a continuation, carry set if it is not.
-; X SAFE, Y SAFE
+; X SAFE, Y SAFE, BC SAFE
 
 check_name_continuation:
         lda     buffer-1,x              ; Get last matched character
@@ -111,7 +105,7 @@ check_name_continuation:
 
 ; Checks if the character A is a name character. A name character is 'A'-'Z', '0'-'9', or '$'.
 ; Returns carry clear if it is, carry set if not.
-; X SAFE, Y SAFE
+; X SAFE, Y SAFE, BC SAFE
 
 is_name_character:
         sec                             ; Prepare for subtract
@@ -129,6 +123,7 @@ is_name_character:
 ; Advances Y until it points to the next name table entry.
 ; name_ptr = a pointer to the current name table entry
 ; Y = the read position within the name table entry (updated)
+; B SAFE
 
 advance_y_next_entry:
         lda     (name_ptr),y            ; Load current position
@@ -141,6 +136,7 @@ advance_y_next_entry:
 ; Adds Y to name_ptr.
 ; name_ptr = a pointer to the current name table entry
 ; Y = the value to add, which should be the position of the next name table entry relative to this one
+; B SAFE
 
 advance_name_ptr:
         tya                             ; Y is now the offset of the next rule; add to name_ptr
@@ -158,13 +154,10 @@ advance_name_ptr:
 ; Returns carry clear on success, carry set on error. On success, name_ptr points to the name table entry.
 
 get_name_table_entry:
-
-@index = tmp2
-
         stax    name_ptr                ; Initialize name_ptr
-        sty     @index                  ; Save index
+        sty     B                       ; Track the index in B
 @next_name:
-        dec     @index
+        dec     B
         bmi     @found                  ; If @index is now <0 then we're done (this limits name table to 128 entries)
         ldy     #0                      ; Y is now the index into the name table entry
         lda     (name_ptr),y            ; Check if at end of name table
@@ -187,9 +180,6 @@ get_name_table_entry:
 ; On success, updates variable_value_table and variable_count, and returns ID of new variable in A.
 
 add_variable:
-
-@length = tmp1
-
         lda     variable_count          ; Check if too many variables already
         bmi     @fail                   ; variable_count >= 128
         ldx     r                       ; Read position in buffer
@@ -200,7 +190,7 @@ add_variable:
         bcc     @find_end               ; Still a name character
         txa                             ; Carry guaranteed to be set; handy!
         sbc     r                       ; Subtract r to find length of name
-        sta     @length                 ; Save length
+        sta     B                       ; Save length in B
         jsr     grow_a                  ; Increase variable_value_ptr
         bcs     @fail
         ldx     r                       ; Reload r
@@ -210,7 +200,7 @@ add_variable:
         sta     (name_ptr),y            ; Store it
         inx
         iny
-        dec     @length                 ; Use DEC here so carry isn't modified
+        dec     B                       ; Use DEC here to decrement length so carry isn't modified
         bne     @copy
         stx     r                       ; Update r
         ora     #$80                    ; Set high bit in last value
