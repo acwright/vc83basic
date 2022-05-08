@@ -1,7 +1,3 @@
-; cc65 runtime
-.include "zeropage.inc"
-.import push0, push1, pushax
-
 .include "apple2.inc"
 .include "../target.inc"
 
@@ -39,14 +35,13 @@ write_buffer:
         ldx     #>buffer
         ldy     buffer_length
 write:
-        sta     ptr1
-        stx     ptr1+1
-        sty     tmp1
+        stax    DE
+        sty     B
         ldy     #0
 @next:
-        cpy     tmp1
+        cpy     B
         beq     @done
-        lda     (ptr1),y
+        lda     (DE),y
         jsr     putchar
         iny
         jmp     @next

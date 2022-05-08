@@ -28,25 +28,22 @@ argument_index: .res 1
 ; Returns the number in AX, carry clear if ok, carry set if error
 
 read_number:
-
-@digit_value = tmp1
-
         ldy     r                       ; Use Y to index buffer (since AX will hold the number)
         lda     #0                      ; Intialize the value to 0
         tax
 @next:
-        cpy     buffer_length           ; At the end of the line yet?
+        cpy     buffer_length           ; At the end of the line yet? TODO: probably don't need this
         beq     @finish                 ; Yes, return
         pha                             ; Save A (low byte of value)
         lda     buffer,y    
         jsr     char_to_digit           ; X SAFE function
-        sta     @digit_value            ; Store the digit value
+        sta     B                       ; Store the digit value
         pla                             ; Retrieve the low byte of value
         bcs     @finish                 ; If there was an error in char_to_digit, stop parsing
         iny                             ; No error, increment read position
         jsr     mul10                   ; Multiply the value by 10
         clc
-        adc     @digit_value            ; Add the digit value
+        adc     B                       ; Add the digit value
         bcc     @next                   ; If carry clear then next digit
         inx                             ; Otherwise increment high byte
         jmp     @next

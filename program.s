@@ -280,33 +280,29 @@ update_pointers:
 ; Tries to increase value_table_ptr by an amount.
 ; A (check_grow_a) or AY (check_grow_ay) = the value to add to value_table_ptr
 ; Returns carry clear if the add was successful, otherwise carry set.
+; BC SAFE
 
 grow_a:
         ldy     #0
 grow_ay:
-
-@candidate_ptr = ptr1
-
         clc
         adc     value_table_ptr
         tax                             ; Save low byte in X
         tya                             ; Add high byte
         adc     value_table_ptr+1
         bcs     @done                   ; Pointer wrapped around
-        stx     @candidate_ptr          ; Save calculated pointer since check_himem will clobber it
-        sta     @candidate_ptr+1
+        stx     D                       ; Save calculated pointer since check_himem will clobber it
+        sta     E
         jsr     check_himem
         bcs     @done
-        mvax    @candidate_ptr, value_table_ptr ; Validation successful; copy candidate_ptr into value_table_ptr
+        mvax    DE, value_table_ptr     ; Validation successful; copy candidate_ptr into value_table_ptr
 @done:
         rts
-
-; Fall through to check_himem.
 
 ; Checks if a pointer is > himem_ptr.
 ; Returns carry clear if the pointer is <=himem_ptr, carry set if it is greater.
 ; XA = the pointer to test (NOTE A IS HIGH BYTE AND X IS LOW BYTE)
-; Y SAFE
+; Y SAFE, BC SAFE, DE SAFE
 
 check_himem:
         cmp     himem_ptr+1

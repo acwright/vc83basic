@@ -1,6 +1,3 @@
-; cc65 runtime
-.include "zeropage.inc"
-
 .include "apple2.inc"
 .include "../target.inc"
 

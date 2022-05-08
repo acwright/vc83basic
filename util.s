@@ -161,7 +161,7 @@ return_status:
 ; Multiplies the value in AX by 10 by shifting left twice, adding original value, shifting left once more.
 ; AX = the value to multiply by 10
 ; Returns the product in AX
-; BC SAFE
+; Y SAFE, BC SAFE
 
 mul10:
         stax    DE
