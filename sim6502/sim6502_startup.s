@@ -14,11 +14,8 @@
 
 startup:
         cld                             ; Clear decimal flag
-        ldx     #$FF;
-        txs                             ;; Initialize the stack to $FF
-        lda     #<(__MAIN_START__ + __MAIN_SIZE__ + __STACKSIZE__)
-        ldx     #>(__MAIN_START__ + __MAIN_SIZE__ + __STACKSIZE__)
-        sta     sp
-        stx     sp+1                    ; Set up C stack
+        ldx     #$FF
+        txs                             ; Initialize the stack to $FF
+        mvax    #(__MAIN_START__ + __MAIN_SIZE__ + __STACKSIZE__), sp
         jsr     main        
         jmp     exit                    ; Return 0 from sim65

@@ -5,8 +5,7 @@
 ; C prototypes are in test.h.
 
 ; cc65 runtime
-.include "zeropage.inc"
-.import popa, popax, popptr1, incsp2, return0, return1
+.import popa, popax, return0, return1
 
 .include "target.inc"
 .include "basic.inc"
@@ -104,18 +103,18 @@ _match_character_sequence:
 .export _match_character_sequence
         sta     r
         jsr     popa
-        sta     regsave
+        sta     B      
         jsr     popax
         stax    name_ptr
-        ldy     regsave
+        ldy     B      
         jsr     match_character_sequence
         jmp     return_carry
 
 _get_name_table_entry:
 .export _get_name_table_entry
-        sta     regsave                 ; Index arrives in A; we need it in Y
+        sta     B                       ; Index arrives in A; we need it in Y
         jsr     popax                   ; Name table pointer
-        ldy     regsave                 ; Load index into Y
+        ldy     B                       ; Load index into Y
         jsr     get_name_table_entry
         jmp     return_carry
 
@@ -210,9 +209,9 @@ _insert_line:
 
 _check_himem:
 .export _check_himem
-        sta     regsave                 ; Swap A and X
+        sta     B                       ; Swap A and X
         txa                     
-        ldx     regsave
+        ldx     B      
         jsr     check_himem
         jmp     return_carry
 
@@ -248,9 +247,9 @@ _div10:
 
 _invoke_indexed_vector:
 .export _invoke_indexed_vector
-        sta     regsave                 ; Index arrives in A; we need it in Y
+        sta     B                       ; Index arrives in A; we need it in Y
         jsr     popax                   ; Address of vector array
-        ldy     regsave
+        ldy     B      
         jmp     invoke_indexed_vector
 
 _format_number:

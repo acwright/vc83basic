@@ -39,8 +39,6 @@ format: .byte "$%02X: A=%02X X=%02X Y=%02X SP=%02X %.8s", $0A, $00
 flag_names: .byte "NV-BDIZC"
 
 ; Prints the register values to stderr.
-; Since this function calls the C library function fprintf, it saves all the C zero page registers and
-; restores them before exiting.
 ; Although calling into the C library from an interrupt handler is normally asking for trouble, since sim65
 ; doesn't generate interrupts, this will only be called by a BRK statement.
 
@@ -69,15 +67,6 @@ debug_handler:
         iny
         cpy     #8
         bne     @next_flag
-        ldphaa  sreg        
-        ldpha   tmp1
-        ldpha   tmp2
-        ldpha   tmp3
-        ldpha   tmp4
-        ldphaa  ptr1
-        ldphaa  ptr2
-        ldphaa  ptr3
-        ldphaa  ptr4
         lda     _stderr                 ; fprintf(stderr, ...
         ldx     _stderr+1
         jsr     pushax
@@ -100,15 +89,6 @@ debug_handler:
         jsr     pushax           
         ldy     #16                     ; 16 bytes on the C stack
         jsr     _fprintf
-        plstaa  ptr4
-        plstaa  ptr3
-        plstaa  ptr2
-        plstaa  ptr1
-        plsta   tmp4
-        plsta   tmp3
-        plsta   tmp2
-        plsta   tmp1
-        plstaa  sreg
         lda     save_a                  ; Restore 6502 registers
         ldx     save_x
         ldy     save_y

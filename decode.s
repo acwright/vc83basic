@@ -1,6 +1,3 @@
-; cc65 runtime
-.include "zeropage.inc"
-
 .include "target.inc"
 .include "basic.inc"
 

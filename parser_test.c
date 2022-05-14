@@ -167,7 +167,6 @@ static void test_parse_element(void) {
     set_buffer("PLOT 10,100");
     err = parse_element(name_table, signature_table, 0, 0);
     ASSERT_EQ(err, 0);
-    ASSERT_EQ(reg_a, 0);
     ASSERT_EQ(r, 11);
     ASSERT_EQ(w, 7);
     ASSERT_EQ(output_buffer[0], 0);
@@ -181,7 +180,6 @@ static void test_parse_element(void) {
     set_buffer("NEW");
     err = parse_element(name_table, signature_table, 0, 0);
     ASSERT_EQ(err, 0);
-    ASSERT_EQ(reg_a, 1);
     ASSERT_EQ(r, 3);
     ASSERT_EQ(w, 1);
     ASSERT_EQ(output_buffer[0], 1);
@@ -189,7 +187,6 @@ static void test_parse_element(void) {
     set_buffer("GR 8");
     err = parse_element(name_table, signature_table, 0, 0);
     ASSERT_EQ(err, 0);
-    ASSERT_EQ(reg_a, 2);
     ASSERT_EQ(r, 4);
     ASSERT_EQ(w, 4);
     ASSERT_EQ(output_buffer[0], 2);
@@ -200,7 +197,6 @@ static void test_parse_element(void) {
     set_buffer("FOR 1 TO 10000");
     err = parse_element(name_table, signature_table, 0, 0);
     ASSERT_EQ(err, 0);
-    ASSERT_EQ(reg_a, 3);
     ASSERT_EQ(r, 14);
     ASSERT_EQ(w, 7);
     ASSERT_EQ(output_buffer[0], 3);
@@ -214,7 +210,6 @@ static void test_parse_element(void) {
     set_buffer("LET X=100");
     err = parse_element(name_table, signature_table, 0, 0);
     ASSERT_EQ(err, 0);
-    ASSERT_EQ(reg_a, 4);
     ASSERT_EQ(r, 9);
     ASSERT_EQ(w, 5);
     ASSERT_EQ(output_buffer[0], 4);

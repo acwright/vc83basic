@@ -1,6 +1,3 @@
-; cc65 runtime
-.include "zeropage.inc"
-
 .include "target.inc"
 .include "basic.inc"
 
@@ -11,22 +8,21 @@
 
 ; Encodes a number.
 ; AX = the integer to encode
-; Y SAFE
+; Y SAFE, DE SAFE
 
 encode_number:
-        sta     regsave
-        stx     regsave+1
+        stax    BC
         lda     #TOKEN_INT
         jsr     encode
-        lda     regsave
+        lda     B
         jsr     encode
-        lda     regsave+1
+        lda     C
         jsr     encode
         rts     
 
 ; Encodes a variable by its ID.
 ; A = the variable ID
-; Y SAFE
+; Y SAFE, BC SAFE
 
 encode_variable:
         ora     #$80                    ; Variables are encoded with the high bit set
@@ -35,7 +31,7 @@ encode_variable:
 
 ; Encodes a single byte.
 ; A = the byte to encode
-; Y SAFE
+; Y SAFE, BC SAFE
 
 encode_byte:
         jsr     encode
@@ -47,7 +43,7 @@ encode_byte:
 ; the caller doesn't have to check error status after encoding each byte error. Of course this implies the caller
 ; *can't* handle the error. Also, the caller can't have anything other than its own return address on the stack when
 ; calling this function.
-; Y SAFE
+; Y SAFE, BC SAFE
 
 encode:
         ldx     w

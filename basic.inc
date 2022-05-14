@@ -50,8 +50,8 @@
 .global skip_whitespace ; TODO: remove once no longer needed in main
 
 ; program.s
-.global initialize_program, reset_line_ptr, find_line, find_line_sreg, advance_line_ptr, update_line_fields
-.global delete_line, insert_line, insert_line_sreg
+.global initialize_program, reset_line_ptr, find_line, find_line_de, advance_line_ptr, update_line_fields
+.global delete_line, insert_line, insert_line_de
 .global get_line_start, get_line_start_plus_a, get_line_ptr_plus_a
 .global grow_a, grow_ay, check_himem
 

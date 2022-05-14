@@ -1,8 +1,7 @@
-; cc65 runtime
-.include "zeropage.inc"
-
 .include "target.inc"
 .include "basic.inc"
+
+.code
 
 ready_message: .byte "READY"
 ready_length = * - ready_message
@@ -42,14 +41,14 @@ main:
         jsr     skip_whitespace
         jsr     read_number             ; Leaves line number in AX and Y points to next character in buffer
         bcs     @immediate_mode
-        stax    sreg
+        stax    DE
         jsr     @get_statement
         bcs     @error
-        jsr     find_line_sreg
+        jsr     find_line_de
         bcs     @insert                 ; Line not found, just insert the new one
         jsr     delete_line             ; Delete the existing line
 @insert:
-        jsr     insert_line_sreg        ; Insert the new line
+        jsr     insert_line_de          ; Insert the new line
         jmp     @wait_for_input
 
 @immediate_mode:

@@ -1,6 +1,3 @@
-; cc65 runtime
-.include "zeropage.inc"
-
 .include "target.inc"
 .include "basic.inc"
 
@@ -13,6 +10,7 @@ w: .res 1
 
 signature_ptr: .res 2
 argument_index: .res 1
+argument_count: .res 1
 
 .code
 
@@ -76,23 +74,20 @@ char_to_digit:
 ; other functions so that those functions can call back in to this one.
 ; AX = pointer to the first entry of the name table
 ; signature_ptr = pointer to the first entry of the signature table
-; Returns carry clear if the input matched a rule and the index of that rule in A, 
-; or carry set if it didn't match any syntax rule.
+; Returns carry clear if the input matched a rule, or carry set if it didn't match any syntax rule.
 
 parse_element:
-
-@index = tmp4
 
 ; This whole first section uses Y to track the parse position in the name table entry pointed to by name_ptr.
 
         jsr     find_name               ; Sets Y to next byte in name table entry (AX passed to find_name)
-        bcs     @error  
-        sta     @index                  ; Store returned name index
+        bcs     @error
+        pha                             ; Save the returned name index
         jsr     encode_byte             ; Encode the statement name
+        pla                             ; Recover the name index (doesn't affect carry)
         bcs     @error                  ; encode_byte error
-        lda     @index                  ; Get the name index back
         asl                             ; Calculate the address of the signature; each name gets 2 signature bytes
-        adc     signature_ptr           ; Carry clear because encode_byte succeeded
+        adc     signature_ptr           ; Carry already clear because encode_byte succeeded
         sta     signature_ptr   
         lda     #0  
         sta     argument_index          ; Opportunistically set argument_index to 0
@@ -114,7 +109,7 @@ parse_element:
 
 @arguments:
         ldphaa  name_ptr                ; Save name_ptr, signature_ptr, and Y on the stack
-        ldphaa  signature_ptr   
+        ldphaa  signature_ptr
         tya
         pha     
         lda     (name_ptr),y            ; Re-read name table byte
@@ -141,7 +136,6 @@ parse_element:
 
 @success:
         clc
-        lda     @index                  ; Load return value
 
 ; We never jump to @error without carry being set so don't have to set it again.
 
@@ -175,10 +169,7 @@ argument_type_vectors:
 ; argument_index = where to start reading arguments from signature table (modified)
 
 parse_arguments:
-
-@argument_count = tmp3
-
-        sta     @argument_count
+        sta     argument_count
         beq     @done                   ; Eject if argument count is 0
 @next_argument:
         ldy     argument_index          ; Use Y to index signature
@@ -189,7 +180,7 @@ parse_arguments:
         jsr     invoke_indexed_vector
         bcs     @error
         inc     argument_index
-        dec     @argument_count
+        dec     argument_count
         beq     @done
         jsr     parse_argument_separator
         jmp     @next_argument
