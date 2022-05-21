@@ -11,24 +11,9 @@
 exec_list:
         jsr     reset_line_ptr
 @next_line:
-        jsr     update_line_fields
-        mva     #0, w                   ; Initialize write position
-        ldax    line_number             ; Line number into AX
-        bmi     @end                    ; If MSB of line number is set, we're at end of program
-        jsr     format_number
-        lda     #' '
-        jsr     write_buffer
-        sta     buffer,x                ; Space after line number
-        inx
-        stx     w                       ; Update write position
-        ldy     #3                      ; Start of line data
-        lda     (line_ptr),y            ; Get statement token
-        iny                             ; Increment Y to 4
-        sty     r                       ; and store in the read position register
-        tay
-        ldax    #statement_name_table
-        jsr     list_element
-        ldax    output_buffer
+        jsr     list_line
+        bcs     @end
+        ldax    #buffer
         ldy     w
         jsr     write
         jsr     newline
@@ -36,6 +21,32 @@ exec_list:
         jmp     @next_line
 
 @end:
+        rts
+
+; Outputs a full line.
+; line_ptr = pointer to the line
+; Returns with carry flag set if line_pointer points past the end of the program.
+
+list_line:
+        jsr     update_line_fields
+        mva     #0, w                   ; Initialize write position
+        ldax    line_number             ; Line number into AX
+        bmi     @end                    ; If MSB of line number is set, we're at end of program
+        jsr     format_number
+        lda     #' '
+        jsr     write_buffer
+        ldy     #3                      ; Start of line data
+        lda     (line_ptr),y            ; Get statement token
+        iny                             ; Increment Y to 4
+        sty     r                       ; and store in the read position register
+        tay
+        ldax    #statement_name_table
+        jsr     list_element
+        clc
+        rts
+
+@end:
+        sec
         rts
 
 ; Outputs a syntax element.
