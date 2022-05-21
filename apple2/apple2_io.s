@@ -30,10 +30,6 @@ readline:
         stx     buffer_length
         rts
 
-write_buffer:
-        lda     #<buffer
-        ldx     #>buffer
-        ldy     buffer_length
 write:
         stax    DE
         sty     B

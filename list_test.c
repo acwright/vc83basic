@@ -1,23 +1,40 @@
 #include "test.h"
 
-static void test_decode_number(void) {
-    int value;
-    const char line_data[] = { 0, 0, 1, 3 };
+static void test_list_element(void) {
+    const char name_table[] = { 
+        'S', 'T', 'O', 'P'+0x80, 
+        'P', 'R', 'I', 'N', 'T', 0x91,
+        'L', 'E', 'T', 0x11, '=', 0x91
+    } ;
+    const char line_data_1[] = { 0x02, 0x01, 0x01 };
+    const char line_data_2[] = { 0x00 };
+    const char line_data_3[] = { 0x80, 0x02, 0x01, 0x00 };
 
-    PRINT_TEST_NAME();
+    // Initialize the program memory
+    initialize_program();
+    // Add the variable name X
+    strcpy(buffer, "X");
+    find_name(variable_name_table_ptr, 0);
+    add_variable();
 
-    value = decode_number(line_data, 0);
-    ASSERT_EQ(value, 0);
+    list_element(name_table, 1, line_data_1, 0, 0);
+    HEXDUMP(buffer, 16);
+    ASSERT_EQ(strncmp(buffer, "PRINT 257", 9), 0);
+    ASSERT_EQ(w, 9);
 
-    value = decode_number(line_data, 1);
-    ASSERT_EQ(value, 256);
+    list_element(name_table, 0, line_data_2, 0, 0);
+    HEXDUMP(buffer, 16);
+    ASSERT_EQ(strncmp(buffer, "STOP", 4), 0);
+    ASSERT_EQ(w, 4);
 
-    value = decode_number(line_data, 2);
-    ASSERT_EQ(value, 769);
+    list_element(name_table, 2, line_data_3, 0, 0);
+    HEXDUMP(buffer, 16);
+    ASSERT_EQ(strncmp(buffer, "LET X= 1", 8), 0);
+    ASSERT_EQ(w, 8);
 }
 
 int main(void) {
     initialize_target();
-    test_decode_number();
+    test_list_element();
     return 0;
 }

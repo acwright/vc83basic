@@ -222,9 +222,10 @@ invoke_indexed_vector:
         sta     E
         jmp     (DE)                    ; Handler function RTS will return from *this* function
 
-; Formats a number into output_buffer. Does not perform any error checking.
+; Formats a number into buffer. Does not perform any error checking. On exit, X points to the next write position
+; in buffer (i.e., it is equal to w).
 ; AX = the number to format
-; w = the position within output_buffer (updated)
+; w = the position within buffer (updated)
 
 format_number:
         sta     B                       ; Keep low byte in B while we use A for other things
@@ -242,13 +243,27 @@ format_number:
         ora     B                       ; OR with saved low byte
         bne     @next_digit             ; Still more digits
         ldx     w                       ; Load write offset into X
-@write_digit:
+@output_digit:
         pla                             ; Get a digit
         beq     @done                   ; If it's 0 then we're done
-        sta     output_buffer,x         ; Store in output_buffer
+        sta     buffer,x                ; Store in output_buffer
         inx                             ; Update write position
-        jmp     @write_digit
+        jmp     @output_digit
 
 @done:
         stx     w                       ; Update X
         rts
+
+; Writes a single byte to buffer at position w and increments w.
+; Does not check for buffer overflow; we assume this can't happen.
+; A = the byte to write
+; w = the buffer position (updated)
+; Y SAFE
+
+write_buffer:
+        ldx     w                       ; Load position
+        inc     w                       ; Incrment position
+        sta     buffer,x                ; Store A in buffer
+        rts
+
+

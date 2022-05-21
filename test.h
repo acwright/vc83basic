@@ -3,6 +3,7 @@
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>
+#include <ctype.h>
 
 // Types
 // These are not the actual types used by the interpeter! They are C structs that mirror the structures used in
@@ -58,13 +59,17 @@ extern char reg_x;
 extern char reg_y;
 
 // Prototypes for C wrapper functions
+// Parameter that should be passed in AX should appear first, then any value for Y, then others
 
 // decode.s
-int decode_number(const char* line_ptr, char w);
+int decode_number(const char* line_ptr, char r);
 
 // encode.s
 int encode_number(int number, char w);
 int encode_byte(char byte_value, char w);
+
+// list.s
+void list_element(const char* name_ptr, char index, const char* line_ptr, char r, char w);
 
 // name.s
 int find_name(const char* name_ptr, char r);
@@ -109,13 +114,20 @@ void set_buffer(const char* s) {
 }
 
 void hexdump(const char* name, const char* data, size_t length) {
-    unsigned i = 0;
+    unsigned i, j;
+    const char* p;
     fprintf(stderr, "        %s ($%04X):\n", name, data);
-    while (i < length) {
+    for (i = 0; i < length; i += j) {
         fprintf(stderr, "        %04X %04X  ", i, data + i);
-        do {
-            fprintf(stderr, "%02X ", data[i++]);
-        } while (i < length && (i % 16));
+        p = data + i;
+        for (j = 0; j < 16; j++, p++) {
+            fprintf(stderr, "%02X ", *p);
+        }
+        fprintf(stderr, " ");
+        p = data + i;
+        for (j = 0; j < 16; j++, p++) {
+            fputc(isprint(*p) ? *p : '.', stderr);
+        }
         printf("\n");
     }
 }

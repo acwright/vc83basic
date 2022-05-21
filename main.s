@@ -40,20 +40,23 @@ main:
         sta     w
         jsr     skip_whitespace
         jsr     read_number             ; Leaves line number in AX and Y points to next character in buffer
-        bcs     @immediate_mode
-        stax    DE
+        bcs     @immediate_mode         ; No line number; execute in immediate mode
+        stax    parsed_line_number
         jsr     @get_statement
         bcs     @error
-        jsr     find_line_de
+        ldax    parsed_line_number
+        jsr     find_line
         bcs     @insert                 ; Line not found, just insert the new one
         jsr     delete_line             ; Delete the existing line
 @insert:
-        jsr     insert_line_de          ; Insert the new line
+        ldax    parsed_line_number
+        jsr     insert_line             ; Insert the new line
         jmp     @wait_for_input
 
 @immediate_mode:
         jsr     @get_statement
         bcs     @error
+        lda     output_buffer           ; Statement is in first byte of output_buffer
         jsr     invoke_statement_handler
         jmp     @wait_for_input
 
@@ -61,7 +64,7 @@ main:
         jsr     skip_whitespace
         mvax    #statement_signature_table, signature_ptr
         ldax    #statement_name_table
-        jsr     parse_element
+        jsr     parse_element           ; Leaves the parsed statement in output_buffer
         rts
 
 @error:

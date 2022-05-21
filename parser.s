@@ -12,6 +12,9 @@ signature_ptr: .res 2
 argument_index: .res 1
 argument_count: .res 1
 
+; The line number we read from the input line
+parsed_line_number: .res 2
+
 .code
 
 ; All "parse" functions use:
@@ -19,6 +22,9 @@ argument_count: .res 1
 ; r = the read position in buffer (modified on success)
 ; output_buffer = the buffer containing the tokenized output
 ; w = the token write position in output_buffer (modified on success)
+
+; Parses a line from the buffer.
+
 
 ; Reads a number from the buffer.
 ; If the first character is not a number, then return an error. Otherwise, read up to the first non-digit.
@@ -181,7 +187,7 @@ parse_arguments:
         bcs     @error
         inc     argument_index
         dec     argument_count
-        beq     @done
+        beq     @done                   ; Note carry must be clear here
         jsr     parse_argument_separator
         jmp     @next_argument
 @done:

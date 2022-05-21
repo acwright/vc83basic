@@ -12,7 +12,7 @@
 ; Functions
 
 .global startup, main
-.global initialize_target, readline, getchar, write, write_buffer, putchar, newline
+.global initialize_target, readline, getchar, write, putchar, newline
 
 ; Macros
 

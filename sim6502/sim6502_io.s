@@ -14,8 +14,12 @@ buffer := $200
 ; The length of the data currently in the buffer
 buffer_length: .res 1
 
+; TODO: maybe token_buffer?
 output_buffer: .res 256
 output_buffer_length: .res 1
+
+; One-byte buffer for read and write
+io_char: .res 1
 
 ; Reads a line from the console into the buffer.
 ; Returns the length in A and also sets buffer_length.
@@ -45,24 +49,18 @@ readline:
 
 getchar:
         jsr     push0                   ; File descriptor 0 (stdin)
-        ldax    #B                      ; Load the character into B
+        ldax    #io_char                ; Load the character into B
         jsr     pushax                  ; Push onto C stack
         lda     #1                      ; Length
         ldx     #0      
         jsr     _read       
-        lda     B                       ; Get the character into A
+        lda     io_char                 ; Get the character into A
         rts
 
 ; Writes a line to the console.
-; The write_buffer entry point writes from buffer.
-; AX = a pointer to the buffer to write (write_buffer sets this to buffer)
-; Y = the number of bytes to write (write_buffer sets this to buffer_length)
-; B SAFE
+; AX = a pointer to the buffer to write
+; Y = the number of bytes to write
 
-write_buffer:
-        lda     #<buffer
-        ldx     #>buffer
-        ldy     buffer_length
 write:
         stax    DE                      ; Save buffer pointer
         sty     C                       ; Save length
@@ -82,7 +80,7 @@ newline:
 ; A = the character to output
 
 putchar:
-        sta     B                       ; Use B as a single-byte buffer
-        ldax    #B                      ; Pointer to B
+        sta     io_char                 ; Save character into single-byte buffer
+        ldax    #io_char                ; Pointer to buffer
         ldy     #1
         jmp     write

@@ -85,6 +85,22 @@ _encode_byte:
         jsr     encode_byte
         jmp     return_carry
 
+; list.s
+;void list_element(const char* name_ptr, char index, const char* line_ptr, char r, char w);
+
+_list_element:
+.export _list_element
+        sta     w
+        jsr     popa
+        sta     r
+        jsr     popax
+        stax    line_ptr
+        jsr     popa
+        sta     B                       ; Name table entry
+        jsr     popax
+        ldy     B
+        jmp     list_element
+
 ; name.s
 
 _is_name_character:

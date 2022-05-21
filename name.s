@@ -6,6 +6,8 @@
 
 ; Pointer to current name table entry
 name_ptr: .res 2
+; Read position in the name table entry
+n: .res 1
 
 .code
 
@@ -105,7 +107,7 @@ check_name_continuation:
 
 ; Checks if the character A is a name character. A name character is 'A'-'Z', '0'-'9', or '$'.
 ; Returns carry clear if it is, carry set if not.
-; X SAFE, Y SAFE, BC SAFE
+; X SAFE, Y SAFE, BC SAFE, DE SAFE
 
 is_name_character:
         sec                             ; Prepare for subtract
@@ -151,7 +153,8 @@ advance_name_ptr:
 ; Finds a name entry by its index.
 ; AX = pointer to the first entry in the name table
 ; Y = the index of the entry to find
-; Returns carry clear on success, carry set on error. On success, name_ptr points to the name table entry.
+; Returns carry clear on success, carry set on error. On success, name_ptr points to the name table entry and both Y
+; and n are reset to zero.
 
 get_name_table_entry:
         stax    name_ptr                ; Initialize name_ptr
@@ -167,6 +170,8 @@ get_name_table_entry:
         jmp     @next_name
 @found:
         clc
+        ldy     #0
+        sty     n
         rts
 @not_found:
         sec

@@ -3,7 +3,7 @@
 
 ; Functions that decode the tokenized program for display on the console.
 ; Most functions decode from the line pointed to by line_ptr, using r as the read position,
-; and decode into output_buffer, using w as the write position.
+; and decode into buffer, using w as the write position.
 
 ; LIST statement:
 ; Scans through the program and prints each line.
@@ -12,11 +12,15 @@ exec_list:
         jsr     reset_line_ptr
 @next_line:
         jsr     update_line_fields
+        mva     #0, w                   ; Initialize write position
         ldax    line_number             ; Line number into AX
         bmi     @end                    ; If MSB of line number is set, we're at end of program
-        ;jsr     print_number
+        jsr     format_number
         lda     #' '
-        jsr     putchar
+        jsr     write_buffer
+        sta     buffer,x                ; Space after line number
+        inx
+        stx     w                       ; Update write position
         ldy     #3                      ; Start of line data
         lda     (line_ptr),y            ; Get statement token
         iny                             ; Increment Y to 4
@@ -24,6 +28,9 @@ exec_list:
         tay
         ldax    #statement_name_table
         jsr     list_element
+        ldax    output_buffer
+        ldy     w
+        jsr     write
         jsr     newline
         jsr     advance_line_ptr
         jmp     @next_line
@@ -32,44 +39,42 @@ exec_list:
         rts
 
 ; Outputs a syntax element.
-; This function is called recursively. It sets up name_ptr and Y and saves them on the stack prior to calling
-; other functions so that those functions can call back in to this one.
+; This function is called recursively, so it pushes the current state of all the variables used by it and the
+; functions it calls on the stack. name_ptr and Y keep track of the element being listed.
 ; AX = pointer to the first entry in the name table
 ; Y = the index of the syntax element
 
 list_element:
-
-        jsr     get_name_table_entry    ; Sets name_ptr; should never fail
-        ldy     #0                      ; Start at position 0
+        stax    DE                      ; Park the new name_ptr
+        ldphaa  name_ptr                ; Save existing value of name_ptr
+        ldpha   n                       ; Save existing name entry read position
+        ldax    DE                      ; Retrieve new name_ptr value
+        jsr     get_name_table_entry    ; Sets name_ptr and resets n; should never fail
 @next_byte:
-        tya                             ; Save Y on the stack
-        pha     
+        ldy     n
+        inc     n                       ; Next position
+        ldx     w                       ; Load positions into X and Y
+        inc     w                       ; Update w since we will store a character or a space or '('
         lda     (name_ptr),y            ; Load the next byte from the name table
+        pha                             ; Push so I can recover later to check high bit
         and     #$60                    ; Is it a literal character?
         beq     @handle_arguments       ; Nope
         lda     (name_ptr),y            ; It was a literal character; load the character again
         and     #$7F                    ; Clear high bit if set
-        jsr     putchar                 ; Print the character
-        jmp     @loop                   ; Continue
+        sta     buffer,x                ; Store character in buffer
+        bne     @loop                   ; Will never store 0 so this is unconditional branch
 
 @handle_arguments:
-        ldphaa  name_ptr                ; Save name_ptr on the stack
+        lda     #' '                    ; Add a space
+        sta     buffer,x
         lda     (name_ptr),y            ; Get the byte again
-        pha                             ; Save it on the stack since putchar will clobber Y
-        lda     #' '                    ; Print a space
-        jsr     putchar
-        pla                             ; Recover byte
         and     #$0F                    ; Number of arguments
         jsr     list_arguments          ; List them
-        plstaa  name_ptr                ; Recover name_ptr
 @loop:
-        pla                             ; Recover Y
-        tay
-        lda     (name_ptr),y            ; Load the byte again to check if it has the high bit set
-        bmi     @done                   ; High bit is set; end of name table entry
-        iny                             ; Next character
-        jmp     @next_byte              ; Keep going
-@done:
+        pla                             ; Recover last name entry byte from stack
+        bpl     @next_byte              ; Keep going
+        plsta   n                       ; Recover values previously saved on stack
+        plstaa  name_ptr
         rts                            
 
 ; Lists statement or function arguments from the token stream.
@@ -80,19 +85,16 @@ list_element:
 ; r = read position line (updated) 
 
 list_arguments:
-
-        pha                             ; Argument count at SP+1
+        sta     argument_count          ; Re-use argument_count from parser module
+        beq     @done                   ; Eject if argument count is 0
 @next_argument:
         jsr     list_value              ; Assume it's an expression for now
-        tsx                             ; Prepare to access local variables
-        lda     $101,x
-        dec     $101,x                  ; Decrement argument count
-        beq     @done
-        lda     #','
-        jsr     putchar
+        dec     argument_count          ; Done with one argument
+        beq     @done                   ; Finish if no more
+        lda     #','                    ; Output argument separator
+        jsr     write_buffer
         jmp     @next_argument
 @done:
-        pla                             ; Discard stack frame
         rts
 
 ; Lists an expression from the token stream.
@@ -100,13 +102,12 @@ list_arguments:
 ; r = read position line (updated) 
 
 list_value:
-
         ldy     r                       ; Load read position into Y
         inc     r                       ; Skip past this byte
         lda     (line_ptr),y            ; Read a byte from the stream
         bmi     @variable               ; It's a variable
         jsr     decode_number           ; It must be an integer; decode the number (return value in AX)
-        ;jsr     print_number            ; Send it right to print_number
+        jsr     format_number           ; Send it right to format_number
         rts
 
 @variable:
@@ -115,4 +116,3 @@ list_value:
         ldax    variable_name_table_ptr ; Look up name in the variable name table
         jsr     list_element            ; Recursively call list_element to display the name        
         rts
-
