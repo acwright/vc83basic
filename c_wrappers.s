@@ -86,7 +86,6 @@ _encode_byte:
         jmp     return_carry
 
 ; list.s
-;void list_element(const char* name_ptr, char index, const char* line_ptr, char r, char w);
 
 _list_element:
 .export _list_element
@@ -100,6 +99,11 @@ _list_element:
         jsr     popax
         ldy     B
         jmp     list_element
+
+_add_whitespace:
+.export _add_whitespace
+        sta     w
+        jsr     add_whitespace
 
 ; name.s
 

@@ -198,7 +198,6 @@ delete_line:
 
 insert_line:
         stax    DE
-        debug $00
         mvax    line_ptr, copy_from_ptr ; Initialize copy_from_ptr to line_ptr
         lda     w                       ; Load the length of the token data
         beq     @finish                 ; Line is empty

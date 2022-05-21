@@ -1,6 +1,20 @@
 #include "test.h"
 
+static void test_add_whitespace(void) {
+    buffer[0] = 0;
+    add_whitespace(0);
+    ASSERT_EQ(w, 0);
+    ASSERT_EQ(buffer[0], 0);
+
+    buffer[0] = 'X';
+    add_whitespace(1);
+    ASSERT_EQ(w, 2);
+    ASSERT_EQ(buffer[0], 'X');
+    ASSERT_EQ(buffer[1], ' ');
+}
+
 static void test_list_element(void) {
+    // TODO: ensure that tests use C strings appropriately; don't use C strings if the assembly doesn't.
     const char name_table[] = { 
         'S', 'T', 'O', 'P'+0x80, 
         'P', 'R', 'I', 'N', 'T', 0x91,
@@ -35,6 +49,7 @@ static void test_list_element(void) {
 
 int main(void) {
     initialize_target();
+    test_add_whitespace();
     test_list_element();
     return 0;
 }

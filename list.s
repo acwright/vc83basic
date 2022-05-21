@@ -64,20 +64,17 @@ list_element:
 @next_byte:
         ldy     n
         inc     n                       ; Next position
-        ldx     w                       ; Load positions into X and Y
-        inc     w                       ; Update w since we will store a character or a space or '('
         lda     (name_ptr),y            ; Load the next byte from the name table
         pha                             ; Push so I can recover later to check high bit
         and     #$60                    ; Is it a literal character?
         beq     @handle_arguments       ; Nope
         lda     (name_ptr),y            ; It was a literal character; load the character again
         and     #$7F                    ; Clear high bit if set
-        sta     buffer,x                ; Store character in buffer
+        jsr     write_buffer
         bne     @loop                   ; Will never store 0 so this is unconditional branch
 
 @handle_arguments:
-        lda     #' '                    ; Add a space
-        sta     buffer,x
+        jsr     add_whitespace
         lda     (name_ptr),y            ; Get the byte again
         and     #$0F                    ; Number of arguments
         jsr     list_arguments          ; List them
@@ -127,3 +124,19 @@ list_value:
         ldax    variable_name_table_ptr ; Look up name in the variable name table
         jsr     list_element            ; Recursively call list_element to display the name        
         rts
+
+; Adds whitespae to the output if necessary.
+; Whitespace is necessary if w > 0 and if buffer[w-1] is a name character.
+
+add_whitespace:
+        ldx     w                       ; Current write position
+        beq     @done                   ; Just return if it's zero
+        lda     buffer-1,x              ; Get buffer[x-1]
+        jsr     is_name_character
+        bcs     @done
+        lda     #' '                    ; Store a space
+        sta     buffer,x                ; at next buffer position
+        inc     w                       ; and increment write position
+@done:
+        rts
+

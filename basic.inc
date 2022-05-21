@@ -35,7 +35,9 @@
 
 ; list.s
 .global exec_list
+.global list_line
 .global list_element
+.global add_whitespace
 
 ; name.s
 .global find_name
