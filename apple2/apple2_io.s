@@ -5,10 +5,7 @@ buffer := $200
 
 .bss
 
-buffer_length: .res 1
-
 output_buffer: .res 256
-output_buffer_length: .res 1
 
 .code 
 
@@ -27,7 +24,7 @@ readline:
         bne     @next       
         lda     #0      
         sta     buffer,x                ; Replace "RETURN" with 0
-        stx     buffer_length
+        txa                             ; Return buffer length in A
         rts
 
 write:

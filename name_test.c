@@ -44,7 +44,7 @@ void test_match_character_sequence() {
 
     PRINT_TEST_NAME();
 
-    set_buffer("PRINT");
+    strcpy(buffer, "PRINT");
     err = match_character_sequence("PRIN\xD4", 0, 0);
     ASSERT_EQ(err, 0);
     ASSERT_EQ(reg_y, 5);
@@ -54,7 +54,7 @@ void test_match_character_sequence() {
     ASSERT_EQ(reg_y, 5);
     ASSERT_EQ(r, 5);
 
-    set_buffer("LET X=1");
+    strcpy(buffer, "LET X=1");
     err = match_character_sequence("LET\x11=\x91", 4, 5);
     ASSERT_EQ(err, 0);
     ASSERT_EQ(reg_y, 5);
@@ -77,7 +77,7 @@ void test_find_name(void) {
 
     PRINT_TEST_NAME();
 
-    set_buffer("PRINT");
+    strcpy(buffer, "PRINT");
     err = find_name(name_table_1, 0);
     ASSERT_EQ(err, 0);
     ASSERT_EQ(reg_a, 0);
@@ -155,7 +155,7 @@ static void test_find_name_operators(void) {
 
     PRINT_TEST_NAME();
 
-    set_buffer(">=");
+    strcpy(buffer, ">=");
     err = find_name(name_table_1, 0);
     ASSERT_EQ(err, 0);
     ASSERT_EQ(reg_a, 0);
@@ -210,7 +210,7 @@ static void test_add_variable(void) {
     ASSERT_EQ(*variable_name_table_ptr, 0);
 
     // add_variable is used after find_name, which sets up name_ptr and r.
-    set_buffer("X");
+    strcpy(buffer, "X");
     err = find_name(variable_name_table_ptr, 0);
     ASSERT_NE(err, 0);
     err = add_variable();

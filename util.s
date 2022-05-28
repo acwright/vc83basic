@@ -166,18 +166,18 @@ return_status:
 mul10:
         stax    DE
         asl     A                       ; Shift A + E left 2
-        rol     E  
-        asl     A                       
-        rol     E  
-        clc 
+        rol     E
+        asl     A
+        rol     E
+        clc                             ; Clear carry to prepare for addition
         adc     D                       ; Add in original low byte in D and save back
         sta     D  
         txa                             ; Same thing for high byte
         adc     E                      
         asl     D                       ; Shift the value left once more; A is now the high byte
         rol     A
-        tax
-        lda     D
+        tax                             ; Move high byte back into X
+        lda     D                       ; Reload low byte from D back into A
         rts
 
 ; Divides the value in AX by 10. Unfortunately we have to do "real" division; there's no clever shortcut.

@@ -6,8 +6,8 @@
 
 ; Data
 
-.global buffer, buffer_length
-.global output_buffer, output_buffer_length
+.global buffer
+.global output_buffer
 
 ; Functions
 

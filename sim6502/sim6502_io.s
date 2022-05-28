@@ -11,28 +11,22 @@
 ; 256-byte buffer for I/O functions
 buffer := $200
 
-; The length of the data currently in the buffer
-buffer_length: .res 1
-
 ; TODO: maybe token_buffer?
 output_buffer: .res 256
-output_buffer_length: .res 1
 
 ; One-byte buffer for read and write
 io_char: .res 1
 
 ; Reads a line from the console into the buffer.
-; Returns the length in A and also sets buffer_length.
-; TODO: do we need buffer_length?
+; Returns the length in A.
 
 .code
 
 readline:
-        ldy     #0                      ; Use Y to track write position
+        mva     #0, B                   ; Use B to track write position in buffer
 @next:      
-        sty     buffer_length           ; Store buffer_length; getchar will clobber Y
         jsr     getchar                 ; Read one character
-        ldy     buffer_length           ; Save to reload Y from buffer_length now
+        ldy     B                       ; Use Y for buffer index
         cmp     #$0A                    ; EOL?
         beq     @done                   ; Yes
         sta     buffer,y                ; Otherwise store character in buffer
@@ -41,7 +35,7 @@ readline:
 @done:      
         lda     #0      
         sta     buffer,y                ; Store 0 at end of buffer
-        tya                             ; Return buffer_length in A
+        tya                             ; Return buffer length in A
         rts
 
 ; Reads a single character from the console.
@@ -51,8 +45,7 @@ getchar:
         jsr     push0                   ; File descriptor 0 (stdin)
         ldax    #io_char                ; Load the character into B
         jsr     pushax                  ; Push onto C stack
-        lda     #1                      ; Length
-        ldx     #0      
+        ldax    #1                      ; Length
         jsr     _read       
         lda     io_char                 ; Get the character into A
         rts

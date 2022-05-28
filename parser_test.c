@@ -30,26 +30,26 @@ static void test_read_number(void) {
 
     PRINT_TEST_NAME();
 
-    set_buffer("10 PRINT X");
+    strcpy(buffer, "10 PRINT X");
     err = read_number(0);
     ASSERT_EQ(err, 0);
     ASSERT_EQ(reg_ax, 10);
     ASSERT_EQ(r, 2);
 
     // The function should honor the current read position.
-    set_buffer("1020 PRINT X");
+    strcpy(buffer, "1020 PRINT X");
     err = read_number(2);
     ASSERT_EQ(err, 0);
     ASSERT_EQ(reg_ax, 20);
     ASSERT_EQ(r, 4);
 
     // The function should return carry set if an invalid number.
-    set_buffer("invalid");
+    strcpy(buffer, "invalid");
     err = read_number(0);
     ASSERT_NE(err, 0);
     ASSERT_EQ(r, 0);
 
-    set_buffer("");
+    strcpy(buffer, "");
     err = read_number(0);
     ASSERT_NE(err, 0);
     ASSERT_EQ(r, 0);
@@ -62,7 +62,7 @@ static void test_parse_expression(void) {
 
     initialize_program();
 
-    set_buffer("1");
+    strcpy(buffer, "1");
     err = parse_expression(0, 0);
     ASSERT_EQ(err, 0);
     ASSERT_EQ(output_buffer[0], 2);
@@ -71,7 +71,7 @@ static void test_parse_expression(void) {
     ASSERT_EQ(r, 1);
     ASSERT_EQ(w, 3);
 
-    set_buffer("X");
+    strcpy(buffer, "X");
     err = parse_expression(0, 0);
     ASSERT_EQ(err, 0);
     ASSERT_EQ(r, 1);
@@ -83,22 +83,22 @@ static void test_parse_argument_separator(void) {
 
     PRINT_TEST_NAME();
 
-    set_buffer(",");
+    strcpy(buffer, ",");
     err = parse_argument_separator(0);
     ASSERT_EQ(err, 0);
     ASSERT_EQ(r, 1);
 
-    set_buffer("  ,");
+    strcpy(buffer, "  ,");
     err = parse_argument_separator(0);
     ASSERT_EQ(err, 0);
     ASSERT_EQ(r, 3);
 
-    set_buffer("x");
+    strcpy(buffer, "x");
     err = parse_argument_separator(0);
     ASSERT_NE(err, 0);
     ASSERT_EQ(r, 0);
 
-    set_buffer(",");
+    strcpy(buffer, ",");
     err = parse_argument_separator(1);
     ASSERT_NE(err, 0);
     ASSERT_EQ(r, 1);
@@ -110,7 +110,7 @@ static void test_parse_arguments(void) {
 
     PRINT_TEST_NAME();
 
-    set_buffer("1");
+    strcpy(buffer, "1");
     err = parse_arguments(1, signature_table, 0, 0, 0);
     ASSERT_EQ(err, 0);
     ASSERT_EQ(r, 1);
@@ -120,7 +120,7 @@ static void test_parse_arguments(void) {
     ASSERT_EQ(output_buffer[1], 1);
     ASSERT_EQ(output_buffer[2], 0);
 
-    set_buffer("1,");
+    strcpy(buffer, "1,");
     err = parse_arguments(1, signature_table, 0, 0, 0);
     ASSERT_EQ(err, 0);
     ASSERT_EQ(r, 1);
@@ -130,7 +130,7 @@ static void test_parse_arguments(void) {
     ASSERT_EQ(output_buffer[1], 1);
     ASSERT_EQ(output_buffer[2], 0);
 
-    set_buffer(" 1, 256");
+    strcpy(buffer, " 1, 256");
     err = parse_arguments(2, signature_table, 0, 0, 0);
     ASSERT_EQ(err, 0);
     ASSERT_EQ(r, 7);
@@ -164,7 +164,7 @@ static void test_parse_element(void) {
 
     PRINT_TEST_NAME();
 
-    set_buffer("PLOT 10,100");
+    strcpy(buffer, "PLOT 10,100");
     err = parse_element(name_table, signature_table, 0, 0);
     ASSERT_EQ(err, 0);
     ASSERT_EQ(r, 11);
@@ -177,14 +177,14 @@ static void test_parse_element(void) {
     ASSERT_EQ(output_buffer[5], 100);
     ASSERT_EQ(output_buffer[6], 0);
 
-    set_buffer("NEW");
+    strcpy(buffer, "NEW");
     err = parse_element(name_table, signature_table, 0, 0);
     ASSERT_EQ(err, 0);
     ASSERT_EQ(r, 3);
     ASSERT_EQ(w, 1);
     ASSERT_EQ(output_buffer[0], 1);
 
-    set_buffer("GR 8");
+    strcpy(buffer, "GR 8");
     err = parse_element(name_table, signature_table, 0, 0);
     ASSERT_EQ(err, 0);
     ASSERT_EQ(r, 4);
@@ -194,7 +194,7 @@ static void test_parse_element(void) {
     ASSERT_EQ(output_buffer[2], 8);
     ASSERT_EQ(output_buffer[3], 0);
 
-    set_buffer("FOR 1 TO 10000");
+    strcpy(buffer, "FOR 1 TO 10000");
     err = parse_element(name_table, signature_table, 0, 0);
     ASSERT_EQ(err, 0);
     ASSERT_EQ(r, 14);
@@ -207,7 +207,7 @@ static void test_parse_element(void) {
     ASSERT_EQ(output_buffer[5], 16);
     ASSERT_EQ(output_buffer[6], 39);
 
-    set_buffer("LET X=100");
+    strcpy(buffer, "LET X=100");
     err = parse_element(name_table, signature_table, 0, 0);
     ASSERT_EQ(err, 0);
     ASSERT_EQ(r, 9);

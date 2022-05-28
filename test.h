@@ -46,10 +46,8 @@ extern char variable_count;
 // Data
 
 extern char buffer[];
-extern char buffer_length;
 
 extern char output_buffer[];
-extern char output_buffer_length;
 
 // Used by c_wrappers.s
 
@@ -107,13 +105,6 @@ int invoke_indexed_vector(void* vectors, char index);
 void format_number(int number, char w);
 
 // Common functions and definitions used in tests
-
-// TODO: get rid of this and buffer_length and output_buffer_length
-void set_buffer(const char* s) {
-    // strcpy adds terminating 0 to string in buffer.
-    strcpy(buffer, s);
-    buffer_length = strlen(s);
-}
 
 void hexdump(const char* name, const char* data, size_t length) {
     unsigned i, j;

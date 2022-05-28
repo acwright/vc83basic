@@ -36,8 +36,6 @@ read_number:
         lda     #0                      ; Intialize the value to 0
         tax
 @next:
-        cpy     buffer_length           ; At the end of the line yet? TODO: probably don't need this
-        beq     @finish                 ; Yes, return
         pha                             ; Save A (low byte of value)
         lda     buffer,y    
         jsr     char_to_digit           ; X SAFE function
@@ -45,7 +43,7 @@ read_number:
         pla                             ; Retrieve the low byte of value
         bcs     @finish                 ; If there was an error in char_to_digit, stop parsing
         iny                             ; No error, increment read position
-        jsr     mul10                   ; Multiply the value by 10
+        jsr     mul10                   ; Multiply the value by 10 (preserves Y)
         clc
         adc     B                       ; Add the digit value
         bcc     @next                   ; If carry clear then next digit
