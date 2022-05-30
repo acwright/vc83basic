@@ -41,8 +41,8 @@ copy_bytes:
         sta     (DE),y                
         iny                             ; Next byte
         bne     @next_byte              ; More to move
-        inc     BC+1                    ; Add 256
-        inc     DE+1                    ; to both from and to pointers
+        inc     C                       ; Add 256
+        inc     E                       ; to both from and to pointers
         dex                             ; Decrement number of blocks
         bne     @next_byte              ; Move to move
 
@@ -68,23 +68,23 @@ copy_bytes:
 
 copy_bytes_back:
         clc
-        lda     BC                      ; Add copy_length (the length) to BC and DE
+        lda     B                       ; Add copy_length (the length) to BC and DE
         pha                             ; and save the original values on the stack
         adc     copy_length
-        sta     BC
-        lda     BC+1
+        sta     B
+        lda     C
         pha
         adc     copy_length+1
-        sta     BC+1
+        sta     C
         clc
-        lda     DE              
+        lda     D              
         pha                         
         adc     copy_length
-        sta     DE
-        lda     DE+1
+        sta     D
+        lda     E
         pha
         adc     copy_length+1
-        sta     DE+1
+        sta     E
 
 ; The stack contains the original from and to pointers; we'll use these to move the last bytes.
 ; The current values of BC and DE are one past the end of the move ranges.
@@ -95,8 +95,8 @@ copy_bytes_back:
         beq     @remaining              ; If no blocks, just do remaining bytes
 @next_block:    
         beq     @remaining              ; No more blocks, copy remaining bytes
-        dec     BC+1                    ; Subtract 256
-        dec     DE+1                    ; from both from and to pointers
+        dec     C                       ; Subtract 256
+        dec     E                       ; from both from and to pointers
         jsr     @copy   
         dex                             ; Done with this block
         bne     @next_block             ; More to copy
@@ -105,13 +105,13 @@ copy_bytes_back:
 
 @remaining:
         pla                             ; Recover original BC and DE from stack
-        sta     DE+1
+        sta     E
         pla
-        sta     DE
+        sta     D
         pla
-        sta     BC+1
+        sta     C
         pla
-        sta     BC
+        sta     B
         ldy     copy_length             ; Number of bytes left to copy (may be 0)
         beq     @skip_copy              ; No bytes to copy, otherwise fall through to @copy
 

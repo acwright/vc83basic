@@ -251,11 +251,11 @@ calculate_bytes_to_move:
 
 update_pointers:
         sec           
-        lda     DE
-        sbc     BC
+        lda     D
+        sbc     B
         tax                             ; Difference low byte in X
-        lda     DE+1       
-        sbc     BC+1     
+        lda     E
+        sbc     C     
         tay                             ; Difference high byte in Y
         clc                             ; Update variable_name_table_ptr
         txa                             
