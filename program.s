@@ -13,7 +13,7 @@ line_ptr: .res 2
 
 ; The length of the current line
 line_length: .res 1
-; The curent line number; also used to store line number sought in find_line
+; The curent line number
 line_number: .res 2
 
 ; A pointer to the start of the program
@@ -51,7 +51,7 @@ initialize_program:
         iny     
         sta     (line_ptr),y                ; Line length
         sta     variable_count              ; While we have 0 in A, set the number of variables
-        jsr     get_line_start_plus_a       ; Adding header + A (0) to line_start gives variable_name_table_ptr in AX
+        jsr     get_line_start_ptr_plus_a       ; Adding header + A (0) to line_start gives variable_name_table_ptr in AX
         stax    variable_name_table_ptr
         tay                                 ; Add 1 to variable_name_table_ptr for ending 0
         iny
@@ -86,12 +86,12 @@ reset_program:
 ; GOSUB, RESTORE, or any other function that requires a line number.
 ; AX = the line number
 ; Carry clear if ok (the was found), carry set if error (line not found).
-; Sets line_ptr, line_number, and line_length if the line was found.
+; Sets line_ptr if the line was found.
 ; If not found, line_ptr is left set to where the line would have been, i.e., pointing
 ; to the next-higher line.
 
 find_line:
-        stax    DE
+        stax    line_number             ; Park the line number we're looking for in line_number
         jsr     reset_line_ptr          ; Set line_ptr to beginning of program
         jmp     @test_line              ; Skip over first advance_line_ptr call
 @next_line:      
@@ -99,12 +99,12 @@ find_line:
 @test_line:
         ldy     #1                      ; Set Y to 1 for getting high byte of line number
         lda     (line_ptr),y        
-        cmp     E       
+        cmp     line_number+1       
         bcc     @next_line              ; Line number high byte is <target; go to next line
         bne     @return                 ; Return with carry set
         dey                             ; High byte is equal; decrement Y to 0
         lda     (line_ptr),y            ; Check the low byte of line number
-        cmp     D                       ; Same logic for low byte
+        cmp     line_number             ; Same logic for low byte
         bcc     @next_line     
         bne     @return                 ; If not the line then reutrn with carry bit set
         clc                             ; If it was the line then return with carry clear
@@ -120,7 +120,7 @@ find_line:
 advance_line_ptr:
         ldy     #2                      ; Need offset 2 to get length
         lda     (line_ptr),y            ; Get length of current line
-        jsr     get_line_start_plus_a
+        jsr     get_line_start_ptr_plus_a
         stax    line_ptr                ; Store back into line_ptr
         rts
 
@@ -146,13 +146,13 @@ update_line_fields:
 
 ; Returns a pointer to the start of data for the current line (identified by line_ptr).
 ; The get_line_ptr_plus_a entry point adds whatever is in A to line_ptr.
-; The get_line_start_plus_a entry point adds the size of the line header.
+; The get_line_start_ptr_plus_a entry point adds the size of the line header.
 ; Returns the pointer in AX.
-; Y SAFE, DE SAFE
+; Y SAFE, BC SAFE, DE SAFE
 
-get_line_start:
+get_line_start_ptr:
         lda     #0                      ; Add 0 extra bytes after header
-get_line_start_plus_a:      
+get_line_start_ptr_plus_a:      
         clc     
         adc     #3                      ; Add 3 bytes for header
 get_line_ptr_plus_a:        
@@ -163,8 +163,6 @@ get_line_ptr_plus_a:
         inx
 @return:
         rts
-
-; TODO: figure out how much to grow/shrink before calling either function and call grow_ay first
 
 ; Delete program line, which must have previously been found with find_line.
 ; line_ptr = a pointer to the line to replace (previously set by find_line)
@@ -177,12 +175,12 @@ delete_line:
 ; There will always be a next line becasue we'll only be here if the line to delete
 ; actually exists.
 
-        mva     line_ptr, copy_to_ptr   ; Current line_ptr will be the target of the memcpy
+        mva     line_ptr, DE            ;         Current line_ptr will be the target of the memcpy
         pha                             ; Also push it on the stack so we can restore after advancing
-        mva     line_ptr+1, copy_to_ptr+1   ; High byte
+        mva     line_ptr+1, DE+1        ; High byte
         pha
         jsr     advance_line_ptr        ; Move to line_ptr to next line (AX = line_ptr)
-        stax    copy_from_ptr           ; This will be the source for the copy
+        stax    BC                      ; This will be the source for the copy
         jsr     calculate_bytes_to_move ; Set copy_length to length of program from line_ptr
         jsr     update_pointers         ; Knowing copy from and to, we can update pointers
         jsr     copy_bytes              ; Compact the program
@@ -194,26 +192,25 @@ delete_line:
 
 ; Inserts a new line, or does nothing if the line to insert is empty.
 ; line_ptr = a pointer to the insertion point (previously set by find_line)
-; AX = the number of the new line (from find_line)
+; line_number = the number of the new line (also set by find_line)
 ; line_buffer = the buffer holding the tokenized data
 ; w = the write position in line_buffer, which is the length of the data
 ; Returns carry clear on success, carry set on error.
 
 insert_line:
-        stax    DE
-        mvax    line_ptr, copy_from_ptr ; Initialize copy_from_ptr to line_ptr
+        mvax    line_ptr, BC            ; Initialize BC to line_ptr
         lda     w                       ; Load the length of the token data
         beq     @finish                 ; Line is empty
         pha                             ; Save the line length on the stack
-        jsr     get_line_start_plus_a   ; Calculate destination address for current line
-        stax    copy_to_ptr                
+        jsr     get_line_start_ptr_plus_a   ; Calculate destination address for current line
+        stax    DE                
         jsr     calculate_bytes_to_move ; Set copy_length to length of program from line_ptr
         jsr     update_pointers         ; Knowing copy from and to, we can update pointers
         jsr     copy_bytes_back     
-        lda     D                       ; Line number low byte     
+        lda     line_number             ; Line number low byte     
         ldy     #0      
         sta     (line_ptr),y            ; Save line item number low byte
-        lda     E                       ; Line number high byte
+        lda     line_number+1           ; Line number high byte
         iny     
         sta     (line_ptr),y            ; Save line item number high byte
         pla                             ; Get the line length saved earlier
@@ -222,9 +219,9 @@ insert_line:
         ldx     #0
         stax    copy_length             ; Also save it into copy_length
         clc
-        mvax    #line_buffer, copy_from_ptr ; Source is line_buffer     
-        jsr     get_line_start          ; Get destination address for copy
-        stax    copy_to_ptr             ; Destination into copy_to_ptr
+        mvax    #line_buffer, BC        ; Source is line_buffer     
+        jsr     get_line_start_ptr      ; Get destination address for copy
+        stax    DE                      ; Destination into DE
         jsr     copy_bytes              ; Copy data from buffer into program space
         jsr     advance_line_ptr        ; Jump over the new line
 
@@ -234,6 +231,7 @@ insert_line:
 
 ; Calculates the bytes to move for both compact and expand as value_table_ptr - line_ptr.
 ; Returns the number of bytes in copy_length (borrowed from util.s)
+; X SAFE, Y SAFE, BC SAFE, DE SAFE
 
 calculate_bytes_to_move:
         sec                       
@@ -245,19 +243,19 @@ calculate_bytes_to_move:
         sta     copy_length+1           ; Store high byte of length
         rts
 
-; Updates variable_name_table_ptr and value_table_ptr by adding (copy_to_ptr - copy_from_ptr).
-; In other words, if we're moving everything to a higher address (copy_to_ptr > copy_from_ptr), then we have
+; Updates variable_name_table_ptr and value_table_ptr by adding (DE - BC).
+; In other words, if we're moving everything to a higher address (DE > BC), then we have
 ; to move the pointers up too, and vice versa. We're just shifting the pointers by however many bytes
 ; we moved the end of the program.
 ; Uses XY to store the difference value.
 
 update_pointers:
         sec           
-        lda     copy_to_ptr
-        sbc     copy_from_ptr
+        lda     DE
+        sbc     BC
         tax                             ; Difference low byte in X
-        lda     copy_to_ptr+1       
-        sbc     copy_from_ptr+1     
+        lda     DE+1       
+        sbc     BC+1     
         tay                             ; Difference high byte in Y
         clc                             ; Update variable_name_table_ptr
         txa                             

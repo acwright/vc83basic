@@ -265,18 +265,18 @@ _copy_bytes:
 .export _copy_bytes
         stax    copy_length
         jsr     popax
-        stax    copy_from_ptr
+        stax    BC
         jsr     popax
-        stax    copy_to_ptr
+        stax    DE
         jmp     copy_bytes
 
 _copy_bytes_back:
 .export _copy_bytes_back
         stax    copy_length
         jsr     popax
-        stax    copy_from_ptr
+        stax    BC
         jsr     popax
-        stax    copy_to_ptr
+        stax    DE
         jmp     copy_bytes_back
 
 _clear_memory:

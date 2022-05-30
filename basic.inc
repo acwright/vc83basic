@@ -9,7 +9,7 @@
 .globalzp argument_count
 .globalzp argument_index
 .globalzp parsed_line_number
-.globalzp copy_from_ptr, copy_to_ptr, copy_length
+.globalzp copy_length
 .globalzp line_ptr, line_length, line_number
 .globalzp program_ptr
 .globalzp variable_name_table_ptr
@@ -56,7 +56,7 @@
 .global parse_arguments
 .global parse_expression
 .global parse_argument_separator
-.global skip_whitespace ; TODO: remove once no longer needed in main
+.global skip_whitespace
 
 ; print.s
 .global exec_print
@@ -64,7 +64,7 @@
 ; program.s
 .global initialize_program, reset_line_ptr, find_line, find_line, advance_line_ptr, update_line_fields
 .global delete_line, insert_line, insert_line
-.global get_line_start, get_line_start_plus_a, get_line_ptr_plus_a
+.global get_line_start_ptr, get_line_start_ptr_plus_a, get_line_ptr_plus_a
 .global grow_a, grow_ay, check_himem
 .global get_variable_value_ptr
 
