@@ -34,6 +34,9 @@
 .global encode_variable
 .global encode_byte
 
+; let.s
+.global exec_let
+
 ; list.s
 .global exec_list
 .global list_line
@@ -55,11 +58,25 @@
 .global parse_argument_separator
 .global skip_whitespace ; TODO: remove once no longer needed in main
 
+; print.s
+.global exec_print
+
 ; program.s
 .global initialize_program, reset_line_ptr, find_line, find_line, advance_line_ptr, update_line_fields
 .global delete_line, insert_line, insert_line
 .global get_line_start, get_line_start_plus_a, get_line_ptr_plus_a
 .global grow_a, grow_ay, check_himem
+.global get_variable_value_ptr
+
+; run.s
+.global exec_run
+.global invoke_statement_handler
+.global get_argument_value
+
+; tables.s
+.global statement_name_table
+.global statement_signature_table
+.global statement_exec_vectors
 
 ; util.s
 .global copy_bytes, copy_bytes_back

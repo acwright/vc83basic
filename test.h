@@ -55,6 +55,12 @@ extern int reg_ax;
 extern char reg_a;
 extern char reg_x;
 extern char reg_y;
+extern int reg_bc;
+extern char reg_b;
+extern char reg_c;
+extern int reg_de;
+extern char reg_d;
+extern char reg_e;
 
 // Prototypes for C wrapper functions
 // Parameter that should be passed in AX should appear first, then any value for Y, then others
@@ -96,6 +102,7 @@ void advance_line_ptr(void);
 int delete_line(void);
 int insert_line(int line_number);
 int check_himem(void* ptr);
+void* get_variable_value_ptr(char variable);
 
 // util.s
 void copy_bytes(char* to, const char* from, size_t size);

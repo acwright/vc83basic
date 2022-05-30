@@ -22,21 +22,30 @@
 .export _variable_name_table_ptr = variable_name_table_ptr
 .export _value_table_ptr = value_table_ptr
 .export _heap_ptr = heap_ptr
-.export _variable_count = variable_count;
+.export _variable_count = variable_count
 
 .export _status = status
 
 .export _r = r
-.export _w = w;
+.export _w = w
 
-.export _name_ptr = name_ptr;
+.export _name_ptr = name_ptr
 
 .export _signature_ptr = signature_ptr
 .export _argument_index = argument_index
 
+; Test access to the B, C, D, and E registers
+
+.export _reg_bc = BC
+.export _reg_b = B
+.export _reg_c = C
+.export _reg_de = DE
+.export _reg_d = D
+.export _reg_e = E
+
 .bss
 
-; The wrappers for functions that use the carry bit to flag errors return the carry to C and use these fields to
+; The wrappers for functions that use the carry bit to flag errors return the carry and use these fields to
 ; save the register values returned from the function.
 
 _reg_ax:
@@ -245,6 +254,10 @@ _check_himem:
         ldx     B      
         jsr     check_himem
         jmp     return_carry
+
+_get_variable_value_ptr:
+.export _get_variable_value_ptr
+        jmp     get_variable_value_ptr
 
 ; util.s
 

@@ -2,32 +2,11 @@
 .include "target.inc"
 .include "basic.inc"
 
-.code
-
 ready_message: .byte "READY"
 ready_length = * - ready_message
 
 error_message: .byte "ERROR"
 error_length = * - error_message
-
-statement_name_table:
-        .byte   'L', 'I', 'S', 'T' | NT_END
-        .byte   'R', 'U', 'N' | NT_END
-        .byte   'P', 'R', 'I', 'N', 'T', NT_1ARG | NT_END
-        .byte   'L', 'E', 'T', NT_1ARG, '=', NT_1ARG | NT_END
-        .byte   0
-
-statement_signature_table:
-        .byte   TYPE_NONE, TYPE_NONE
-        .byte   TYPE_NONE, TYPE_NONE
-        .byte   TYPE_INT, TYPE_NONE
-        .byte   TYPE_VAR, TYPE_INT
-
-statement_exec_vectors:
-        .word   exec_list
-        .word   exec_run
-        .word   exec_print
-        .word   exec_let
 
 main:
         jsr     initialize_target
@@ -74,76 +53,6 @@ main:
 @error:
         jsr     print_error
         jmp     @wait_for_input
-
-; Invokes a statement handler from a table.
-; This function does not return; it jumps to the handler, which will eventually return.
-; A = the index of the handler in the table
-
-invoke_statement_handler:
-        tay
-        ldax    #statement_exec_vectors
-        jmp     invoke_indexed_vector
-
-; Executes the program.
-
-exec_run:
-        mvaa    value_table_ptr, BC     ; Prepare to clear variable value table
-        lda     variable_count          ; Amount to clear is variable_count * 2
-        jsr     mul2a
-        jsr     clear_memory
-        jsr     reset_line_ptr
-@next_line:
-        jsr     update_line_fields
-        lda     line_number+1           ; Load high byte of line number
-        bmi     @end                    ; If MSB of line number is set, we're at end of program
-        jsr     decode_byte             ; Get statement number
-        jsr     invoke_statement_handler
-        ; TODO: check for error
-        jsr     advance_line_ptr        ; Advance to next line
-        jmp     @next_line
-
-@end:
-        rts
-
-; Gets the value for an argument and returns it in AX.
-
-get_argument_value:
-        jsr     decode_byte             ; Get statement number
-        bmi     @variable               ; It's a variable
-        jmp     decode_number           ; Decode a number instead
-
-@variable:
-        and     #$7F                    ; Clear bit 7
-        jsr     mul2a                   ; Multiply by 2
-        adc     value_table_ptr         ; Carry is clear; add to the value table offset
-        sta     B
-        txa
-        adc     value_table_ptr+1
-        sta     C                       ; Address of variable data is now in BC
-        ldy     #1
-        lda     (BC),y                  ; High byte of variable value
-        tax
-        dey
-        lda     (BC),y                  ; Low byte of variable data
-        rts
-
-exec_print:
-        jsr     get_argument_value      ; Returns value to print in AX
-        jsr     print_number            ; Print the number
-        jsr     newline
-        rts
-
-exec_let:
-        rts
-
-; Stop-gap function...
-
-print_number:
-        mvy     #0, w
-        jsr     format_number
-        ldax    #buffer
-        ldy     w
-        jmp     write
 
 print_ready:
         lda     #<ready_message         ; Pass address of message in AX

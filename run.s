@@ -1,0 +1,51 @@
+.include "macros.inc"
+.include "target.inc"
+.include "basic.inc"
+
+; RUN statement:
+; Executes the program.
+
+exec_run:
+        mvaa    value_table_ptr, BC     ; Prepare to clear variable value table
+        lda     variable_count          ; Amount to clear is variable_count * 2
+        jsr     mul2a
+        jsr     clear_memory
+        jsr     reset_line_ptr
+@next_line:
+        jsr     update_line_fields
+        lda     line_number+1           ; Load high byte of line number
+        bmi     @end                    ; If MSB of line number is set, we're at end of program
+        jsr     decode_byte             ; Get statement number
+        jsr     invoke_statement_handler
+        ; TODO: check for error
+        jsr     advance_line_ptr        ; Advance to next line
+        jmp     @next_line
+
+@end:
+        rts
+
+; Invokes a statement handler from a table.
+; This function does not return; it jumps to the handler, which will eventually return.
+; A = the index of the handler in the table
+
+invoke_statement_handler:
+        tay
+        ldax    #statement_exec_vectors
+        jmp     invoke_indexed_vector
+
+; Gets the value for an argument and returns it in AX.
+
+get_argument_value:
+        jsr     decode_byte             ; Get statement number
+        bmi     @variable               ; It's a variable
+        jmp     decode_number           ; Decode a number instead
+
+@variable:
+        jsr     get_variable_value_ptr  ; Address of variable data in AX
+        stax    BC                      ; Set in BC to prepare to index by Y
+        ldy     #1
+        lda     (BC),y                  ; High byte of variable value
+        tax
+        dey
+        lda     (BC),y                  ; Low byte of variable data
+        rts

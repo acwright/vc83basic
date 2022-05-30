@@ -312,3 +312,20 @@ check_himem:
         clc                             ; Pointers are equal; clear carry since this is success
 @done:
         rts
+
+; Calculates the offset of a variable in the value table.
+; The variable token passed in A will always be <= 127 since there can only be 128 variables, but it possibly
+; has the high bit set, so we AND with $7F first.
+; A = the variable token
+; Returns the value address in AX.
+
+get_variable_value_ptr:
+        and     #$7F                    ; Clear MSB
+        jsr     mul2a                   ; Multiply by 2; since MSB was clear, this will clear carry
+        adc     value_table_ptr         ; Add to the value table offset
+        pha                             ; Store low byte
+        txa                             
+        adc     value_table_ptr+1
+        tax                             ; High byte back into X
+        pla                             ; Recover low byte
+        rts
