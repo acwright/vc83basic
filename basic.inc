@@ -34,6 +34,9 @@
 .global encode_variable
 .global encode_byte
 
+; input.s
+.global exec_input
+
 ; let.s
 .global exec_let
 
