@@ -56,7 +56,7 @@
 .global parse_arguments
 .global parse_expression
 .global parse_argument_separator
-.global skip_whitespace ; TODO: remove once no longer needed in main
+.global skip_whitespace
 
 ; print.s
 .global exec_print

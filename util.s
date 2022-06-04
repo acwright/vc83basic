@@ -57,7 +57,7 @@ copy_bytes_de:
         lda     (src_ptr),y             ; Otherwise move one more byte
         sta     (dst_ptr),y               
         iny 
-        jmp     @remaining              ; TODO: optimize for 65C02
+        jmp     @remaining
 
 @return:
         rts
@@ -128,9 +128,9 @@ copy_bytes_back_de:
         beq     @copy_last_byte         ; Y is 0 but we still have to copy one last byte
         lda     (src_ptr),y             ; Copy one byte
         sta     (dst_ptr),y     
-        jmp     @copy                   ; TODO: optimize for 65C02
+        jmp     @copy                   
 @copy_last_byte:    
-        lda     (src_ptr),y             ; Copy last byte (Y will be 0) (TODO: optimize for 65C02)
+        lda     (src_ptr),y             ; Copy last byte (Y will be 0)
         sta     (dst_ptr),y
 @skip_copy:
         rts

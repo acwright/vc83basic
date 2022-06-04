@@ -164,8 +164,6 @@ get_line_ptr_plus_a:
 @return:
         rts
 
-; TODO: figure out how much to grow/shrink before calling either function and call grow_ay first
-
 ; Delete program line, which must have previously been found with find_line.
 ; line_ptr = a pointer to the line to replace (previously set by find_line)
 ; On return, line_ptr retains the same value it had before, only it is now pointing to the next line.
