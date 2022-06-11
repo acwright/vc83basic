@@ -17,13 +17,14 @@
 .globalzp heap_ptr
 .globalzp himem_ptr
 .globalzp variable_count
-
-; Data
-
-.global statement_name_table
-.global statement_signature_table
+.globalzp variable_value_ptr
 
 ; Functions
+
+; data.s
+.global exec_read
+.global exec_restore
+.global exec_data
 
 ; decode.s
 .global decode_number
@@ -69,7 +70,8 @@
 .global delete_line, insert_line, insert_line
 .global get_line_start, get_line_start_plus_a, get_line_ptr_plus_a
 .global grow_a, grow_ay, check_himem
-.global get_variable_value_ptr
+.global set_variable_value_ptr
+.global set_variable_value
 
 ; run.s
 .global exec_run
@@ -129,6 +131,11 @@ TOKEN_INT                   = $02
 ST_LIST     = 0
 ST_RUN      = 1
 ST_PRINT    = 2
+ST_LET      = 3
+ST_INPUT    = 4
+ST_DATA     = 5
+ST_READ     = 6
+ST_RESTORE  = 7
 
 ; Status and error codes
 

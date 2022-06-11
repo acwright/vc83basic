@@ -41,11 +41,10 @@ get_argument_value:
         jmp     decode_number           ; Decode a number instead
 
 @variable:
-        jsr     get_variable_value_ptr  ; Address of variable data in AX
-        stax    BC                      ; Set in BC to prepare to index by Y
+        jsr     set_variable_value_ptr  ; Address of variable data in AX
         ldy     #1
-        lda     (BC),y                  ; High byte of variable value
+        lda     (variable_value_ptr),y  ; High byte of variable value
         tax
         dey
-        lda     (BC),y                  ; Low byte of variable data
+        lda     (variable_value_ptr),y  ; Low byte of variable data
         rts
