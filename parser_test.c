@@ -182,7 +182,8 @@ static void test_parse_element(void) {
         'P', 'L', 'O', 'T', 2 + NT_END, 
         'N', 'E', 'W' + NT_END, 
         'G', 'R', 1 + NT_END,
-        'F', 'O', 'R', 1, 'T', 'O', 1 + NT_END, 
+        'F', 'O', 'R', 1, '=', 1, 'T', 'O', 1 + NT_END,
+        ' ' + NT_END, // Dummy entry required because FOR has 3 arguments
         'L', 'E', 'T', 1, '=', 1 + NT_END, 
         0
     };
@@ -190,15 +191,16 @@ static void test_parse_element(void) {
         TYPE_INT,   TYPE_INT,
         TYPE_NONE,  TYPE_NONE, 
         TYPE_INT,   TYPE_NONE,
-        TYPE_INT,   TYPE_INT,
-        TYPE_VAR,   TYPE_ANY
+        TYPE_VAR,   TYPE_INT,
+        TYPE_INT,   TYPE_NONE,
+        TYPE_VAR,   TYPE_INT,
     };
 
     const char line_data_1[] = { 0x00, 0x02, 0x0A, 0x00, 0x02, 0x64, 0x00 };
     const char line_data_2[] = { 0x01 };
     const char line_data_3[] = { 0x02, 0x02, 0x08, 0x00 };
-    const char line_data_4[] = { 0x03, 0x02, 0x01, 0x00, 0x02, 0x10, 0x27 };
-    const char line_data_5[] = { 0x04, 0x80, 0x02, 0x64, 0x00 };
+    const char line_data_4[] = { 0x05, 0x80, 0x02, 0x64, 0x00 };
+    const char line_data_5[] = { 0x03, 0x81, 0x02, 0x01, 0x00, 0x02, 0x10, 0x27 };
 
     PRINT_TEST_NAME();
 
@@ -223,19 +225,19 @@ static void test_parse_element(void) {
     ASSERT_EQ(r, 4);
     ASSERT_EQ(w, offsetof(Line, data) + 4);
 
-    strcpy(buffer, "FOR 1 TO 10000");
-    err = parse_element(name_table, signature_table, 0, offsetof(Line, data));
-    ASSERT_EQ(err, 0);
-    ASSERT_MEMORY_EQ(line_buffer.data, line_data_4, sizeof line_data_4);
-    ASSERT_EQ(r, 14);
-    ASSERT_EQ(w, offsetof(Line, data) + 7);
-
     strcpy(buffer, "LET X=100");
     err = parse_element(name_table, signature_table, 0, offsetof(Line, data));
     ASSERT_EQ(err, 0);
-    ASSERT_MEMORY_EQ(line_buffer.data, line_data_5, sizeof line_data_5);
+    ASSERT_MEMORY_EQ(line_buffer.data, line_data_4, sizeof line_data_4);
     ASSERT_EQ(r, 9);
     ASSERT_EQ(w, offsetof(Line, data) + 5);
+
+    strcpy(buffer, "FOR Y=1 TO 10000");
+    err = parse_element(name_table, signature_table, 0, offsetof(Line, data));
+    ASSERT_EQ(err, 0);
+    ASSERT_MEMORY_EQ(line_buffer.data, line_data_5, sizeof line_data_5);
+    ASSERT_EQ(r, 16);
+    ASSERT_EQ(w, offsetof(Line, data) + 8);
 }
 
 int main(void) {

@@ -110,15 +110,9 @@ parse_element:
 
 @arguments:
         sty     n                       ; Save y (then name table entry position) in n
-        ldphaa  name_ptr                ; Save name_ptr, n, and signature_ptr
-        ; ldpha   n
-        ; ldphaa  signature_ptr
         lda     (name_ptr),y            ; Re-read name table byte
         debug $10
         jsr     parse_arguments
-        ; plstaa  signature_ptr
-        ; plsta   n
-        plstaa  name_ptr
         ldy     n                       
         debug $01
         bcs     @error
@@ -189,6 +183,7 @@ parse_arguments:
 @value:
         inc     argument_index
         lda     argument_index
+        debug $50
         cmp     argument_count
         beq     @success                ; All done parsing arguments
         jsr     parse_following_argument
@@ -248,14 +243,28 @@ parse_argument_value:
 ; Fall through to parse_value...
 
 ; Parses a single argument value.
+; Since parsing the argument can recursively invoke the name table element parser with new values for name_ptr etc.,
+; save the current values to the stack first.
+; TODO: make sure there's enough room on the stack; detect parses that recurse too deeply.
 ; A = the argument type
 
 parse_value:
         debug $30
         and     #$0F                    ; Isolate argument type
         tay
+        ldphaa  name_ptr                ; Save name_ptr, n, and signature_ptr
+        ldpha   n
+        ldphaa  signature_ptr
+        ldpha   argument_index
+        ldpha   argument_count
         ldax    #argument_type_vectors
-        jmp     invoke_indexed_vector
+        jsr     invoke_indexed_vector
+        plsta   argument_count          ; Recover variables from stack
+        plsta   argument_index
+        plstaa  signature_ptr
+        plsta   n
+        plstaa  name_ptr
+        rts
 
 ; Placeholder handler that just signals an error.
 
