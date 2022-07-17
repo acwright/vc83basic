@@ -58,7 +58,7 @@ static void test_read_number(void) {
 static void test_parse_expression(void) {
     int err;
     
-    const char line_data_1[] = { 0x02, 0x01, 0x00 };
+    const char line_data_1[] = { TOKEN_INT, 0x01, 0x00 };
     const char line_data_2[] = { 0x80 };
 
     PRINT_TEST_NAME();
@@ -110,9 +110,9 @@ static void test_parse_arguments(void) {
     int err;
     char signature_table[] = { 0x01, 0x01 };
 
-    const char line_data_1[] = { 0x02, 0x01, 0x00 };
-    const char line_data_2[] = { 0x02, 0x01, 0x00 };
-    const char line_data_3[] = { 0x02, 0x01, 0x00, 0x02, 0x00, 0x01 };
+    const char line_data_1[] = { TOKEN_INT, 0x01, 0x00 };
+    const char line_data_2[] = { TOKEN_INT, 0x01, 0x00 };
+    const char line_data_3[] = { TOKEN_INT, 0x01, 0x00, TOKEN_INT, 0x00, 0x01 };
 
     PRINT_TEST_NAME();
 
@@ -145,9 +145,9 @@ static void test_parse_repeated_arguments(void) {
     int err;
     char signature_table[] = { 0x21 };
 
-    const char line_data_1[] = { 0x01, 0x02, 0x01, 0x00 };
-    // const char line_data_2[] = { 0x02, 0x01, 0x00 };
-    // const char line_data_3[] = { 0x02, 0x01, 0x00, 0x02, 0x00, 0x01 };
+    const char line_data_1[] = { 0x01, TOKEN_INT, 0x01, 0x00 };
+    // const char line_data_2[] = { TOKEN_INT, 0x01, 0x00 };
+    // const char line_data_3[] = { TOKEN_INT, 0x01, 0x00, TOKEN_INT, 0x00, 0x01 };
 
     PRINT_TEST_NAME();
 
@@ -188,19 +188,19 @@ static void test_parse_element(void) {
         0
     };
     char signature_table[] = { 
-        TYPE_INT,   TYPE_INT,
-        TYPE_NONE,  TYPE_NONE, 
-        TYPE_INT,   TYPE_NONE,
-        TYPE_VAR,   TYPE_INT,
-        TYPE_INT,   TYPE_NONE,
-        TYPE_VAR,   TYPE_INT,
+        TYPE_INT | TYPE_REQUIRED,   TYPE_INT | TYPE_REQUIRED,
+        TYPE_NONE,                  TYPE_NONE, 
+        TYPE_INT | TYPE_REQUIRED,   TYPE_NONE,
+        TYPE_VAR | TYPE_REQUIRED,   TYPE_INT | TYPE_REQUIRED,
+        TYPE_INT | TYPE_REQUIRED,   TYPE_NONE | TYPE_REQUIRED,
+        TYPE_VAR | TYPE_REQUIRED,   TYPE_INT | TYPE_REQUIRED,
     };
 
-    const char line_data_1[] = { 0x00, 0x02, 0x0A, 0x00, 0x02, 0x64, 0x00 };
+    const char line_data_1[] = { 0x00, TOKEN_INT, 0x0A, 0x00, TOKEN_INT, 0x64, 0x00 };
     const char line_data_2[] = { 0x01 };
-    const char line_data_3[] = { 0x02, 0x02, 0x08, 0x00 };
-    const char line_data_4[] = { 0x05, 0x80, 0x02, 0x64, 0x00 };
-    const char line_data_5[] = { 0x03, 0x81, 0x02, 0x01, 0x00, 0x02, 0x10, 0x27 };
+    const char line_data_3[] = { 0x02, TOKEN_INT, 0x08, 0x00 };
+    const char line_data_4[] = { 0x05, 0x80, TOKEN_INT, 0x64, 0x00 };
+    const char line_data_5[] = { 0x03, 0x81, TOKEN_INT, 0x01, 0x00, TOKEN_INT, 0x10, 0x27 };
 
     PRINT_TEST_NAME();
 
