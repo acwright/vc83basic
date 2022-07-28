@@ -182,7 +182,6 @@ parse_arguments:
 @success:
         clc                             ; Signal no error
 @done:
-        debug $20
         rts
 
 ; Parses an argument separator followed by an argument.
@@ -217,32 +216,6 @@ parse_argument_expression:
         plsta   n
         plstaa  name_ptr                ; Recover variables from stack
         rts
-
-; Parse repeated values separated by delimiters.
-; argument_type = the type of the argument, which will have the TYPE_REPEATED bit set
-
-; parse_repeated_argument:
-;         lda     argument_type           ; Load the argument type
-;         and     #TYPE_MASK_CLEAR_REPEATED   ; Clear the TYPE_REPEATED bit
-;         sta     argument_type           ; Store back so we don't recursively try to parse a repeated value
-;         ldpha   w                       ; Save the w value to restore in case we fail to parse anything
-;         lda     #0                      
-;         jsr     encode_byte             ; Create a placeholder for the number of arguments; this will be at position w
-;         jsr     parse_argument_expression   ; Parse the first value
-;         bcc     @value                  ; Succees; continue parsing values
-;         plsta   w                       ; Restore w (doesn't affect carry)
-;         rts
-
-; @value:
-;         tsx                           
-;         lda     $101,x                  ; Get the w that we saved on the stack earlier
-;         tax                             ; w into X register
-;         inc     line_buffer,x           ; Increment the argument count that we saved at that position
-;         jsr     parse_following_argument
-;         bcc     @value                  ; Keep parsing until we run out of arguments
-;         pla                             ; Pop the original w value from the stack and discard it
-;         clc                             ; Clear carry since it's set
-;         rts
 
 ; Placeholder handler that just signals an error.
 
