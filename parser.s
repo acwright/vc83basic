@@ -10,6 +10,7 @@ w: .res 1
 
 signature_ptr: .res 2
 argument_count: .res 1
+parse_type: .res 1
 
 ; The write position of the repeated argument count in line_buffer
 repeated_argument_count_w: .res 1
@@ -154,9 +155,11 @@ argument_type_vectors:
 ; In this function we don't pay attention to the name table anymore; we're only concerned with parsing some
 ; number of arguments.
 ; ARGUMENT COUNT MUST BE AT LEAST 1.
-; A = the number of arguments to parse; bit 3 is true if these arguments are optional
+; A = the number of arguments to parse, from 1 to 7; bit 3 is true if these arguments are optional
 
 parse_arguments:
+        sta     parse_type
+        and     #NT_MASK_ARGUMENT_COUNT
         sta     argument_count
         jsr     parse_argument_expression   ; Parse the argument value; sets argument_type
         bcs     @parse_failed
@@ -166,12 +169,10 @@ parse_arguments:
         jsr     parse_following_argument    ; Parse the next argument value; resets argument_type
         bcc     @value                  ; If separator parsed then continue with value, otherwise fail
 @parse_failed:
-        lda     argument_count          ; Load the argument count
+        lda     parse_type              ; Check what type we're parsing
         and     #NT_OPTIONAL            ; Mask the optional argument flag
         beq     @done                   ; Result was 0 so optional flag not set; fail
-        lda     argument_count          ; Optional was set so prepare to store "no value" tokens
-        and     #NT_MASK_ARGUMENT_COUNT ; Isolate the count
-        tay                             ; Store in Y
+        ldy     argument_count          ; Optional was set so prepare to store "no value" tokens
 @no_value:
         lda     #TOKEN_NO_VALUE
         jsr     encode_byte             ; Encode the "no value" token

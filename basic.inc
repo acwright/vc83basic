@@ -14,10 +14,11 @@
 .globalzp status
 .globalzp r
 .globalzp w
-.globalzp name_ptr
-.globalzp n
 .globalzp signature_ptr
 .globalzp argument_count
+.globalzp argument_type
+.globalzp name_ptr
+.globalzp n
 .globalzp src_ptr, dst_ptr
 .globalzp line_ptr
 .globalzp program_ptr

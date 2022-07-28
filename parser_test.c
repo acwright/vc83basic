@@ -152,6 +152,7 @@ static void test_parse_optional_arguments(void) {
 
     const char line_data_1[] = { TOKEN_INT, 0x01, 0x00, TOKEN_NO_VALUE };
     const char line_data_2[] = { TOKEN_NO_VALUE, TOKEN_NO_VALUE };
+    const char line_data_3[] = { TOKEN_INT, 0x01, 0x00 };
 
     PRINT_TEST_NAME();
 
@@ -182,6 +183,13 @@ static void test_parse_optional_arguments(void) {
     ASSERT_MEMORY_EQ(line_buffer.data, line_data_2, sizeof line_data_2);
     ASSERT_EQ(r, 0);
     ASSERT_EQ(w, offsetof(Line, data) + sizeof line_data_2);
+
+    strcpy(buffer, "1,2,3,4");
+    err = parse_arguments(1 + NT_OPTIONAL, 0, offsetof(Line, data));
+    ASSERT_EQ(err, 0);
+    ASSERT_MEMORY_EQ(line_buffer.data, line_data_3, sizeof line_data_3);
+    ASSERT_EQ(r, 1);
+    ASSERT_EQ(w, offsetof(Line, data) + sizeof line_data_3);
 }
 
 // static void test_parse_repeated_arguments(void) {

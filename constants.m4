@@ -28,10 +28,21 @@ def(TYPE_MASK_CLEAR_REPEATED,   hex(DF))
 
 comment Name table definitions 
 
-def(NT_OPTIONAL,        hex(40))
+def(NT_OPTIONAL,        hex(08))
+def(NT_NUMBER,          hex(10))
+def(NT_VAR,             hex(11))
+def(NT_RPT_NUMBER,      hex(12))
+def(NT_RPT_VAR,         hex(13))
+def(NT_CHANNEL,         hex(14))
+def(NT_PROMPT,          hex(15))
+def(NT_PRINT,           hex(16))
+def(NT_THEN,            hex(17))
+def(NT_STEP,            hex(18))
+def(NT_TEXT,            hex(19))
 def(NT_END,             hex(80))
 
 def(NT_MASK_ARGUMENT_COUNT,     hex(07))
+def(NT_MASK_SYMBOL_TYPE,        hex(70))
 
 comment Tokenized form constants
 
