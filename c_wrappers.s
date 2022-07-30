@@ -31,8 +31,6 @@
 
 .export _name_ptr = name_ptr
 
-.export _signature_ptr = signature_ptr
-
 ; Test access to the B, C, D, and E registers
 
 .export _reg_bc = BC
@@ -180,20 +178,19 @@ _parse_element:
         sta     w
         jsr     popa
         sta     r
-        jsr     popax
-        stax    signature_ptr
         jsr     popax                   ; Name table pointer
         stax    name_ptr
         jsr     parse_element
         jmp     return_carry
 
-_parse_arguments:
-.export _parse_arguments
+_parse_multiple_arguments:
+.export _parse_multiple_arguments
         sta     w
         jsr     popa
         sta     r
         jsr     popa
-        jsr     parse_arguments
+        sta     directive
+        jsr     parse_multiple_arguments
         jmp     return_carry
 
 _parse_expression:

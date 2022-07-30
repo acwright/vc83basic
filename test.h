@@ -89,8 +89,8 @@ int add_variable(void);
 // parser.s
 int read_number(char r);
 int char_to_digit(char c);
-int parse_element(const char* name_ptr, void* signature_ptr, char r, char w);
-int parse_arguments(char count, char r, char w);
+int parse_element(const char* name_ptr, char r, char w);
+int parse_multiple_arguments(char directive, char r, char w);
 int parse_expression(char r, char w);
 int parse_argument_separator(char r);
 

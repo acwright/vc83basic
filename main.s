@@ -7,6 +7,8 @@ ready_length = * - ready_message
 error_message: .byte "ERROR"
 error_length = * - error_message
 
+; TODO: Create parse_line to prepare line_buffer; make skip_whitespace private to parser.s
+
 main:
         jsr     initialize_target
         jsr     initialize_program
@@ -38,7 +40,6 @@ main:
 
 @get_statement:
         jsr     skip_whitespace
-        mvax    #statement_signature_table, signature_ptr
         ldax    #statement_name_table
         jsr     parse_element           ; Leaves the parsed statement in line_buffer
         rts

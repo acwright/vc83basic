@@ -11,16 +11,6 @@ statement_name_table:
         .byte   'R', 'E', 'S', 'T', 'O', 'R', 'E', 1 | NT_END
         .byte   0
 
-statement_signature_table:
-        .byte   TYPE_NONE, TYPE_NONE
-        .byte   TYPE_NONE, TYPE_NONE
-        .byte   TYPE_INT, TYPE_NONE
-        .byte   TYPE_VAR, TYPE_INT
-        .byte   TYPE_VAR, TYPE_NONE
-        .byte   TYPE_INT | TYPE_REPEATED, TYPE_NONE
-        .byte   TYPE_VAR | TYPE_REPEATED, TYPE_NONE
-        .byte   TYPE_INT, TYPE_NONE
-
 statement_exec_vectors:
         .word   exec_list
         .word   exec_run

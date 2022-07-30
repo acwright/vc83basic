@@ -14,9 +14,8 @@
 .globalzp status
 .globalzp r
 .globalzp w
-.globalzp signature_ptr
+.globalzp directive
 .globalzp argument_count
-.globalzp argument_type
 .globalzp name_ptr
 .globalzp n
 .globalzp src_ptr, dst_ptr
@@ -75,7 +74,7 @@
 ; parser.s
 .global read_number, char_to_digit
 .global parse_element
-.global parse_arguments
+.global parse_multiple_arguments
 .global parse_expression
 .global parse_argument_separator
 .global skip_whitespace

@@ -16,33 +16,27 @@ def(TYPE_PRINT,         hex(0B))
 def(TYPE_THEN,          hex(0C))
 def(TYPE_STEP,          hex(0D))
 def(TYPE_TEXT,          hex(0E))
-
-comment Type modifiers
-
-def(TYPE_REPEATED,      hex(20))
-def(TYPE_OPTIONAL,      hex(40))
 def(TYPE_END,           hex(80))
-
-def(TYPE_MASK_TYPE_ONLY,        hex(0F))
-def(TYPE_MASK_CLEAR_REPEATED,   hex(DF))
 
 comment Name table definitions 
 
 def(NT_OPTIONAL,        hex(08))
-def(NT_NUMBER,          hex(10))
-def(NT_VAR,             hex(11))
-def(NT_RPT_NUMBER,      hex(12))
-def(NT_RPT_VAR,         hex(13))
+def(NT_EXPRESSION,      hex(10))
+def(NT_NUMBER,          hex(11))
+def(NT_VAR,             hex(12))
+def(NT_DATA,            hex(13))
 def(NT_CHANNEL,         hex(14))
 def(NT_PROMPT,          hex(15))
 def(NT_PRINT,           hex(16))
 def(NT_THEN,            hex(17))
 def(NT_STEP,            hex(18))
 def(NT_TEXT,            hex(19))
+def(NT_DIM,             hex(1A))
+def(NT_RPT_EXPRESSION,  hex(1C))
+def(NT_RPT_NUMBER,      hex(1D))
+def(NT_RPT_VAR,         hex(1E))
+def(NT_RPT_DATA,        hex(1F))
 def(NT_END,             hex(80))
-
-def(NT_MASK_ARGUMENT_COUNT,     hex(07))
-def(NT_MASK_SYMBOL_TYPE,        hex(70))
 
 comment Tokenized form constants
 
