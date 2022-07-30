@@ -101,7 +101,6 @@ parse_element:
 ; This whole first section uses Y to track the parse position in the name table entry pointed to by name_ptr.
 
         jsr     find_name               ; Sets Y to next byte in name table entry (AX passed to find_name)
-        debug $80
         bcs     @error
         jsr     encode_byte             ; Encode the statement name
         bcs     @error                  ; encode_byte error
@@ -118,19 +117,15 @@ parse_element:
         sty     n                       ; Save name table entry position in n
         dey                             ; Back up 1
         lda     (name_ptr),y            ; Check for the end bit
-        debug $30
         bmi     @success                ; Success if the end bit set
         iny                             ; Back to previous position
         lda     (name_ptr),y            ; Get the next byte
         tax                             ; Save in X temporarily
         and     #$70                    ; Isolate bits 4-7 which tells us what to do here
-        debug $31
         beq     @multiple               ; If 000 then it's a multiple arguments directive
         cmp     #$10                    ; If 001 then it's a single argument
-        debug $32
         beq     @single                 ; If so then go parse a special argument
         jsr     skip_whitespace         ; Else this is a new character sequence to match
-        debug $33
         jsr     match_character_sequence    ; Will advance Y past the matched sequence
         bcs     @error                  ; If not matched then error
         bcc     @next                   ; If matched then continue
@@ -153,7 +148,6 @@ parse_element:
         bcs     @error
         inc     n                       ; Recover saved name table entry position
         ldy     n                       ; Advance 1
-        debug $42
         bcc     @next
 
 @success:
@@ -174,14 +168,12 @@ parse_element:
 parse_multiple_arguments:
         sta     directive               ; Save the argument possibly containing the optional flag
         and     #$07
-        debug $00
         sta     argument_count
         lda     #NT_EXPRESSION
         jsr     parse_argument          ; Parse the argument value
         bcs     @parse_failed
 @value:
         dec     argument_count          ; One argument done
-        debug $10
         beq     @success                ; All done parsing arguments
         jsr     parse_following_argument    ; Parse the next argument value
         bcc     @value                  ; If separator parsed then continue with value, otherwise fail
@@ -227,7 +219,6 @@ parse_following_argument:
 parse_argument:
         and     #$0F                    ; Isolate just the type
         tay                             ; Prepare too use type as vector index
-        debug $50
         ldphaa  name_ptr                ; Save name_ptr, n, and signature_ptr
         ldpha   n
         ldpha   directive
