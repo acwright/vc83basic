@@ -73,6 +73,7 @@
 
 ; parser.s
 .global read_number, char_to_digit
+.global parse_line
 .global parse_element
 .global parse_multiple_arguments
 .global parse_repeated_argument

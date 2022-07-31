@@ -82,6 +82,27 @@ argument_type_vectors:
         .word   parse_error      
         .word   parse_error      
 
+; Parses a line from the buffer. The line is an optional line number followed by statements.
+; If the line number is missing, set it to -1.
+
+parse_line:
+        mva     #0, r                   ; Initialize the read pointer
+        mva     #Line::data, w          ; Initialize write pointer
+        jsr     read_number             ; Leaves line number in AX and r points to next character in buffer
+        bcc     @store_line_number      ; Line number was provided so store it
+        lda     #$FF                    ; Otherwise store -1 ($FFFF) instead
+        tax
+@store_line_number:
+        stax    line_buffer+Line::number
+        jsr     skip_whitespace         ; Detect a blank line
+        clc
+        beq     @blank_line
+        ldax    #statement_name_table
+        jsr     parse_element           ; Leaves the parsed statement in line_buffer and sets/clears carry
+@blank_line:
+        mva     w, line_buffer+Line::next_line_offset   ; Write position is next statement offset
+        rts
+
 ; Parses and tokenizes a syntax element starting with a name.
 ; The last byte of buffer should be 0, which won't match anything. This avoids the need to keep checking
 ; the buffer length.
@@ -344,8 +365,8 @@ parse_argument_separator:
         sec
         rts
 
-; Skip past any whitespace in the buffer.
-; This function is NOT exported because we want other modules to call parsing funtions, not this function.
+; Skip past any whitespace in the buffer. Returns the next character in A, and also sets the zero flag if
+; that character is zero. Callers can use this to detect if there is anything left to read.
 ; r = the read position (modified)
 ; Y SAFE, BC SAFE, DE SAFE
 
@@ -358,4 +379,5 @@ skip_whitespace:
         beq     @next       
         dex                             ; It wasn't whitespace so go back
         stx     r                       ; Update read position
+        lda     buffer,x                ; Return next character
         rts
