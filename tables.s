@@ -5,6 +5,7 @@ statement_name_table:
         .byte   'P', 'R', 'I', 'N', 'T', NT_EXPRESSION | NT_END
         .byte   'L', 'E', 'T', NT_VAR, '=', NT_EXPRESSION | NT_END
         .byte   'I', 'N', 'P', 'U', 'T', NT_RPT_VAR | NT_END
+        .byte   'L', 'I', 'S', 'T', 2 | NT_OPTIONAL | NT_END
         .byte   0
 
 statement_exec_vectors:
@@ -12,3 +13,4 @@ statement_exec_vectors:
         .word   exec_print
         .word   exec_let
         .word   exec_input
+        .word   exec_list

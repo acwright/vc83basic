@@ -24,6 +24,7 @@
 .globalzp variable_count
 .globalzp variable_value_ptr
 .globalzp lp
+.globalzp argument_count
 
 ; Data
 
@@ -46,6 +47,9 @@
 
 ; let.s
 .global exec_let
+
+; list.s
+.global exec_list
 
 ; main.s
 .global main
