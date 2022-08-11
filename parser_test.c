@@ -382,6 +382,15 @@ static void test_parse_line(void) {
     ASSERT_EQ(err, 0);
     ASSERT_MEMORY_EQ((const char*)&line_buffer, line_data_2, sizeof line_data_2);
 
+    // Empty line
+
+    strcpy(buffer, "");
+    err = parse_line();
+    ASSERT_EQ(err, 0);
+    strcpy(buffer, "  ");
+    err = parse_line();
+    ASSERT_EQ(err, 0);
+
     // Test that the parser rejects statements that continue past the point where they're supposed to end.
 
     strcpy(buffer, "LET X=100,5");

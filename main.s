@@ -15,12 +15,16 @@ main:
 @wait_for_input:
         jsr     readline
         jsr     parse_line
+        bcs     @error
         lda     line_buffer+Line::number+1  ; Get high byte of line number
         bmi     @immediate_mode         ; If line number is negative then we're in immediate mode
         jsr     insert_or_update_line   ; Update the program
         jmp     @wait_for_input
 
 @immediate_mode:
+        lda     line_buffer+Line::next_line_offset  ; See if there is any data in the buffer
+        cmp     #Line::data             ; Does the "next line" start at the beginning of *this* line?
+        beq     @wait_for_input         ; Yes, just ignore input
         lda     line_buffer+Line::data  ; Statement is in line_buffer.data
         jsr     invoke_statement_handler
         jmp     @wait_for_input
