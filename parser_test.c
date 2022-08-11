@@ -358,6 +358,37 @@ static void test_parse_element(void) {
     ASSERT_EQ(err, 0);
 }
 
+static void test_parse_line(void) {
+    int err;
+
+    const char line_data_1[] = { 8, 0x0A, 0x00, 0x02, 0x80, TOKEN_INT, 0x64, 0x00 };
+    const char line_data_2[] = { 10, 0xFF, 0xFF, 0x04, TOKEN_INT, 0x0A, 0x00, TOKEN_INT, 0x14, 0x00 };
+
+    PRINT_TEST_NAME();
+
+    initialize_program();
+
+    // Happy path with line number.
+
+    strcpy(buffer, "10 LET X=100");
+    err = parse_line();
+    ASSERT_EQ(err, 0);
+    ASSERT_MEMORY_EQ((const char*)&line_buffer, line_data_1, sizeof line_data_1);
+
+    // Happy path immediate mode.
+
+    strcpy(buffer, "LIST 10,20");
+    err = parse_line();
+    ASSERT_EQ(err, 0);
+    ASSERT_MEMORY_EQ((const char*)&line_buffer, line_data_2, sizeof line_data_2);
+
+    // Test that the parser rejects statements that continue past the point where they're supposed to end.
+
+    strcpy(buffer, "LET X=100,5");
+    err = parse_line();
+    ASSERT_NE(err, 0);
+}
+
 int main(void) {
     initialize_target();
     test_char_to_digit();
@@ -369,5 +400,6 @@ int main(void) {
     test_parse_multiple_arguments();
     test_parse_optional_multiple_arguments();
     test_parse_element();
+    test_parse_line();
     return 0;
 }

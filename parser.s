@@ -82,8 +82,14 @@ parse_line:
         beq     @blank_line
         ldax    #statement_name_table
         jsr     parse_element           ; Leaves the parsed statement in line_buffer and sets/clears carry
+        bcs     @done                   ; Parse failed
 @blank_line:
         mva     lp, line_buffer+Line::next_line_offset  ; Write position is next statement offset
+        ldx     bp
+        lda     buffer,x                ; Verify the line ends as expected
+        beq     @done                   ; If so then jump to done with carry still clear
+        sec                             ; Otherwise set carry to indicate failure
+@done:
         rts
 
 ; Parses and tokenizes a syntax element starting with a name.
