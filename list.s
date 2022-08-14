@@ -25,7 +25,7 @@ exec_list:
 
 ; Outputs a full line.
 ; line_ptr = pointer to the line
-; Returns with carry flag set if line_pointer points past the end of the program.
+; Returns with carry flag set if line_ptr points to the end of the program.
 
 list_line:
         mva     #0, bp                  ; Initialize write position in buffer
@@ -56,6 +56,7 @@ list_line:
 ; Y = the index of the syntax element
 
 list_element:
+        debug $00
         jsr     get_name_table_entry    ; Sets name_ptr and resets n; should never fail
         ldpha   #0                      ; Pretend that the last-seen name table entry byte was zero
 @loop:
@@ -64,6 +65,7 @@ list_element:
         ldy     np
         inc     np                      ; Next position
         lda     (name_ptr),y            ; Load the next byte from the name table
+        debug $01
         pha                             ; Put on the stack in order to check high bit next time through
         tax                             ; Temporarily store in X
         and     #$60                    ; Check if it's a directive (not a literal, x00x xxxx)
@@ -92,7 +94,7 @@ list_element:
 
 @repeated:
         txa                             ; Get back original directive
-        jsr     list_repeated_arguments
+        jsr     list_repeated_argument
         jmp     @loop
 @done:
         rts                            
@@ -100,16 +102,22 @@ list_element:
 ; Lists statement or function arguments from the token stream.
 ; ARGUMENT COUNT MUST BE AT LEAST 1.
 ; A = the number of arguments to list
-; line_ptr = pointer to the current line
-; r = read position line (updated) 
+
+.assert TOKEN_NO_VALUE = 0, error
 
 list_multiple_arguments:
         and     #$07                    ; Isolate the count
         sta     argument_count          ; Re-use argument_count from parser module
+        jsr     decode_byte             ; Check if the next argument is TOKEN_NO_VALUE
+        beq     @no_value               ; If so then don't list
 @next_argument:
+        dec     lp                      ; Back up to decode the argument
         jsr     list_argument           ; Assume it's an expression for now
+@no_value:
         dec     argument_count          ; Done with one argument
         beq     @done                   ; Finish if no more
+        jsr     decode_byte             ; Check if next argument is TOKEN_NO_VALUE
+        beq     @no_value               
         lda     #','                    ; Output argument separator
         jsr     putchar_buffer
         bne     @next_argument          ; Will never write 0 so this is unconditional branch
@@ -118,11 +126,11 @@ list_multiple_arguments:
         rts
 
 ; Lists repeated arguments.
-; Keep reading arguments until we find TOKEN_END_REPEAT, which is conveniently zero.
+; Keep reading arguments until we find TOKEN_NO_VALUE, which is conveniently zero.
 
 .assert TOKEN_NO_VALUE = 0, error
 
-list_repeated_arguments:
+list_repeated_argument:
         jsr     decode_byte             ; Get the next byte
         beq     @done                   ; If it's TOKEN_NO_VALUE then done
 @next_argument:
@@ -138,8 +146,10 @@ list_repeated_arguments:
         rts
 
 ; Lists an argument value from the token stream.
-; line_ptr = pointer to the current line
-; r = read position line (updated) 
+
+list_argument_vectors:
+        .word   list_no_value
+        .word   list_number
 
 list_argument:
         jsr     add_whitespace
@@ -147,8 +157,9 @@ list_argument:
         ldpha   np                      ; Save existing name entry read position
         jsr     decode_byte             ; Get the identifier of the next value
         bmi     @variable               ; It's a variable
-        jsr     decode_number           ; It must be an integer; decode the number (return value in AX)
-        jsr     format_number           ; Send it right to format_number
+        tay                             ; Transfer token into Y for vector lookup
+        ldax    #list_argument_vectors
+        jsr     invoke_indexed_vector   ; Invoke the list function for the token type
         jmp     @done
 
 @variable:
@@ -160,7 +171,12 @@ list_argument:
 @done:
         plsta   np                      ; Recover values previously saved on stack
         plstaa  name_ptr
+list_no_value:
         rts
+
+list_number:
+        jsr     decode_number           ; It must be an integer; decode the number (return value in AX)
+        jmp     format_number           ; Send it right to format_number
 
 ; Adds whitespace to the output if necessary.
 ; Whitespace is necessary if w > 0 and if buffer[w-1] is a name character.

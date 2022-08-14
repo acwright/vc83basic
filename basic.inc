@@ -50,6 +50,11 @@
 
 ; list.s
 .global exec_list
+.global list_line
+.global list_element
+.global list_argument
+.global list_multiple_arguments
+.global list_repeated_argument
 
 ; main.s
 .global main

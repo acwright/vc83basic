@@ -88,6 +88,55 @@ _encode_byte:
         jsr     encode_byte
         jmp     return_carry
 
+; list.s
+
+_list_line:
+.export _list_line
+        stax    line_ptr
+        jsr     list_line
+        jmp     return_carry
+
+_list_element:
+.export _list_element
+        sta     lp
+        jsr     popa
+        sta     bp
+        jsr     popax
+        stax    line_ptr
+        jsr     popa
+        sta     B                       ; Store index temporarily in B
+        jsr     popax
+        ldy     B                       ; Move index back into B
+        jmp     list_element
+
+_list_argument:
+.export _list_argument
+        sta     lp
+        jsr     popa
+        sta     bp
+        jsr     popax
+        stax    line_ptr
+        jmp     list_argument
+
+_list_multiple_arguments:
+.export _list_multiple_arguments
+        sta     lp
+        jsr     popa
+        sta     bp
+        jsr     popax
+        stax    line_ptr
+        jsr     popa
+        jmp     list_multiple_arguments
+
+_list_repeated_argument:
+.export _list_repeated_argument
+        sta     lp
+        jsr     popa
+        sta     bp
+        jsr     popax
+        stax    line_ptr
+        jmp     list_repeated_argument
+
 ; name.s
 
 _is_name_character:
