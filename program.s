@@ -44,12 +44,12 @@ line_buffer: .res 256
 ; Initializes a new program.
 ; Inserts an empty zero-length line -1 into the program space.
 
-initialize_program:
-
 ; This function makes assumptions about these offsets
 
 .assert Line::next_line_offset = 0, error
 .assert Line::number = 1, error
+
+initialize_program:
 
         mvax    #(__BSS_RUN__ + __BSS_SIZE__), program_ptr
         stax    line_ptr                    ; Set program_ptr and line_ptr to end of BSS
@@ -76,6 +76,14 @@ initialize_program:
         sta     variable_count              ; Initialize number of variables to 0
         mvax    #(__MAIN_START__ + __MAIN_SIZE__), himem_ptr
         rts
+
+; Clears the variable name table.
+
+clear_variable_name_table:
+        mvaa    value_table_ptr, dst_ptr    ; Prepare to clear variable value table
+        lda     variable_count          ; Amount to clear is variable_count * 2
+        jsr     mul2a
+        jmp     clear_memory
 
 ; Sets line_ptr to program_ptr.
 ; Returns line_ptr in AX.

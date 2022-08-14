@@ -82,6 +82,7 @@
 
 ; program.s
 .global initialize_program
+.global clear_variable_name_table
 .global reset_line_ptr
 .global find_line
 .global advance_line_ptr

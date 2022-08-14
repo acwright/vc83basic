@@ -5,11 +5,8 @@
 ; Executes the program.
 
 exec_run:
-        mvaa    value_table_ptr, dst_ptr    ; Prepare to clear variable value table
-        lda     variable_count          ; Amount to clear is variable_count * 2
-        jsr     mul2a
-        jsr     clear_memory
-        jsr     reset_line_ptr
+        jsr     clear_variable_name_table   ; Clear the variable name table
+        jsr     reset_line_ptr          ; Reset line_ptr to the start of the program
 @run_one_line:
         ldy     #Line::number+1         ; Position of line number high byte
         lda     (line_ptr),y            ; Into A
