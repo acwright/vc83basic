@@ -21,6 +21,7 @@ exec_list:
         jmp     @line_one_line
 
 @end:
+        clc                             ; LIST always succeeds
         rts
 
 ; Outputs a full line.

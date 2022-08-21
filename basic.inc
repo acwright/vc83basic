@@ -98,6 +98,7 @@
 
 ; run.s
 .global exec_run
+.global run_line
 .global invoke_statement_handler
 .global get_argument_value
 

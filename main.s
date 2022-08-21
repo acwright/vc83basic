@@ -26,8 +26,8 @@ main:
         lda     line_buffer+Line::next_line_offset  ; See if there is any data in the buffer
         cmp     #Line::data             ; Does the "next line" start at the beginning of *this* line?
         beq     @wait_for_input         ; Yes, just ignore input
-        lda     line_buffer+Line::data  ; Statement is in line_buffer.data
-        jsr     invoke_statement_handler
+        mvax    #line_buffer, line_ptr  ; Set line_ptr to point to line_buffer
+        jsr     run_line
         bcs     @error
         jmp     @wait_for_input
 
