@@ -30,6 +30,8 @@ dst_ptr: .res 2
 ; AX = number of bytes to copy (_de entry point uses value in DE instead)
 ; BC SAFE
 
+copy_bytes_a:
+        ldx     #0                      ; Default high byte to 0
 copy_bytes:
         stax    DE                      ; Length into DE
 copy_bytes_de:
@@ -68,6 +70,8 @@ copy_bytes_de:
 ; AX = number of bytes to copy (_de entry point uses value in DE instead)
 ; BC SAFE
 
+copy_bytes_higher_a:
+        ldx     #0                      ; Default high byte to 0
 copy_bytes_higher:
         stax    DE                      ; Length into DE
 copy_bytes_higher_de:

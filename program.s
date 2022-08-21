@@ -151,6 +151,7 @@ find_line:
 advance_line_ptr:
         ldy     #0                      ; Need offset 2 to get length
         lda     (line_ptr),y            ; Get length of current line
+advance_line_ptr_a:
         jsr     add_line_ptr_offset
         stax    line_ptr
         rts
@@ -178,111 +179,37 @@ insert_or_update_line:
         bcs     @insert                 ; Not found, just insert the new line
 
 ; line_ptr points to a line that we have to remove.
-; Find the next line and copy the reset of the program to where line_ptr is pointing now.
-; There will always be a next line becasue we'll only be here if the line to delete
-; actually exists.
+; Temporarily store the offset of the next line, advance line_ptr, then compact to remove the line.
 
-        lda     line_ptr                ; Current line_ptr
-        sta     dst_ptr                 ; will be the target of the memcpy
-        pha                             ; Also push it on the stack so we can restore after advancing
-        lda     line_ptr+1              ; High byte
-        sta     dst_ptr+1   
-        pha 
-        jsr     advance_line_ptr        ; Move to line_ptr to next line (AX = line_ptr)
-        stax    src_ptr                 ; This will be the source for the copy
-        jsr     calculate_bytes_to_move ; Set DE to length of program from line_ptr
-        jsr     update_pointers         ; Knowing copy from and to, we can update pointers
-        jsr     copy_bytes_de           ; Compact the program
-        pla                             ; line_ptr now points to an invalid line so restore saved value
-        sta     line_ptr+1
-        pla
-        sta     line_ptr
+        ldy     #0                      ; Prepare to get next line offset
+        lda     (line_ptr),y            ; Get it
+        pha                             ; Save on stack
+        jsr     advance_line_ptr_a      ; Advance line_ptr (use _a entry point because A is already length)
+        pla                             ; Get the length of the line back off the stack
+        ldy     #line_ptr               ; Select line_ptr as the pointer to move
+        jsr     compact_a
 
 ; Insert the new line, if there is one.
 ; There is a line if next_line_offset is greater than the offset of the data field.
 ; line_ptr points to where this new line should go.
 
 @insert:
-        mvax    line_ptr, src_ptr       ; Initialize src_ptr to line_ptr
         lda     line_buffer+Line::next_line_offset  ; Load length of line which should be <= 255
+        tax                             ; Save in X since we'll need it again
         cmp     #Line::data             ; Compare next line offset with the offset of the data field
         beq     @finish                 ; If they're the same, line is blank, nothing to insert
-        jsr     add_line_ptr_offset     ; Add next_line_offset to line_ptr to get new address of current line
-        stax    dst_ptr                 ; Store in dst_ptr
-        jsr     calculate_bytes_to_move ; Set DE to length of program from line_ptr
-        jsr     update_pointers
-        jsr     copy_bytes_higher_de      ; Make room for the new line
+        ldphaa  line_ptr                ; Push line_ptr onto stack so we can get it back later
+        txa                             ; Copy line length back into A as the amount to expand
+        ldy     #line_ptr               ; Select line_ptr as the pointer to move
+        jsr     expand_a                ; Create space for the new line
+        plstaa  dst_ptr                 ; Restore the previous line_ptr into dst_ptr (even if expand failed)
+        bcs     @done                   ; Don't copy if expand failed
         mvaa    #line_buffer, src_ptr   ; Set up copy into the space for the new line
-        mvaa    line_ptr, dst_ptr
         lda     line_buffer+Line::next_line_offset  ; Length of the new line
-        ldx     #0                      ; High byte of length is always 0
-        jsr     copy_bytes              ; Copy the line into the program
+        jsr     copy_bytes_a            ; Copy the line into the program
 
 @finish:
         clc
-        rts
-
-; ; Calculates the bytes to move for both compact and expand as (value_table_ptr - line_ptr).
-; ; Returns the number of bytes in DE.
-
-; calculate_bytes_to_move:
-;         sec                       
-;         lda     value_table_ptr
-;         sbc     line_ptr
-;         sta     D                       ; Store low byte of length in D
-;         lda     value_table_ptr+1      
-;         sbc     line_ptr+1      
-;         sta     E                       ; High byte of length in E
-;         rts
-
-; Updates variable_name_table_ptr and value_table_ptr by adding (dst_ptr - src_ptr).
-; In other words, if we're moving everything to a higher address (dst_ptr > src_ptr), then we have
-; to move the pointers up too, and vice versa. We're just shifting the pointers by however many bytes
-; we moved the end of the program.
-; Uses XY to store the difference value.
-; BC SAFE, DE SAFE
-
-update_pointers:
-        sec           
-        lda     dst_ptr
-        sbc     src_ptr
-        tax                             ; Difference low byte in X
-        lda     dst_ptr+1       
-        sbc     src_ptr+1     
-        tay                             ; Difference high byte in Y
-        clc                             ; Update variable_name_table_ptr
-        txa                             
-        adc     variable_name_table_ptr
-        sta     variable_name_table_ptr
-        tya
-        adc     variable_name_table_ptr+1
-        sta     variable_name_table_ptr+1
-        clc                             ; Update value_table_ptr
-        txa                      
-        adc     value_table_ptr
-        sta     value_table_ptr
-        tya
-        adc     value_table_ptr+1
-        sta     value_table_ptr+1
-        rts
-
-; Tries to grow the variable name table by increasing value_table_ptr by an amount.
-; A = the value to add to value_table_ptr
-; Returns carry clear if the increase was successful, otherwise carry set.
-; BC SAFE, DE SAFE
-
-grow_variable_name_table:
-        clc
-        adc     value_table_ptr
-        tax                             ; Save low byte in X
-        lda     #0                      ; Prepare to add high byte
-        adc     value_table_ptr+1       ; New himem_ptr is in XA
-        bcs     @done                   ; Pointer wrapped around
-        tay                             ; Save high byte in Y; new value_table_ptr is in XY
-        jsr     check_himem             ; See if new value_table_ptr > himem_ptr
-        bcs     @done                   ; check_himem failed so don't update value_table_ptr
-        stx     value_table_ptr         ; Validation successful; copy XY into value_table_ptr
-        sty     value_table_ptr+1
 @done:
         rts
 

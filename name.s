@@ -179,7 +179,6 @@ get_name_table_entry:
         rts
         
 ; Extends the variable name table by adding a new name.
-; This will clobber the current program state and prevent the user from using CONT to resume execution.
 ; The new name consists of all the name characters from buffer starting with the position in bp.
 ; name_ptr = a pointer to the 0 at the end of the variable name table (left there by find_name)
 ; Returns carry clear on success or carry set on failure.
@@ -195,25 +194,30 @@ add_variable:
         jsr     is_name_character
         bcc     @find_end               ; Still a name character
         txa                             ; Carry guaranteed to be set; handy!
-        sta     B                       ; Store index of end of name in B
         sbc     bp                      ; Subtract bp to find length of name
-        jsr     grow_variable_name_table    ; Increase variable_value_ptr
+        ldy     #value_table_ptr        ; Grow variable name table by moving value table pointer
+        jsr     expand                  ; Do the expand
         bcs     @fail
         ldx     bp                      ; Reload read position
         ldy     #$FF                    ; Write position relative to name_ptr; init to -1 since we pre-increment
 @copy:
+        lda     buffer,x                ; Load one char
+        jsr     is_name_character       ; Do the test again to check for end of name
+        bcs     @terminate              ; Not a name character; Y points to the last name character we wrote       
         iny                             ; Increment to next write position in name table
-        lda     buffer,x                ; Load one char       
-        sta     (name_ptr),y            ; Store it
-        inx
-        cpx     B                       ; Check for end of name
-        bne     @copy
-        stx     bp                      ; Update bp
+        lda     buffer,x                ; Transfer charater
+        sta     (name_ptr),y            ; to name table
+        inx                             ; Skip to next character
+        jmp     @copy
+
+@terminate:
+        stx     bp                      ; X points to first non-name character, reset bp to that point
+        lda     (name_ptr),y            ; Get the last name character saved to name table
         ora     #$80                    ; Set high bit in last value
         sta     (name_ptr),y            ; Save it again
         iny
         lda     #0
-        sta     (name_ptr),y            ; Store 0
+        sta     (name_ptr),y            ; Store 0 to terminate the name table
         lda     variable_count          ; This will become the return value
         inc     variable_count          ; Add one to variable count
         clc                             ; Signal success

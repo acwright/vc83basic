@@ -78,7 +78,7 @@ parse_line:
 @store_line_number:
         stax    line_buffer+Line::number
         jsr     skip_whitespace         ; Detect a blank line; returns non-blank character in A, may be zero
-        clc
+        tax                             ; Transfer into X to check if it's zero
         beq     @blank_line
         ldax    #statement_name_table
         jsr     parse_element           ; Leaves the parsed statement in line_buffer and sets/clears carry
@@ -87,6 +87,7 @@ parse_line:
         mva     lp, line_buffer+Line::next_line_offset  ; Write position is next statement offset
         ldx     bp
         lda     buffer,x                ; Verify the line ends as expected
+        clc
         beq     @done                   ; If so then jump to done with carry still clear
         sec                             ; Otherwise set carry to indicate failure
 @done:
@@ -329,9 +330,7 @@ parse_argument_separator:
         sec
         rts
 
-; Skip past any whitespace in the buffer. Returns the next character in A, and also sets the zero flag if
-; that character is zero. Callers can use this to detect if there is anything left to read. The final value of
-; bp is also left in X.
+; Skip past any whitespace in the buffer. Returns the next character in A. The final value of bp is also left in X.
 ; bp = the read position (modified)
 ; Y SAFE, BC SAFE, DE SAFE
 
@@ -344,5 +343,4 @@ skip_whitespace:
         beq     @next       
         dex                             ; It wasn't whitespace so go back
         stx     bp                      ; Update read position
-        lda     buffer,x                ; Return next character
         rts

@@ -90,10 +90,9 @@
 .global advance_line_ptr
 .global add_line_ptr_offset
 .global insert_or_update_line
-.global grow_variable_name_table
 .global set_variable_value_ptr
 .global set_variable_value
-.global expand, compact
+.global expand, expand_a, compact, compact_a
 .global calculate_bytes_to_move
 .global check_himem
 
@@ -107,7 +106,7 @@
 .global statement_exec_vectors
 
 ; util.s
-.global copy_bytes, copy_bytes_de, copy_bytes_higher, copy_bytes_higher_de
+.global copy_bytes, copy_bytes_a, copy_bytes_de, copy_bytes_higher, copy_bytes_higher_a, copy_bytes_higher_de
 .global clear_memory
 .global mul2a, mul2, mul10, div10
 .global invoke_indexed_vector

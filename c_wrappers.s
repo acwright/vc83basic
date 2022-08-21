@@ -13,6 +13,8 @@
 ; Aliases for globals
 
 .export _bp = bp;
+.export _src_ptr = src_ptr;
+.export _dst_ptr = dst_ptr;
 .export _buffer = buffer
 .export _line_buffer = line_buffer
 
@@ -273,11 +275,6 @@ _insert_or_update_line:
         jsr     insert_or_update_line
         jmp     return_carry
 
-_grow_variable_name_table:
-.export _grow_variable_name_table
-        jsr     grow_variable_name_table
-        jmp     return_carry
-
 _set_variable_value_ptr:
 .export _set_variable_value_ptr
         jmp     set_variable_value_ptr
@@ -303,7 +300,9 @@ _compact:
 
 _calculate_bytes_to_move:
 .export _calculate_bytes_to_move
-        jmp     calculate_bytes_to_move
+        jsr     calculate_bytes_to_move
+        ldax    DE                      ; Function returns in DE; copy to AX for convenience
+        rts
 
 _check_himem:
 .export _check_himem

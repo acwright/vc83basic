@@ -172,26 +172,6 @@ static void test_insert_or_update_line(void) {
     ASSERT_EQ(line_ptr->number, -1);    
 }
 
-static void test_grow_variable_name_table(void) {
-
-    char err;
-
-    PRINT_TEST_NAME();
-
-    value_table_ptr = (void*)0x0FF0;
-    himem_ptr = (void*)0x1000;
-
-    err = grow_variable_name_table(8);
-    ASSERT_EQ(err, 0);
-    ASSERT_EQ(value_table_ptr, (void*)0x0FF8);
-    ASSERT_EQ(himem_ptr, (void*)0x1000);
-
-    err = grow_variable_name_table(32);
-    ASSERT_NE(err, 0);
-    ASSERT_EQ(value_table_ptr, (void*)0x0FF8);
-    ASSERT_EQ(himem_ptr, (void*)0x1000);
-}
-
 static void test_set_variable_value_ptr(void) {
     PRINT_TEST_NAME();
 
@@ -208,7 +188,7 @@ static void test_set_variable_value_ptr(void) {
     ASSERT_EQ(variable_value_ptr, (void*)((int*)value_table_ptr + 127));
 }
 
-void test_check_himem(void) {
+static void test_check_himem(void) {
     char err;
 
     PRINT_TEST_NAME();
@@ -229,6 +209,20 @@ void test_check_himem(void) {
 
     err = check_himem(0xFF00);
     ASSERT_NE(err, 0);
+}
+
+static void test_calculate_bytes_to_move(void) {
+    size_t bytes;
+
+    PRINT_TEST_NAME();
+
+    // The function just calculates the difference between src_ptr and himem_ptr.
+
+    src_ptr = (void*)0x0400;
+    himem_ptr = (void*)0x1000;
+
+    bytes = calculate_bytes_to_move();
+    ASSERT_EQ(bytes, 0x0C00);
 }
 
 static void test_expand(void) {
@@ -385,10 +379,10 @@ int main(void) {
     test_reset_line_ptr();
     test_advance_line_ptr();
     test_find_line();
-    // test_insert_or_update_line();
-    // test_grow_variable_name_table();
-    // test_set_variable_value_ptr();
+    test_insert_or_update_line();
+    test_set_variable_value_ptr();
     test_check_himem();
+    test_calculate_bytes_to_move();
     test_expand();
     test_compact();
     return 0;

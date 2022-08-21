@@ -21,6 +21,10 @@ typedef struct Line {
 
 extern char bp;
 #pragma zpsym ("bp")
+extern void* src_ptr;
+#pragma zpsym ("src_ptr")
+extern void* dst_ptr;
+#pragma zpsym ("dst_ptr")
 extern char* name_ptr;
 #pragma zpsym ("name_ptr")
 extern char np;
@@ -104,11 +108,10 @@ void reset_line_ptr(void);
 int find_line(int line_number);
 void advance_line_ptr(void);
 int insert_or_update_line(void);
-int grow_variable_name_table(char amount);
 void set_variable_value_ptr(char variable);
 int expand(void* ptr, size_t size);
 int compact(void* ptr, size_t size);
-void calculate_bytes_to_move(void);
+size_t calculate_bytes_to_move(void);
 int check_himem(size_t size);
 
 // util.s

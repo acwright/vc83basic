@@ -218,6 +218,15 @@ static void test_add_variable(void) {
     ASSERT_EQ(reg_a, 0);
     ASSERT_EQ(bp, 1);
     ASSERT_EQ(variable_count, 1);
+
+    strcpy(buffer, "Y,Z");
+    err = find_name(variable_name_table_ptr, 0);
+    ASSERT_NE(err, 0);
+    err = add_variable();
+    ASSERT_EQ(err, 0);
+    ASSERT_EQ(reg_a, 1);
+    ASSERT_EQ(bp, 1);
+    ASSERT_EQ(variable_count, 2);
 }
 
 int main(void) {
