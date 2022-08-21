@@ -5,18 +5,25 @@
 ; Executes the program.
 
 exec_run:
+        lda     program_state
+        cmp     #PROGRAM_STATE_RUNNING  ; Don't re-run if we're already running
+        beq     @done
         jsr     reset_program_state     ; Clear the variable name table
         jsr     reset_line_ptr          ; Reset line_ptr to the start of the program
+        mvaa    #PROGRAM_STATE_RUNNING, program_state
 @run_one_line:
         ldy     #Line::number+1         ; Position of line number high byte
         lda     (line_ptr),y            ; Into A
-        bmi     @end                    ; If MSB of line number is set, we're at end of program
+        bmi     @program_end            ; If MSB of line number is set, we're at end of program
         jsr     run_line
-        bcs     @end
+        bcs     @done
         jsr     advance_line_ptr        ; Advance to next line
         jmp     @run_one_line
 
-@end:
+@program_end:
+        mva     #PROGRAM_STATE_NOT_RUNNING, program_state
+
+@done:
         rts
 
 ; Executes the line pointed by line_ptr

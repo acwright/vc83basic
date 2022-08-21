@@ -7,12 +7,15 @@
 
 ; LIST statement:
 ; Scans through the program and prints each line.
+; We use line_ptr to list the program, but it's possible the LIST is being called from wtihin the program,
+; so we save the existing line_ptr value on the stack and restore it after.
 
 exec_list:
+        ldphaa  line_ptr
         jsr     reset_line_ptr
 @line_one_line:
         jsr     list_line
-        bcs     @end
+        bcs     @done
         ldax    #buffer
         ldy     bp                      ; bp will be the amount of data written to the buffer
         jsr     write
@@ -20,7 +23,8 @@ exec_list:
         jsr     advance_line_ptr
         jmp     @line_one_line
 
-@end:
+@done:
+        plstaa  line_ptr
         clc                             ; LIST always succeeds
         rts
 
@@ -32,7 +36,7 @@ list_line:
         mva     #0, bp                  ; Initialize write position in buffer
         ldy     #Line::number+1         ; Position of line number high byte
         lda     (line_ptr),y            ; Into A
-        bmi     @end                    ; If MSB of line number is set, we're at end of program
+        bmi     @done                   ; If MSB of line number is set, we're at end of program
         tax                             ; Move into X
         dey                             ; Position of line number low byte
         lda     (line_ptr),y
@@ -46,7 +50,7 @@ list_line:
         clc
         rts
 
-@end:
+@done:
         sec
         rts
 
