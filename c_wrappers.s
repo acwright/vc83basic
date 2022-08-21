@@ -18,11 +18,12 @@
 
 .export _statement_name_table = statement_name_table
 
-.export _line_ptr = line_ptr
 .export _program_ptr = program_ptr
+.export _line_ptr = line_ptr
 .export _variable_name_table_ptr = variable_name_table_ptr
 .export _value_table_ptr = value_table_ptr
 .export _heap_ptr = heap_ptr
+.export _free_ptr = free_ptr
 .export _himem_ptr = himem_ptr
 .export _variable_count = variable_count
 .export _variable_value_ptr = variable_value_ptr
@@ -277,17 +278,37 @@ _grow_variable_name_table:
         jsr     grow_variable_name_table
         jmp     return_carry
 
-_check_himem:
-.export _check_himem
-        sta     B                       ; Swap A and X
-        txa                     
-        ldx     B      
-        jsr     check_himem
-        jmp     return_carry
-
 _set_variable_value_ptr:
 .export _set_variable_value_ptr
         jmp     set_variable_value_ptr
+
+_expand:
+.export _expand
+        stax    BC                      ; Save size temporarily
+        jsr     popax                   ; Get ptr (ignore high byte in X)
+        tay                             ; Store in Y
+        ldax    BC                      ; Get the size again
+        jsr     expand
+        jmp     return_carry
+
+_compact:
+.export _compact
+        stax    BC                      ; Save size temporarily
+        jsr     popax                   ; Get ptr (ignore high byte in X)
+        tay                             ; Store in Y
+        ldax    BC                      ; Get the size again
+        jsr     compact
+        jmp     return_carry
+        rts
+
+_calculate_bytes_to_move:
+.export _calculate_bytes_to_move
+        jmp     calculate_bytes_to_move
+
+_check_himem:
+.export _check_himem
+        jsr     check_himem
+        jmp     return_carry
 
 ; util.s
 
@@ -301,15 +322,15 @@ _copy_bytes:
         ldax    DE
         jmp     copy_bytes
 
-_copy_bytes_back:
-.export _copy_bytes_back
+_copy_bytes_higher:
+.export _copy_bytes_higher
         stax    DE
         jsr     popax
         stax    src_ptr
         jsr     popax
         stax    dst_ptr
         ldax    DE
-        jmp     copy_bytes_back
+        jmp     copy_bytes_higher
 
 _clear_memory:
 .export _clear_memory

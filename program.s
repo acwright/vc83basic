@@ -7,11 +7,11 @@
 
 .zeropage
 
-; A pointer to the current program line
-line_ptr: .res 2
-
 ; A pointer to the start of the program
 program_ptr: .res 2
+
+; A pointer to the current program line
+line_ptr: .res 2
 
 ; The start of the variable name table
 variable_name_table_ptr: .res 2
@@ -21,6 +21,9 @@ value_table_ptr: .res 2
 
 ; The start of the heap; reset to value_table_ptr plus the size of the value table when program is run
 heap_ptr: .res 2
+
+; The start of the free space beyond the heap
+free_ptr: .res 2
 
 ; The address of "high memory" that will not be touched by the interpreter
 himem_ptr: .res 2
@@ -33,6 +36,9 @@ variable_value_ptr: .res 2
 
 ; Read/write position in line
 lp: .res 1
+
+; Whether the program is not running, running, stopped, or awaiting reset.
+program_state: .res 1
 
 .bss
 
@@ -51,6 +57,7 @@ line_buffer: .res 256
 
 initialize_program:
 
+        mvax    #(__MAIN_START__ + __MAIN_SIZE__), himem_ptr
         mvax    #(__BSS_RUN__ + __BSS_SIZE__), program_ptr
         stax    line_ptr                    ; Set program_ptr and line_ptr to end of BSS
         ldy     #Line::number+1             ; Offset of line number high byte (should be 2)
@@ -63,27 +70,39 @@ initialize_program:
         sta     (line_ptr),y                ; Save as next line offset
         jsr     add_line_ptr_offset         ; Adding A to line_ptr gives variable_name_table_ptr in AX
         stax    variable_name_table_ptr
-        tay                                 ; Add 1 to variable_name_table_ptr for ending 0
-        iny
-        sty     value_table_ptr
-        bne     @no_carry                   ; Low byte did not wrap around to 0
-        inx                                 ; Increment high byte in X
-@no_carry:
-        stx     value_table_ptr+1           ; Save high byte
+        clc                                 ; Add 1 to value_table_ptr
+        adc     #1
+        sta     value_table_ptr
+        txa
+        adc     #0
+        sta     value_table_ptr+1
         lda     #0                          ; Load zero into A
         tay                                 ; Write index is also zero
         sta     (variable_name_table_ptr),y ; Initialize variable name table to 0
         sta     variable_count              ; Initialize number of variables to 0
-        mvax    #(__MAIN_START__ + __MAIN_SIZE__), himem_ptr
-        rts
+        
+; Fall through to reset_program_state
 
-; Clears the variable name table.
+; Clears the variable name table and intializes the heap.
+; value_table_ptr = the address of the variable value table, the next byte following the variable name table
+; variable_count = the number of variables in the variable name table
 
-clear_variable_name_table:
+reset_program_state:
         mvaa    value_table_ptr, dst_ptr    ; Prepare to clear variable value table
         lda     variable_count          ; Amount to clear is variable_count * 2
         jsr     mul2a
-        jmp     clear_memory
+        jsr     clear_memory            ; Leaves the size of variable value table in DE
+        clc
+        lda     D                       ; Add size of variable value table to value_table_ptr
+        adc     value_table_ptr
+        sta     heap_ptr                ; Store in heap_ptr
+        sta     free_ptr                ; And the free_ptr since the heap has no size yet
+        lda     E                       ; Same for high byte
+        adc     value_table_ptr+1
+        sta     heap_ptr+1
+        sta     free_ptr+1
+        mva     #PROGRAM_STATE_NOT_RUNNING, program_state   ; Set the program state to not running
+        rts
 
 ; Sets line_ptr to program_ptr.
 ; Returns line_ptr in AX.
@@ -192,7 +211,7 @@ insert_or_update_line:
         stax    dst_ptr                 ; Store in dst_ptr
         jsr     calculate_bytes_to_move ; Set DE to length of program from line_ptr
         jsr     update_pointers
-        jsr     copy_bytes_back_de      ; Make room for the new line
+        jsr     copy_bytes_higher_de      ; Make room for the new line
         mvaa    #line_buffer, src_ptr   ; Set up copy into the space for the new line
         mvaa    line_ptr, dst_ptr
         lda     line_buffer+Line::next_line_offset  ; Length of the new line
@@ -203,18 +222,18 @@ insert_or_update_line:
         clc
         rts
 
-; Calculates the bytes to move for both compact and expand as (value_table_ptr - line_ptr).
-; Returns the number of bytes in DE.
+; ; Calculates the bytes to move for both compact and expand as (value_table_ptr - line_ptr).
+; ; Returns the number of bytes in DE.
 
-calculate_bytes_to_move:
-        sec                       
-        lda     value_table_ptr
-        sbc     line_ptr
-        sta     D                       ; Store low byte of length in D
-        lda     value_table_ptr+1      
-        sbc     line_ptr+1      
-        sta     E                       ; High byte of length in E
-        rts
+; calculate_bytes_to_move:
+;         sec                       
+;         lda     value_table_ptr
+;         sbc     line_ptr
+;         sta     D                       ; Store low byte of length in D
+;         lda     value_table_ptr+1      
+;         sbc     line_ptr+1      
+;         sta     E                       ; High byte of length in E
+;         rts
 
 ; Updates variable_name_table_ptr and value_table_ptr by adding (dst_ptr - src_ptr).
 ; In other words, if we're moving everything to a higher address (dst_ptr > src_ptr), then we have
@@ -267,23 +286,6 @@ grow_variable_name_table:
 @done:
         rts
 
-; Checks if a pointer is > himem_ptr.
-; Returns carry clear if the pointer is <=himem_ptr, carry set if it is greater.
-; XA = the pointer to test (NOTE A IS HIGH BYTE AND X IS LOW BYTE)
-; X SAFE, Y SAFE, BC SAFE, DE SAFE
-
-check_himem:
-        cmp     himem_ptr+1
-        bcc     @done                   ; argument high byte < himem_ptr high byte
-        bne     @done                   ; argument high byte > himem_ptr high byte (carry is set)
-        txa                             ; High bytes are equal; compare low bytes
-        cmp     himem_ptr
-        bcc     @done                   ; argument low byte < himem_ptr low byte
-        bne     @done                   ; argument low byte > himem_ptr low byte (carry is set)
-        clc                             ; Pointers are equal; clear carry since this is success
-@done:
-        rts
-
 ; Calculates the offset of a variable in the value table and sets variable_value_ptr to point to it.
 ; The variable token passed in A will always be <= 127 since there can only be 128 variables, but it possibly
 ; has the high bit set, so we AND with $7F first.
@@ -307,4 +309,131 @@ set_variable_value:
         iny
         txa
         sta     (variable_value_ptr),y  ; High byte
+        rts
+
+; Expands a section of memory by increasing one of the zero-page pointers, and all subsequent pointers up to (but
+; not including) himem_ptr, by some amount.
+; This creates a new area of uninitialized memory at the pointer's original address, increasing the memory available
+; to the section *before* the pointer we moved.
+; AX = the amount to add to the pointer (the expand_a entry point sets X to 0)
+; Y = the zero-page address of the pointer to increase
+
+expand_a:
+        ldx     #0                      ; Initialize high byte to 0
+expand:
+        stax    BC                      ; Store length in BC
+        jsr     check_himem             ; Check if expansion will push BASIC memory past himem_ptr
+        bcs     @done                   ; If check_himem failed then we fail
+        clc                             ; Clear carry to prepare for addition
+        lda     0,y                     ; Load the low byte of the pointer to increase
+        sta     src_ptr                 ; Store it as source for copy
+        adc     B                       ; Increase low byte
+        sta     0,y                     ; Save back
+        sta     dst_ptr                 ; It's also the destination pointer
+        iny                             ; Do the same thing for the high byte
+        lda     0,y
+        sta     src_ptr+1
+        adc     C
+        sta     0,y
+        sta     dst_ptr+1
+        jsr     calculate_bytes_to_move ; Knowing src_ptr we can calculate number of bytes to move
+@next_ptr:
+        iny
+        cpy     #himem_ptr              ; Is Y now pointing at himem_ptr?
+        beq     @copy                   ; Don't want to change it.
+        clc
+        lda     0,y                     ; Do the same thing only without setting src_ptr and dest_ptr
+        adc     B
+        sta     0,y
+        iny
+        lda     0,y
+        adc     C
+        sta     0,y
+        jmp     @next_ptr
+
+@copy:
+        jsr     copy_bytes_higher       ; Copy data up to the higher address
+        clc                             ; Success
+@done:
+        rts
+
+; Compacts memory by decreasing one of the zero-page pointers, and all subsequent pointers up to (but not including)
+; himem_ptr, by some amount.
+; We don't check if the amount to subtract would cause the pointer to crash into next-lower pointer in memory;
+; this is assumed to never happen.
+; This decreases the amount of memory available in the section *before* the pointer we moved.
+; AX = the amount to subtract from the pointer (the expand_a entry point sets X to 0)
+; Y = the zero-page address of the pointer to increase
+
+compact_a:
+        ldx     #0
+compact:
+        stax    BC                      ; Follow a similar pattern to expand, only we're subtracting
+        sec
+        lda     0,y
+        sta     src_ptr
+        sbc     B
+        sta     0,y
+        sta     dst_ptr
+        iny
+        lda     0,y
+        sta     src_ptr+1
+        sbc     C
+        sta     0,y
+        sta     dst_ptr+1
+        jsr     calculate_bytes_to_move ; Calculate the number of byte to move
+@next_ptr:
+        iny
+        cpy     #himem_ptr              ; Have we reached himem_ptr?
+        beq     @copy                   ; Yes, go start the copy
+        sec
+        lda     0,y                     ; Otherwise subtract BC from this pointer
+        sbc     B
+        sta     0,y
+        iny
+        lda     0,y
+        sbc     C
+        sta     0,y
+        jmp     @next_ptr
+
+@copy:
+        jsr     copy_bytes
+        clc
+        rts
+
+; Calculates the bytes to move for both compact and expand as (himem_ptr - src_ptr).
+; Returns the number of bytes in DE.
+; X SAFE, Y SAFE, BC SAFE
+
+calculate_bytes_to_move:
+        sec                       
+        lda     himem_ptr
+        sbc     src_ptr
+        sta     D                       ; Store low byte of length in D
+        lda     himem_ptr+1      
+        sbc     src_ptr+1      
+        sta     E                       ; High byte of length in E
+        rts
+
+; Checks if adding an amount to free_ptr will cause it to exceed himem_ptr.
+; Returns carry set if this would happen, otherwise carry clear.
+; AX = the amount to add to free_ptr
+; Y SAFE, BC SAFE
+
+check_himem:
+        clc                             ; Do 16-bit add of size in AX to free_ptr
+        adc     free_ptr                ; Add low byte
+        sta     D                       ; Park the low byte of result in D
+        txa                             ; High byte of size into A
+        adc     free_ptr+1              ; Add high byte of free_ptr
+        bcs     @done                   ; If carry is set after high byte add then address has overflowed
+        cmp     himem_ptr+1             ; Compare high byte
+        bcc     @done                   ; argument high byte < himem_ptr high byte
+        bne     @done                   ; argument high byte > himem_ptr high byte (carry is set)
+        lda     D                       ; High bytes are equal; compare low bytes
+        cmp     himem_ptr
+        bcc     @done                   ; argument low byte < himem_ptr low byte
+        bne     @done                   ; argument low byte > himem_ptr low byte (carry is set)
+        clc                             ; Pointers are equal; clear carry since this is success
+@done:
         rts

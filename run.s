@@ -5,7 +5,7 @@
 ; Executes the program.
 
 exec_run:
-        jsr     clear_variable_name_table   ; Clear the variable name table
+        jsr     reset_program_state     ; Clear the variable name table
         jsr     reset_line_ptr          ; Reset line_ptr to the start of the program
 @run_one_line:
         ldy     #Line::number+1         ; Position of line number high byte

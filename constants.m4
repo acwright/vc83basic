@@ -27,3 +27,10 @@ def(ST_PRINT,           1)
 def(ST_LET,             2)
 def(ST_INPUT,           3)
 def(ST_LIST,            4)
+
+comment Program states
+
+def(PROGRAM_STATE_NOT_RUNNING,  hex(00))
+def(PROGRAM_STATE_RUNNING,      hex(01))
+def(PROGRAM_STATE_STOPPED,      hex(02))
+def(PROGRAM_STATE_RESET,        hex(80))

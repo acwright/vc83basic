@@ -15,15 +15,17 @@
 .globalzp name_ptr
 .globalzp np
 .globalzp src_ptr, dst_ptr
-.globalzp line_ptr
 .globalzp program_ptr
+.globalzp line_ptr
 .globalzp variable_name_table_ptr
 .globalzp value_table_ptr
 .globalzp heap_ptr
+.globalzp free_ptr
 .globalzp himem_ptr
 .globalzp variable_count
 .globalzp variable_value_ptr
 .globalzp lp
+.globalzp program_state
 .globalzp argument_count
 
 ; Data
@@ -82,15 +84,18 @@
 
 ; program.s
 .global initialize_program
-.global clear_variable_name_table
+.global reset_program_state
 .global reset_line_ptr
 .global find_line
 .global advance_line_ptr
 .global add_line_ptr_offset
 .global insert_or_update_line
-.global grow_variable_name_table, check_himem
+.global grow_variable_name_table
 .global set_variable_value_ptr
 .global set_variable_value
+.global expand, compact
+.global calculate_bytes_to_move
+.global check_himem
 
 ; run.s
 .global exec_run
@@ -102,7 +107,7 @@
 .global statement_exec_vectors
 
 ; util.s
-.global copy_bytes, copy_bytes_de, copy_bytes_back, copy_bytes_back_de
+.global copy_bytes, copy_bytes_de, copy_bytes_higher, copy_bytes_higher_de
 .global clear_memory
 .global mul2a, mul2, mul10, div10
 .global invoke_indexed_vector

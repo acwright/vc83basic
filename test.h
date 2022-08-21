@@ -21,22 +21,24 @@ typedef struct Line {
 
 extern char bp;
 #pragma zpsym ("bp")
-extern const char* name_ptr;
+extern char* name_ptr;
 #pragma zpsym ("name_ptr")
 extern char np;
 #pragma zpsym ("np")
 extern void* signature_ptr;
 #pragma zpsym ("signature_ptr")
-extern Line* line_ptr;
-#pragma zpsym ("line_ptr")
 extern Line* program_ptr;
 #pragma zpsym ("program_ptr")
-extern const char* variable_name_table_ptr;
+extern Line* line_ptr;
+#pragma zpsym ("line_ptr")
+extern char* variable_name_table_ptr;
 #pragma zpsym ("variable_name_table_ptr")
 extern void* value_table_ptr;
 #pragma zpsym ("value_table_ptr")
 extern void* heap_ptr;
 #pragma zpsym ("heap_ptr")
+extern void* free_ptr;
+#pragma zpsym ("free_ptr")
 extern void* himem_ptr;
 #pragma zpsym ("himem_ptr")
 extern char variable_count;
@@ -102,13 +104,16 @@ void reset_line_ptr(void);
 int find_line(int line_number);
 void advance_line_ptr(void);
 int insert_or_update_line(void);
-int check_himem(void* ptr);
 int grow_variable_name_table(char amount);
 void set_variable_value_ptr(char variable);
+int expand(void* ptr, size_t size);
+int compact(void* ptr, size_t size);
+void calculate_bytes_to_move(void);
+int check_himem(size_t size);
 
 // util.s
 void copy_bytes(char* to, const char* from, size_t size);
-void copy_bytes_back(char* to, const char* from, size_t size);
+void copy_bytes_higher(char* to, const char* from, size_t size);
 void clear_memory(char* p, size_t size);
 int mul2(int value);
 int mul10(int value);

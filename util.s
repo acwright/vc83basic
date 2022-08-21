@@ -4,7 +4,7 @@
 .zeropage
 
 ; Additional general-purpose "registers." Register rules apply; don't expect them to be preserved unless a
-; function declares B SAFE etc. Can be used as the 16-bit pairs BC and DE. Don't alias these.
+; function declares B SAFE etc. Can be used as the 16-bit pairs BC, DE, and FG. Don't alias these.
 
 BC:
 B: .res 1
@@ -28,6 +28,7 @@ dst_ptr: .res 2
 ; src_ptr = source
 ; dst_ptr = destination (must be <=src_ptr)
 ; AX = number of bytes to copy (_de entry point uses value in DE instead)
+; BC SAFE
 
 copy_bytes:
         stax    DE                      ; Length into DE
@@ -65,26 +66,23 @@ copy_bytes_de:
 ; src_ptr = source
 ; dst_ptr = destination (must be <=src_ptr)
 ; AX = number of bytes to copy (_de entry point uses value in DE instead)
+; BC SAFE
 
-copy_bytes_back:
+copy_bytes_higher:
         stax    DE                      ; Length into DE
-copy_bytes_back_de:
+copy_bytes_higher_de:
         clc
-        lda     src_ptr                 ; Add DE (the length) to src_ptr and dst_ptr
-        pha                             ; and save the original values on the stack
+        ldpha   src_ptr                 ; Add DE (the length) to src_ptr and dst_ptr; save originals on stack
         adc     D
         sta     src_ptr
-        lda     src_ptr+1
-        pha
+        ldpha   src_ptr+1
         adc     E
         sta     src_ptr+1
         clc
-        lda     dst_ptr              
-        pha                         
+        ldpha   dst_ptr              
         adc     D
         sta     dst_ptr
-        lda     dst_ptr+1
-        pha
+        ldpha   dst_ptr+1
         adc     E
         sta     dst_ptr+1
 
@@ -106,14 +104,10 @@ copy_bytes_back_de:
 ; Upon reaching this point, both X and Y will be zero.
 
 @remaining:
-        pla                             ; Recover original src_ptr and dst_ptr from stack
-        sta     dst_ptr+1
-        pla
-        sta     dst_ptr
-        pla
-        sta     src_ptr+1
-        pla
-        sta     src_ptr
+        plsta   dst_ptr+1               ; Recover original src_ptr and dst_ptr from stack
+        plsta   dst_ptr
+        plsta   src_ptr+1
+        plsta   src_ptr
         ldy     D                       ; Number of bytes left to copy (may be 0)
         beq     @skip_copy              ; No bytes to copy, otherwise fall through to @copy
 
@@ -135,6 +129,8 @@ copy_bytes_back_de:
 ; Clears memory to zero.
 ; dst_ptr = pointer to the memory to clear
 ; AX = the number of bytes to clear (_de entry point uses value in DE instead)
+; On return the byte count will remain in DE.
+; BC SAFE
 
 clear_memory:
         stax    DE                      ; Number of bytes in DE
