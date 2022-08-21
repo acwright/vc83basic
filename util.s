@@ -4,7 +4,7 @@
 .zeropage
 
 ; Additional general-purpose "registers." Register rules apply; don't expect them to be preserved unless a
-; function declares B SAFE etc. Can be used as the 16-bit pairs BC, DE, and FG. Don't alias these.
+; function declares B SAFE etc. Can be used as the 16-bit pairs BC and DE. Don't alias these.
 
 BC:
 B: .res 1
