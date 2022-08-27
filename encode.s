@@ -29,6 +29,15 @@ encode_variable:
         jsr     encode
         rts
 
+; Encodes an operator.
+; A = the operator ID
+; Y SAFE, C SAFE
+
+encode_operator:
+        ora     #TOKEN_OPERATOR         ; OR the value with the operator token
+        jsr     encode
+        rts
+
 ; Encodes a single byte.
 ; A = the byte to encode
 ; Y SAFE, BC SAFE

@@ -66,6 +66,7 @@ expression ::= number | string | var
     | function
     | _ '(' expression _ ')'
     | expression op expression
+    | unary_op expression
 
 print_expression ::= expression
     | print_expression print_op print_expression
@@ -85,6 +86,8 @@ max_function ::= 'MAX' _ '(' expression_2 _ ')'
 min_function ::= 'MIN' _ '(' expression_2 _ ')'
 
 op ::= _ ('<=' | '>=' | '<>' | '<' | '>' | '=' | '+' | '-' | '*' | '/' | '^' | '&' | 'AND' | 'OR')
+
+unary_op ::= ('-' | 'NOT')
 
 print_op ::= _ (',' | ';')
 

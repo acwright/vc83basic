@@ -276,8 +276,17 @@ parse_error:
 
 parse_expression:
         jsr     parse_number
-        bcc     @done
+        bcc     @try_operator
         jsr     parse_variable
+        bcs     @done                   ; Not a nunmber or a variable; must be an error
+@try_operator:
+        ldax    #operator_name_table    ; Try to parse an operator from here
+        jsr     find_name               ; Carry will be clear if one was found
+        bcs     @no_operator            ; Not found; expression ends here
+        jsr     encode_operator         ; The operator ID is in A; encode it
+        jmp     parse_expression        ; Otherwise parse the following expression
+@no_operator:
+        clc                             ; Not finding an operator is okay; still success
 @done:
         rts
 

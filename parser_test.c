@@ -60,6 +60,9 @@ static void test_parse_expression(void) {
     
     const char line_data_1[] = { TOKEN_INT, 0x01, 0x00 };
     const char line_data_2[] = { 0x80 };
+    const char line_data_3[] = { 0x80, TOKEN_OPERATOR | OP_ADD, TOKEN_INT, 0x01, 0x00 };
+    const char line_data_4[] = { 0x80, TOKEN_OPERATOR | OP_EQ, TOKEN_INT, 0x03, 0x00, TOKEN_OPERATOR | OP_OR, 0x80,
+        TOKEN_OPERATOR | OP_LE, 0x81 };
 
     PRINT_TEST_NAME();
 
@@ -78,6 +81,20 @@ static void test_parse_expression(void) {
     ASSERT_MEMORY_EQ(line_buffer.data, line_data_2, sizeof line_data_2);
     ASSERT_EQ(bp, 1);
     ASSERT_EQ(lp, offsetof(Line, data) + sizeof line_data_2);
+
+    strcpy(buffer, "X+1");
+    err = parse_expression(0, offsetof(Line, data));
+    ASSERT_EQ(err, 0);
+    ASSERT_MEMORY_EQ(line_buffer.data, line_data_3, sizeof line_data_3);
+    ASSERT_EQ(bp, 3);
+    ASSERT_EQ(lp, offsetof(Line, data) + sizeof line_data_3);
+
+    strcpy(buffer, "X=3 OR X<=Y");
+    err = parse_expression(0, offsetof(Line, data));
+    ASSERT_EQ(err, 0);
+    ASSERT_MEMORY_EQ(line_buffer.data, line_data_4, sizeof line_data_4);
+    ASSERT_EQ(bp, 11);
+    ASSERT_EQ(lp, offsetof(Line, data) + sizeof line_data_4);
 
     // TODO: add more tests
 }

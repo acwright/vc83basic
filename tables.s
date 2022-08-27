@@ -14,3 +14,20 @@ statement_exec_vectors:
         .word   exec_let
         .word   exec_input
         .word   exec_list
+
+operator_name_table:
+        .byte '+' | NT_END
+        .byte '-' | NT_END
+        .byte '*' | NT_END
+        .byte '/' | NT_END
+        .byte '^' | NT_END
+        .byte '&' | NT_END
+        .byte '=' | NT_END
+        .byte '<', '>' | NT_END
+        .byte '<', '=' | NT_END
+        .byte '<' | NT_END
+        .byte '>', '=' | NT_END
+        .byte '>' | NT_END
+        .byte 'A', 'N', 'D' | NT_END
+        .byte 'O', 'R' | NT_END
+        .byte 0
