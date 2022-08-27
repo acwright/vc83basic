@@ -201,11 +201,11 @@ int main(void) {
 
     initialize_target();
     test_list_expression();
-    // test_list_argument();
-    // test_list_repeated_argument();
-    // test_list_multiple_arguments();
-    // test_list_element();
-    // test_list_line();
+    test_list_argument();
+    test_list_repeated_argument();
+    test_list_multiple_arguments();
+    test_list_element();
+    test_list_line();
 
     return 0;
 }
