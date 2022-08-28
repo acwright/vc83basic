@@ -64,39 +64,48 @@ list_element:
         jsr     get_name_table_entry    ; Sets name_ptr and resets n; should never fail
         ldpha   #0                      ; Pretend that the last-seen name table entry byte was zero
 @loop:
+        mva     #$FF, B                 ; Track number of characters in B; we pre-increment so start at -1
+@loop_literal:
         pla                             ; Get the last-seen name table entry byte (TODO: use this technique in parser)
         bmi     @done                   ; If the high byte is set then we're done
         ldy     np
         inc     np                      ; Next position
         lda     (name_ptr),y            ; Load the next byte from the name table
         pha                             ; Put on the stack in order to check high bit next time through
-        tax                             ; Temporarily store in X
+        and     #$7F                    ; Remove the high bit since we don't care about it anymore
+        tay                             ; Temporarily store in Y
         and     #$60                    ; Check if it's a directive (not a literal, x00x xxxx)
         beq     @directive              ; It is
-        txa                             ; Not a directive, must be a single argument
-        and     #$7F                    ; Clear high bit if set
+        inc     B                       ; Increment number of characters (will be 0 if this is first character)
+        bne     @no_whitespace          ; If >0 then don't add whitespace
+        tya                             ; Load the character for add_whitespace
+        jsr     is_name_character       ; Check if the first character is a name character
+        bcs     @no_whitespace          ; It's not; don't add whitespace
+        jsr     add_whitespace          ; First character of sequence; add whitespace
+@no_whitespace:
+        tya                             ; Not a directive, must be a single argument
         jsr     putchar_buffer
-        jmp     @loop                   ; Will never store 0 so this is unconditional branch
+        jmp     @loop_literal           ; Will never store 0 so this is unconditional branch
 
 @directive:
-        txa
+        tya
         and     #$70                    ; Check if it's a multiple-argument directive (x000 xxxx)
         beq     @multiple               ; Yes
-        txa                             ; Get the byte again
+        tya                             ; Get the byte again
         and     #$0C                    ; Check if it's repeated (xxxx 11xx)
         cmp     #$0C
         beq     @repeated               ; Yes
-        txa                             ; It's not multiple and not repeated, must be a single argument
+        tya                             ; It's not multiple and not repeated, must be a single argument
         jsr     list_argument           ; Just list one argument value
         jmp     @loop                   ; Will never store 0 so this is unconditional branch
 
 @multiple:
-        txa                             ; Get back original directive
+        tya                             ; Get back original directive
         jsr     list_multiple_arguments
         jmp     @loop
 
 @repeated:
-        txa                             ; Get back original directive
+        tya                             ; Get back original directive
         jsr     list_repeated_argument
         jmp     @loop
 @done:
@@ -155,7 +164,6 @@ list_argument_vectors:
         .word   list_number
 
 list_argument:
-        jsr     add_whitespace
         ldphaa  name_ptr                ; Save existing value of name_ptr
         ldpha   np                      ; Save existing name entry read position
         jsr     list_expression
@@ -204,6 +212,7 @@ list_expression:
 ; Decodes and lists a number.
 
 list_number:
+        jsr     add_whitespace
         jsr     decode_number           ; It must be an integer; decode the number (return value in AX)
         jmp     format_number           ; Send it right to format_number
 
@@ -216,14 +225,16 @@ list_no_value:
 
 ; Adds whitespace to the output if necessary.
 ; Whitespace is necessary if bp > 0 and if buffer[bp-1] is a name character.
+; A = the character we're about to print
 ; Y SAFE
 
 add_whitespace:
+        bcs     @done                   ; No
         ldx     bp                      ; Current write position
         beq     @done                   ; Just return if it's zero
         lda     buffer-1,x              ; Get buffer[x-1]
-        jsr     is_name_character
-        bcs     @done
+        jsr     is_name_character       ; Is it a name character?
+        bcs     @done                   ; No
         jsr     putchar_space_buffer
 @done:
         rts

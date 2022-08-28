@@ -9,6 +9,10 @@ static void create_varibles(void) {
     err = find_name(variable_name_table_ptr, 0);
     ASSERT_NE(err, 0);
     err = add_variable();
+    strcpy(buffer, "BLINK182");
+    err = find_name(variable_name_table_ptr, 0);
+    ASSERT_NE(err, 0);
+    err = add_variable();
     ASSERT_EQ(err, 0);
 }
 
@@ -18,11 +22,14 @@ static void test_list_expression(void) {
     const char line_data_2[] = { 0x80 };
     const char line_data_3[] = { TOKEN_NO_VALUE };
     const char line_data_4[] = { TOKEN_INT, 0x16, 0x00, TOKEN_OPERATOR | OP_DIV, TOKEN_INT, 0x07, 0x00 };
+    const char line_data_5[] = { 0x80, TOKEN_OPERATOR | OP_LE, TOKEN_INT, 0x07, 0x00, TOKEN_OPERATOR | OP_OR,
+        0x81, TOKEN_OPERATOR | OP_EQ, TOKEN_INT, 0x10, 0x10 };
 
     const char list_1[] = { "4112" };
     const char list_2[] = { "X" };
     const char list_3[] = { "" };
     const char list_4[] = { "22/7" };
+    const char list_5[] = { "X<=7 OR BLINK182=4112" };
 
     PRINT_TEST_NAME();
 
@@ -50,6 +57,10 @@ static void test_list_expression(void) {
     list_expression(line_data_4, 3, 0, 0);
     ASSERT_MEMORY_EQ(buffer, list_4, 2);
     ASSERT_EQ(bp, 2);
+
+    list_expression(line_data_5, sizeof line_data_5, 0, 0);
+    ASSERT_MEMORY_EQ(buffer, list_5, sizeof list_5 - 1);
+    ASSERT_EQ(bp, sizeof list_5 - 1);
 }
 
 static void test_list_argument(void) {

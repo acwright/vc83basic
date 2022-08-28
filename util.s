@@ -276,7 +276,7 @@ format_number:
 ; STA is the last operation so zero flag will be set if we wrote zero.
 ; A = the byte to write (preserved)
 ; bp = the buffer position (updated)
-; Y SAFE
+; Y SAFE, BC SAFE, DE SAFE
 
 putchar_space_buffer:
         lda     #' '
