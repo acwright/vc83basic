@@ -225,7 +225,6 @@ list_no_value:
 
 ; Adds whitespace to the output if necessary.
 ; Whitespace is necessary if bp > 0 and if buffer[bp-1] is a name character.
-; A = the character we're about to print
 ; Y SAFE
 
 add_whitespace:
