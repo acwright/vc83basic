@@ -103,9 +103,9 @@ _list_line:
 
 _list_element:
 .export _list_element
-        sta     lp
-        jsr     popa
         sta     bp
+        jsr     popa
+        sta     lp
         jsr     popax
         sta     next_line_offset
         jsr     popax
@@ -118,9 +118,9 @@ _list_element:
 
 _list_argument:
 .export _list_argument
-        sta     lp
-        jsr     popa
         sta     bp
+        jsr     popa
+        sta     lp
         jsr     popax
         sta     next_line_offset
         jsr     popax
@@ -129,9 +129,9 @@ _list_argument:
 
 _list_multiple_arguments:
 .export _list_multiple_arguments
-        sta     lp
-        jsr     popa
         sta     bp
+        jsr     popa
+        sta     lp
         jsr     popax
         sta     next_line_offset
         jsr     popax
@@ -141,9 +141,9 @@ _list_multiple_arguments:
 
 _list_repeated_argument:
 .export _list_repeated_argument
-        sta     lp
-        jsr     popa
         sta     bp
+        jsr     popa
+        sta     lp
         jsr     popax
         sta     next_line_offset
         jsr     popax
@@ -152,9 +152,9 @@ _list_repeated_argument:
 
 _list_expression:
 .export _list_expression
-        sta     lp
-        jsr     popa
         sta     bp
+        jsr     popa
+        sta     lp
         jsr     popax
         sta     next_line_offset
         jsr     popax
