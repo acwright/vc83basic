@@ -96,18 +96,15 @@ parse_line:
 ; Parses and tokenizes a syntax element starting with a name.
 ; The last byte of buffer should be 0, which won't match anything. This avoids the need to keep checking
 ; the buffer length.
-; This function is called recursively. It sets up name_ptr and Y and saves them on the stack prior to calling
+; This function is called recursively. It sets up name_ptr and np and saves them on the stack prior to calling
 ; other functions so that those functions can call back in to this one.
 ; AX = pointer to the first entry of the name table
 ; Returns carry clear if the input matched a rule, or carry set if it didn't match any syntax rule.
 
-parse_element:
-
 .assert NT_EXPRESSION = $10, error
 
-; This whole first section uses Y to track the parse position in the name table entry pointed to by name_ptr.
-
-        jsr     find_name               ; Sets Y to next byte in name table entry (AX passed to find_name)
+parse_element:
+        jsr     find_name               ; Sets np to next byte in name table entry (AX passed to find_name)
         bcs     @error
         jsr     encode_byte             ; Encode the statement name
         bcs     @error                  ; encode_byte error
@@ -121,47 +118,46 @@ parse_element:
 ; Upon entry to this block, Y must point to the next character in the name table entry.
 
 @next:
-        sty     np                      ; Save name table entry position in np
-        dey                             ; Back up 1
-        lda     (name_ptr),y            ; Check for the end bit
-        bmi     @success                ; Success if the end bit set
-        iny                             ; Back to previous position
+        ldy     np                      ; Get the current position
+        dey                             ; Look at previous character
+        lda     (name_ptr),y
+        bmi     @success                ; If the MSB is set then it was the last one
+        iny                             ; Back to what it was before
         lda     (name_ptr),y            ; Get the next byte
-        tax                             ; Save in X since we're going to be checking it a lot
+        tay                             ; Save in Y since we're going to be checking it a lot
         and     #$60                    ; Figure out if this is a chracter sequence or a directive
         beq     @directive              ; It's a directive (x00x xxxx)
-        jsr     match_character_sequence    ; Will advance Y past the matched sequence
+        jsr     match_character_sequence    ; Will advance np past the matched sequence
         bcs     @error                  ; If not matched then error
-        bcc     @next                   ; If matched then continue
+        bcc     @next                   ; Unconditional
 
 ; Handle arguments.
 
 @directive:
-        txa                             ; Get the original byte
+        inc     np                      ; Increment np past the directive
+        tya                             ; Get the original byte
         and     #$70                    ; Check if it's a multiple-argument directive (x000 xxxx)
         beq     @multiple               ; Yes
-        txa                             ; Get the byte again
+        tya                             ; Get the byte again
         and     #$0C                    ; Check if it's repeated (xxxx 11xx)
         cmp     #$0C
         beq     @repeated               ; Yes
-        txa                             ; It's not multiple and not repeated, must be a single argument
+        tya                             ; It's not multiple and not repeated, must be a single argument
         jsr     parse_argument
         jmp     @loop
 
 @multiple:
-        txa                             ; Get original byte
+        tya                             ; Get original byte
         jsr     parse_multiple_arguments
         jmp     @loop
 
 @repeated:
-        txa                             ; Get original byte
+        tya                             ; Get original byte
         jsr     parse_repeated_argument
 
 @loop:
         bcs     @error
-        inc     np                      ; Recover saved name table entry position
-        ldy     np                      ; Advance 1
-        bcc     @next
+        bcc     @next                   ; Unconditional
 
 @success:
         clc

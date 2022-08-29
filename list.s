@@ -68,7 +68,7 @@ list_element:
 @loop_literal:
         pla                             ; Get the last-seen name table entry byte (TODO: use this technique in parser)
         bmi     @done                   ; If the high byte is set then we're done
-        ldy     np
+        ldy     np                      ; Load name table entry position
         inc     np                      ; Next position
         lda     (name_ptr),y            ; Load the next byte from the name table
         pha                             ; Put on the stack in order to check high bit next time through

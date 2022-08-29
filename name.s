@@ -24,10 +24,9 @@ np: .res 1
 
 find_name:
         stax    name_ptr
-        lda     #0                      ; Track name table index in B
-        sta     B              
-@next_name:     
-        ldy     #0                      ; Y is the read position in the name table entry
+        mva     #0, B                   ; Track name table index in B
+@next_name:
+        mvy     #0, np                  ; np is the read position in the name table entry (also store in Y)
         lda     (name_ptr),y            ; Get name character
         beq     @error                  ; If it's 0 then out of names to match
         jsr     match_character_sequence
@@ -43,27 +42,28 @@ find_name:
 
 ; Matches a character sequence from the name table with characters from buffer.
 ; name_ptr = pointer to the current name table entry
-; Y = the current read position in the name table entry (TODO: use np)
+; np = the current read position in the name table entry
 ; bp = read position in buffer (updated on success)
 ; Returns carry clear if the name matched and carry set if it didn't match any name.
-; On success, Y will point to the next byte past the matched word, and name_ptr will be unchanged.
+; On success, np will point to the next byte past the matched word, and name_ptr will be unchanged.
 ; On failure, name_ptr will be set to the next name table entry.
 ; B SAFE
 
 match_character_sequence:
         jsr     skip_whitespace         ; Leaves read position in X
-@next_character:        
+@next_character:
+        ldy     np                      ; Load name table entry position into Y
         lda     (name_ptr),y            ; Get name character
-        sta     C                       ; Store last character in C
+        tay                             ; Store character in Y
         and     #$60                    ; Check if it's a string literal character
         beq     @non_literal
-        lda     C                       ; Reload last-read character
+        tya                             ; Reload last-read character
         and     #$7F                    ; Clear bit 7, if it's set
         cmp     buffer,x                ; Compare with character from buffer
         bne     @mismatch               ; Doesn't match
         inx                             ; Next position
-        iny
-        lda     C                       ; Reload character once more
+        inc     np
+        tya                             ; Reload character once more
         bpl     @next_character         ; Keep reading characters if this isn't the last one
 
 ; We've reached a character in the name table entry with bit 7 set and everything has matched so far.
@@ -80,7 +80,7 @@ match_character_sequence:
         jsr     check_name_continuation
         bcs     @match
 @mismatch:
-        jsr     advance_y_next_entry
+        jsr     advance_np_next_entry
 @continued_name:
         jsr     advance_name_ptr
         sec                             ; Set carry to indicate failure
@@ -95,7 +95,7 @@ match_character_sequence:
 ; We consider it a continuation if the X-1 character was a name character and the X character is also
 ; a name character.
 ; Returns carry clear if the name is a continuation, carry set if it is not.
-; X SAFE, Y SAFE, BC SAFE
+; X SAFE, Y SAFE, BC SAFE, DE SAFE
 
 check_name_continuation:
         lda     buffer-1,x              ; Get last matched character
@@ -123,26 +123,25 @@ is_name_character:
 @done:      
         rts
 
-; Advances Y until it points to the next name table entry.
+; Advances np until it points to the next name table entry.
 ; name_ptr = a pointer to the current name table entry
-; Y = the read position within the name table entry (updated)
+; np = the read position within the name table entry (updated)
 ; B SAFE
 
-advance_y_next_entry:
-        lda     (name_ptr),y            ; Load current position
-        tax                             ; Temporarily park in X
-        iny                             ; Advance past
-        txa                             ; Get the loaded character back to check bit 7
-        bpl     advance_y_next_entry    ; Keep searching if bit 7 not set
+advance_np_next_entry:
+        ldy     np
+        inc     np                      ; Advance past
+        lda     (name_ptr),y            ; Load character at current position
+        bpl     advance_np_next_entry   ; Keep searching if bit 7 not set
         rts
 
-; Adds Y to name_ptr.
+; Adds np to name_ptr.
 ; name_ptr = a pointer to the current name table entry
-; Y = the value to add, which should be the position of the next name table entry relative to this one
+; np = the value to add, which should be the position of the next name table entry relative to this one
 ; B SAFE
 
 advance_name_ptr:
-        tya                             ; Y is now the offset of the next rule; add to name_ptr
+        lda     np                      ; np is the offset of the next element; add to name_ptr
         clc                             ; Add to name_ptr to get updated name_ptr
         adc     name_ptr            
         sta     name_ptr        
@@ -161,18 +160,16 @@ get_name_table_entry:
         stax    name_ptr                ; Initialize name_ptr
         sty     B                       ; Track the index in B
 @next_name:
+        mvy     #0, np                  ; Initialize np to 0
         dec     B
         bmi     @found                  ; If @index is now <0 then we're done (this limits name table to 128 entries)
-        ldy     #0                      ; Y is now the index into the name table entry
         lda     (name_ptr),y            ; Check if at end of name table
         beq     @not_found
-        jsr     advance_y_next_entry    ; Advance Y until it points to the next entry
+        jsr     advance_np_next_entry   ; Advance np until it points to the next entry
         jsr     advance_name_ptr        ; Add Y to name_ptr
         jmp     @next_name
 @found:
         clc
-        ldy     #0
-        sty     np
         rts
 @not_found:
         sec

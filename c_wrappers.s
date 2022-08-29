@@ -179,10 +179,9 @@ _match_character_sequence:
 .export _match_character_sequence
         sta     bp
         jsr     popa
-        sta     B      
+        sta     np      
         jsr     popax
         stax    name_ptr
-        ldy     B      
         jsr     match_character_sequence
         jmp     return_carry
 
