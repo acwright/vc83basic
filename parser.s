@@ -271,7 +271,7 @@ parse_expression:
         jsr     parse_number
         bcc     @try_operator
         jsr     parse_variable
-        bcs     @done                   ; Not a nunmber or a variable; must be an error
+        bcs     @done                   ; Not a number or a variable; must be an error
 @try_operator:
         ldax    #operator_name_table    ; Try to parse an operator from here
         jsr     find_name               ; Carry will be clear if one was found
