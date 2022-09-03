@@ -20,7 +20,6 @@ decode_dispatch_next:
         ldy     lp                      ; Get the line position
         inc     lp                      ; Advance past the position
         lda     (line_ptr),y            ; Load the byte
-        debug $00
         ldy     #0                      ; Y is the jump table index
         tax                             ; Store byte in X so we can get it back later; re-set flags from byte
 @test_msb:
