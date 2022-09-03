@@ -15,6 +15,7 @@
 .globalzp name_ptr
 .globalzp np
 .globalzp src_ptr, dst_ptr
+.globalzp vector_table_ptr
 .globalzp program_ptr
 .globalzp line_ptr
 .globalzp variable_name_table_ptr
@@ -37,6 +38,7 @@
 ; Functions
 
 ; decode.s
+.global decode_dispatch_next
 .global decode_number
 .global decode_byte
 
