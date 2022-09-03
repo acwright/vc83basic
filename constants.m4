@@ -29,8 +29,8 @@ def(TOKEN_MINUS,        hex(09))
 def(TOKEN_COMMA,        hex(0A))
 def(TOKEN_SEMI,         hex(0B))
 def(TOKEN_OP,           hex(10)) comment OR with OP_*
-def(TOKEN_FUNC,         hex(20)) comment OR with FUNC_*
-def(TOKEN_SMALL_INT,    hex(40))
+def(TOKEN_SMALL_INT,    hex(20))
+def(TOKEN_FUNC,         hex(40)) comment OR with FUNC_*
 def(TOKEN_VAR,          hex(80)) comment OR with variable number
 
 comment Statement tokens
