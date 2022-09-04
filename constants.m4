@@ -57,6 +57,8 @@ def(XH_NUM,             0)
 def(XH_VAR,             1)
 def(XH_SUBEXP,          2)
 def(XH_OP,              3)
+def(XH_MINUS,           4)
+def(XH_NOT,             5)
 
 comment Program states
 

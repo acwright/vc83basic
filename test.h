@@ -84,6 +84,7 @@ extern char reg_e;
 
 // decode.s
 void decode_expression(void);
+void decode_primary_expression(void);
 int decode_number(const char* line_ptr, char lp);
 char decode_byte(const char* line_ptr, char lp);
 

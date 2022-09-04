@@ -168,10 +168,13 @@ list_argument:
 ; Lists an argument value from the token stream.
 
 list_vectors:
-        .word   list_number            ; XP_NUM
-        .word   list_variable           ; XP_VAR
-        .word   list_subexpression      ; XP_SUBX
-        .word   list_operator           ; XP_OP
+        .word   list_number             ; XH_NUM
+        .word   list_variable           ; XH_VAR
+        .word   list_subexpression      ; XH_SUBX
+        .word   list_operator           ; XH_OP
+        .word   list_minus              ; XH_MINUS
+        .word   list_not                ; XH_NOT
+
 
 ; Lists an expression.
 
@@ -192,7 +195,7 @@ list_variable:
 list_subexpression:
         lda     #'('
         jsr     putchar_buffer
-        jsr     list_expression
+        jsr     decode_expression
         lda     #')'
         jmp     putchar_buffer
 
@@ -200,6 +203,23 @@ list_operator:
         ldy     B                       ; Load operator index into Y
         ldax    #operator_name_table
         jmp     list_element            ; Operator is already in Y
+
+list_minus:
+        debug $20
+        ldy     #0
+        bcc     list_unary_operator
+
+list_not:
+        debug $21
+        ldy     #1
+        bcc     list_unary_operator
+
+list_unary_operator:
+        debug $22
+        ldax    #unary_operator_name_table
+        jsr     list_element
+        jsr     add_whitespace
+        jmp     decode_primary_expression
 
 ; Adds whitespace to the output if necessary.
 ; Whitespace is necessary if bp > 0 and if buffer[bp-1] is a name character or is a ')'.

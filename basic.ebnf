@@ -65,13 +65,13 @@ opt_expression_3 = (expression (_ ',' expression (_ ',' expression)?)?)?
 print_expression ::= expression
     | print_expression print_op print_expression
 
-expression = single_expression
+expression = primary_expression
     | expression op expression
 
-single_expression = number | string | var
+primary_expression = number | string | var
     | function
     | _ '(' expression _ ')'
-    | unary_op single_expression
+    | unary_op primary_expression
 
 function ::= _ (
       len_function

@@ -18,43 +18,17 @@
 .assert TOKEN_NO_VALUE = 0, error
 .assert TOKEN_NUM = 1, error
 .assert TOKEN_LPAREN = 2, error
+.assert TOKEN_RPAREN = 3, error
+.assert TOKEN_MINUS = 4, error
+.assert TOKEN_NOT = 5, error
 .assert TOKEN_OP = $10, error
 .assert TOKEN_VAR = $80, error
 
 decode_expression:
-        jsr     decode_byte
-        bmi     @variable               ; Handle variable
-        tax                             ; Move to X to use dex-beq logic (Z = TOKEN_NO_VALUE)
-        dex                             ; Z = TOKEN_NUM
-        beq     @number                ; Handle number
-        dex                             ; Z = TOKEN_LPAREN
-        beq     @subexpression
-
-@error:
-        sec                             ; Indicate error
-        rts
-
-@variable:
-        and     #<(TOKEN_VAR - 1)       ; Mask out just the operator
-        sta     B                       ; Transfer variable value into B
-        ldy     #XH_VAR                 ; Choose handler
-        jmp     @dispatch               ; Dispatch    
-
-@number:
-        jsr     decode_number           ; Decode the number
-        stax    BC                      ; Park it in BC
-        ldy     #XH_NUM                 ; Choose handler                    
-        jmp     @dispatch               ; Dispatch    
-
-@subexpression:
-        ldy     #XH_SUBEXP              ; Choose handler
-        jmp     @dispatch
-
-; At dispatch, Y should be set to the handler index.
-; There may be a value in either X or BC that the handler can access.
-
-@dispatch:
-        jsr     invoke_indexed_vector_vt    ; Invoke the vector using the existng vector_table_ptr
+        debug $00
+        jsr     decode_primary_expression
+        debug $01
+        ;bcs     @error
         ldy     lp                      ; Before looking for an operator, check if we're at the end of the line
         cpy     next_line_offset        ; If next_line_offset > lp then we had to borrow and carry is clear
         beq     @done
@@ -77,12 +51,62 @@ decode_expression:
         cmp     #<(TOKEN_RPAREN - TOKEN_OP)
         bne     @done
         inc     lp                      ; Skip the right paren
-        clc
-        rts
-
 @done:
         clc                             ; Indicate success
+@error:
+        rts     
+
+; Decodes a primary expression: an expression without any binary operators.
+
+decode_primary_expression:
+        jsr     decode_byte
+        debug $10
+        bmi     @variable               ; Handle variable
+        tax                             ; Move to X to use dex-beq logic (Z = TOKEN_NO_VALUE)
+        dex                             ; Z = TOKEN_NUM
+        beq     @number                 ; Handle number
+        dex                             ; Z = TOKEN_LPAREN
+        beq     @subexpression
+        dex                             ; Z = TOKEN_RPAREN
+        dex                             ; Z = TOKEN_MINUS
+        beq     @minus
+        dex                             ; Z = TOKEN_NOT
+        beq     @not
+
+@error:
+        sec                             ; Indicate error
         rts
+
+@variable:
+        and     #<(TOKEN_VAR - 1)       ; Mask out just the operator
+        sta     B                       ; Transfer variable value into B
+        ldy     #XH_VAR                 ; Choose handler
+        bpl     @dispatch               ; Unconditional
+
+@number:
+        jsr     decode_number           ; Decode the number
+        stax    BC                      ; Park it in BC
+        ldy     #XH_NUM                 ; Choose handler  
+        debug $10                  
+        bpl     @dispatch               ; Unconditional  
+
+@subexpression:
+        ldy     #XH_SUBEXP              ; Choose handler
+        bpl     @dispatch
+
+@minus:
+        ldy     #XH_MINUS
+        bpl     @dispatch               ; Unconditional  
+
+@not:
+        ldy     #XH_NOT
+        bcc     @dispatch               ; Unconditional  
+
+; At dispatch, Y should be set to the handler index.
+; There may be a value in either X or BC that the handler can access.
+
+@dispatch:
+        jmp     invoke_indexed_vector_vt    ; Invoke the vector using the existng vector_table_ptr
 
 ; Decodes a number and returns it in AX.
 

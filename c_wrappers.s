@@ -72,6 +72,10 @@ _decode_expression:
 .export _decode_expression
         jmp     decode_expression
 
+_decode_primary_expression:
+.export _decode_primary_expression
+        jmp     decode_primary_expression
+
 _decode_number:
 .export _decode_number
         sta     lp

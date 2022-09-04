@@ -268,7 +268,7 @@ parse_error:
 ; Parses and tokenizes a expression.
 
 parse_expression:
-        jsr     parse_unary_expression  ; Parse an expression without any binary operators
+        jsr     parse_primary_expression    ; Parse an expression without any binary operators
         bcs     @done                   ; Not found; must be an error
         ldax    #operator_name_table    ; Try to parse an operator from here
         jsr     find_name               ; Carry will be clear if one was found
@@ -282,7 +282,7 @@ parse_expression:
 
 ; Parses a unary expression, that is, an expression that does not contain any binary operators.
 
-parse_unary_expression:
+parse_primary_expression:
         jsr     parse_parentheses       ; Look for an expression in parentheses
         bcc     @return
         jsr     parse_number
@@ -333,7 +333,7 @@ parse_unary_operator:
         bcs     @done                   ; Nope
         adc     #TOKEN_MINUS            ; Add TOKEN_MINUS to the operator number
         jsr     encode_byte             ; Store the unary minus token
-        jmp     parse_unary_expression  ; Continue and parse the following unary expression, which must exist
+        jmp     parse_primary_expression    ; Continue and parse the following unary expression, which must exist
 @done:
         rts
 
