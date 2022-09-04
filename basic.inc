@@ -111,6 +111,7 @@
 ; tables.s
 .global statement_name_table
 .global operator_name_table
+.global unary_operator_name_table
 
 ; util.s
 .global copy_bytes, copy_bytes_a, copy_bytes_de, copy_bytes_higher, copy_bytes_higher_a, copy_bytes_higher_de

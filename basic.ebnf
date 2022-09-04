@@ -62,14 +62,16 @@ opt_expression_2 = (expression (_ ',' expression)?)?
 
 opt_expression_3 = (expression (_ ',' expression (_ ',' expression)?)?)?
 
-expression ::= number | string | var
-    | function
-    | _ '(' expression _ ')'
-    | expression op expression
-    | unary_op expression
-
 print_expression ::= expression
     | print_expression print_op print_expression
+
+expression = single_expression
+    | expression op expression
+
+single_expression = number | string | var
+    | function
+    | _ '(' expression _ ')'
+    | unary_op single_expression
 
 function ::= _ (
       len_function
@@ -87,7 +89,7 @@ min_function ::= 'MIN' _ '(' expression_2 _ ')'
 
 op ::= _ ('<=' | '>=' | '<>' | '<' | '>' | '=' | '+' | '-' | '*' | '/' | '^' | '&' | 'AND' | 'OR')
 
-unary_op ::= ('-' | 'NOT')
+unary_op ::= _ ('-' | 'NOT')
 
 print_op ::= _ (',' | ';')
 

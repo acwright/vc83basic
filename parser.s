@@ -268,13 +268,8 @@ parse_error:
 ; Parses and tokenizes a expression.
 
 parse_expression:
-        jsr     parse_parentheses       ; Look for an expression in parentheses
-        bcc     @try_operator
-        jsr     parse_number
-        bcc     @try_operator
-        jsr     parse_variable
-        bcs     @done                   ; Not a number or a variable; must be an error
-@try_operator:
+        jsr     parse_unary_expression  ; Parse an expression without any binary operators
+        bcs     @done                   ; Not found; must be an error
         ldax    #operator_name_table    ; Try to parse an operator from here
         jsr     find_name               ; Carry will be clear if one was found
         bcs     @no_operator            ; Not found; expression ends here
@@ -283,6 +278,19 @@ parse_expression:
 @no_operator:
         clc                             ; Not finding an operator is okay; still success
 @done:
+        rts
+
+; Parses a unary expression, that is, an expression that does not contain any binary operators.
+
+parse_unary_expression:
+        jsr     parse_parentheses       ; Look for an expression in parentheses
+        bcc     @return
+        jsr     parse_number
+        bcc     @return
+        jsr     parse_unary_operator
+        bcc     @return
+        jsr     parse_variable
+@return:
         rts
 
 ; Parses an expression in parentheses.
@@ -314,6 +322,18 @@ parse_number:
         jsr     read_number
         bcs     @done
         jsr     encode_number           ; Will set carry if fail
+@done:
+        rts
+
+; Parses the unary operators '-' (minus) and NOT.
+
+parse_unary_operator:
+        ldax    #unary_operator_name_table
+        jsr     find_name               ; See if it's one of the unary operators
+        bcs     @done                   ; Nope
+        adc     #TOKEN_MINUS            ; Add TOKEN_MINUS to the operator number
+        jsr     encode_byte             ; Store the unary minus token
+        jmp     parse_unary_expression  ; Continue and parse the following unary expression, which must exist
 @done:
         rts
 

@@ -21,6 +21,8 @@ def(TOKEN_NO_VALUE,     hex(00))
 def(TOKEN_NUM,          hex(01))
 def(TOKEN_LPAREN,       hex(02))
 def(TOKEN_RPAREN,       hex(03))
+def(TOKEN_MINUS,        hex(04))
+def(TOKEN_NOT,          hex(05))
 def(TOKEN_OP,           hex(10)) comment OR with OP_*
 def(TOKEN_VAR,          hex(80)) comment OR with variable number
 

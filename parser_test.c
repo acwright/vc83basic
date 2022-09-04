@@ -65,6 +65,9 @@ static void test_parse_expression(void) {
         TOKEN_OP | OP_LE, 0x81 };
     const char line_data_5[] = { TOKEN_LPAREN, 0x80, TOKEN_OP | OP_ADD, TOKEN_NUM, 0x03, 0x00,
         TOKEN_RPAREN, TOKEN_OP | OP_MUL, 0x81 };
+    const char line_data_6[] = { TOKEN_MINUS, 0x80 };
+    const char line_data_7[] = { TOKEN_NOT, TOKEN_LPAREN, 0x80, TOKEN_OP | OP_EQ, TOKEN_NUM, 0x03, 0x00,
+        TOKEN_OP | OP_OR, TOKEN_NOT, TOKEN_MINUS, 0x81, TOKEN_RPAREN };
 
     PRINT_TEST_NAME();
 
@@ -104,6 +107,20 @@ static void test_parse_expression(void) {
     ASSERT_MEMORY_EQ(line_buffer.data, line_data_5, sizeof line_data_5);
     ASSERT_EQ(bp, 7);
     ASSERT_EQ(lp, offsetof(Line, data) + sizeof line_data_5);
+
+    strcpy(buffer, "-X");
+    err = parse_expression(0, offsetof(Line, data));
+    ASSERT_EQ(err, 0);
+    ASSERT_MEMORY_EQ(line_buffer.data, line_data_6, sizeof line_data_6);
+    ASSERT_EQ(bp, 2);
+    ASSERT_EQ(lp, offsetof(Line, data) + sizeof line_data_6);
+
+    strcpy(buffer, "NOT (X=3 OR NOT -Y)");
+    err = parse_expression(0, offsetof(Line, data));
+    ASSERT_EQ(err, 0);
+    ASSERT_MEMORY_EQ(line_buffer.data, line_data_7, sizeof line_data_7);
+    ASSERT_EQ(bp, 19);
+    ASSERT_EQ(lp, offsetof(Line, data) + sizeof line_data_7);
 
     // TODO: add more tests
 }
