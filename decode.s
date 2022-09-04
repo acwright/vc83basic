@@ -43,7 +43,7 @@ decode_expression:
 @integer:
         jsr     decode_number           ; Decode the integer
         stax    BC                      ; Park it in BC
-        ldy     #XH_INT                 ; Choose handler                    
+        ldy     #XH_NUM                 ; Choose handler                    
         jmp     @dispatch               ; Dispatch    
 
 @subexpression:
