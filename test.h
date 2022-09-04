@@ -83,7 +83,7 @@ extern char reg_e;
 // Prototypes for C wrapper functions
 
 // decode.s
-void decode_dispatch_next(void);
+void decode_expression(void);
 int decode_number(const char* line_ptr, char lp);
 char decode_byte(const char* line_ptr, char lp);
 
@@ -167,6 +167,7 @@ void hexdump(const char* name, const char* data, size_t length) {
 
 #define PRINT_TEST_NAME() fprintf(stderr, "%s:\n", __func__);
 
+#define ASSERT(x) do { fprintf(stderr, "  %s:%u: assert %s: ", __FILE__, __LINE__, #x); assert(x); fputs("OK\n", stderr); } while (0)
 #define ASSERT_OP(a, b, op) do { fprintf(stderr, "  %s:%u: assert %s (%ld, $%lX) %s %s (%ld, $%lX): ", __FILE__, __LINE__, #a, (long)(a), (long)(a), #op, #b, (long)(b), (long)(b)); assert((a) op (b)); fputs("OK\n", stderr); } while (0)
 #define ASSERT_EQ(a, b) ASSERT_OP(a, b, ==)
 #define ASSERT_NE(a, b) ASSERT_OP(a, b, !=)

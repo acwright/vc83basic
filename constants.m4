@@ -19,8 +19,8 @@ comment Tokenized form constants
 
 def(TOKEN_NO_VALUE,     hex(00))
 def(TOKEN_INT,          hex(01))
-def(TOKEN_LPAREN,       hex(06))
-def(TOKEN_RPAREN,       hex(07))
+def(TOKEN_LPAREN,       hex(02))
+def(TOKEN_RPAREN,       hex(03))
 def(TOKEN_OP,           hex(10)) comment OR with OP_*
 def(TOKEN_VAR,          hex(80)) comment OR with variable number
 
@@ -48,6 +48,13 @@ def(OP_GE,             10)
 def(OP_GT,             11)
 def(OP_AND,            12)
 def(OP_OR,             13)
+
+comment Expression decode handlers
+
+def(XH_SUBX,            0)
+def(XH_VAR,             1)
+def(XH_INT,             2)
+def(XH_OP,              3)
 
 comment Program states
 

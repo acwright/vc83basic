@@ -68,9 +68,9 @@ return_carry:
 
 ; decode.s
 
-_decode_dispatch_next:
-.export _decode_dispatch_next
-        jmp     decode_dispatch_next
+_decode_expression:
+.export _decode_expression
+        jmp     decode_expression
 
 _decode_number:
 .export _decode_number

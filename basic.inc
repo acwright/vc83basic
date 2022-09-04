@@ -38,7 +38,8 @@
 ; Functions
 
 ; decode.s
-.global decode_dispatch_next
+.global decode_expression
+.global peek_operator
 .global decode_number
 .global decode_byte
 

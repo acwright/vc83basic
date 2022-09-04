@@ -1,71 +1,67 @@
 #include "test.h"
 
-static void handle_unused(void) {
+// def(XH_SUBX,            0)
+// def(XH_VAR,             1)
+// def(XH_INT,             2)
+// def(XH_OP,              3)
+
+static int handle_subexpression_count;
+
+static void handle_subexpression(void) {
+    ++handle_subexpression_count;
+    decode_expression();
 }
+
+static int handle_variable_count;
 
 static void handle_variable(void) {
-    __asm__ ("stx %v", reg_x);
-    ASSERT_EQ(reg_x, TOKEN_VAR | 3);
+    ++handle_variable_count;
+    ASSERT_EQ(reg_b, 1);
 }
+
+static int handle_integer_count;
+
+static void handle_integer(void) {
+    switch (++handle_integer_count) {
+        case 1: ASSERT_EQ(reg_bc, 4112); break;
+        case 2: ASSERT_EQ(reg_bc, 3); break;
+        case 3: ASSERT_EQ(reg_bc, 1); break;
+    }
+}
+
+static int handle_operator_count;
 
 static void handle_operator(void) {
-    __asm__ ("stx %v", reg_x);
-    ASSERT_EQ(reg_x, TOKEN_OP | OP_DIV);
+    switch (++handle_operator_count) {
+        case 1: ASSERT_EQ(reg_b, OP_ADD); break;
+        case 2: ASSERT_EQ(reg_b, OP_DIV); break;
+        case 3: ASSERT_EQ(reg_b, OP_SUB); break;
+    }
 }
 
-static void handle_no_value(void) {
-    __asm__ ("stx %v", reg_x);
-    ASSERT_EQ(reg_x, TOKEN_NO_VALUE);
-}
+static void test_decode_expression(void) {
 
-static void handle_integer_literal(void) {
-    __asm__ ("stx %v", reg_x);
-    ASSERT_EQ(reg_x, TOKEN_INT);
-    lp += 2;
-}
-
-static void handle_left_paren(void) {
-    __asm__ ("stx %v", reg_x);
-    ASSERT_EQ(reg_x, TOKEN_LPAREN);
-}
-
-static void handle_right_paren(void) {
-    __asm__ ("stx %v", reg_x);
-    ASSERT_EQ(reg_x, TOKEN_RPAREN);
-}
-
-static void test_decode_dispatch_next(void) {
-
-    Line line = {
-        11,
+    Line line = { // 4112+(X/3)-1 where X is variable 1
+        15,
         10,
         {
-            TOKEN_VAR | 3,                  // variable 3
-            TOKEN_OP | OP_DIV,              // divide
-            TOKEN_NO_VALUE,
-            TOKEN_INT, 0x10, 0x10,          // integer value 4,112
+            TOKEN_INT, 0x10, 0x10,          // 4,112
+            TOKEN_OP | OP_ADD,        
             TOKEN_LPAREN,
+            TOKEN_VAR | 1,                  // X
+            TOKEN_OP | OP_DIV,              
+            TOKEN_INT, 0x03, 0x00,          // 3
             TOKEN_RPAREN,
+            TOKEN_OP | OP_SUB,              
+            TOKEN_INT, 0x01, 0x00,          // 1
         }
     };
 
     void* vector_table[] = {
+        handle_subexpression,
         handle_variable,
-        handle_unused,
-        handle_unused,
+        handle_integer,
         handle_operator,
-        handle_no_value,
-        handle_integer_literal,
-        handle_unused,
-        handle_unused,
-        handle_unused,
-        handle_unused,
-        handle_left_paren,
-        handle_right_paren,
-        handle_unused,
-        handle_unused,
-        handle_unused,
-        handle_unused,
     };
 
     PRINT_TEST_NAME();
@@ -73,10 +69,11 @@ static void test_decode_dispatch_next(void) {
     line_ptr = &line;
     lp = 3;
     vector_table_ptr = vector_table;
-    while (lp < line.next_line_offset) {
-        DEBUG(lp);
-        decode_dispatch_next();
-    }
+    decode_expression();
+    ASSERT_EQ(handle_subexpression_count, 1);
+    ASSERT_EQ(handle_variable_count, 1);
+    ASSERT_EQ(handle_integer_count, 3);
+    ASSERT_EQ(handle_operator_count, 3);
 }
 
 static void test_decode_byte(void) {
@@ -110,7 +107,7 @@ static void test_decode_number(void) {
 
 int main(void) {
     initialize_target();
-    test_decode_dispatch_next();
+    test_decode_expression();
     test_decode_byte();
     test_decode_number();
     return 0;

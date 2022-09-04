@@ -26,6 +26,8 @@ static void test_list_expression(void) {
         0x81, TOKEN_OP | OP_EQ, TOKEN_INT, 0x10, 0x10 };
     const char line_data_6[] = { TOKEN_LPAREN, 0x80, TOKEN_OP | OP_ADD, TOKEN_INT, 0x03, 0x00,
         TOKEN_RPAREN, TOKEN_OP | OP_MUL, 0x81 };
+    const char line_data_7[] = { TOKEN_LPAREN, 0x80, TOKEN_OP | OP_ADD, TOKEN_INT, 0x03, 0x00,
+        TOKEN_RPAREN, TOKEN_OP | OP_AND, 0x81 };
 
     const char list_1[] = "4112";
     const char list_2[] = "X";
@@ -33,6 +35,7 @@ static void test_list_expression(void) {
     const char list_4[] = "22/7";
     const char list_5[] = "X<=7 OR Y=4112";
     const char list_6[] = "(X+3)*Y";
+    const char list_7[] = "(X+3) AND Y";
 
     PRINT_TEST_NAME();
 
@@ -68,6 +71,10 @@ static void test_list_expression(void) {
     list_expression(line_data_6, sizeof line_data_6, 0, 0);
     ASSERT_MEMORY_EQ(buffer, list_6, sizeof list_6 - 1);
     ASSERT_EQ(bp, sizeof list_6 - 1);
+
+    list_expression(line_data_7, sizeof line_data_7, 0, 0);
+    ASSERT_MEMORY_EQ(buffer, list_7, sizeof list_7 - 1);
+    ASSERT_EQ(bp, sizeof list_7 - 1);
 }
 
 static void test_list_argument(void) {

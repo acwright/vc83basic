@@ -157,12 +157,6 @@ list_repeated_argument:
 @done:
         rts
 
-; Lists an argument value from the token stream.
-
-list_argument_vectors:
-        .word   list_no_value
-        .word   list_number
-
 list_argument:
         ldphaa  name_ptr                ; Save existing value of name_ptr
         ldpha   np                      ; Save existing name entry read position
@@ -171,81 +165,56 @@ list_argument:
         plstaa  name_ptr
         rts
 
+; Lists an argument value from the token stream.
+
+list_vectors:
+        .word   list_subexpression      ; XP_SUBX
+        .word   list_variable           ; XP_VAR
+        .word   list_integer            ; XP_INT
+        .word   list_operator           ; XP_OP
+
 ; Lists an expression.
 
 list_expression:
-        jsr     decode_byte             ; Get the identifier of the next value
-        bmi     @variable               ; It's a variable
-        tay                             ; Transfer the value into Y
-        cmp     #TOKEN_LPAREN           ; Is it a left paren token?
-        beq     @parentheses
-        tay                             ; Transfer token into Y for vector lookup
-        ldax    #list_argument_vectors
-        jsr     invoke_indexed_vector   ; Invoke the list function for the token type
-        jmp     @try_operator
+        mvax    #list_vectors, vector_table_ptr
+        jmp     decode_expression
 
-@variable:
-        and     #$7F                    ; Clear high bit leaving variable index
-        tay                             ; The variable index into Y
-        ldax    variable_name_table_ptr ; Look up name in the variable name table
-        jsr     list_element            ; Recursively call list_element to display the name        
-        jmp     @try_operator
-
-@parentheses:
+list_subexpression:
         lda     #'('
         jsr     putchar_buffer
-        jsr     list_expression         ; List the expression inside the parentheses
-        jsr     decode_byte             ; Decode and discard the right paren
+        jsr     list_expression
         lda     #')'
-        jsr     putchar_buffer
+        jmp     putchar_buffer
 
-@try_operator:
-        lda     lp                      ; Before looking for an operator, check if we're at the end of the line
-        cmp     next_line_offset
-        beq     @done
-        tay                             ; Transfer into Y to use as lookup
-        lda     (line_ptr),y            ; Check the next byte
-        tay                             ; Store original value (TODO: move this into "peek" operation)
-        and     #<~(TOKEN_OP - 1) ; Check if it's an operator
-        cmp     #TOKEN_OP         ; All the bits except the op bits have to equal TOKEN_OP
-        beq     @operator               ; It is, handle an operator
-@done:
-        rts
-
-@operator:
-        inc     lp                      ; Have to incrmement lp since we consumed the operator
-        tya                             ; Retrieve operator value from Y
-        and     #<(TOKEN_OP - 1)  ; Isolate just the op bits
-        tay                             ; Back to Y
-        ldax    #operator_name_table
-        jsr     list_element            ; Operator is already in Y
-        jmp     list_expression         ; There has to be another expression after the operator
-
-; Decodes and lists a number.
-
-list_number:
+list_integer:
         jsr     add_whitespace
-        jsr     decode_number           ; It must be an integer; decode the number (return value in AX)
+        ldax    BC                      ; Load the number that was saved by the decoder
         jmp     format_number           ; Send it right to format_number
 
-; Fall through
+list_variable:
+        ldy     B                       ; The variable index into Y
+        ldax    variable_name_table_ptr ; Look up name in the variable name table
+        jmp     list_element            ; Recursively call list_element to display the name
 
-; Lists nothing and should never be called unless for some reason we try to list a TOKEN_NO_VALUE.
-
-list_no_value:
-        rts
+list_operator:
+        ldy     B                       ; Load operator index into Y
+        ldax    #operator_name_table
+        jmp     list_element            ; Operator is already in Y
 
 ; Adds whitespace to the output if necessary.
-; Whitespace is necessary if bp > 0 and if buffer[bp-1] is a name character.
-; Y SAFE
+; Whitespace is necessary if bp > 0 and if buffer[bp-1] is a name character or is a ')'.
+; Y SAFE, BC SAFE, DE SAFE
 
 add_whitespace:
         bcs     @done                   ; No
         ldx     bp                      ; Current write position
         beq     @done                   ; Just return if it's zero
         lda     buffer-1,x              ; Get buffer[x-1]
+        cmp     #')'                    ; Is it ')'?
+        beq     @add                    ; Yes, add a space
         jsr     is_name_character       ; Is it a name character?
         bcs     @done                   ; No
+@add:
         jsr     putchar_space_buffer
 @done:
         rts
