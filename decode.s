@@ -47,7 +47,7 @@ decode_expression:
         jmp     @dispatch               ; Dispatch    
 
 @subexpression:
-        ldy     #XH_SUBX                ; Choose handler
+        ldy     #XH_SUBEXP              ; Choose handler
         jmp     @dispatch
 
 ; At dispatch, Y should be set to the handler index.
