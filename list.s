@@ -168,9 +168,9 @@ list_argument:
 ; Lists an argument value from the token stream.
 
 list_vectors:
-        .word   list_subexpression      ; XP_SUBX
-        .word   list_variable           ; XP_VAR
         .word   list_integer            ; XP_INT
+        .word   list_variable           ; XP_VAR
+        .word   list_subexpression      ; XP_SUBX
         .word   list_operator           ; XP_OP
 
 ; Lists an expression.
@@ -178,13 +178,6 @@ list_vectors:
 list_expression:
         mvax    #list_vectors, vector_table_ptr
         jmp     decode_expression
-
-list_subexpression:
-        lda     #'('
-        jsr     putchar_buffer
-        jsr     list_expression
-        lda     #')'
-        jmp     putchar_buffer
 
 list_integer:
         jsr     add_whitespace
@@ -195,6 +188,13 @@ list_variable:
         ldy     B                       ; The variable index into Y
         ldax    variable_name_table_ptr ; Look up name in the variable name table
         jmp     list_element            ; Recursively call list_element to display the name
+
+list_subexpression:
+        lda     #'('
+        jsr     putchar_buffer
+        jsr     list_expression
+        lda     #')'
+        jmp     putchar_buffer
 
 list_operator:
         ldy     B                       ; Load operator index into Y

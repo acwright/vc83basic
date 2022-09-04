@@ -51,9 +51,9 @@ def(OP_OR,             13)
 
 comment Expression decode handlers
 
-def(XH_SUBX,            0)
+def(XH_INT,             0)
 def(XH_VAR,             1)
-def(XH_INT,             2)
+def(XH_SUBX,            2)
 def(XH_OP,              3)
 
 comment Program states

@@ -9,8 +9,10 @@
 
 ; Decodes the an expression and invokes handlers as it encounters expression elements.
 ;   1xxx xxxx -> 0 (variable)
+;   
 ;   0000 0000 -> x (will never be dispatched)
 ;   0000 0001 -> 1 (integer)
+;   0000 0002 -> 2 (subexpression)
 ; vector_table_ptr = the table of vectors for dispatching; must be set up in advance!
 
 .assert TOKEN_NO_VALUE = 0, error

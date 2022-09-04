@@ -1,15 +1,13 @@
 #include "test.h"
 
-// def(XH_SUBX,            0)
-// def(XH_VAR,             1)
-// def(XH_INT,             2)
-// def(XH_OP,              3)
+static int handle_integer_count;
 
-static int handle_subexpression_count;
-
-static void handle_subexpression(void) {
-    ++handle_subexpression_count;
-    decode_expression();
+static void handle_integer(void) {
+    switch (++handle_integer_count) {
+        case 1: ASSERT_EQ(reg_bc, 4112); break;
+        case 2: ASSERT_EQ(reg_bc, 3); break;
+        case 3: ASSERT_EQ(reg_bc, 1); break;
+    }
 }
 
 static int handle_variable_count;
@@ -19,14 +17,11 @@ static void handle_variable(void) {
     ASSERT_EQ(reg_b, 1);
 }
 
-static int handle_integer_count;
+static int handle_subexpression_count;
 
-static void handle_integer(void) {
-    switch (++handle_integer_count) {
-        case 1: ASSERT_EQ(reg_bc, 4112); break;
-        case 2: ASSERT_EQ(reg_bc, 3); break;
-        case 3: ASSERT_EQ(reg_bc, 1); break;
-    }
+static void handle_subexpression(void) {
+    ++handle_subexpression_count;
+    decode_expression();
 }
 
 static int handle_operator_count;
@@ -58,9 +53,9 @@ static void test_decode_expression(void) {
     };
 
     void* vector_table[] = {
-        handle_subexpression,
-        handle_variable,
         handle_integer,
+        handle_variable,
+        handle_subexpression,
         handle_operator,
     };
 
@@ -70,9 +65,9 @@ static void test_decode_expression(void) {
     lp = 3;
     vector_table_ptr = vector_table;
     decode_expression();
-    ASSERT_EQ(handle_subexpression_count, 1);
-    ASSERT_EQ(handle_variable_count, 1);
     ASSERT_EQ(handle_integer_count, 3);
+    ASSERT_EQ(handle_variable_count, 1);
+    ASSERT_EQ(handle_subexpression_count, 1);
     ASSERT_EQ(handle_operator_count, 3);
 }
 
