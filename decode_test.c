@@ -1,9 +1,9 @@
 #include "test.h"
 
-static int handle_integer_count;
+static int handle_number_count;
 
-static void handle_integer(void) {
-    switch (++handle_integer_count) {
+static void handle_number(void) {
+    switch (++handle_number_count) {
         case 1: ASSERT_EQ(reg_bc, 4112); break;
         case 2: ASSERT_EQ(reg_bc, 3); break;
         case 3: ASSERT_EQ(reg_bc, 1); break;
@@ -53,7 +53,7 @@ static void test_decode_expression(void) {
     };
 
     void* vector_table[] = {
-        handle_integer,
+        handle_number,
         handle_variable,
         handle_subexpression,
         handle_operator,
@@ -65,7 +65,7 @@ static void test_decode_expression(void) {
     set_line_ptr(&line);
     lp = offsetof(Line, data);
     decode_expression();
-    ASSERT_EQ(handle_integer_count, 3);
+    ASSERT_EQ(handle_number_count, 3);
     ASSERT_EQ(handle_variable_count, 1);
     ASSERT_EQ(handle_subexpression_count, 1);
     ASSERT_EQ(handle_operator_count, 3);

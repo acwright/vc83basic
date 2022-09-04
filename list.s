@@ -168,7 +168,7 @@ list_argument:
 ; Lists an argument value from the token stream.
 
 list_vectors:
-        .word   list_integer            ; XP_INT
+        .word   list_number            ; XP_NUM
         .word   list_variable           ; XP_VAR
         .word   list_subexpression      ; XP_SUBX
         .word   list_operator           ; XP_OP
@@ -179,7 +179,7 @@ list_expression:
         mvax    #list_vectors, vector_table_ptr
         jmp     decode_expression
 
-list_integer:
+list_number:
         jsr     add_whitespace
         ldax    BC                      ; Load the number that was saved by the decoder
         jmp     format_number           ; Send it right to format_number
