@@ -61,9 +61,9 @@ static void test_decode_expression(void) {
 
     PRINT_TEST_NAME();
 
-    line_ptr = &line;
-    lp = 3;
     vector_table_ptr = vector_table;
+    set_line_ptr(&line);
+    lp = offsetof(Line, data);
     decode_expression();
     ASSERT_EQ(handle_integer_count, 3);
     ASSERT_EQ(handle_variable_count, 1);
