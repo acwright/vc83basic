@@ -9,7 +9,6 @@
 
 ; Decodes the an expression and invokes handlers as it encounters expression elements.
 ;   1xxx xxxx -> 0 (variable)
-;   
 ;   0000 0000 -> x (will never be dispatched)
 ;   0000 0001 -> 1 (number)
 ;   0000 0002 -> 2 (subexpression)
@@ -24,84 +23,30 @@
 .assert TOKEN_OP = $10, error
 .assert TOKEN_VAR = $80, error
 
+.assert XH_VAR = 0, error
+.assert XH_OP = 1, error
+.assert XH_NUM = 2, error
+ 
 decode_expression:
-        jsr     decode_primary_expression
-        ldy     lp                      ; Before looking for an operator, check if we're at the end of the line
-        cpy     next_line_offset        ; If next_line_offset > lp then we had to borrow and carry is clear
-        beq     @done
-        lda     (line_ptr),y            ; Peek at the next byte
-        sbc     #(TOKEN_OP - 1)         ; Carry is clear so SBC will subtract one more than we need
-        bcc     @check_rparen           ; If we had to borrow to do that subtract then no operator
-        cmp     #TOKEN_OP               ; TOKEN_OP is conveniently the number of available operators + 1
-        bcs     @check_rparen           ; If were able to subtract TOKEN_OP without borrowing (carry = 1) then no op
-        sta     B                       ; Transfer variable value into B
-        inc     lp                      ; Move line position past operator
-        ldy     #XH_OP                  ; Operator handler
-        jsr     invoke_indexed_vector_vt    ; Invoke the vector using the existng vector_table_ptr
-        jmp     decode_expression    ; Get the following expression
-
-; The next token was not an operator.
-; Check if it's a right paren, in which case we will just discard it.
-; The value in A has been decreased by TOKEN_OP so we have to take that into account.
-
-@check_rparen:
-        cmp     #<(TOKEN_RPAREN - TOKEN_OP)
-        bne     @done
-        inc     lp                      ; Skip the right paren
-@done:
-        clc                             ; Indicate success
-@error:
-        rts     
-
-; Decodes a primary expression: an expression without any binary operators.
-
-decode_primary_expression:
         jsr     decode_byte
-        bmi     @variable               ; Handle variable
-        tax                             ; Move to X to use dex-beq logic (Z = TOKEN_NO_VALUE)
-        dex                             ; Z = TOKEN_NUM
-        beq     @number                 ; Handle number
-        dex                             ; Z = TOKEN_LPAREN
-        beq     @subexpression
-        dex                             ; Z = TOKEN_RPAREN
-        dex                             ; Z = TOKEN_MINUS
-        beq     @minus
-        dex                             ; Z = TOKEN_NOT
-        beq     @not
-
-@error:
-        sec                             ; Indicate error
-        rts
-
-@variable:
-        and     #<(TOKEN_VAR - 1)       ; Mask out just the operator
-        sta     B                       ; Transfer variable value into B
-        ldy     #XH_VAR                 ; Choose handler
-        bpl     @dispatch               ; Unconditional
-
-@number:
-        jsr     decode_number           ; Decode the number
-        stax    BC                      ; Park it in BC
-        ldy     #XH_NUM                 ; Choose handler  
-        bpl     @dispatch               ; Unconditional  
-
-@subexpression:
-        ldy     #XH_SUBEXP              ; Choose handler
-        bpl     @dispatch
-
-@minus:
-        ldy     #XH_MINUS
-        bpl     @dispatch               ; Unconditional  
-
-@not:
-        ldy     #XH_NOT
-        bcc     @dispatch               ; Unconditional  
-
-; At dispatch, Y should be set to the handler index.
-; There may be a value in either X or BC that the handler can access.
-
+        ldy     #XH_VAR                 ; First handler is VAR
+        tax                             ; Store it in X for now
+        bmi     @dispatch               ; Handle 1xxx xxxx (variable)
+        iny                             ; Advance to next handler OP
+        asl     A                       ; Check for pattern 01xx xxxx (unused)
+        asl     A                       ; Check for pattern 001x xxxx (unused)
+        asl     A                       ; Check for pattern 0001 xxxx (operator)
+        bmi     @dispatch
+        txa                             ; It's in the range 0-15; see if it's zero (TOKEN_NO_VALUE)
+        beq     @done                   ; If zero then done; carry is clear here because we've shifted 0s into it        
+        adc     #(XH_NUM - TOKEN_NUM)   ; Generate handler by aligning NUM handler index with NUM token
+        tay                             ; Transfer into Y for dispatch
 @dispatch:
-        jmp     invoke_indexed_vector_vt    ; Invoke the vector using the existng vector_table_ptr
+        jsr     invoke_indexed_vector_vt    ; Invoke the vector using the existng vector_table_ptr; value is in X
+        jmp     decode_expression
+
+@done:
+        rts
 
 ; Decodes a number and returns it in AX.
 

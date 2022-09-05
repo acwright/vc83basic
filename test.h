@@ -83,10 +83,9 @@ extern char reg_e;
 // Prototypes for C wrapper functions
 
 // decode.s
-void decode_expression(void);
-void decode_primary_expression(void);
-int decode_number(const char* line_ptr, char lp);
-char decode_byte(const char* line_ptr, char lp);
+void decode_expression(const void* line_ptr, char lp);
+int decode_number(const void* line_ptr, char lp);
+char decode_byte(const void* line_ptr, char lp);
 
 // encode.s
 int encode_number(int number, char lp);

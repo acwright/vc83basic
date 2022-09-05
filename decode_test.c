@@ -1,56 +1,60 @@
 #include "test.h"
 
-static int handle_number_count;
+static int num_count;
 
 static void handle_number(void) {
-    switch (++handle_number_count) {
-        case 1: ASSERT_EQ(reg_bc, 4112); break;
-        case 2: ASSERT_EQ(reg_bc, 3); break;
+    int value = decode_number(line_ptr, lp);
+    switch (++num_count) {
+        case 1: ASSERT_EQ(value, 4112); break;
+        case 2: ASSERT_EQ(value, 3); break;
     }
 }
 
-static int handle_variable_count;
+static int var_count;
 
 static void handle_variable(void) {
-    ++handle_variable_count;
-    ASSERT_EQ(reg_b, 1);
+    __asm__ ("stx %v", reg_x);
+    ++var_count;
+    ASSERT_EQ(reg_x, TOKEN_VAR | 1);
 }
 
-static int handle_subexpression_count;
+static int lparen_count, rparen_count;
 
-static void handle_subexpression(void) {
-    ++handle_subexpression_count;
-    decode_expression();
-}
-
-static int handle_operator_count;
-
-static void handle_operator(void) {
-    switch (++handle_operator_count) {
-        case 1: ASSERT_EQ(reg_b, OP_ADD); break;
-        case 2: ASSERT_EQ(reg_b, OP_DIV); break;
-        case 3: ASSERT_EQ(reg_b, OP_SUB); break;
+static void handle_paren(void) {
+    __asm__ ("stx %v", reg_x);
+    if (reg_x == TOKEN_LPAREN) {
+        ++lparen_count;
+    } else if (reg_x == TOKEN_RPAREN) {
+        ++rparen_count;
     }
 }
 
-static int handle_minus_count;
+static int op_count;
 
-static void handle_minus(void) {
-    ++handle_minus_count;
-    decode_primary_expression();
+static void handle_operator(void) {
+    __asm__ ("stx %v", reg_x);
+    switch (++op_count) {
+        case 1: ASSERT_EQ(reg_x, TOKEN_OP | OP_ADD); break;
+        case 2: ASSERT_EQ(reg_x, TOKEN_OP | OP_DIV); break;
+        case 3: ASSERT_EQ(reg_x, TOKEN_OP | OP_SUB); break;
+    }
 }
 
-static int handle_not_count;
+static int minus_count, not_count;
 
-static void handle_not(void) {
-    ++handle_not_count;
-    decode_primary_expression();
+static void handle_unary(void) {
+    __asm__ ("stx %v", reg_x);
+    if (reg_x == TOKEN_MINUS) {
+        ++minus_count;
+    } else if (reg_x == TOKEN_NOT) {
+        ++not_count;
+    }
 }
 
 static void test_decode_expression(void) {
 
     Line line = { // 4112+(X/3) OR NOT -X where X is variable 1
-        15,
+        16,
         10,
         {
             TOKEN_NUM, 0x10, 0x10,          // 4,112
@@ -64,28 +68,30 @@ static void test_decode_expression(void) {
             TOKEN_NOT,
             TOKEN_MINUS,             
             TOKEN_VAR | 1,                  // X
+            TOKEN_NO_VALUE
         }
     };
 
     void* vector_table[] = {
-        handle_number,
         handle_variable,
-        handle_subexpression,
         handle_operator,
-        handle_minus,
-        handle_not,
+        handle_number,
+        handle_paren,
+        handle_paren,
+        handle_unary,
+        handle_unary,
     };
 
     PRINT_TEST_NAME();
 
     vector_table_ptr = vector_table;
-    set_line_ptr(&line);
-    lp = offsetof(Line, data);
-    decode_expression();
-    ASSERT_EQ(handle_number_count, 2);
-    ASSERT_EQ(handle_variable_count, 2);
-    ASSERT_EQ(handle_subexpression_count, 1);
-    ASSERT_EQ(handle_operator_count, 3);
+    decode_expression(&line, offsetof(Line, data));
+    ASSERT_EQ(num_count, 2);
+    ASSERT_EQ(var_count, 2);
+    ASSERT_EQ(lparen_count, 1);
+    ASSERT_EQ(rparen_count, 1);
+    ASSERT_EQ(minus_count, 1);
+    ASSERT_EQ(not_count, 1);
 }
 
 static void test_decode_byte(void) {

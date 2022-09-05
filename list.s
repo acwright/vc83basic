@@ -217,7 +217,7 @@ list_unary_operator:
         ldax    #unary_operator_name_table
         jsr     list_element
         jsr     add_whitespace          ; Only adds whitespace if the operator is NOT
-        jmp     decode_primary_expression
+        ; jmp     decode_primary_expression
 
 ; Adds whitespace to the output if necessary.
 ; Whitespace is necessary if bp > 0 and if buffer[bp-1] is a name character or is a ')'.

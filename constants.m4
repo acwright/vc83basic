@@ -53,12 +53,13 @@ def(OP_OR,             13)
 
 comment Expression decode handlers
 
-def(XH_NUM,             0)
-def(XH_VAR,             1)
-def(XH_SUBEXP,          2)
-def(XH_OP,              3)
-def(XH_MINUS,           4)
-def(XH_NOT,             5)
+def(XH_VAR,             0)
+def(XH_OP,              1)
+def(XH_NUM,             2)
+def(XH_LPAREN,          3)
+def(XH_RPAREN,          4)
+def(XH_MINUS,           5)
+def(XH_NOT,             6)
 
 comment Program states
 

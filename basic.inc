@@ -39,7 +39,6 @@
 
 ; decode.s
 .global decode_expression
-.global decode_primary_expression
 .global peek_operator
 .global decode_number
 .global decode_byte

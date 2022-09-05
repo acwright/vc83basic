@@ -70,11 +70,10 @@ return_carry:
 
 _decode_expression:
 .export _decode_expression
+        sta     lp
+        jsr     popax
+        stax    line_ptr
         jmp     decode_expression
-
-_decode_primary_expression:
-.export _decode_primary_expression
-        jmp     decode_primary_expression
 
 _decode_number:
 .export _decode_number
