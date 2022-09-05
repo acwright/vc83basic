@@ -38,6 +38,13 @@ encode_operator:
         jsr     encode
         rts
 
+; Encodes the TOKEN_NO_VALUE token
+
+encode_no_value:
+        lda     #TOKEN_NO_VALUE
+
+; Fall through
+
 ; Encodes a single byte.
 ; A = the byte to encode
 ; Y SAFE, BC SAFE

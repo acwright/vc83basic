@@ -61,7 +61,7 @@ char_to_digit:
         rts
 
 argument_type_vectors:
-        .word   parse_expression        ; NT_EXP
+        .word   parse_expression_argument   ; NT_EXP
         .word   parse_number            ; NT_NUM
         .word   parse_variable          ; NT_VAR
 
@@ -193,8 +193,7 @@ parse_multiple_arguments:
         beq     @done                   ; Result was 0 so optional flag not set; fail
         ldy     argument_count          ; Optional was set so prepare to store "no value" tokens
 @no_value:
-        lda     #TOKEN_NO_VALUE
-        jsr     encode_byte             ; Encode the "no value" token
+        jsr     encode_no_value         ; Encode the "no value" token
         bcs     @done                   ; encode_byte error
         dey                             ; Done with one "no value"
         bne     @no_value               ; Loop if more
@@ -221,8 +220,7 @@ parse_repeated_argument:
         jsr     parse_following_argument
         bcc     @next
 @done:
-        lda     #TOKEN_NO_VALUE
-        jmp     encode_byte
+        jmp     encode_no_value
 
 ; Parses a single argument.
 ; Since parsing the argument can recursively invoke the name table element parser with new values for name_ptr etc.,
@@ -265,19 +263,29 @@ parse_error:
         sec
         rts
 
+; Parses an expression used as an argument, adding TOKEN_NO_VALUE at the end to terminate the argument.
+
+parse_expression_argument:
+        jsr     parse_expression        ; First parse the expression
+        bcs     @error
+        jsr     encode_no_value         ; Expression terminator (can set carry on failure)
+@error:
+        rts
+
 ; Parses and tokenizes a expression.
 
 parse_expression:
         jsr     parse_primary_expression    ; Parse an expression without any binary operators
-        bcs     @done                   ; Not found; must be an error
+        bcs     @error                  ; Not found; must be an error
         ldax    #operator_name_table    ; Try to parse an operator from here
         jsr     find_name               ; Carry will be clear if one was found
         bcs     @no_operator            ; Not found; expression ends here
         jsr     encode_operator         ; The operator ID is in A; encode it
         jmp     parse_expression        ; Otherwise parse the following expression
+
 @no_operator:
         clc                             ; Not finding an operator is okay; still success
-@done:
+@error:
         rts
 
 ; Parses a unary expression, that is, an expression that does not contain any binary operators.

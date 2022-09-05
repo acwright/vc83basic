@@ -48,6 +48,7 @@
 .global encode_number
 .global encode_variable
 .global encode_operator
+.global encode_no_value
 .global encode_byte
 
 ; input.s
@@ -82,6 +83,7 @@
 .global parse_multiple_arguments
 .global parse_repeated_argument
 .global parse_argument
+.global parse_expression_argument
 .global parse_expression
 .global parse_argument_separator
 .global skip_whitespace
