@@ -97,7 +97,7 @@ list_element:
         beq     @repeated               ; Yes
         tya                             ; It's not multiple and not repeated, must be a single argument
         jsr     list_argument           ; Just list one argument value
-        jmp     @loop                   ; Will never store 0 so this is unconditional branch
+        jmp     @loop
 
 @multiple:
         tya                             ; Get back original directive
@@ -108,6 +108,7 @@ list_element:
         tya                             ; Get back original directive
         jsr     list_repeated_argument
         jmp     @loop
+
 @done:
         rts                            
 

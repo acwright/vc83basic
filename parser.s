@@ -3,6 +3,9 @@
 
 .zeropage
 
+element_index: .res 1
+save_bp: .res 1
+save_lp: .res 1
 directive: .res 1
 argument_count: .res 1
 
@@ -97,38 +100,47 @@ parse_line:
 .assert NT_EXP = $10, error
 
 parse_element:
-        jsr     find_name               ; Sets np to next byte in name table entry (AX passed to find_name)
-        bcs     @error
-        jsr     encode_byte             ; Encode the statement name
-        bcs     @error                  ; encode_byte error
+        stax    name_ptr
+        mva     #0, element_index       ; Initialize element_index to -1, since we'll increment it immediately
+@loop_entry:
+        mva     bp, save_bp             ; Save bp and lp
+        mva     lp, save_lp
+        mva     #0, np                  ; np is the read position in the name table entry (also store in Y)
+        pha                             ; Push 0, which will be picked up as the last character read
+@loop:
+        jsr     skip_whitespace         ; Skip whitespace at the start, or after a directive
+@loop_literal:
+        pla                             ; Pop the last-read byte
+        bmi     @success                ; If the high bit was set, then it was the last byte; success
+        ldy     np                      ; Load name table entry position
+        inc     np                      ; Advance past this character
+        lda     (name_ptr),y            ; Get next charater from name table entry
+        pha                             ; Push it onto the stack so we can check it next time around
+        beq     @error                  ; If it's 0 then out of names to match
+        and     #$7F                    ; Mask out the high bit
+        tay                             ; Store it in Y so we can use it for several checks
+        and     #$60                    ; Check if it's a directive (not a literal, x00x xxxx)
+        beq     @directive              ; It is
+        ldx     bp                      ; Load buffer index
+        inc     bp                      ; Advance past
+        tya                             ; Load character again from Y
+        cmp     buffer,x                ; Does it match?
+        beq     @loop_literal           ; Yes, continue with next character
+        pla                             ; Pop last-read character (also in Y, but we need to pop)
+@check_next_entry:
+        bmi     @at_next_entry          ; Last-read character had high bit set, so we're at next entry
+        jsr     advance_np_next_entry   ; Move np up to the next entry
 
-; Parse the next byte.
-; First check the previous byte and see if the high bit was set; if so then end.
-; Otherwise, determine if the current byte is:
-; 1. A character -> match a sequence
-; 2. An "N arguments" directive
-; 3. A directive to parse one argument of a specific type
-; Upon entry to this block, Y must point to the next character in the name table entry.
-
-@next:
-        ldy     np                      ; Get the current position
-        dey                             ; Look at previous character
-        lda     (name_ptr),y
-        bmi     @success                ; If the MSB is set then it was the last one
-        iny                             ; Back to what it was before
-        lda     (name_ptr),y            ; Get the next byte
-        tay                             ; Save in Y since we're going to be checking it a lot
-        and     #$60                    ; Figure out if this is a chracter sequence or a directive
-        beq     @directive              ; It's a directive (x00x xxxx)
-        jsr     match_character_sequence    ; Will advance np past the matched sequence
-        bcs     @error                  ; If not matched then error
-        bcc     @next                   ; Unconditional
-
-; Handle arguments.
+@at_next_entry:
+        jsr     advance_name_ptr        ; Add np to name_ptr
+        inc     element_index           ; Increment element_index
+        mva     save_bp, bp             ; Restore bp and lp
+        mva     save_lp, lp
+        jmp     @loop_entry             ; Handle the next entry
 
 @directive:
-        inc     np                      ; Increment np past the directive
-        tya                             ; Get the original byte
+        jsr     @encode_element_index   ; Encode element index (if necessary)
+        tya
         and     #$70                    ; Check if it's a multiple-argument directive (x000 xxxx)
         beq     @multiple               ; Yes
         tya                             ; Get the byte again
@@ -136,28 +148,37 @@ parse_element:
         cmp     #$0C
         beq     @repeated               ; Yes
         tya                             ; It's not multiple and not repeated, must be a single argument
-        jsr     parse_argument
-        jmp     @loop
+        jsr     parse_argument          ; Just parse one argument value
+        jmp     @loop                   ; Will never store 0 so this is unconditional branch
 
 @multiple:
-        tya                             ; Get original byte
+        tya                             ; Get back original directive
         jsr     parse_multiple_arguments
-        jmp     @loop
+        bcc     @loop                   ; Continue if no error
+        bcs     @error                  ; Otherwise return error
 
 @repeated:
-        tya                             ; Get original byte
+        tya                             ; Get back original directive
         jsr     parse_repeated_argument
-
-@loop:
-        bcs     @error
-        bcc     @next                   ; Unconditional
-
-@success:
-        clc
-
-; We never jump to @error without carry being set so don't have to set it again.
+        bcc     @loop                   ; Continue if no error, otherwise fall through to @error
 
 @error:
+        pla                             ; Discard last-read byte
+        sec                             ; Signal error
+        rts
+
+@success:
+        jsr     @encode_element_index   ; Encode element index (if necessary)
+        clc                             ; Signal success
+        rts  
+
+@encode_element_index:
+        lda     lp                      ; Look at the line buffer position
+        cmp     save_lp                 ; Has it moved?
+        bne     @already_done           ; Yes, we must have already encoded the element index
+        lda     element_index           ; Otherwise encode it
+        jsr     encode_byte
+@already_done:
         rts
 
 ; Parses arguments from the buffer and tokenizes them.

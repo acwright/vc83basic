@@ -22,7 +22,7 @@ encode_number:
 
 ; Encodes a variable by its ID.
 ; A = the variable ID
-; Y SAFE, BC SAFE
+; Y SAFE, BC SAFE, DE SAFE
 
 encode_variable:
         ora     #TOKEN_VAR              ; Variables are encoded with the high bit set
@@ -31,7 +31,7 @@ encode_variable:
 
 ; Encodes an operator.
 ; A = the operator ID
-; Y SAFE, C SAFE
+; Y SAFE, BC SAFE, DE SAFE
 
 encode_operator:
         ora     #TOKEN_OP               ; OR the value with the operator token
@@ -47,7 +47,7 @@ encode_no_value:
 
 ; Encodes a single byte.
 ; A = the byte to encode
-; Y SAFE, BC SAFE
+; Y SAFE, BC SAFE, DE SAFE
 
 encode_byte:
         jsr     encode
@@ -59,7 +59,7 @@ encode_byte:
 ; the caller doesn't have to check error status after encoding each byte error. Of course this implies the caller
 ; *can't* handle the error. Also, the caller can't have anything other than its own return address on the stack when
 ; calling this function.
-; Y SAFE, BC SAFE
+; Y SAFE, BC SAFE, DE SAFE
 
 encode:
         ldx     lp
