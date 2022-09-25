@@ -100,13 +100,13 @@ parse_line:
 .assert NT_EXP = $10, error
 
 parse_element:
-        stax    name_ptr
-        mva     #0, element_index       ; Initialize element_index to -1, since we'll increment it immediately
-@loop_entry:
-        mva     bp, save_bp             ; Save bp and lp
-        mva     lp, save_lp
-        mva     #0, np                  ; np is the read position in the name table entry (also store in Y)
-        pha                             ; Push 0, which will be picked up as the last character read
+        jsr     find_name               ; Start by finding name; sets np and returns index in A
+        bcs     @error
+        jsr     encode_byte             ; Encode index
+        ldy     np                      ; Get the character at np-1 and store as the last-seen character
+        dey
+        lda     (name_ptr),y
+        pha                             ; Push last-seen character into the stack
 @loop:
         jsr     skip_whitespace         ; Skip whitespace at the start, or after a directive
 @loop_literal:
@@ -116,7 +116,6 @@ parse_element:
         inc     np                      ; Advance past this character
         lda     (name_ptr),y            ; Get next charater from name table entry
         pha                             ; Push it onto the stack so we can check it next time around
-        beq     @error                  ; If it's 0 then out of names to match
         and     #$7F                    ; Mask out the high bit
         tay                             ; Store it in Y so we can use it for several checks
         and     #$60                    ; Check if it's a directive (not a literal, x00x xxxx)
@@ -126,20 +125,9 @@ parse_element:
         tya                             ; Load character again from Y
         cmp     buffer,x                ; Does it match?
         beq     @loop_literal           ; Yes, continue with next character
-        pla                             ; Pop last-read character (also in Y, but we need to pop)
-@check_next_entry:
-        bmi     @at_next_entry          ; Last-read character had high bit set, so we're at next entry
-        jsr     advance_np_next_entry   ; Move np up to the next entry
-
-@at_next_entry:
-        jsr     advance_name_ptr        ; Add np to name_ptr
-        inc     element_index           ; Increment element_index
-        mva     save_bp, bp             ; Restore bp and lp
-        mva     save_lp, lp
-        jmp     @loop_entry             ; Handle the next entry
+        bne     @error                  ; Otherwise error
 
 @directive:
-        jsr     @encode_element_index   ; Encode element index (if necessary)
         tya
         and     #$70                    ; Check if it's a multiple-argument directive (x000 xxxx)
         beq     @multiple               ; Yes
@@ -168,18 +156,8 @@ parse_element:
         rts
 
 @success:
-        jsr     @encode_element_index   ; Encode element index (if necessary)
         clc                             ; Signal success
         rts  
-
-@encode_element_index:
-        lda     lp                      ; Look at the line buffer position
-        cmp     save_lp                 ; Has it moved?
-        bne     @already_done           ; Yes, we must have already encoded the element index
-        lda     element_index           ; Otherwise encode it
-        jsr     encode_byte
-@already_done:
-        rts
 
 ; Parses arguments from the buffer and tokenizes them.
 ; Arguments must be separated by ','.
