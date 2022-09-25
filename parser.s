@@ -113,13 +113,13 @@ parse_element:
         inc     np                      ; Advance past this character
         lda     (name_ptr),y            ; Get next charater from name table entry
         pha                             ; Push it onto the stack so we can check it next time around
-        and     #$7F                    ; Mask out the high bit
         tay                             ; Store it in Y so we can use it for several checks
         and     #$60                    ; Check if it's a directive (not a literal, x00x xxxx)
         beq     @directive              ; It is
         ldx     bp                      ; Load buffer index
         inc     bp                      ; Advance past
         tya                             ; Load character again from Y
+        and     #$7F                    ; Mask out the high bit
         cmp     buffer,x                ; Does it match?
         beq     @loop_literal           ; Yes, continue with next character
         bne     @error                  ; Otherwise error
