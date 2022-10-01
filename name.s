@@ -9,6 +9,8 @@
 name_ptr: .res 2
 ; Read position in the name table entry
 np: .res 1
+; The last byte read from the name table entry
+last_byte: .res 1
 
 .code
 
@@ -27,45 +29,61 @@ find_name:
         jsr     skip_whitespace         ; Skip any whitespace in the buffer
         mva     #0, B                   ; Track name table index in B
 @loop_entry:
-        mva     #0, np                  ; Set name table entry read position to 0
-        tay                             ; Use Y to transfer the last-read byte back and initalize to 0
-        ldx     bp                      ; Load bp into X
-@loop_literal:
-        tya                             ; Get last-read byte
-        bmi     @past_end               ; If the high bit was set, then it was the last byte; np is now at next entry
-        sec                             ; Set carry here in case we have to jump to @error
-        ldy     np
-        lda     (name_ptr),y            ; Get name byte
-        beq     @error                  ; If it's 0 then out of names to match
-        tay                             ; Store back into Y
-        and     #$7F                    ; Clear NT_END bit if it's set
-        cmp     buffer,x                ; Compare with buffer
-        bne     @no_match               ; They didn't match; this may be because the byte is a directive
-        inc     np                      ; Next name entry position
-        inx                             ; Next buffer position
-        bne     @loop_literal           ; Unconditional
-
-@past_end:
-        jsr     check_name_continuation ; Does not affect Y, which still has last-read byte
-        bcc     @prepare_next_entry
-@match:
-        clc                             ; Signal success
-        stx     bp                      ; Update bp on success
-@error:
-        lda     B                       ; Return number of matched name in A
-        rts
-
-@no_match:
-        and     #$60                    ; Check if it's a directive (not a literal, x00x xxxx)
-        bne     @advance                ; It's a literal, move the next entry
-        jsr     check_name_continuation ; Check if the name continues
-        bcs     @match                  ; If no continuation then that's a match; otherwise move np to next entry
-@advance:
+        mvy     #0, np                  ; Set name table entry read position to 0
+        lda     (name_ptr),y            ; Get first byte of name
+        beq     @end                    ; If it's zero then we're at the end
+        jsr     match_character_sequence    ; Try to match
+        bcc     @match                  ; It matched; return
         jsr     advance_np_next_entry   ; Move np up to the next entry
-@prepare_next_entry:
         jsr     advance_name_ptr        ; Add np to name_ptr
         inc     B                       ; Increment name table index
         bne     @loop_entry             ; Handle the next entry (unconditional)
+
+@end:
+        sec                             ; Signal error
+@match:
+        lda     B                       ; Number of entries in the name table
+        rts
+
+; Matches a sequence of character literals from the name table entry with buffer.
+; name_ptr = pointer to the name table entry
+; np = current position within the name table entry
+; bp = position within buffer
+; Returns carry clear if the sequence matched, and np and bp both advance to the next position past the match.
+; Returns carry set if no match; np and bp are unchanged.
+; BC SAFE, DE SAFE
+
+match_character_sequence:
+        ldx     bp                      ; Load bp into x
+        ldy     np                      ; Load np into Y
+        ldpha   #0                      ; Initialize last-read byte to 0
+@loop:
+        pla                             ; Get last-read byte
+        bmi     @check_continuation     ; If the high bit was set, then it was the last byte; np is now at next entry
+        lda     (name_ptr),y            ; Get name byte
+        pha                             ; Save for next time around
+        and     #$7F                    ; Clear NT_END bit if it's set
+        cmp     buffer,x                ; Compare with buffer
+        bne     @no_match               ; They didn't match; this may be because the byte is a directive
+        inx                             ; Next buffer position
+        iny                             ; Next name table entry position
+        bne     @loop                   ; Unconditional
+
+@no_match:
+        pla                             ; Pop last-read byte off stack
+        and     #$60                    ; Check if it's a directive (not a literal, x00x xxxx)
+        bne     @error                  ; Not a directive, just a non-matching character
+@check_continuation:
+        jsr     check_name_continuation ; Check if the name continues
+        bcc     @error                  ; It does continue so this is not a match
+        stx     bp                      ; Update bp
+        sty     np                      ; Update np
+        clc                             ; Signal success
+        rts
+        
+@error:
+        sec                             ; Signal error
+        rts
 
 ; Checks if the character at position X in buffer is a continuation of a name at position X-1.
 ; We consider it a continuation if the X-1 character was a name character and the X character is also

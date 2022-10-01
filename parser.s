@@ -100,32 +100,33 @@ parse_element:
         jsr     find_name               ; Start by finding name; sets np and returns index in A
         bcs     @error
         jsr     encode_byte             ; Encode index
+@after_character_sequence:
         ldy     np                      ; Get the character at np-1 and store as the last-seen character
         dey
         lda     (name_ptr),y
         pha                             ; Push last-seen character into the stack
-@loop:
-        jsr     skip_whitespace         ; Skip whitespace at the start, or after a directive
-@loop_literal:
+@after_directive:
+        jsr     skip_whitespace         ; Skip whitespace after a character sequence or a directive
         pla                             ; Pop the last-read byte
         bmi     @success                ; If the high bit was set, then it was the last byte; success
         ldy     np                      ; Load name table entry position
-        inc     np                      ; Advance past this character
         lda     (name_ptr),y            ; Get next charater from name table entry
-        pha                             ; Push it onto the stack so we can check it next time around
         tay                             ; Store it in Y so we can use it for several checks
         and     #$60                    ; Check if it's a directive (not a literal, x00x xxxx)
         beq     @directive              ; It is
-        ldx     bp                      ; Load buffer index
-        inc     bp                      ; Advance past
-        tya                             ; Load character again from Y
-        and     #$7F                    ; Mask out the high bit
-        cmp     buffer,x                ; Does it match?
-        beq     @loop_literal           ; Yes, continue with next character
-        bne     @error                  ; Otherwise error
+        jsr     match_character_sequence    ; Otherwise it's a literal character sequence; match it
+        bcc     @after_character_sequence   ; Continue after a character sequence match
+@error:
+        rts                             ; Return with carry set to indicate error
+
+@success:
+        clc                             ; Signal success
+        rts  
 
 @directive:
+        inc     np                      ; Move position past directive
         tya
+        pha                             ; Store directive as last-read byte
         and     #$70                    ; Check if it's a multiple-argument directive (x000 xxxx)
         beq     @multiple               ; Yes
         tya                             ; Get the byte again
@@ -134,26 +135,24 @@ parse_element:
         beq     @repeated               ; Yes
         tya                             ; It's not multiple and not repeated, must be a single argument
         jsr     parse_argument          ; Just parse one argument value
-        jmp     @loop                   ; Will never store 0 so this is unconditional branch
+        bcc     @after_directive        ; Will never store 0 so this is unconditional branch
+        bcs     @pop_error
 
 @multiple:
         tya                             ; Get back original directive
         jsr     parse_multiple_arguments
-        bcc     @loop                   ; Continue if no error
-        bcs     @error                  ; Otherwise return error
+        bcc     @after_directive        ; Continue if no error
+        bcs     @pop_error              ; Otherwise return error
 
 @repeated:
         tya                             ; Get back original directive
         jsr     parse_repeated_argument
-        bcc     @loop                   ; Continue if no error, otherwise fall through to @error
+        bcc     @after_directive        ; Continue if no error, otherwise fall through to @pop_error
 
-@error:
+@pop_error:
+        pla                             ; Pop 
         sec                             ; Signal error
         rts
-
-@success:
-        clc                             ; Signal success
-        rts  
 
 ; Parses arguments from the buffer and tokenizes them.
 ; Arguments must be separated by ','.
