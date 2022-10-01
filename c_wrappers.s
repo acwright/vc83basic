@@ -109,8 +109,6 @@ _encode_byte:
 
 _list_line:
 .export _list_line
-        sta     next_line_offset
-        jsr     popax
         stax    line_ptr
         jsr     list_line
         jmp     return_carry
@@ -120,8 +118,6 @@ _list_element:
         sta     bp
         jsr     popa
         sta     lp
-        jsr     popax
-        sta     next_line_offset
         jsr     popax
         stax    line_ptr
         jsr     popa
@@ -136,8 +132,6 @@ _list_argument:
         jsr     popa
         sta     lp
         jsr     popax
-        sta     next_line_offset
-        jsr     popax
         stax    line_ptr
         jsr     popa                    ; directive
         jmp     list_argument
@@ -147,8 +141,6 @@ _list_multiple_arguments:
         sta     bp
         jsr     popa
         sta     lp
-        jsr     popax
-        sta     next_line_offset
         jsr     popax
         stax    line_ptr
         jsr     popa                    ; directive
@@ -160,8 +152,6 @@ _list_repeated_argument:
         jsr     popa
         sta     lp
         jsr     popax
-        sta     next_line_offset
-        jsr     popax
         stax    line_ptr
         jsr     popa                    ; directive
         jmp     list_repeated_argument
@@ -171,8 +161,6 @@ _list_expression:
         sta     bp
         jsr     popa
         sta     lp
-        jsr     popax
-        sta     next_line_offset
         jsr     popax
         stax    line_ptr
         jmp     list_expression
