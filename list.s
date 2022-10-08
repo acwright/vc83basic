@@ -83,9 +83,9 @@ list_element:
         bcs     @no_whitespace          ; It's not; don't add whitespace
         jsr     add_whitespace          ; First character of sequence; add whitespace
 @no_whitespace:
-        tya                             ; Not a directive, must be a single argument
+        tya
         jsr     putchar_buffer
-        jmp     @loop_literal           ; Will never store 0 so this is unconditional branch
+        jmp     @loop_literal
 
 @directive:
         tya
