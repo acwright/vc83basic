@@ -7,7 +7,7 @@
 
 ; LIST statement:
 ; Scans through the program and prints each line.
-; We use line_ptr to list the program, but it's possible the LIST is being called from wtihin the program,
+; We use line_ptr to list the program, but it's possible the LIST is being called from within the program,
 ; so we save the existing line_ptr value on the stack and restore it after.
 
 exec_list:
@@ -61,17 +61,19 @@ list_line:
 ; Y = the index of the syntax element
 
 list_element:
-        jsr     get_name_table_entry    ; Sets name_ptr and resets n; should never fail
-        ldpha   #0                      ; Pretend that the last-seen name table entry byte was zero
+        jsr     get_name_table_entry    ; Sets name_ptr and resets np; should never fail
 @loop:
         mva     #$FF, B                 ; Track number of characters in B; we pre-increment so start at -1
 @loop_literal:
-        pla                             ; Get the last-seen name table entry byte (TODO: use this technique in parser)
+        ldy     np                      ; Get the character at np-1
+        beq     @skip                   ; Skip this test if np=0
+        dey
+        lda     (name_ptr),y
         bmi     @done                   ; If the high byte is set then we're done
-        ldy     np                      ; Load name table entry position
-        inc     np                      ; Next position
+        iny                             ; Advance to current position
+@skip:
         lda     (name_ptr),y            ; Load the next byte from the name table
-        pha                             ; Put on the stack in order to check high bit next time through
+        inc     np                      ; Next position
         and     #$7F                    ; Remove the high bit since we don't care about it anymore
         tay                             ; Temporarily store in Y
         and     #$60                    ; Check if it's a directive (not a literal, x00x xxxx)
@@ -89,44 +91,51 @@ list_element:
 
 @directive:
         tya
-        and     #$70                    ; Check if it's a multiple-argument directive (x000 xxxx)
-        beq     @multiple               ; Yes
-        tya                             ; Get the byte again
-        and     #$0C                    ; Check if it's repeated (xxxx 11xx)
-        cmp     #$0C
-        beq     @repeated               ; Yes
-        tya                             ; It's not multiple and not repeated, must be a single argument
-        jsr     list_argument           ; Just list one argument value
-        jmp     @loop
-
-@multiple:
-        tya                             ; Get back original directive
-        jsr     list_multiple_arguments
-        jmp     @loop
-
-@repeated:
-        tya                             ; Get back original directive
-        jsr     list_repeated_argument
+        jsr     list_directive
         jmp     @loop
 
 @done:
         rts                            
 
-; Lists statement or function arguments from the token stream.
-; ARGUMENT COUNT MUST BE AT LEAST 1.
-; A = the number of arguments to list
+; Lists a single directive from the token stream.
+; A = the directive
 
-.assert TOKEN_NO_VALUE = 0, error
+; Make sure NT_VAR is the first typed directive
+.assert NT_VAR = $10, error
 
-list_multiple_arguments:
+list_directive:
+        tay                             ; Keep in Y while using A to save state
+        ldphaa  name_ptr                ; Save existing value of name_ptr
+        ldpha   np                      ; Save existing name entry read position
+        tya                             ; Recover directive from Y
+        sec
+        sbc     #NT_VAR                 ; If we can subtract NT_VAR without borrowing then it's a single-arg directive
+        bcs     @single
+        and     #$0F                    ; Mask out top 4 bits
+        jsr     list_argument_list
+        jmp     @pop
+
+@single:
+        tay                             ; The value left in A after subtracting NT_VAR is the vector index
+        ldax    #list_argument_type_vectors
+        jsr     invoke_indexed_vector   ; Jump to the parser for the argument type
+@pop:
+        plsta   np                      ; Recover values previously saved on stack
+        plstaa  name_ptr
+        rts
+
+list_argument_type_vectors:
+        .word   list_variable           ; NT_VAR
+        .word   list_repeated_variable  ; NT_RPT_VAR
+
+list_argument_list:
         and     #$07                    ; Isolate the count
         sta     argument_count          ; Re-use argument_count from parser module
         jsr     decode_byte             ; Check if the next argument is TOKEN_NO_VALUE
         beq     @no_value               ; If so then don't list
 @next_argument:
-        dec     lp                      ; Back up to decode the argument
-        lda     #NT_EXP                 ; Multiple arguments are always expressions
-        jsr     list_argument           ; Assume it's an expression for now
+        dec     lp                      ; Back up
+        jsr     list_expression         ; List the expression
 @no_value:
         dec     argument_count          ; Done with one argument
         beq     @done                   ; Finish if no more
@@ -139,45 +148,6 @@ list_multiple_arguments:
 @done:
         rts
 
-; Lists repeated arguments.
-; Keep reading arguments until we find TOKEN_NO_VALUE, which is conveniently zero.
-
-.assert TOKEN_NO_VALUE = 0, error
-
-list_repeated_argument:
-        and     #$03                    ; Isolate the type of argument
-        sta     directive               ; Store it in the directive from paser module
-        jsr     decode_byte             ; Get the next byte
-        beq     @done                   ; If it's TOKEN_NO_VALUE then done
-@next_argument:
-        dec     lp                      ; It wasn't, so back up lp
-        lda     directive               ; Remember what type of argument it is
-        jsr     list_argument           ; List one argument
-        jsr     decode_byte             ; Check the next byte
-        beq     @done                   ; If no more arguments then exit
-        lda     #','                    ; Otherwise output a comma
-        jsr     putchar_buffer
-        bne     @next_argument          ; Will never write 0 so this is unconditional branch
-
-@done:
-        rts
-
-list_argument_type_vectors:
-        .word   list_expression         ; NT_EXP
-        .word   list_number             ; NT_NUM
-        .word   list_variable           ; NT_VAR
-
-list_argument:
-        and     #$0F                    ; Isolate just the type
-        tay                             ; Prepare too use type as vector index
-        ldphaa  name_ptr                ; Save existing value of name_ptr
-        ldpha   np                      ; Save existing name entry read position
-        ldax    #list_argument_type_vectors
-        jsr     invoke_indexed_vector   ; Jump to the list function for the argument type
-        plsta   np                      ; Recover values previously saved on stack
-        plstaa  name_ptr
-        rts
-
 list_vectors:
         .word   list_xh_variable         ; XH_VAR
         .word   list_xh_operator         ; XH_OP
@@ -186,8 +156,6 @@ list_vectors:
         .word   list_xh_paren            ; XH_RPAREN
         .word   list_xh_unary            ; XH_MINUS
         .word   list_xh_unary            ; XH_NOT
-
-; Lists an argument value from the token stream.
 
 list_expression:
         mvax    #list_vectors, vector_table_ptr
@@ -201,6 +169,18 @@ list_variable:
         jsr     decode_byte
         tax
         jmp     list_xh_variable
+
+list_repeated_variable:
+        jsr     list_variable           ; List one variable
+        jsr     decode_byte             ; Get the next byte
+        beq     @done                   ; If it's TOKEN_NO_VALUE then no more values
+        lda     #','                    ; Write ',' to output
+        jsr     putchar_buffer
+        dec     lp                      ; Back up
+        jmp     list_repeated_variable  ; Continue
+
+@done:
+        rts
 
 ; Expression decoder handlers
 

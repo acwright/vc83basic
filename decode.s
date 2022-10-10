@@ -32,7 +32,7 @@ decode_expression:
         ldy     #XH_VAR                 ; First handler is VAR
         tax                             ; Store it in X for now (sets flags from decoded byte)
         bmi     @dispatch               ; Handle 1xxx xxxx (variable)
-        iny                             ; Advance to next handler OP
+        iny                             ; Advance to next handler
         asl     A                       ; Check for pattern 01xx xxxx (unused)
         asl     A                       ; Check for pattern 001x xxxx (unused)
         asl     A                       ; Check for pattern 0001 xxxx (operator)
