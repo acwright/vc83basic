@@ -90,6 +90,10 @@ _decode_operator:
 .export _decode_operator
         jmp     decode_operator
 
+_decode_unary_operator:
+.export _decode_unary_operator
+        jmp     decode_unary_operator
+
 _decode_byte:
 .export _decode_byte
         sta     lp

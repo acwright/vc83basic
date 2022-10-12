@@ -42,12 +42,14 @@
 .global decode_number
 .global decode_variable
 .global decode_operator
+.global decode_unary_operator
 .global decode_byte
 
 ; encode.s
 .global encode_number
 .global encode_variable
 .global encode_operator
+.global encode_unary_operator
 .global encode_no_value
 .global encode_byte
 

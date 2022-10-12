@@ -15,8 +15,7 @@ comment Tokenized form constants
 def(TOKEN_NO_VALUE,     hex(00))
 def(TOKEN_LPAREN,       hex(01))
 def(TOKEN_RPAREN,       hex(02))
-def(TOKEN_MINUS,        hex(03))
-def(TOKEN_NOT,          hex(04))
+def(TOKEN_UNARY_OP,     hex(08)) comment OR with OP_UNARY_*
 def(TOKEN_OP,           hex(10)) comment OR with OP_*
 def(TOKEN_NUM,          hex(20))
 def(TOKEN_VAR,          hex(80)) comment OR with variable number
@@ -46,6 +45,8 @@ def(OP_GT,             11)
 def(OP_AND,            12)
 def(OP_OR,             13)
 
+comment Binary operator tokens: combine with TOKEN_UNARY_OP
+
 def(UNARY_OP_MINUS,     0)
 def(UNARY_OP_NOT,       1)
 
@@ -54,10 +55,9 @@ comment Expression decode handlers
 def(XH_VAR,             0)
 def(XH_NUM,             1)
 def(XH_OP,              2)
-def(XH_LPAREN,          3)
-def(XH_RPAREN,          4)
-def(XH_MINUS,           5)
-def(XH_NOT,             6)
+def(XH_UNARY_OP,        3)
+def(XH_LPAREN,          4)
+def(XH_RPAREN,          5)
 
 comment Program states
 

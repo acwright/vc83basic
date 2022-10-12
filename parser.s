@@ -250,8 +250,7 @@ parse_unary_operator:
         ldax    #unary_operator_name_table
         jsr     find_name               ; See if it's one of the unary operators
         bcs     @done                   ; Nope
-        adc     #TOKEN_MINUS            ; Add TOKEN_MINUS to the operator number
-        jsr     encode_byte             ; Store the unary minus token
+        jsr     encode_unary_operator   ; Store the unary minus token
         jmp     parse_primary_expression    ; Continue and parse the following unary expression, which must exist
 @done:
         rts

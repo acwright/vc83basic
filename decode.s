@@ -15,8 +15,7 @@
 .assert TOKEN_NO_VALUE = 0, error
 .assert TOKEN_LPAREN = 1, error
 .assert TOKEN_RPAREN = 2, error
-.assert TOKEN_MINUS = 3, error
-.assert TOKEN_NOT = 4, error
+.assert TOKEN_UNARY_OP = $08, error
 .assert TOKEN_OP = $10, error
 .assert TOKEN_NUM = $20, error
 .assert TOKEN_VAR = $80, error
@@ -24,23 +23,27 @@
 .assert XH_VAR = 0, error
 .assert XH_NUM = 1, error
 .assert XH_OP = 2, error
-.assert XH_LPAREN = 3, error
+.assert XH_UNARY_OP = 3, error
+.assert XH_LPAREN = 4, error
  
 decode_expression:
         ldy     lp                      ; Peek at next byte in token stream
         lda     (line_ptr),y
         ldy     #XH_VAR                 ; First handler is VAR
         tax                             ; Store it in X for now (sets flags from decoded byte)
-        bmi     @dispatch               ; Handle variable (1xxx xxxx)
+        bmi     @dispatch               ; Handle variable           (1xxx xxxx)
         iny                             ; Advance to next handler
         asl     A                       ; Bit 6 into MSB
         asl     A                       ; Bit 5 into MSB
-        bmi     @dispatch               ; Handle number (001x xxxx)
+        bmi     @dispatch               ; Handle number             (001x xxxx)
         iny
         asl     A                       ; Bit 4 into MSB
-        bmi     @dispatch               ; Handle operator (0001 xxxx)
+        bmi     @dispatch               ; Handle operator           (0001 xxxx)
+        iny
+        asl     A                       ; Bit 3 into MSB
+        bmi     @dispatch               ; Handle unary operator     (0000 1xxx)
         inc     lp                      ; Each handler is unique from this point so advance past the byte
-        txa                             ; It's in the range 0-15; see if it's zero (TOKEN_NO_VALUE)
+        txa                             ; It's in the range 0-7; see if it's zero (TOKEN_NO_VALUE)
         beq     @done                   ; If zero then done; carry is clear here because we've shifted 0s into it        
         adc     #(XH_LPAREN - TOKEN_LPAREN) ; Generate handler by aligning LPAREN handler index with token
         tay                             ; Transfer into Y for dispatch
@@ -70,6 +73,10 @@ decode_variable:
 
 decode_operator:
         lda     #$0F
+        bne     decode_byte_with_mask   ; Unconditional jump
+
+decode_unary_operator:
+        lda     #$07
         bne     decode_byte_with_mask   ; Unconditional jump
 
 ; Decodes a single byte and returns it in A.

@@ -65,9 +65,10 @@ static void test_parse_expression(void) {
         TOKEN_OP | OP_LE, 0x81 };
     const char line_data_5[] = { TOKEN_LPAREN, 0x80, TOKEN_OP | OP_ADD, TOKEN_NUM, 0x03, 0x00,
         TOKEN_RPAREN, TOKEN_OP | OP_MUL, 0x81 };
-    const char line_data_6[] = { TOKEN_MINUS, 0x80 };
-    const char line_data_7[] = { TOKEN_NOT, TOKEN_LPAREN, 0x80, TOKEN_OP | OP_EQ, TOKEN_NUM, 0x03, 0x00,
-        TOKEN_OP | OP_OR, TOKEN_NOT, TOKEN_MINUS, 0x81, TOKEN_RPAREN };
+    const char line_data_6[] = { TOKEN_UNARY_OP | UNARY_OP_MINUS, 0x80 };
+    const char line_data_7[] = { TOKEN_UNARY_OP | UNARY_OP_NOT, TOKEN_LPAREN, 0x80, TOKEN_OP | OP_EQ, 
+        TOKEN_NUM, 0x03, 0x00, TOKEN_OP | OP_OR, TOKEN_UNARY_OP | UNARY_OP_NOT,
+        TOKEN_UNARY_OP | UNARY_OP_MINUS, 0x81, TOKEN_RPAREN };
 
     PRINT_TEST_NAME();
 

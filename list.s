@@ -149,13 +149,12 @@ list_argument_list:
         rts
 
 list_vectors:
-        .word   list_xh_variable         ; XH_VAR
-        .word   list_xh_number           ; XH_NUM
-        .word   list_xh_operator         ; XH_OP
-        .word   list_xh_lparen           ; XH_LPAREN
-        .word   list_xh_rparen           ; XH_RPAREN
-        .word   list_xh_minus            ; XH_MINUS
-        .word   list_xh_not              ; XH_NOT
+        .word   list_xh_variable        ; XH_VAR
+        .word   list_xh_number          ; XH_NUM
+        .word   list_xh_operator        ; XH_OP
+        .word   list_xh_unary_operator  ; XH_UNARY_OP
+        .word   list_xh_lparen          ; XH_LPAREN
+        .word   list_xh_rparen          ; XH_RPAREN
 
 list_expression:
         mvax    #list_vectors, vector_table_ptr
@@ -198,6 +197,12 @@ list_xh_operator:
         ldax    #operator_name_table
         bne     list_element_add_whitespace ; Uncondtional
 
+list_xh_unary_operator:
+        jsr     decode_unary_operator
+        tay         
+        ldax    #unary_operator_name_table
+        bne     list_element_add_whitespace ; Uncondtional
+
 list_xh_lparen:
         lda     #'('
         jmp     putchar_buffer
@@ -206,19 +211,10 @@ list_xh_rparen:
         lda     #')'
         jmp     putchar_buffer
 
-list_xh_minus:
-        ldy     #UNARY_OP_MINUS
-        ldax    #unary_operator_name_table
-        bne     list_element_add_whitespace ; Uncondtional
-        
-list_xh_not:
-        ldy     #UNARY_OP_NOT
-        ldax    #unary_operator_name_table
-        bne     list_element_add_whitespace ; Uncondtional
-
 list_element_add_whitespace:
         jsr     list_element
-        jmp     add_whitespace
+
+; Fall through
 
 ; Adds whitespace to the output if necessary.
 ; Whitespace is necessary if bp > 0 and if buffer[bp-1] is a name character or is a ')'.
@@ -236,4 +232,3 @@ add_whitespace:
         rts
 @add:
         jmp     putchar_space_buffer
-

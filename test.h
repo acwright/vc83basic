@@ -85,6 +85,7 @@ void decode_expression(const void* line_ptr, char lp);
 int decode_number(const void* line_ptr, char lp);
 char decode_variable(void);
 char decode_operator(void);
+char decode_unary_operator(void);
 char decode_byte(const void* line_ptr, char lp);
 
 // encode.s
