@@ -149,61 +149,51 @@ list_argument_list:
         rts
 
 list_vectors:
-        .word   list_xh_variable        ; XH_VAR
-        .word   list_xh_number          ; XH_NUM
-        .word   list_xh_operator        ; XH_OP
-        .word   list_xh_unary_operator  ; XH_UNARY_OP
-        .word   list_xh_paren           ; XH_PAREN
+        .word   list_variable           ; XH_VAR
+        .word   list_number             ; XH_NUM
+        .word   list_operator           ; XH_OP
+        .word   list_unary_operator     ; XH_UNARY_OP
+        .word   list_paren              ; XH_PAREN
 
 list_expression:
         mvax    #list_vectors, vector_table_ptr
         jmp     decode_expression
 
-list_number:
-        jmp     list_xh_number
-
 list_variable:
-        jmp     list_xh_variable
-
-list_repeated_variable:
-        jsr     list_xh_variable        ; List one variable
-        jsr     decode_byte             ; Get the next byte
-        beq     @done                   ; If it's TOKEN_NO_VALUE then no more values
-        lda     #','                    ; Write ',' to output
-        jsr     putchar_buffer
-        dec     lp                      ; Back up
-        jmp     list_repeated_variable  ; Continue
-
-@done:
-        rts
-
-; Expression decoder handlers
-
-list_xh_variable:
         jsr     decode_variable
         tay         
         ldax    variable_name_table_ptr ; Look up name in the variable name table
         jmp     list_element            ; Recursively call list_element to display the name
 
-list_xh_number:
+loop_list_repeated_variable:
+        lda     #','                    ; Write ',' to output
+        jsr     putchar_buffer
+list_repeated_variable:
+        jsr     list_variable           ; List one variable
+        ldy     lp                      ; Peek next byte
+        lda     (line_ptr),y
+        bne     loop_list_repeated_variable ; Not TOKEN_NO_VALUE so keep going
+        rts
+
+list_number:
         jsr     add_whitespace
         jsr     decode_number           ; Decode the number
         jmp     format_number           ; Send it right to format_number
 
-list_xh_operator:
+list_operator:
         jsr     decode_operator
         tay         
         ldax    #operator_name_table
         jmp     list_element
 
-list_xh_unary_operator:
+list_unary_operator:
         jsr     add_whitespace
         jsr     decode_unary_operator
         tay         
         ldax    #unary_operator_name_table
         jmp     list_element
 
-list_xh_paren:
+list_paren:
         jsr     add_whitespace
         lda     #'('
         jsr     putchar_buffer
