@@ -91,9 +91,32 @@ static void test_evaluate_expression(void) {
     test_one_unary_op(UNARY_OP_NOT, 1, 0);
 }
 
+static void test_evaluate_expression_precedence(void) {
+    char err;
+    int result;
+
+    char line_data_1[] = { TOKEN_NUM, 0x00, 0x00, TOKEN_OP | OP_AND, 
+        TOKEN_NUM, 0x00, 0x00, TOKEN_OP | OP_EQ, TOKEN_NUM, 0x00, 0x00, TOKEN_NO_VALUE };
+    char line_data_2[] = { TOKEN_PAREN, TOKEN_NUM, 0x00, 0x00, TOKEN_OP | OP_AND, 
+        TOKEN_NUM, 0x00, 0x00, TOKEN_NO_VALUE, TOKEN_OP | OP_EQ, TOKEN_NUM, 0x00, 0x00, TOKEN_NO_VALUE };
+
+    set_line(line_data_1, sizeof line_data_1);
+    err = evaluate_expression();
+    ASSERT_EQ(err, 0);
+    result = pop_value();
+    ASSERT_EQ(result, 0);
+
+    set_line(line_data_2, sizeof line_data_2);
+    err = evaluate_expression();
+    ASSERT_EQ(err, 0);
+    result = pop_value();
+    ASSERT_EQ(result, 1);
+}
+
 int main(void) {
     initialize_target();
     initialize_program();
     test_evaluate_expression();
+    test_evaluate_expression_precedence();
     return 0;
 }
