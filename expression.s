@@ -22,7 +22,7 @@ value_stack: .res VALUE_STACK_DEPTH * 2
 evaluate_expression:
         ldax    #evaluate_vectors
         jsr     decode_expression
-        lda     #0                      ; Process any operators not yet processed
+        lda     #PR_CLOSE_PAREN         ; Process any operators not yet processed (except open paren)
         jmp     process_operators
 
 evaluate_vectors:
@@ -67,6 +67,10 @@ evaluate_unary_operator:
         jmp     push_operator           ; Except push the operator onto the stack
 
 evaluate_paren:
+        lda     #PR_OPEN_PAREN          ; Push the open paren, which will never be removed by process_operators
+        jsr     push_operator
+        jsr     evaluate_expression     ; Evaluate the subexpression
+        dec     osp                     ; Pop the open paren
         rts
 
 push_operator:
