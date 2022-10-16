@@ -1,6 +1,12 @@
 .include "macros.inc"
 .include "basic.inc"
 
+start_message: .byte "VC83 BASIC <> "
+start_length = * - start_message
+
+free_message: .byte " BYTES FREE"
+free_length = * - free_message
+
 ready_message: .byte "READY"
 ready_length = * - ready_message
 
@@ -10,6 +16,7 @@ error_length = * - error_message
 main:
         jsr     initialize_target
         jsr     initialize_program
+        jsr     print_start
 @ready:
         jsr     print_ready
 @wait_for_input:
@@ -34,6 +41,24 @@ main:
 @error:
         jsr     print_error
         jmp     @wait_for_input
+
+print_start:
+        ldax    #start_message
+        ldy     #start_length
+        jsr     write
+        sec                             ; Calculate free memory; TODO: move to FRE function
+        lda     himem_ptr
+        sbc     free_ptr
+        tay
+        lda     himem_ptr+1
+        sbc     free_ptr+1
+        tax
+        tya
+        jsr     print_number
+        ldax    #free_message
+        ldy     #free_length
+        jsr     write
+        jmp     newline
 
 print_ready:
         ldax    #ready_message          ; Pass address of message in AX

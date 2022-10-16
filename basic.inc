@@ -93,6 +93,7 @@
 
 ; print.s
 .global exec_print
+.global print_number
 
 ; program.s
 .global initialize_program
