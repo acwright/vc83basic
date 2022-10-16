@@ -132,6 +132,8 @@ parse_element:
 parse_argument_type_vectors:
         .word   parse_variable          ; NT_VAR
         .word   parse_repeated_variable ; NT_RPT_VAR
+        .word   parse_number            ; NT_NUM
+        .word   parse_repeated_number   ; NT_RPT_NUM
 
 ; Parses a single directive.
 ; Since parsing the directive can recursively invoke the name table element parser with new values for name_ptr etc.,
@@ -262,6 +264,15 @@ parse_number:
         jsr     read_number
         bcs     @done
         jsr     encode_number           ; Will set carry if fail
+@done:
+        rts
+
+parse_repeated_number:
+        jsr     parse_number            ; Parse a first number
+        bcs     @done                   ; If no number then fail
+        jsr     parse_argument_separator
+        bcs     parse_repeated_number   ; Parse another number after the separator
+        jsr     encode_no_value         ; Terminate the repeated list
 @done:
         rts
 

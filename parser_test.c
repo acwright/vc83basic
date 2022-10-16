@@ -160,6 +160,8 @@ static void test_parse_directive(void) {
     const char line_data_3[] = { 0x80 };
     const char line_data_4[] = { 0x80, TOKEN_NO_VALUE };
     const char line_data_5[] = { 0x80, 0x81, TOKEN_NO_VALUE };
+    const char line_data_6[] = { TOKEN_NUM, 0x0A, 0x00 };
+    const char line_data_7[] = { TOKEN_NUM, 0x0A, 0x00, TOKEN_NUM, 0x14, 0x00, TOKEN_NO_VALUE };
 
     PRINT_TEST_NAME();
 
@@ -199,6 +201,20 @@ static void test_parse_directive(void) {
     ASSERT_MEMORY_EQ(line_buffer.data, line_data_5, sizeof line_data_5);
     ASSERT_EQ(bp, 3);
     ASSERT_EQ(lp, offsetof(Line, data) + sizeof line_data_5);
+
+    strcpy(buffer, "10");
+    err = parse_directive(NT_NUM, 0, offsetof(Line, data));
+    ASSERT_EQ(err, 0);
+    ASSERT_MEMORY_EQ(line_buffer.data, line_data_6, sizeof line_data_6);
+    ASSERT_EQ(bp, 2);
+    ASSERT_EQ(lp, offsetof(Line, data) + sizeof line_data_6);
+
+    strcpy(buffer, "10,20");
+    err = parse_directive(NT_RPT_NUM, 0, offsetof(Line, data));
+    ASSERT_EQ(err, 0);
+    ASSERT_MEMORY_EQ(line_buffer.data, line_data_7, sizeof line_data_7);
+    ASSERT_EQ(bp, 5);
+    ASSERT_EQ(lp, offsetof(Line, data) + sizeof line_data_7);
 }
 
 static void test_parse_element(void) {
@@ -211,6 +227,8 @@ static void test_parse_element(void) {
         TOKEN_NO_VALUE };
     const char line_data_6[] = { ST_PRINT, TOKEN_PAREN, 0x80, TOKEN_OP | OP_ADD, TOKEN_NUM, 0x03, 0x00, TOKEN_NO_VALUE,
         TOKEN_OP | OP_MUL, 0x81, TOKEN_NO_VALUE };
+    const char line_data_7[] = { ST_ON_GOTO, 0x80, TOKEN_OP | OP_DIV, TOKEN_NUM, 0x02, 0x00, TOKEN_NO_VALUE,
+        TOKEN_NUM, 0x0A, 0x00, TOKEN_NUM, 0x14, 0x00, TOKEN_NUM, 0x1E, 0x00, TOKEN_NO_VALUE };
 
     PRINT_TEST_NAME();
 
@@ -257,6 +275,13 @@ static void test_parse_element(void) {
     ASSERT_MEMORY_EQ(line_buffer.data, line_data_6, sizeof line_data_6);
     ASSERT_EQ(bp, 13);
     ASSERT_EQ(lp, offsetof(Line, data) + sizeof line_data_6);
+
+    strcpy(buffer, "ON X/2 GOTO 10,20,30");
+    err = parse_element(statement_name_table, 0, offsetof(Line, data));
+    ASSERT_EQ(err, 0);
+    ASSERT_MEMORY_EQ(line_buffer.data, line_data_7, sizeof line_data_7);
+    ASSERT_EQ(bp, 20);
+    ASSERT_EQ(lp, offsetof(Line, data) + sizeof line_data_7);
 
     // Test that adding spaces here and there doesn't mix up the parser.
 

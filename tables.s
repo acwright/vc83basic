@@ -6,6 +6,12 @@ statement_name_table:
         .byte   'L', 'E', 'T', NT_VAR, '=', 1 | NT_END
         .byte   'I', 'N', 'P', 'U', 'T', NT_RPT_VAR | NT_END
         .byte   'L', 'I', 'S', 'T', 2 | NT_END
+        .byte   'G', 'O', 'T', 'O', NT_NUM | NT_END
+        .byte   'G', 'O', 'S', 'U', 'B', NT_NUM | NT_END
+        .byte   'R', 'E', 'T', 'U', 'R', 'N' | NT_END
+        .byte   'P', 'O', 'P' | NT_END
+        .byte   'O', 'N', 1, 'G', 'O', 'T', 'O', NT_RPT_NUM | NT_END
+        .byte   'O', 'N', 1, 'G', 'O', 'S', 'U', 'B', NT_RPT_NUM | NT_END
         .byte   0
 
 operator_name_table:

@@ -100,6 +100,8 @@ list_element:
 list_argument_type_vectors:
         .word   list_variable           ; NT_VAR
         .word   list_repeated_variable  ; NT_RPT_VAR
+        .word   list_number             ; NT_NUM
+        .word   list_repeated_number    ; NT_RPT_NUM
 
 ; Lists a single directive from the token stream.
 ; A = the directive
@@ -179,6 +181,16 @@ list_number:
         jsr     add_whitespace
         jsr     decode_number           ; Decode the number
         jmp     format_number           ; Send it right to format_number
+
+loop_list_repeated_number:
+        lda     #','                    ; Write ',' to output
+        jsr     putchar_buffer
+list_repeated_number:
+        jsr     list_number             ; List one number
+        ldy     lp                      ; Peek next byte
+        lda     (line_ptr),y
+        bne     loop_list_repeated_number   ; Not TOKEN_NO_VALUE so keep going
+        rts
 
 list_operator:
         jsr     decode_operator

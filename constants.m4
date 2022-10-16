@@ -8,6 +8,8 @@ comment Name table definitions
 
 def(NT_VAR,             hex(10))
 def(NT_RPT_VAR,         hex(11))
+def(NT_NUM,             hex(12))
+def(NT_RPT_NUM,         hex(13))
 def(NT_END,             hex(80))
 
 comment Tokenized form constants
@@ -26,6 +28,12 @@ def(ST_PRINT,           1)
 def(ST_LET,             2)
 def(ST_INPUT,           3)
 def(ST_LIST,            4)
+def(ST_GOTO,            5)
+def(ST_GOSUB,           6)
+def(ST_RETURN,          7)
+def(ST_POP,             8)
+def(ST_ON_GOTO,         9)
+def(ST_ON_GOSUB,       10)
 
 comment Binary operator tokens: combine with TOKEN_OP
 
