@@ -59,7 +59,7 @@ main:
 @immediate_mode:
         lda     line_buffer+Line::next_line_offset  ; See if there is any data in the buffer
         cmp     #Line::data             ; Does the "next line" start at the beginning of *this* line?
-        beq     @loop                   ; Yes, just ignore input
+        beq     @wait_for_input         ; Yes, just ignore input
         mvax    #line_buffer, line_ptr  ; Set line_ptr to point to line_buffer    
         stax    next_line_ptr           ; And next_line_ptr
         jsr     advance_next_line_ptr   ; So we can move it to the next statement
