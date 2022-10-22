@@ -35,7 +35,6 @@
 .globalzp osp
 .globalzp vsp
 .globalzp csp
-.globalzp next_line_ptr
 
 ; Data
 
