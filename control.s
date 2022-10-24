@@ -130,8 +130,6 @@ exec_next:
 ; A = csp value
 ; Y SAFE, BC SAFE, DE SAFE
 
-; TODO: probably want to return in Y since we use X a lot already
-
 ; The actual size has to match the shift logic.
 .assert CONTROL_SIZE = 16, error
 
