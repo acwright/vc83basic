@@ -151,6 +151,9 @@ list_argument_list:
 @done:
         rts
 
+; Following logic depends on TOKEN_NO_VALUE being 0
+.assert TOKEN_NO_VALUE = 0, error
+
 list_vectors:
         .word   list_variable           ; XH_VAR
         .word   list_number             ; XH_NUM

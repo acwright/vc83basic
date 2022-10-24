@@ -6,6 +6,9 @@
 ; Current position in the control stack
 csp: .res 1
 
+; The number we're dispatching in an ON...GOTO/GOSUB statement
+on_value: .res 1
+
 .bss
 
 .assert .sizeof(Control) <= CONTROL_SIZE, error
@@ -15,12 +18,36 @@ control_stack: .res CONTROL_STACK_DEPTH * CONTROL_SIZE
 
 .code
 
+; Logic depends on TOKEN_NO_VALUE being zero
+.assert TOKEN_NO_VALUE = 0, error
+
 ; GOTO statement:
 
 exec_goto:
         jsr     decode_number           ; Go get the line number
+exec_goto_ax:
         jsr     find_line               ; Find the program line
         rts                             ; Either next_line_ptr is set or carry (error) is set
+
+; ON...GOTO statement:
+
+exec_on_goto:
+        jsr     evaluate_expression     ; Evaluate the "ON" expression
+        jsr     pop_value
+        sta     on_value
+        dec     on_value                ; Pre-decrement on_value so we can take the branch when it goes negative
+@loop:
+        ldy     lp
+        lda     (line_ptr),y            ; Peek at next character
+        beq     @not_found              ; If it's TOKEN_NO_VLAUE, nothing matched; continue
+        jsr     decode_number           ; Get the next line number into AX
+        dec     on_value                ; Decrement the "ON" value
+        bpl     @loop                   ; If still positive then keep looking
+        jmp     exec_goto_ax
+
+@not_found:
+        clc
+        rts
 
 ; GOSUB statement:
 
@@ -32,6 +59,11 @@ exec_gosub:
         bcs     @done
         inc     csp                     ; Success, so increment the control stack pointer
 @done:
+        rts
+
+; ON...GOSUB statement:
+
+exec_on_gosub:
         rts
 
 ; RETURN statement:
