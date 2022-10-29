@@ -47,7 +47,6 @@
 ; Functions
 
 ; control.s
-.global exec_end
 .global exec_goto
 .global exec_on_goto
 .global exec_gosub
@@ -131,6 +130,7 @@
 
 ; run.s
 .global exec_run
+.global exec_end
 
 ; tables.s
 .global statement_name_table
