@@ -9,6 +9,9 @@ csp: .res 1
 ; The number we're dispatching in an ON...GOTO/GOSUB statement
 on_value: .res 1
 
+; The handler vector for ON...GOTO/GOSUB
+on_handler: .res 2
+
 .bss
 
 .assert .sizeof(Control) <= CONTROL_SIZE, error
@@ -32,6 +35,33 @@ exec_goto_ax:
 ; ON...GOTO statement:
 
 exec_on_goto:
+        ldax    #exec_goto_ax           ; Handler address
+        jmp     exec_on
+
+; GOSUB statement:
+
+exec_gosub:
+        jsr     decode_number           ; GOSUB line number
+exec_gosub_ax:
+        phax                            ; Temporarily store the line number
+        jsr     push_next_line_ptr      ; Set up control stack
+        bcs     @done                   ; If csp was out of range
+        plax                            ; Recover line number
+        jsr     find_line               ; Find the line
+        bcs     @done
+        inc     csp                     ; Success, so increment the control stack pointer
+@done:
+        rts
+
+; ON...GOSUB statement:
+
+exec_on_gosub:
+        ldax    #exec_gosub_ax           ; Handler address
+
+; Fall through
+
+exec_on:
+        stax    on_handler              ; Store the handler address
         jsr     evaluate_expression     ; Evaluate the "ON" expression
         jsr     pop_value
         sta     on_value
@@ -43,28 +73,12 @@ exec_on_goto:
         jsr     decode_number           ; Get the next line number into AX
         dec     on_value                ; Decrement the "ON" value
         bpl     @loop                   ; If still positive then keep looking
-        jmp     exec_goto_ax
+        jmp     (on_handler)            ; Jump to whatever handler was passed in
 
 @not_found:
         clc
         rts
 
-; GOSUB statement:
-
-exec_gosub:
-        jsr     push_next_line_ptr      ; Set up control stack
-        bcs     @done                   ; If csp was out of range
-        jsr     decode_number           ; GOSUB line number
-        jsr     find_line               ; Find the line
-        bcs     @done
-        inc     csp                     ; Success, so increment the control stack pointer
-@done:
-        rts
-
-; ON...GOSUB statement:
-
-exec_on_gosub:
-        rts
 
 ; RETURN statement:
 
