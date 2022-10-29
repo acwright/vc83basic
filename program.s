@@ -48,7 +48,7 @@ line_buffer: .res 256
 
 .code
 
-.assert PROGRAM_STATE_STOPPED = 0, error
+.assert PS_STOPPED = 0, error
 
 ; Initializes a new program.
 ; Inserts an empty zero-length line -1 into the program space.
@@ -71,13 +71,16 @@ initialize_program:
         tay                                 ; Write index is also zero
         sta     (variable_name_table_ptr),y ; Initialize variable name table to 0
         sta     variable_count              ; Initialize number of variables to 0
-        sta     program_state               ; Initialize program_state to stopped (must be 0)
+        sta     program_state               ; Set program state to stopped
         
 ; Fall through to reset_program_state
 
 ; Clears the variable name table and intializes the heap.
 ; value_table_ptr = the address of the variable value table, the next byte following the variable name table
 ; variable_count = the number of variables in the variable name table
+
+; We treat this as zero.
+.assert PS_STOPPED = 0, error
 
 reset_program_state:
         mvaa    value_table_ptr, dst_ptr    ; Prepare to clear variable value table
@@ -91,7 +94,8 @@ reset_program_state:
         lda     E                       ; Same for high byte
         adc     value_table_ptr+1
         sta     free_ptr+1
-        mva     #0, osp                 ; Initialize expression stack positions to 0
+        lda     #0
+        sta     osp                     ; Initialize expression stack positions to 0
         sta     vsp
         sta     csp
         sta     resume_line_ptr+1       ; Initialize resume_line_ptr to 0 to disable CONT

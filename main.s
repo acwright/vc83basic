@@ -15,8 +15,8 @@ error_length = * - error_message
 
 ; Verify that the program states are the affected values so we can use flags.
 
-.assert PROGRAM_STATE_STOPPED = 0, error
-.assert PROGRAM_STATE_RUNNING = 1, error
+.assert PS_STOPPED = 0, error
+.assert PS_RUNNING = 1, error
 
 main:
         jsr     initialize_target
@@ -66,7 +66,7 @@ main:
         stax    next_line_ptr           ; And next_line_ptr
         jsr     advance_next_line_ptr   ; So we can move it to the next statement
         jsr     build_end_statement     ; Populate END statement after the immediate mode statement
-        mva     #PROGRAM_STATE_RUNNING, program_state   ; Set the program state to RUNNING
+        mva     #PS_RUNNING, program_state  ; Set the program state to RUNNING
         bne     @dispatch
 
 statement_exec_vectors:

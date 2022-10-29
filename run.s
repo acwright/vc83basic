@@ -19,10 +19,10 @@ exec_run:
 ; END statement:
 ; Terminates the program.
 
-.assert PROGRAM_STATE_STOPPED = 0, error
+.assert PS_STOPPED = 0, error
 
 exec_end:
-        mva     #PROGRAM_STATE_STOPPED, program_state
+        mva     #PS_STOPPED, program_state
         sta     resume_line_ptr+1       ; Disable CONT
         clc
         rts
@@ -32,7 +32,7 @@ exec_end:
 
 exec_stop:
         mvaa    next_line_ptr, resume_line_ptr
-        mva     #PROGRAM_STATE_STOPPED, program_state
+        mva     #PS_STOPPED, program_state
         clc
         rts
 
@@ -43,7 +43,7 @@ exec_cont:
         sec                             ; Set in case we take this next branch
         mvaa    resume_line_ptr, next_line_ptr
         beq     @done                   ; Can't resume because high byte of resume_line_ptr is 0
-        mva     #PROGRAM_STATE_RUNNING, program_state
+        mva     #PS_RUNNING, program_state
         clc
 @done:
         rts
