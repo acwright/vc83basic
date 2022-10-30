@@ -83,15 +83,59 @@ exec_on:
 ; RETURN statement:
 
 exec_return:
-        sec                             ; Set carry so can return error if csp = 0
-        lda     csp
-        beq     @done
-        dec     csp
+        jsr     exec_pop                ; RETURN is just POP except we do something with the popped value
+        bcs     @done
         jsr     get_control_stack_index ; Set X to control stack index; clears carry
         lda     control_stack+Control::next_line_ptr,x
         sta     next_line_ptr           ; Restore next_line_ptr value
         lda     control_stack+Control::next_line_ptr+1,x
         sta     next_line_ptr+1
+@done:
+        rts
+
+; POP statement:
+; Falls through to get_control_stack_index, which isn't needed in POP case, but is used for RETURN.
+
+exec_pop:
+        sec                             ; Set carry so can return error if csp = 0
+        lda     csp
+        beq     get_control_stack_index_done
+        dec     csp
+
+; Fall through
+
+; Common function that sets the X register to the correct offset for the csp value in A.
+; If csp is < CONTROL_SIZE, returns carry clear and X set to the offset, or returns carry set if csp is out of range.
+; A = csp value
+; Y SAFE, BC SAFE, DE SAFE
+
+; The actual size has to match the shift logic.
+.assert CONTROL_SIZE = 16, error
+
+get_control_stack_index:
+        lda     csp                     
+get_control_stack_index_a:
+        cmp     #CONTROL_SIZE
+        beq     get_control_stack_index_done    ; Return with carry set
+        asl     A                       ; Multiply stack postion by 16
+        asl     A
+        asl     A
+        asl     A
+        tax
+get_control_stack_index_done:
+        rts
+
+; Add an entry onto the control stack and set the next_line_ptr field.
+; Reflects carry return from get_control_stack_index. On success, X is still the control stack index.
+; Y SAFE, BC SAFE, DE SAFE
+
+push_next_line_ptr:
+        jsr     get_control_stack_index ; Set X to control stack index
+        bcs     @done                   ; If csp was out of range
+        lda     next_line_ptr           ; Store next_line_ptr on control stack
+        sta     control_stack+Control::next_line_ptr,x
+        lda     next_line_ptr+1
+        sta     control_stack+Control::next_line_ptr+1,x
 @done:
         rts
 
@@ -170,41 +214,6 @@ exec_next:
         sta     next_line_ptr+1
         clc                             ; Signal success
         rts                            
-
-; Common function that sets the X register to the correct offset for the csp value in A.
-; If csp is < CONTROL_SIZE, returns carry clear and X set to the offset, or returns carry set if csp is out of range.
-; A = csp value
-; Y SAFE, BC SAFE, DE SAFE
-
-; The actual size has to match the shift logic.
-.assert CONTROL_SIZE = 16, error
-
-get_control_stack_index:
-        lda     csp                     
-get_control_stack_index_a:
-        cmp     #CONTROL_SIZE
-        beq     @done                   ; Return with carry set
-        asl     A                       ; Multiply stack postion by 16
-        asl     A
-        asl     A
-        asl     A
-        tax
-@done:
-        rts
-
-; Add an entry onto the control stack and set the next_line_ptr field.
-; Reflects carry return from get_control_stack_index. On success, X is still the control stack index.
-; Y SAFE, BC SAFE, DE SAFE
-
-push_next_line_ptr:
-        jsr     get_control_stack_index ; Set X to control stack index
-        bcs     @done                   ; If csp was out of range
-        lda     next_line_ptr           ; Store next_line_ptr on control stack
-        sta     control_stack+Control::next_line_ptr,x
-        lda     next_line_ptr+1
-        sta     control_stack+Control::next_line_ptr+1,x
-@done:
-        rts
 
 exec_if:
         jsr     evaluate_expression     ; Evaluate the expression
