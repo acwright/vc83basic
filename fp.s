@@ -33,7 +33,7 @@ fp_ptr: .res 2
 .code
 
 ; Loads FP value into FPA.
-; AX is the address of the FP value.
+; AX = address of the value to load
 ; Uses Y but does not use X after the _ptr entry point.
 
 load_fpa:
@@ -48,7 +48,7 @@ load_fpa_with_ptr:                      ; Entry point if fp_ptr is already set
         rts
 
 ; Stores FP value from FPA into memory.
-; AX is the address of the FP value.
+; AX = destination address
 ; Uses Y but does not use X after the _ptr1 entry point.
 
 store_fpa:
@@ -63,7 +63,6 @@ store_fpa_with_ptr:                     ; Entry point if fp_ptr is already set
         rts
 
 ; Stores 0 into FPA.
-; No return value.
 ; X SAFE, Y SAFE, BC SAFE, DE SAFE
 
 clear_fpa:
@@ -75,54 +74,25 @@ clear_fpa:
         sta     FPA+Float::significand+3
         rts
 
-; ; Loads FP value into FPX.
-; ; AX is the address of the FP value.
-; ; Uses Y but does not use X after the _ptr1 entry point.
+; Swaps FPA with a value in memory.
+; AX = the address of the value in memory
+; BC SAFE, DE SAFE
 
-; _load_fpx:
-; load_fpx:
-;         sta     ptr1            ; FP value address into ptr1
-;         stx     ptr1+1
-; load_fpx_ptr1:                  ; Entry point if ptr1 is already set
-;         ldy     #4              ; Counts down from 4 to 0 for 5 bytes total
-; @next_byte:
-;         lda     (ptr1),y
-;         sta     FPX,y
-;         dey                     ; Decrement byte counter
-;         bpl     @next_byte      ; Continue if it hasn't rolled over
-;         rts
+swap_fpa:
+        stax    fp_ptr
+swap_fpa_with_ptr:
+        ldy     #4              ; Y goes from 4 -> 0
+@next_byte:
+        ldx     FPA,y           ; Swap one byte
+        lda     (fp_ptr),y
+        sta     FPA,y           ; Uses nnnn,y addressing but no way to avoid
+        txa
+        sta     (fp_ptr),y
+        dey
+        bpl     @next_byte      ; Continue if it hasn't rolled over
+        rts
 
-; ; Stores FP value from FPA into memory.
-; ; AX is the address of the FP value.
-; ; Uses Y but does not use X after the _ptr1 entry point.
-
-; _store_fpx:
-; store_fpx:
-;         sta     ptr1            ; FP value address into ptr1
-;         stx     ptr1+1
-; store_fpx_ptr1:                 ; Entry point if ptr1 is already set
-;         ldy     #4
-; @next_byte:
-;         lda     FPX,y
-;         sta     (ptr1),y
-;         dey                     ; Decrement byte counter
-;         bpl     @next_byte      ; Continue if it hasn't rolled over
-;         rts
-
-; ; Stores 0 into FPX.
-; ; No return value.
-; ; Does not use X or Y.
-
-; _clear_fpx:
-; clear_fpx:
-;         stz     FPX            
-;         stz     FPX+1
-;         stz     FPX+2
-;         stz     FPX+3
-;         stz     FPX+4
-;         rts
-
-; Copies FPA to FPB
+; Copies FPA to FPB.
 ; No return value.
 ; X SAFE, Y SAFE, BC SAFE, DE SAFE
 
@@ -140,60 +110,23 @@ copy_fpa_significand_to_fpb:
         sta     FPB+Float::significand+3
         rts
 
-; ; Copies FPX to FPA
-; ; No return value.
-; ; Does not use X or Y.
+; Copies FPB to FPA.
+; No return value.
+; X SAFE, Y SAFE, BC SAFE, DE SAFE
 
-; _copy_fpx_to_fpa:
-; copy_fpx_to_fpa:
-;         lda     FPX
-;         sta     FPA
-; copy_fpx_significand_to_fpa:
-;         lda     FPX+1
-;         sta     FPA+1
-;         lda     FPX+2
-;         sta     FPA+2
-;         lda     FPX+3
-;         sta     FPA+3
-;         lda     FPX+4
-;         sta     FPA+4
-;         rts
-
-; ; Swaps FPA and FPX.
-; ; No return value.
-; ; Clobbers both X and Y.
-
-; _swap_fpa_fpx:
-; swap_fpa_fpx:
-;         ldx     #4              ; 4 goes from 5 -> 0
-; @next_byte:
-;         lda     FPA,x           ; Swap one byte of FPA and FPX
-;         ldy     FPX,x
-;         sta     FPX,x
-;         sty     FPA,x
-;         dex                     ; Decrement counter
-;         bpl     @next_byte      ; Continue if it hasn't rolled over
-;         rts
-
-; ; Swaps FPA with another value.
-; ; AX points to the other value.
-; ; Clobbers both X and Y.
-
-; _swap_fpa:
-; swap_fpa:
-;         sta     ptr1            ; FP value address into ptr1
-;         stx     ptr1+1
-; swap_fpa_ptr1:
-;         ldy     #4              ; Y goes from 4 -> 0
-; @next_byte:
-;         ldx     FPA,y           ; Swap one byte
-;         lda     (ptr1),y
-;         sta     FPA,y           ; Uses $nnnn,y addressing but no way to avoid
-;         txa
-;         sta     (ptr1),y
-;         dey
-;         bpl     @next_byte      ; Continue if it hasn't rolled over
-;         rts
+copy_fpb_to_fpa:
+        lda     FPB+Float::exponent
+        sta     FPA+Float::exponent
+copy_fpb_significand_to_fpa:
+        lda     FPB+Float::significand
+        sta     FPA+Float::significand
+        lda     FPB+Float::significand+1
+        sta     FPA+Float::significand+1
+        lda     FPB+Float::significand+2
+        sta     FPA+Float::significand+2
+        lda     FPB+Float::significand+3
+        sta     FPA+Float::significand+3
+        rts
 
 ; Checks if FPA is zero.
 ; FPA is zero if the significand is zero.
@@ -207,9 +140,9 @@ fpa_is_zero:
         ora     FPA+Float::significand+3
         rts
 
-; Multiplies the FPA significand by 10. Copies the FPA value into FPX.
+; Multiplies the FPA significand by 10. Copies the FPA value into FPB.
 ; On return the carry will be set if the multiplication caused an overflow.
-; On overflow, the original value can be recovered from FPX.
+; On overflow, the original value can be recovered from FPB.
 ; X SAFE, Y SAFE, BC SAFE, DE SAFE
 
 significand_mul_10:
@@ -281,48 +214,53 @@ significand_div_10:
         bne     @next_bit               ; More bits to shift
         rts
 
-; ; Divides the extended FPA significand by 10.
-; ; Identical to signficand_div_10 except the dividend is the 64-bit extended FPA register.
+; Divides the extended FPA significand by 10.
+; Identical to signficand_div_10 except the dividend is the 64-bit extended FPA register.
 
-; significand_div_10_ext:
-;         lda     #0              ; Initialize remainder to 0
-;         ldy     #64             ; 32 bits
-; @next_bit:
-;         asl     FPA+1           
-;         rol     FPA+2
-;         rol     FPA+3
-;         rol     FPA+4
-;         rol     FPA+5
-;         rol     FPA+6
-;         rol     FPA+7
-;         rol     FPA+8
-;         rol     A               
-;         cmp     #10             
-;         bcc     @not_10         
-;         inc     FPA+1           
-;         sbc     #10             
-; @not_10:
-;         dey
-;         bne     @next_bit       
-;         rts
+significand_div_10_ext:
+        lda     #0              ; Initialize remainder to 0
+        ldy     #64             ; 64 bits
+@next_bit:
+        asl     FPA+Float::significand
+        rol     FPA+Float::significand+1
+        rol     FPA+Float::significand+2
+        rol     FPA+Float::significand+3
+        rol     FPA+Float::significand+4
+        rol     FPA+Float::significand+5
+        rol     FPA+Float::significand+6
+        rol     FPA+Float::significand+7
+        rol     A               
+        cmp     #10             
+        bcc     @not_10         
+        inc     FPA+1           
+        sbc     #10             
+@not_10:
+        dey
+        bne     @next_bit       
+        rts
 
-; ; Saves the MSB of the FPA signifcand in the ZP location pointed to by X
-; ; and negates the significand if it's negative. The saved MSB will be used
-; ; later to determine if the value needs to be negated later.
+; Negates the FPA significand if it is negative.
+; Returns carry set if the significand was negative, carry clear it was not
+; BC SAFE, DE SAFE
 
-; negate_negative:
-;         lda     FPA+4           ; MSB of significand
-;         sta     0,x
-;         bmi     fneg
-;         rts
+negate_negative:
+        lda     FPA+4                   ; MSB of significand
+        tax                             ; Save it
+        bpl     @finish
+        jsr     fneg
+@finish:
+        txa                             ; Recover MSB before negation
+        asl     A                       ; Shift 
+        rts
 
-; ; Loads MSB that was saved earlier in the ZP location pointed to by X and
-; ; negates the significand if it was previously negative.
+; Negates FPA if carry is set, otherwise does nothing
+; negates the significand if it was previously negative.
 
-; restore_negative_signifiand:
-;         lda     0,x             ; Retrieve MSB of significand
-;         bmi     fneg
-;         rts
+restore_negative:
+        bcc     @skip
+        jsr     fneg
+@skip:
+        rts
 
 ; Unconditionally negates FPA by subtracting the significand from zero.
 ; X SAFE, BC SAFE, DE SAFE
@@ -812,110 +750,112 @@ char_to_digit:
 ;         ldx     #0
 ;         rts
 
-; ; Adds a value to FPA, returning result in FPA.
-; ; The strategy is to get the number with the larger exponent into FPA.
+; Adds a value to FPA, returning result in FPA.
+; The strategy is to get the number with the larger exponent into FPA.
+; AX = pointer to the float value to add to FPA
 
-; _fadd:
-; fadd:
-;         sta     ptr1            ; Address of other value into ptr1
-;         stx     ptr1+1
-; fadd_ptr1:
-;         lda     (ptr1)          ; ptr1 exponent
-;         sec
-;         sbc     FPA             ; If N eor V then ptr1 exponent < FPA exponent
-;         beq     @equal_exponents ; Exponents are equal, just go ahead to addition
-;         bvc     @v_clear
-;         eor     #$80            ; V is 1 and A7 is N so this does N eor V
-; @v_clear:
-;         bmi     @fpa_greater    ; If N eor V then ptr1 exponent < FPA exponent so don't swap
-;         jsr     swap_fpa_ptr1   ; Swap FPA with the value (clobbers X and Y)
-; @fpa_greater:
-;         lda     FPA             ; FPA exponent is greater
-;         sec                     ; so when we subtract ptr1 exponent,
-;         sbc     (ptr1)          ; we'll get the unsigned difference
-;         sta     tmp3            ; Park exponent differerence in tmp3
+fadd:
+        stax    fp_ptr
+fadd_with_ptr:
+        ldy     #Float::exponent
+        lda     (fp_ptr),y              ; Argument exponent
+        sec
+        sbc     FPA+Float::exponent     ; If N eor V then ptr1 exponent < FPA exponent
+        beq     @equal_exponents        ; Exponents are equal, just go ahead to addition
+        bvc     @v_clear
+        eor     #$80                    ; V is 1 and A7 is N so this does N eor V
+@v_clear:
+        bmi     @fpa_eq_or_gt           ; If N eor V then ptr1 exponent < FPA exponent so don't swap
+        jsr     swap_fpa_with_ptr       ; Swap FPA with the value (clobbers X and Y)
+@fpa_eq_or_gt:
+        sec                     
+        lda     FPA+Float::exponent     ; FPA exponent is equal or greater
+        ldy     #Float::exponent        ; so when we subtract fp_ptr exponent,
+        sbc     (fp_ptr),y              ; we'll get the unsigned difference
+        sta     D                       ; Park exponent differerence in D
 
-; ; TODO: detect if we've reached limit of exponent range.
-; ; TODO: detect if exponent difference is too great and just return FPA in this case.
-; ; TODO: can probably eliminate one of these swaps, or just have a function to negate ptr1.
+; TODO: detect if we've reached limit of exponent range.
+; TODO: detect if exponent difference is too great and just return FPA in this case.
+; TODO: can probably eliminate one of these swaps, or just have a function to negate ptr1.
 
-; ; Negate negative numbers before adjusting.
+; Negate negative numbers before adjusting.
 
-;         ldx     #tmp1           ; Store sign of FPA in tmp1
-;         jsr     negate_negative
-;         jsr     swap_fpa_ptr1   ; Swap values
-;         ldx     #tmp2           ; Sign of ptr1 value in tmp2
-;         jsr     negate_negative
-;         jsr     swap_fpa_ptr1   ; Restore FPA and ptr1
-;         ldx     tmp3            ; Use X to track the exponent difference
+        mva     #0, E                   ; E will keep track of whether FPA and fp_ptr were negative
+        jsr     negate_negative         ; Negate potentially negative FPA
+        asl     A                       ; Carry is 1 if FPA was negative
+        rol     E                       ; Roll the flag into E
+        jsr     swap_fpa_with_ptr       ; Swap values
+        jsr     negate_negative         ; Negate potentially negative fp_ptr
+        asl     A                       ; Carry is 1 if fp_ptr was negative
+        rol     E                       ; Roll the flag into E
+        jsr     swap_fpa_with_ptr       ; Restore FPA and ptr1
+        ldx     D                       ; Use X to track the exponent difference
 
-; ; Try to make the greater exponent of FPA equal to the exponent of FPX by multiplying it by 10.
-; ; Stop either when the exponents are equal or when the multiplication overflows.
+; Try to make the greater exponent of FPA equal to the exponent of FPX by multiplying it by 10.
+; Stop either when the exponents are equal or when the multiplication overflows.
 
-; @grow:
-;         jsr     significand_mul_10 ; Trial multiplication by 10
-;         bcs     @fpa_overflow   ; Can't do this anymore, FPA overflowed
-;         bmi     @fpa_overflow   ; Or it went negative
-;         dec     FPA             ; It worked so decrement exponent and X and try again                     
-;         dex                      
-;         bne     @grow
-;         jmp     @restore_significands
+@grow:
+        jsr     significand_mul_10      ; Trial multiplication by 10
+        bcs     @fpa_overflow           ; Can't do this anymore, FPA overflowed
+        bmi     @fpa_overflow           ; Or it went negative
+        dec     FPA+Float::exponent     ; It worked so decrement exponent and X and try again                     
+        dex                      
+        bne     @grow
+        beq     @restore_significands   ; Unconditional
 
-; ; We can't equalize exponents by multiplying FPA, so now we have to divide the value, which
-; ; will result in some loss of precision. We have to swap the arguments temporarily here because
-; ; we can only divide FPA.
+; We can't equalize exponents by multiplying FPA, so now we have to divide the other value, which will result in
+; some loss of precision. We have to swap the arguments temporarily here because we can only divide FPA.
 
-; @fpa_overflow:
-;         jsr     copy_fpx_significand_to_fpa ; Recover saved significand from FPX
-;         jsr     swap_fpa_ptr1
-; @shrink:
-;         jsr     significand_div_10 ; Divide FPA by 10
-;         inc     FPA             ; Increment exponent
-;         dex                     ; Close the exponent gap
-;         bne     @shrink         ; Still more to do        
-;         jsr     swap_fpa_ptr1   ; Swap back before continuing
+@fpa_overflow:
+        jsr     copy_fpb_significand_to_fpa ; Recover saved significand from FPX
+        jsr     swap_fpa_with_ptr
+@shrink:
+        jsr     significand_div_10      ; Divide FPA by 10
+        inc     FPA+Float::exponent     ; Increment exponent
+        dex                             ; Close the exponent gap
+        bne     @shrink                 ; Still more to do        
+        jsr     swap_fpa_with_ptr       ; Swap back before continuing
 
-; ; When both exponents are equal we can just add the significand of the value to that of FPA. 
+@restore_significands:
+        jsr     swap_fpa_with_ptr       ; Move fp_ptr value back into FPA
+        lsr     E                       ; Shifts negative flag from E into carry
+        jsr     restore_negative
+        jsr     swap_fpa_with_ptr       ; Original value back to FPA; do the same thing
+        lsr     E
+        jsr     restore_negative
 
-; @restore_significands:
-;         ldx     #tmp1
-;         jsr     restore_negative_signifiand
-;         jsr     swap_fpa_ptr1   ; Swap values
-;         ldx     #tmp2
-;         jsr     restore_negative_signifiand
+; When both exponents are equal we can just add the significand of the value to that of FPA. 
 
-; @equal_exponents:
-;         ldy     #1
-;         clc
-;         lda     FPA+1
-;         adc     (ptr1),y        ; Add the significands
-;         sta     FPA+1
-;         iny
-;         lda     FPA+2
-;         adc     (ptr1),y       
-;         sta     FPA+2
-;         iny
-;         lda     FPA+3
-;         adc     (ptr1),y        
-;         sta     FPA+3
-;         iny
-;         lda     FPA+4
-;         adc     (ptr1),y        
-;         sta     FPA+4
+@equal_exponents:
+        ldy     #Float::significand
+        clc
+        lda     FPA+Float::significand
+        adc     (fp_ptr),y              ; Add the significands
+        sta     FPA+Float::significand
+        iny
+        lda     FPA+Float::significand+1
+        adc     (fp_ptr),y       
+        sta     FPA+Float::significand+1
+        iny
+        lda     FPA+Float::significand+2
+        adc     (fp_ptr),y        
+        sta     FPA+Float::significand+2
+        iny
+        lda     FPA+Float::significand+3
+        adc     (fp_ptr),y        
+        sta     FPA+Float::significand+3
 
-; ; If the addition has caused signed overflow, divide the significand by 10
-; ; and increase the exponent.
+; If the addition has caused signed overflow, divide the significand by 10
+; and increase the exponent.
 
-; ; TODO: this doesn't work; I need to negate before dividing by 10
+; TODO: this doesn't work; I need to negate before dividing by 10
 
-;         bvs     @overflow
-;         jmp     return0
-
-; @overflow:
-;         lda     #1
-;         jsr     significand_div_10_ext
-;         inc     FPA
-;         jmp     return0
+        bvc     @done
+        jsr     significand_div_10_ext
+        inc     FPA+Float::exponent
+@done:
+        clc                             ; Signal success
+        rts
 
 ; ; Subtracts a value from FPA, returning result in FPA.
 ; ; Simply negates the value and then delegates to fadd.

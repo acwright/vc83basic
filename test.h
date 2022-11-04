@@ -93,14 +93,15 @@ int encode_number(int number, char lp);
 int encode_byte(char byte_value, char lp);
 
 // fp.s
-void load_fpa(const Float* fp_ptr);
-void store_fpa(const Float* fp_ptr);
+void load_fpa(const Float* value);
+void store_fpa(const Float* value);
 void clear_fpa(void);
 int fpa_is_zero(void);
 void fneg(void);
 int char_to_digit(char c);
 void fp_to_string(void);
 int string_to_fp(void);
+void fadd(const Float* value);
 
 // list.s
 int list_line(const void* line_ptr);

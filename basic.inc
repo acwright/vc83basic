@@ -92,6 +92,7 @@
 .global fp_to_string
 .global string_to_fp
 .global char_to_digit
+.global fadd
 
 ; input.s
 .global exec_input

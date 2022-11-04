@@ -274,10 +274,10 @@ static void test_string_to_fp(void) {
     // Significand limits
     err = call_string_to_fp("2147483647");
     ASSERT_EQ(err, 0);
-    ASSERT_FP_EQ(reg_fpa, 0, 2147483647);
+    ASSERT_FP_EQ(reg_fpa, 0, LONG_MAX);
     err = call_string_to_fp("-2147483648");
     ASSERT_EQ(err, 0);
-    ASSERT_FP_EQ(reg_fpa, 0, -2147483648);
+    ASSERT_FP_EQ(reg_fpa, 0, LONG_MIN);
     // Exponent limits
     err = call_string_to_fp("1E127");
     ASSERT_EQ(err, 0);
@@ -308,59 +308,57 @@ static void test_string_to_fp(void) {
     ASSERT_NE(err, 0);
 }
 
-// static void test_fadd(void) {
-//     char err;
-//     Float value;
-//     PRINT_TEST_NAME();
-//     // 0 + 0
-//     SET_FP(reg_fpa, 0, 1);
-//     SET_FP(value, 0, 1);
-//     err = fadd(&value);
-//     ASSERT_EQ(err, 0);
-//     ASSERT_FP_EQ(reg_fpa, 0, 2);
-//     // 1 + 1
-//     SET_FP(reg_fpa, 0, 0);
-//     SET_FP(value, 0, 0);
-//     err = fadd(&value);
-//     ASSERT_EQ(err, 0);
-//     ASSERT_FP_EQ(reg_fpa, 0, 0);
-//     // 1 + 1E1
-//     SET_FP(reg_fpa, 0, 1);
-//     SET_FP(value, 1, 1);
-//     err = fadd(&value);
-//     ASSERT_EQ(err, 0);
-//     ASSERT_FP_EQ(reg_fpa, 0, 11);
-//     // 1E1 + 1
-//     SET_FP(reg_fpa, 1, 1);
-//     SET_FP(value, 0, 1);
-//     err = fadd(&value);
-//     ASSERT_EQ(err, 0);
-//     ASSERT_FP_EQ(reg_fpa, 0, 11);
-//     // 1 + 3.14159
-//     SET_FP(reg_fpa, 0, 1);
-//     SET_FP(value, -5, 314159);
-//     err = fadd(&value);
-//     ASSERT_EQ(err, 0);
-//     ASSERT_FP_EQ(reg_fpa, -5, 414159);
-//     // 1 + -1
-//     SET_FP(reg_fpa, 0, 1);
-//     SET_FP(value, 0, -1);
-//     err = fadd(&value);
-//     ASSERT_EQ(err, 0);
-//     ASSERT_FP_EQ(reg_fpa, 0, 0);
-//     // 1E1 + -1
-//     SET_FP(reg_fpa, 1, 1);
-//     SET_FP(value, 0, -1);
-//     err = fadd(&value);
-//     ASSERT_EQ(err, 0);
-//     ASSERT_FP_EQ(reg_fpa, 0, 9);
-//     // 1 + -1E1
-//     SET_FP(reg_fpa, 0, 1);
-//     SET_FP(value, 1, -1);
-//     err = fadd(&value);
-//     ASSERT_EQ(err, 0);
-//     ASSERT_FP_EQ(reg_fpa, 0, -9);
-// }
+static void test_fadd(void) {
+    Float value;
+
+    PRINT_TEST_NAME();
+
+    // 0 + 0
+    SET_FP(reg_fpa, 0, 0);
+    SET_FP(value, 0, 0);
+    fadd(&value);
+    ASSERT_FP_EQ(reg_fpa, 0, 0);
+    // 1 + 1
+    SET_FP(reg_fpa, 0, 1);
+    SET_FP(value, 0, 1);
+    fadd(&value);
+    ASSERT_FP_EQ(reg_fpa, 0, 2);
+    // 1 + 1E1
+    SET_FP(reg_fpa, 0, 1);
+    SET_FP(value, 1, 1);
+    fadd(&value);
+    ASSERT_FP_EQ(reg_fpa, 0, 11);
+    // 1E1 + 1
+    SET_FP(reg_fpa, 1, 1);
+    SET_FP(value, 0, 1);
+    fadd(&value);
+    ASSERT_FP_EQ(reg_fpa, 0, 11);
+    // 1 + 3.14159
+    SET_FP(reg_fpa, 0, 1);
+    SET_FP(value, -5, 314159);
+    fadd(&value);
+    ASSERT_FP_EQ(reg_fpa, -5, 414159);
+    // 1 + -1
+    SET_FP(reg_fpa, 0, 1);
+    SET_FP(value, 0, -1);
+    fadd(&value);
+    ASSERT_FP_EQ(reg_fpa, 0, 0);
+    // 1E1 + -1
+    SET_FP(reg_fpa, 1, 1);
+    SET_FP(value, 0, -1);
+    fadd(&value);
+    ASSERT_FP_EQ(reg_fpa, 0, 9);
+    // 1 + -1E1
+    SET_FP(reg_fpa, 0, 1);
+    SET_FP(value, 1, -1);
+    fadd(&value);
+    ASSERT_FP_EQ(reg_fpa, 0, -9);
+    // // LONG_MAX + 1
+    // SET_FP(reg_fpa, 0, LONG_MAX);
+    // SET_FP(value, 0, 1);
+    // fadd(&value);
+    // ASSERT_FP_EQ(reg_fpa, 1, -9);
+}
 
 // static void test_fmul(void) {
 //     char err;
@@ -430,7 +428,7 @@ int main(void) {
     // test_truncate_fp_to_int();
     test_fp_to_string();
     test_string_to_fp();
-    // test_fadd();
+    test_fadd();
     // test_fmul();
     return 0;
 }

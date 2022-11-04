@@ -174,6 +174,10 @@ _string_to_fp:
         jsr     string_to_fp
         jmp     return_carry_flag
 
+_fadd:
+.export _fadd
+        jmp     fadd
+
 ; list.s
 
 _list_line:
