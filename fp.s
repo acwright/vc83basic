@@ -856,13 +856,14 @@ fadd_with_ptr:
 
 ; Subtracts a value from FPA, returning result in FPA.
 ; Simply negates the value and then delegates to fadd.
+; The operation is (FPA - value), but we make it -(value - FPA) in order to use the fneg function on FPA.
 
 fsub:
         stax    fp_ptr
 fsub_with_ptr:
-        jsr     swap_fpa_with_ptr       ; Swap the values
-        jsr     fneg                    ; because we have a negation function for FPA
-        jmp     fadd_with_ptr           ; Continue as fadd
+        jsr     fneg
+        jsr     fadd_with_ptr
+        jmp     fneg
 
 ; Muliplies FPA by the a value, returning the result in FPA.
 ; Scales FPA so product fits into signficand.

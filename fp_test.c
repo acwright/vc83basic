@@ -360,6 +360,26 @@ static void test_fadd(void) {
     // ASSERT_FP_EQ(reg_fpa, 1, -9);
 }
 
+
+static void test_fsub(void) {
+    Float value;
+
+    PRINT_TEST_NAME();
+
+    // Don't need many fsub tests since it just negates its argument and calls fadd.
+
+    // 3.14159 - 1.14159 = 2
+    SET_FP(reg_fpa, -5, 314159);
+    SET_FP(value, -5, 114159);
+    fsub(&value);
+    ASSERT_FP_EQ(reg_fpa, -5, 200000);
+    // -100 - 2.5 = -102.5
+    SET_FP(reg_fpa, 2, -1);
+    SET_FP(value, -1, 25);
+    fsub(&value);
+    ASSERT_FP_EQ(reg_fpa, -1, -1025);
+}
+
 static void test_fmul(void) {
     Float value;
 
@@ -422,6 +442,7 @@ int main(void) {
     test_fp_to_string();
     test_string_to_fp();
     test_fadd();
+    test_fsub();
     test_fmul();
     return 0;
 }
