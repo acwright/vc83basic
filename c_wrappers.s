@@ -186,6 +186,10 @@ _fmul:
 .export _fmul
         jmp     fmul
 
+_fdiv:
+.export _fdiv
+        jmp     fdiv
+
 ; list.s
 
 _list_line:

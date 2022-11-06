@@ -19,8 +19,8 @@ MAXDIGITS = 10
 
 ; We make a lot of assumptions about the size of Float in ths module.
 .assert .sizeof(Float) = 5, error
-.assert .sizeof(Float::exponent) = 1, error
-.assert .sizeof(Float::significand) = 4, error
+.assert .sizeof(Float::e) = 1, error
+.assert .sizeof(Float::s) = 4, error
 
 ; FP accumulator + extended significand
 FPA: .res .sizeof(Float) + 4
@@ -67,11 +67,11 @@ store_fpa_with_ptr:                     ; Entry point if fp_ptr is already set
 
 clear_fpa:
         lda     #0
-        sta     FPA+Float::exponent
-        sta     FPA+Float::significand
-        sta     FPA+Float::significand+1
-        sta     FPA+Float::significand+2
-        sta     FPA+Float::significand+3
+        sta     FPA+Float::e
+        sta     FPA+Float::s
+        sta     FPA+Float::s+1
+        sta     FPA+Float::s+2
+        sta     FPA+Float::s+3
         rts
 
 ; Swaps FPA with a value in memory.
@@ -81,15 +81,15 @@ clear_fpa:
 swap_fpa:
         stax    fp_ptr
 swap_fpa_with_ptr:
-        ldy     #4              ; Y goes from 4 -> 0
+        ldy     #4                      ; Y goes from 4 -> 0
 @next_byte:
-        ldx     FPA,y           ; Swap one byte
+        ldx     FPA,y                   ; Swap one byte
         lda     (fp_ptr),y
-        sta     FPA,y           ; Uses nnnn,y addressing but no way to avoid
+        sta     FPA,y                   ; Uses nnnn,y addressing but no way to avoid
         txa
         sta     (fp_ptr),y
         dey
-        bpl     @next_byte      ; Continue if it hasn't rolled over
+        bpl     @next_byte              ; Continue if it hasn't rolled over
         rts
 
 ; Copies FPA to FPB.
@@ -97,17 +97,17 @@ swap_fpa_with_ptr:
 ; X SAFE, Y SAFE, BC SAFE, DE SAFE
 
 copy_fpa_to_fpb:
-        lda     FPA+Float::exponent
-        sta     FPB+Float::exponent
+        lda     FPA+Float::e
+        sta     FPB+Float::e
 copy_fpa_significand_to_fpb:
-        lda     FPA+Float::significand
-        sta     FPB+Float::significand
-        lda     FPA+Float::significand+1
-        sta     FPB+Float::significand+1
-        lda     FPA+Float::significand+2
-        sta     FPB+Float::significand+2
-        lda     FPA+Float::significand+3
-        sta     FPB+Float::significand+3
+        lda     FPA+Float::s
+        sta     FPB+Float::s
+        lda     FPA+Float::s+1
+        sta     FPB+Float::s+1
+        lda     FPA+Float::s+2
+        sta     FPB+Float::s+2
+        lda     FPA+Float::s+3
+        sta     FPB+Float::s+3
         rts
 
 ; Copies FPB to FPA.
@@ -115,17 +115,17 @@ copy_fpa_significand_to_fpb:
 ; X SAFE, Y SAFE, BC SAFE, DE SAFE
 
 copy_fpb_to_fpa:
-        lda     FPB+Float::exponent
-        sta     FPA+Float::exponent
+        lda     FPB+Float::e
+        sta     FPA+Float::e
 copy_fpb_significand_to_fpa:
-        lda     FPB+Float::significand
-        sta     FPA+Float::significand
-        lda     FPB+Float::significand+1
-        sta     FPA+Float::significand+1
-        lda     FPB+Float::significand+2
-        sta     FPA+Float::significand+2
-        lda     FPB+Float::significand+3
-        sta     FPA+Float::significand+3
+        lda     FPB+Float::s
+        sta     FPA+Float::s
+        lda     FPB+Float::s+1
+        sta     FPA+Float::s+1
+        lda     FPB+Float::s+2
+        sta     FPA+Float::s+2
+        lda     FPB+Float::s+3
+        sta     FPA+Float::s+3
         rts
 
 ; Checks if FPA is zero.
@@ -134,10 +134,10 @@ copy_fpb_significand_to_fpa:
 ; X SAFE, Y SAFE, BC SAFE, DE SAFE
 
 fpa_is_zero:
-        lda     FPA+Float::significand
-        ora     FPA+Float::significand+1
-        ora     FPA+Float::significand+2
-        ora     FPA+Float::significand+3
+        lda     FPA+Float::s
+        ora     FPA+Float::s+1
+        ora     FPA+Float::s+2
+        ora     FPA+Float::s+3
         rts
 
 ; Multiplies the FPA significand by 10. Copies the FPA value into FPB.
@@ -155,38 +155,38 @@ significand_mul_10:
         bcs     @overflow
         jsr     @shift_significand      ; *10
 @overflow:
-        lda     FPA+Float::exponent
-        lda     FPA+Float::significand
-        lda     FPA+Float::significand+1
-        lda     FPA+Float::significand+2
-        lda     FPA+Float::significand+3
+        lda     FPA+Float::e
+        lda     FPA+Float::s
+        lda     FPA+Float::s+1
+        lda     FPA+Float::s+2
+        lda     FPA+Float::s+3
         rts
 
 ; Shifts the signifiand of FPA left, multiplying it by 2.
 
 @shift_significand:
-        asl     FPA+Float::significand
-        rol     FPA+Float::significand+1
-        rol     FPA+Float::significand+2
-        rol     FPA+Float::significand+3
+        asl     FPA+Float::s
+        rol     FPA+Float::s+1
+        rol     FPA+Float::s+2
+        rol     FPA+Float::s+3
         rts
 
 ; Adds the significand of FPX to FPA.
 
 @add_significands:
         clc
-        lda     FPA+Float::significand
-        adc     FPB+Float::significand
-        sta     FPA+Float::significand
-        lda     FPA+Float::significand+1
-        adc     FPB+Float::significand+1
-        sta     FPA+Float::significand+1
-        lda     FPA+Float::significand+2
-        adc     FPB+Float::significand+2
-        sta     FPA+Float::significand+2
-        lda     FPA+Float::significand+3
-        adc     FPB+Float::significand+3
-        sta     FPA+Float::significand+3
+        lda     FPA+Float::s
+        adc     FPB+Float::s
+        sta     FPA+Float::s
+        lda     FPA+Float::s+1
+        adc     FPB+Float::s+1
+        sta     FPA+Float::s+1
+        lda     FPA+Float::s+2
+        adc     FPB+Float::s+2
+        sta     FPA+Float::s+2
+        lda     FPA+Float::s+3
+        adc     FPB+Float::s+3
+        sta     FPA+Float::s+3
         rts
 
 ; Divides the FPA significand by 10.
@@ -200,14 +200,14 @@ significand_div_10:
         lda     #0                      ; Initialize remainder to 0
         ldx     #32                     ; 32 bits
 @next_bit:
-        asl     FPA+Float::significand  ; LSB of FPA+1 (least significant byte) is now 0
-        rol     FPA+Float::significand+1
-        rol     FPA+Float::significand+2
-        rol     FPA+Float::significand+3
+        asl     FPA+Float::s            ; LSB of FPA+1 (least significant byte) is now 0
+        rol     FPA+Float::s+1
+        rol     FPA+Float::s+2
+        rol     FPA+Float::s+3
         rol     A                       ; Bits from significand move into A
         cmp     #10                     ; C ("don't borrow") set if A>=10
         bcc     @not_10                 ; It's <10
-        inc     FPA+Float::significand  ; Increment quotient
+        inc     FPA+Float::s            ; Increment quotient
         sbc     #10                     ; C will still be set here
 @not_10:
         dex
@@ -219,21 +219,21 @@ significand_div_10:
 ; Y SAFE, BC SAFE, DE SAFE
 
 significand_div_10_ext:
-        lda     #0              ; Initialize remainder to 0
-        ldx     #64             ; 64 bits
+        lda     #0                      ; Initialize remainder to 0
+        ldx     #64                     ; 64 bits
 @next_bit:
-        asl     FPA+Float::significand
-        rol     FPA+Float::significand+1
-        rol     FPA+Float::significand+2
-        rol     FPA+Float::significand+3
-        rol     FPA+Float::significand+4
-        rol     FPA+Float::significand+5
-        rol     FPA+Float::significand+6
-        rol     FPA+Float::significand+7
+        asl     FPA+Float::s
+        rol     FPA+Float::s+1
+        rol     FPA+Float::s+2
+        rol     FPA+Float::s+3
+        rol     FPA+Float::s+4
+        rol     FPA+Float::s+5
+        rol     FPA+Float::s+6
+        rol     FPA+Float::s+7
         rol     A               
         cmp     #10             
         bcc     @not_10         
-        inc     FPA+1           
+        inc     FPA+Float::s           
         sbc     #10             
 @not_10:
         dex
@@ -245,7 +245,7 @@ significand_div_10_ext:
 ; BC SAFE, DE SAFE
 
 negate_negative:
-        lda     FPA+4                   ; MSB of significand
+        lda     FPA+Float::s+3          ; MSB of significand
         tax                             ; Save it
         bpl     @finish
         jsr     fneg
@@ -303,7 +303,7 @@ fp_to_string:
 ; If significand is negaitve, output a '-' and then negate the significand.
 
 @not_zero:
-        lda     FPA+Float::significand+3    ; MSB of significand
+        lda     FPA+Float::s+3          ; MSB of significand
         bpl     @generate_digits        ; Already positive, carry on with digits
         lda     #'-'                    ; Store '-' as first character
         sta     buffer,x
@@ -342,18 +342,18 @@ fp_to_string:
 ; If Digits>MAXDIGITS, output in scientific notation.
 
         ldx     bp                      ; Reload the buffer position
-        lda     FPA+Float::exponent     ; Get exponent
+        lda     FPA+Float::e            ; Get exponent
         bmi     @negative_exponent
         tya                             ; Number of generated digits into A
         clc  
-        adc     FPA+Float::exponent     ; A = Y + E digits
+        adc     FPA+Float::e            ; A = Y + E digits
         cmp     #MAXDIGITS+1            ; Add 1 to make carry set indicate >MAXDIGITS instead of >=MAXDIGITS
         bcs     @scientific             ; It's over so print in scientific notation
 
 ; Simple output case for <=MAXDIGITS digits and exponent >= 0.
 
         jsr     output_y_digits
-        ldy     FPA+Float::exponent     ; Positive E is number of trailing zeros (possibly zero)
+        ldy     FPA+Float::e            ; Positive E is number of trailing zeros (possibly zero)
         jsr     output_y_zeros
 @done:
         stx     bp                      ; Update bp with new position
@@ -367,7 +367,7 @@ fp_to_string:
 @negative_exponent:
         tya                             ; Exponent is negative so
         clc                             ; digits to left of decimal is just 
-        adc     FPA+Float::exponent     ; Y + E
+        adc     FPA+Float::e            ; Y + E
         beq     @leading_zeros          ; Just need "0." and A is 0
         bmi     @leading_zeros          ; Need "0." plus -A more leading zeros
         sty     D                       ; Save number of digits in D
@@ -423,8 +423,8 @@ fp_to_string:
         inx
         tya                             ; Increase exponent by whatever's left to print
         clc
-        adc     FPA+Float::exponent     ; A = E + X-1
-        sta     FPA+Float::exponent     ; Store back in FPA
+        adc     FPA+Float::e            ; A = E + X-1
+        sta     FPA+Float::e            ; Store back in FPA
         jsr     output_y_digits
         jsr     remove_trailing_zeros
         jmp     @generate_e
@@ -436,11 +436,11 @@ fp_to_string:
         lda     #'E'
         sta     buffer,x
         inx
-        lda     FPA+Float::exponent     ; Sets N if exponent < 0
+        lda     FPA+Float::e            ; Sets N if exponent < 0
         bpl     @e_positive
         eor     #$FF            
-        sta     FPA+Float::exponent     ; Exponent is now positive
-        inc     FPA+Float::exponent     ; Except not really, still have to do the +1
+        sta     FPA+Float::e            ; Exponent is now positive
+        inc     FPA+Float::e            ; Except not really, still have to do the +1
         lda     #'-'
         sta     buffer,x
         inx
@@ -451,11 +451,11 @@ fp_to_string:
         lda     #0                      ; Zero remainder
         ldx     #8                      ; 8 bits
 @e_next_bit:
-        asl     FPA+Float::exponent
+        asl     FPA+Float::e
         rol     A
         cmp     #10
         bcc     @e_not_10
-        inc     FPA+Float::exponent
+        inc     FPA+Float::e
         sbc     #10                     ; Carry must be set here
 @e_not_10:
         dex
@@ -464,7 +464,7 @@ fp_to_string:
         adc     #'0'
         pha
         iny                             ; Increment generated digits
-        lda     FPA+Float::exponent
+        lda     FPA+Float::e
         bne     @e_next_digit
         ldx     bp                      ; Reload output index
         jsr     output_y_digits
@@ -561,14 +561,14 @@ string_to_fp:
         iny                             ; Increment digits after '.'
         lda     D                       ; Recall the digit
         clc     
-        adc     FPA+Float::significand  ; Add digit to LSB
-        sta     FPA+Float::significand
+        adc     FPA+Float::s            ; Add digit to LSB
+        sta     FPA+Float::s
         bcc     @next_character         ; If no carry then next character
-        inc     FPA+Float::significand+1    ; Otherwise increment next byte
+        inc     FPA+Float::s+1          ; Otherwise increment next byte
         bne     @next_character         ; etc,
-        inc     FPA+Float::significand+2
+        inc     FPA+Float::s+2
         bne     @next_character
-        inc     FPA+Float::significand+3
+        inc     FPA+Float::s+3
         beq     @err_overflow           ; If significand rolled over to 0 then overflow
         jmp     @next_character
 
@@ -581,10 +581,10 @@ string_to_fp:
 @set_exponent:
         sta     D                       ; Use D to temporarily store adjustment
         sec
-        lda     FPA+Float::exponent
+        lda     FPA+Float::e
         sbc     D
         bvs     @err_overflow           ; Adjusting E might cause signed overflow
-        sta     FPA+Float::exponent     ; Store exponent
+        sta     FPA+Float::e            ; Store exponent
         plp                             ; Go get the '-' comparison from earlier
         bne     @positive               ; There was no '-' at the start of the string
         jsr     fneg
@@ -593,7 +593,7 @@ string_to_fp:
         rts
 
 @positive:
-        lda     FPA+Float::significand+3
+        lda     FPA+Float::s+3
         bmi     @err_overflow_2         ; Overflow if we were expecting positive but number is negative
         clc                             ; Signal success
         rts
@@ -627,25 +627,25 @@ string_to_fp:
         jsr     char_to_digit           ; Try to parse as digit
         bcs     @err_not_digit_in_e     ; Was not digit
         sta     D                       ; Park digit in D
-        lda     FPA+Float::exponent     ; Get exponent
+        lda     FPA+Float::e            ; Get exponent
         asl     A                       ; Exponent *2
         bcs     @err_overflow_in_e
         asl     A                       ; *4
         bcs     @err_overflow_in_e
-        adc     FPA+Float::exponent     ; *5, carry guaranteed to be clear
+        adc     FPA+Float::e            ; *5, carry guaranteed to be clear
         bcs     @err_overflow_in_e
         asl     A                       ; *10
         bcs     @err_overflow_in_e
         adc     D                       ; Add in the new digit
         bcs     @err_overflow_in_e
         bmi     @err_overflow_in_e      ; If it goes negative then fail
-        sta     FPA+Float::exponent
+        sta     FPA+Float::e
         jmp     @next_character_e
 
 @finish_e:
         plp                             ; Get the '-' comparison from before
         bne     @finish                 ; If it wasn't negative then all done
-        lda     FPA+Float::exponent     ; Negate exponent
+        lda     FPA+Float::e            ; Negate exponent
         eor     #$FF
         sta     FPA
         inc     FPA
@@ -758,10 +758,10 @@ char_to_digit:
 fadd:
         stax    fp_ptr
 fadd_with_ptr:
-        ldy     #Float::exponent
+        ldy     #Float::e
         lda     (fp_ptr),y              ; Argument exponent
         sec
-        sbc     FPA+Float::exponent     ; If N eor V then ptr1 exponent < FPA exponent
+        sbc     FPA+Float::e            ; If N eor V then ptr1 exponent < FPA exponent
         beq     @equal_exponents        ; Exponents are equal, just go ahead to addition
         bvc     @v_clear
         eor     #$80                    ; V is 1 and A7 is N so this does N eor V
@@ -770,8 +770,8 @@ fadd_with_ptr:
         jsr     swap_fpa_with_ptr       ; Swap FPA with the value (clobbers X and Y)
 @fpa_eq_or_gt:
         sec                     
-        lda     FPA+Float::exponent     ; FPA exponent is equal or greater
-        ldy     #Float::exponent        ; so when we subtract fp_ptr exponent,
+        lda     FPA+Float::e            ; FPA exponent is equal or greater
+        ldy     #Float::e               ; so when we subtract fp_ptr exponent,
         sbc     (fp_ptr),y              ; we'll get the unsigned difference
         sta     D                       ; Park exponent differerence in D
 
@@ -796,7 +796,7 @@ fadd_with_ptr:
         jsr     significand_mul_10      ; Trial multiplication by 10
         bcs     @fpa_overflow           ; Can't do this anymore, FPA overflowed
         bmi     @fpa_overflow           ; Or it went negative
-        dec     FPA+Float::exponent     ; It worked so decrement exponent and X and try again                     
+        dec     FPA+Float::e            ; It worked so decrement exponent and X and try again                     
         dex                      
         bne     @grow
         beq     @restore_significands   ; Unconditional
@@ -809,7 +809,7 @@ fadd_with_ptr:
         jsr     swap_fpa_with_ptr
 @shrink:
         jsr     significand_div_10      ; Divide FPA by 10
-        inc     FPA+Float::exponent     ; Increment exponent
+        inc     FPA+Float::e            ; Increment exponent
         dex                             ; Close the exponent gap
         bne     @shrink                 ; Still more to do        
         jsr     swap_fpa_with_ptr       ; Swap back before continuing
@@ -825,23 +825,23 @@ fadd_with_ptr:
 ; When both exponents are equal we can just add the significand of the value to that of FPA. 
 
 @equal_exponents:
-        ldy     #Float::significand
+        ldy     #Float::s
         clc
-        lda     FPA+Float::significand
+        lda     FPA+Float::s
         adc     (fp_ptr),y              ; Add the significands
-        sta     FPA+Float::significand
+        sta     FPA+Float::s
         iny
-        lda     FPA+Float::significand+1
+        lda     FPA+Float::s+1
         adc     (fp_ptr),y       
-        sta     FPA+Float::significand+1
+        sta     FPA+Float::s+1
         iny
-        lda     FPA+Float::significand+2
+        lda     FPA+Float::s+2
         adc     (fp_ptr),y        
-        sta     FPA+Float::significand+2
+        sta     FPA+Float::s+2
         iny
-        lda     FPA+Float::significand+3
+        lda     FPA+Float::s+3
         adc     (fp_ptr),y        
-        sta     FPA+Float::significand+3
+        sta     FPA+Float::s+3
 
 ; If the addition has caused signed overflow, divide the significand by 10
 ; and increase the exponent.
@@ -850,7 +850,7 @@ fadd_with_ptr:
 
         bvc     @done
         jsr     significand_div_10_ext
-        inc     FPA+Float::exponent
+        inc     FPA+Float::e
 @done:
         rts
 
@@ -869,8 +869,8 @@ fsub_with_ptr:
 ; Scales FPA so product fits into signficand.
 
 ; Logic that handles Y depends on exponent being 0 and significand being 1
-.assert Float::exponent = 0, error
-.assert Float::significand = 1, error
+.assert Float::e = 0, error
+.assert Float::s = 1, error
 
 fmul:
         stax    fp_ptr
@@ -882,49 +882,49 @@ fmul_with_ptr:
         rol     E                       ; Roll the flag into E (don't care what was there before)
         jsr     swap_fpa_with_ptr       ; Restore FPA and value to original positions
         jsr     copy_fpa_to_fpb         ; FPA -> FPB so we can use FPA for product
-        ldy     #Float::exponent
+        ldy     #Float::e
         lda     (fp_ptr),y              ; Load value exponent
         clc
-        adc     FPA+Float::exponent     ; Add FPA exponent
+        adc     FPA+Float::e            ; Add FPA exponent
         bvs     @err_overflow           ; If overflow then fail
-        sta     FPA+Float::exponent     ; Store result exponent back in FPA
-        sty     FPA+Float::significand+4    ; Zero out the high 32 bits of the product
-        sty     FPA+Float::significand+5           
-        sty     FPA+Float::significand+6
-        sty     FPA+Float::significand+7
+        sta     FPA+Float::e            ; Store result exponent back in FPA
+        sty     FPA+Float::s+4          ; Zero out the high 32 bits of the product
+        sty     FPA+Float::s+5           
+        sty     FPA+Float::s+6
+        sty     FPA+Float::s+7
         ldx     #32                     ; 32 multiplication cycles
 @next_bit:
-        lsr     FPB+Float::significand+3    ; Shift the multiplicand right
-        ror     FPB+Float::significand+2
-        ror     FPB+Float::significand+1
-        ror     FPB+Float::significand
+        lsr     FPB+Float::s+3          ; Shift the multiplicand right
+        ror     FPB+Float::s+2
+        ror     FPB+Float::s+1
+        ror     FPB+Float::s
         bcc     @skip                   ; Bit 0 of multiplicand was zero; don't add
-        ldy     #Float::significand
+        ldy     #Float::s
         clc
-        lda     FPA+Float::significand+4    ; Add value to high 32 bits of FPA
+        lda     FPA+Float::s+4          ; Add value to high 32 bits of FPA
         adc     (fp_ptr),y
-        sta     FPA+Float::significand+4
+        sta     FPA+Float::s+4
         iny
-        lda     FPA+Float::significand+5
+        lda     FPA+Float::s+5
         adc     (fp_ptr),y
-        sta     FPA+Float::significand+5
+        sta     FPA+Float::s+5
         iny
-        lda     FPA+Float::significand+6
+        lda     FPA+Float::s+6
         adc     (fp_ptr),y
-        sta     FPA+Float::significand+6
+        sta     FPA+Float::s+6
         iny
-        lda     FPA+Float::significand+7
+        lda     FPA+Float::s+7
         adc     (fp_ptr),y
-        sta     FPA+Float::significand+7
+        sta     FPA+Float::s+7
 @skip:
-        ror     FPA+Float::significand+7    ; Shift carry and 64-bit FPA significand one place to right
-        ror     FPA+Float::significand+6
-        ror     FPA+Float::significand+5
-        ror     FPA+Float::significand+4
-        ror     FPA+Float::significand+3
-        ror     FPA+Float::significand+2
-        ror     FPA+Float::significand+1
-        ror     FPA+Float::significand
+        ror     FPA+Float::s+7          ; Shift carry and 64-bit FPA significand one place to right
+        ror     FPA+Float::s+6
+        ror     FPA+Float::s+5
+        ror     FPA+Float::s+4
+        ror     FPA+Float::s+3
+        ror     FPA+Float::s+2
+        ror     FPA+Float::s+1
+        ror     FPA+Float::s
         dex                             ; Decrement bit counter
         bne     @next_bit               ; Keep going
 
@@ -932,10 +932,10 @@ fmul_with_ptr:
 ; Divide the product by 10 until the top word is clear.
 
 @shrink:
-        lda     FPA+Float::significand+4
-        ora     FPA+Float::significand+5
-        ora     FPA+Float::significand+6
-        ora     FPA+Float::significand+7
+        lda     FPA+Float::s+4
+        ora     FPA+Float::s+5
+        ora     FPA+Float::s+6
+        ora     FPA+Float::s+7
         beq     @done
         jsr     significand_div_10_ext
         inc     FPA                     ; Increase exponent to compensate for division
@@ -949,9 +949,85 @@ fmul_with_ptr:
         bcc     @positive               ; If both bits were 0 or 1 then product is positive
         jsr     fneg                    ; Product is negative
 @positive:
-        clc
         rts
 
 @err_overflow:
+        rts
+
+; Divides FPA by the a value, returning the quotient in FPA.
+; Shifts the dividend left into the FPA extended significand. After each shift, check if it's greater than the
+; dividend; if so then add one to the significand. After 32 operations, the quotient will be in the lower 32 bits
+; of FPA and the remainder will be in the upper 32 bits.
+
+; TODO: check divide by zero
+
+fdiv:
+        stax    fp_ptr
+fdiv_with_ptr:
+        jsr     negate_negative         ; Make both operands positive
+        rol     E                       ; Roll the flag into E (don't care what was there before)
+        jsr     swap_fpa_with_ptr
+        jsr     negate_negative         ; Make both operands positive
+        rol     E                       ; Roll the flag into E (don't care what was there before)
+        jsr     copy_fpa_to_fpb         ; Copy the divisor into FPB since we're going to use it a lot
+        jsr     swap_fpa_with_ptr       ; Restore FPA and value to original positions
+        lda     FPA+Float::e            ; Subtract divisor exponent from dividend exponent
         sec
+        sbc     FPB+Float::e
+        bvs     @err_overflow           ; If overflow then fail
+        sta     FPA+Float::e            ; Save back as FPA exponent
+        ldy     #0
+        sty     FPA+Float::s+4          ; Zero out the high 32 bits of the product
+        sty     FPA+Float::s+5           
+        sty     FPA+Float::s+6
+        sty     FPA+Float::s+7
+        ldx     #32                     ; 32 bits
+@next_bit:
+        asl     FPA+Float::s
+        rol     FPA+Float::s+1
+        rol     FPA+Float::s+2
+        rol     FPA+Float::s+3
+        rol     FPA+Float::s+4
+        rol     FPA+Float::s+5
+        rol     FPA+Float::s+6
+        rol     FPA+Float::s+7
+        lda     FPA+Float::s+7          ; Compare FPA extended siginficand with FPB (divisor)
+        cmp     FPB+Float::s+3
+        bcc     @less_than_divisor
+        lda     FPA+Float::s+6
+        cmp     FPB+Float::s+2
+        bcc     @less_than_divisor
+        lda     FPA+Float::s+5
+        cmp     FPB+Float::s+1
+        bcc     @less_than_divisor
+        lda     FPA+Float::s+4
+        cmp     FPB+Float::s
+        bcc     @less_than_divisor
+        sec                             ; Subtract dividend in FPB from FPA extended significand
+        lda     FPA+Float::s+7
+        sbc     FPB+Float::s+3
+        sta     FPA+Float::s+7
+        lda     FPA+Float::s+6
+        sbc     FPB+Float::s+2
+        sta     FPA+Float::s+6
+        lda     FPA+Float::s+5
+        sbc     FPB+Float::s+1
+        sta     FPA+Float::s+5
+        lda     FPA+Float::s+4
+        sbc     FPB+Float::s
+        sta     FPA+Float::s+4
+        inc     FPA+Float::s            ; Increment quotient
+@less_than_divisor:
+        dex                             ; One bit done
+        bne     @next_bit               ; Continue if more
+        lda     E                       ; Bits 0-1 of E are negative flags
+        lsr     A                       ; Bit 0 of A is bit 1 from E
+        eor     E                       ; Effectively EORs the two bits together
+        lsr     A                       ; Shift it into carry
+        bcc     @positive               ; If both bits were 0 or 1 then product is positive
+        jsr     fneg                    ; Product is negative
+@positive:
+        rts
+
+@err_overflow:
         rts

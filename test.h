@@ -18,8 +18,8 @@ typedef struct Line {
 } Line;
 
 typedef struct Float {
-    signed char exponent;
-    long significand;
+    signed char e;
+    long s;
 } Float;
 
 // Zero Page
@@ -104,6 +104,7 @@ int string_to_fp(void);
 void fadd(const Float* value);
 void fsub(const Float* value);
 void fmul(const Float* value);
+void fdiv(const Float* value);
 
 // list.s
 int list_line(const void* line_ptr);

@@ -17,8 +17,8 @@
 .endstruct
 
 .struct Float
-    exponent .res 1
-    significand .res 4
+    e .res 1    ; Exponent
+    s .res 4    ; Significand
 .endstruct
 
 ; Zero Page
@@ -95,6 +95,7 @@
 .global fadd
 .global fsub
 .global fmul
+.global fdiv
 
 ; input.s
 .global exec_input

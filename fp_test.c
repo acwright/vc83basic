@@ -1,13 +1,13 @@
 #include "test.h"
 
-#define SET_FP(value, exponent_value, significand_value) do { \
-    value.exponent = (exponent_value); \
-    value.significand = (significand_value); \
+#define SET_FP(value, e_value, s_value) do { \
+    value.e = (e_value); \
+    value.s = (s_value); \
 } while (0)
 
-#define ASSERT_FP_EQ(value, exponent_value, significand_value) do { \
-    ASSERT_EQ(value.exponent, exponent_value); \
-    ASSERT_EQ(value.significand, significand_value); \
+#define ASSERT_FP_EQ(value, e_value, s_value) do { \
+    ASSERT_EQ(value.e, e_value); \
+    ASSERT_EQ(value.s, s_value); \
 } while (0)
 
 static void test_load_fpa(void) {
@@ -303,7 +303,7 @@ static void test_string_to_fp(void) {
     ASSERT_NE(err, 0);
     err = call_string_to_fp("1E-1000");
     ASSERT_NE(err, 0);
-    // Adjusted exponent out of range
+    // Adjusted e out of range
     err = call_string_to_fp("3.14159E-125");
     ASSERT_NE(err, 0);
 }
@@ -359,7 +359,6 @@ static void test_fadd(void) {
     // fadd(&value);
     // ASSERT_FP_EQ(reg_fpa, 1, -9);
 }
-
 
 static void test_fsub(void) {
     Float value;
@@ -426,7 +425,49 @@ static void test_fmul(void) {
     SET_FP(value, -5, 314159);
     fmul(&value);
     ASSERT_FP_EQ(reg_fpa, -8, 986958772);
- }
+}
+
+static void test_fdiv(void) {
+    Float value;
+
+    PRINT_TEST_NAME();
+    
+    // 1 / 1 = 1
+    SET_FP(reg_fpa, 0, 1);
+    SET_FP(value, 0, 1);
+    fdiv(&value);
+    ASSERT_FP_EQ(reg_fpa, 0, 1);
+    
+    // 8 / 2 = 4
+    SET_FP(reg_fpa, 0, 8);
+    SET_FP(value, 0, 2);
+    fdiv(&value);
+    ASSERT_FP_EQ(reg_fpa, 0, 4);
+    
+    // 3.14159 / 1 = 3.14159
+    SET_FP(reg_fpa, -5, 314159);
+    SET_FP(value, 0, 1);
+    fdiv(&value);
+    ASSERT_FP_EQ(reg_fpa, -5, 314159);
+    
+    // 3.14159 / 1E1 = 0.314159
+    SET_FP(reg_fpa, -5, 314159);
+    SET_FP(value, 1, 1);
+    fdiv(&value);
+    ASSERT_FP_EQ(reg_fpa, -6, 314159);
+    
+    // // 3 / 10 = 0.3
+    // SET_FP(reg_fpa, 0, 3);
+    // SET_FP(value, 0, 10);
+    // fdiv(&value);
+    // ASSERT_FP_EQ(reg_fpa, -1, 3);
+    
+    // // 3.14159 / 10 = 0.314159
+    // SET_FP(reg_fpa, -5, 314159);
+    // SET_FP(value, 0, 10);
+    // fdiv(&value);
+    // ASSERT_FP_EQ(reg_fpa, -6, 314159);
+}
 
 int main(void) {
     initialize_target();
@@ -444,5 +485,6 @@ int main(void) {
     test_fadd();
     test_fsub();
     test_fmul();
+    test_fdiv();
     return 0;
 }

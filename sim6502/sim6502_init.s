@@ -84,19 +84,19 @@ debug_handler:
         jsr     pusha0
         lda     save_sp                 ; SP, ...
         jsr     pusha0
-        lda     FPA+Float::significand+6    ; FPA significand, ...
-        ldx     FPA+Float::significand+7
+        lda     FPA+Float::s+6          ; FPA significand, ...
+        ldx     FPA+Float::s+7
         jsr     pushax
-        lda     FPA+Float::significand+4
-        ldx     FPA+Float::significand+5
+        lda     FPA+Float::s+4
+        ldx     FPA+Float::s+5
         jsr     pushax
-        lda     FPA+Float::significand+2
-        ldx     FPA+Float::significand+3
+        lda     FPA+Float::s+2
+        ldx     FPA+Float::s+3
         jsr     pushax
-        lda     FPA+Float::significand
-        ldx     FPA+Float::significand+1
+        lda     FPA+Float::s
+        ldx     FPA+Float::s+1
         jsr     pushax
-        lda     FPA+Float::exponent     ; FPA exponent, ...
+        lda     FPA+Float::e            ; FPA exponent, ...
         jsr     pusha0
         lda     #<flag_indicators       ; flag_indicators)
         ldx     #>flag_indicators
