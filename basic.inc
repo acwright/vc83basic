@@ -127,7 +127,6 @@
 .global add_variable
 
 ; parser.s
-.global read_number
 .global parse_line
 .global parse_element
 .global parse_next_element

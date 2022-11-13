@@ -684,6 +684,7 @@ int_to_fp:
 ; adjust the exponent to 0 by dividing or multiplying by 10. It's okay if, when dividing by 10,
 ; we lose digits off the right since this is a truncation function. After adjusting we check
 ; to see if the value is in range. 
+; Returns the integer value in AX.
 
 truncate_fp_to_int:
 

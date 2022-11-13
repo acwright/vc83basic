@@ -13,8 +13,10 @@ exec_input:
 @next_var:
         jsr     decode_variable         ; Read the variable
         jsr     set_variable_value_ptr  ; Sets variable_value_ptr to the storage for this variable
-        jsr     read_number             ; Returns value in AX
+        jsr     string_to_fp            ; Parse the number
         bcs     @error                  ; Failed to read a number
+        jsr     truncate_fp_to_int      ; To integer and return in AX
+        bcs     @error                  ; Number was not an integer
         jsr     set_variable_value      ; Store the value
         ldy     lp                      ; Peek at the next byte
         lda     (line_ptr),y            

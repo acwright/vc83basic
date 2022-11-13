@@ -17,50 +17,18 @@ argument_count: .res 1
 ; line_buffer = the buffer containing the tokenized output
 ; lp = the token write position in line_buffer (modified on success)
 
-; Reads a number from the buffer.
-; If the first character is not a number, then return an error. Otherwise, read up to the first non-digit.
-; bp = the read position in buffer
-; Returns the number in AX, carry clear if ok, carry set if error
-
-read_number:
-        jsr     skip_whitespace         ; TODO: can check return here to see if it's a number
-        ldy     bp                      ; Use Y to index buffer (since AX will hold the number)
-        lda     #0                      ; Intialize the value to 0
-        tax
-@next:
-        pha                             ; Save A (low byte of value)
-        lda     buffer,y    
-        jsr     char_to_digit           ; X SAFE function
-        sta     B                       ; Store the digit value
-        pla                             ; Retrieve the low byte of value
-        bcs     @finish                 ; If there was an error in char_to_digit, stop parsing
-        iny                             ; No error, increment read position
-        jsr     mul10                   ; Multiply the value by 10 (preserves Y)
-        clc
-        adc     B                       ; Add the digit value
-        bcc     @next                   ; If carry clear then next digit
-        inx                             ; Otherwise increment high byte
-        jmp     @next
-
-@finish:
-        cpy     bp                      ; Did we parse anything?
-        beq     @nothing                ; Nope
-        sty     bp                      ; Update read position
-        clc                             ; Clear carry to signal OK
-        rts
-
-@nothing:
-        sec                             ; Set carry to signal error
-        rts
-
 ; Parses a line from the buffer. The line is an optional line number followed by statements.
 ; If the line number is missing, set it to -1.
 
 parse_line:
         mva     #0, bp                  ; Initialize the read pointer
         mva     #Line::data, lp         ; Initialize write pointer
-        jsr     read_number             ; Leaves line number in AX and bp points to next character in buffer
-        bcc     @store_line_number      ; Line number was provided so store it
+        jsr     string_to_fp            ; Parse line number
+        bcs     @no_line_number         ; Line number was provided so store it
+        jsr     truncate_fp_to_int      ; Truncate line number to integer
+        bcs     @done                   ; Out of range
+        bcc     @store_line_number
+@no_line_number:
         lda     #$FF                    ; Otherwise store -1 ($FFFF) instead
         tax
 @store_line_number:
@@ -265,7 +233,9 @@ parse_unary_operator:
 ; Parses a number from the buffer.
 
 parse_number:
-        jsr     read_number
+        jsr     string_to_fp            ; Parse the number
+        bcs     @done
+        jsr     truncate_fp_to_int      ; To integer
         bcs     @done
         jsr     encode_number           ; Will set carry if fail
 @done:

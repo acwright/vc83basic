@@ -263,12 +263,6 @@ _add_variable:
 
 ; parser.s
 
-_read_number:
-.export _read_number
-        sta     bp                      ; Buffer index
-        jsr     read_number
-        jmp     return_carry_flag
-
 _parse_line:
 .export _parse_line
         jsr     parse_line
