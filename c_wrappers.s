@@ -414,8 +414,3 @@ _invoke_indexed_vector:
         ldy     B      
         jmp     invoke_indexed_vector
 
-_format_number:
-.export _format_number
-        sta     bp
-        jsr     popax
-        jmp     format_number

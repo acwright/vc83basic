@@ -170,7 +170,6 @@
 .global clear_memory
 .global mul2a, mul2, mul10, div10
 .global invoke_indexed_vector
-.global format_number
 
 ; target/*
 .global startup, initialize_target, readline, getchar, write, putchar, newline

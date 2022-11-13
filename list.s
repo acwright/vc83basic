@@ -41,7 +41,8 @@ list_line:
         tax                             ; Move into X
         dey                             ; Position of line number low byte
         lda     (line_ptr),y
-        jsr     format_number           ; Format into buffer
+        jsr     int_to_fp
+        jsr     fp_to_string            ; Format into buffer
         jsr     putchar_space_buffer
         mva     #Line::data, lp         ; Initialize read position to start of data
         jsr     decode_byte             ; Get statement token
@@ -191,7 +192,8 @@ list_statement:
 list_number:
         jsr     add_whitespace
         jsr     decode_number           ; Decode the number
-        jmp     format_number           ; Send it right to format_number
+        jsr     int_to_fp
+        jmp     fp_to_string            ; Format into buffer
 
 loop_list_repeated_number:
         lda     #','                    ; Write ',' to output

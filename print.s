@@ -15,7 +15,8 @@ exec_print:
 
 print_number:
         mvy     #0, bp
-        jsr     format_number
+        jsr     int_to_fp
+        jsr     fp_to_string            ; Format into buffer
         ldax    #buffer
         ldy     bp
         jmp     write

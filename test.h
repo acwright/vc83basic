@@ -148,7 +148,6 @@ int mul2(int value);
 int mul10(int value);
 int div10(int value);
 int invoke_indexed_vector(void* vectors, char index);
-void format_number(int number, char bp);
 
 // Common functions and definitions used in tests
 

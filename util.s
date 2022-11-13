@@ -244,35 +244,3 @@ invoke_indexed_vector:
         lda     (vector_table_ptr),y    
         sta     E
         jmp     (DE)                    ; Handler function RTS will return from *this* function
-
-; Formats a number into buffer. Does not perform any error checking. On exit, X points to the next write position
-; in buffer (i.e., it is equal to bp).
-; AX = the number to format
-; bp = the position within buffer (updated)
-
-format_number:
-        sta     B                       ; Keep low byte in B while we use A for other things
-        lda     #0                      ; Push 0 on the stack
-        pha
-@next_digit:
-        lda     B                       ; Recover low byte
-        jsr     div10                   ; Divide AX by 10
-        sta     B                       ; Save low byte
-        tya                             ; Transfer remainder into A
-        clc
-        adc     #'0'
-        pha                             ; Push digit
-        txa                             ; High byte into A
-        ora     B                       ; OR with saved low byte
-        bne     @next_digit             ; Still more digits
-        ldx     bp                      ; Load write offset into X
-@output_digit:
-        pla                             ; Get a digit
-        beq     @done                   ; If it's 0 then we're done
-        sta     buffer,x                ; Store in line_buffer
-        inx                             ; Update write position
-        jmp     @output_digit
-
-@done:
-        stx     bp                      ; Update X
-        rts
