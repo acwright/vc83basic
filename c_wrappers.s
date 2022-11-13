@@ -397,16 +397,6 @@ _mul2:
 .export _mul2
         jmp     mul2
 
-_mul10:
-.export _mul10
-        jmp     mul10
-
-_div10:
-.export _div10
-        jsr     div10
-        sty     _reg_y                  ; Save remainder
-        rts
-
 _invoke_indexed_vector:
 .export _invoke_indexed_vector
         sta     B                       ; Index arrives in A; we need it in Y

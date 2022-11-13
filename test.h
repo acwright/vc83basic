@@ -145,8 +145,6 @@ void copy_bytes(char* to, const char* from, size_t size);
 void copy_bytes_higher(char* to, const char* from, size_t size);
 void clear_memory(char* p, size_t size);
 int mul2(int value);
-int mul10(int value);
-int div10(int value);
 int invoke_indexed_vector(void* vectors, char index);
 
 // Common functions and definitions used in tests

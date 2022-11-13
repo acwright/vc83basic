@@ -123,43 +123,6 @@ static void test_mul2(void) {
     ASSERT_EQ(result, 2000);
 }
 
-static void test_mul10(void) {
-    int result;
-
-    PRINT_TEST_NAME();
-
-    result = mul10(0);
-    ASSERT_EQ(result, 0);
-    result = mul10(1);
-    ASSERT_EQ(result, 10);
-    result = mul10(30);
-    ASSERT_EQ(result, 300);
-    result = mul10(1000);
-    ASSERT_EQ(result, 10000);
-}
-
-static void test_div10(void) {
-    int result;
-
-    PRINT_TEST_NAME();
-
-    result = div10(0);
-    ASSERT_EQ(result, 0);
-    ASSERT_EQ(reg_y, 0);
-    result = div10(1);
-    ASSERT_EQ(result, 0);
-    ASSERT_EQ(reg_y, 1);
-    result = div10(10);
-    ASSERT_EQ(result, 1);
-    ASSERT_EQ(reg_y, 0);
-    result = div10(399);
-    ASSERT_EQ(result, 39);
-    ASSERT_EQ(reg_y, 9);
-    result = div10(10000);
-    ASSERT_EQ(result, 1000);
-    ASSERT_EQ(reg_y, 0);
-}
-
 static int f1(void) {
     return 31415;
 }
@@ -190,8 +153,6 @@ int main(void) {
     test_copy_bytes();
     test_copy_bytes_higher();
     test_mul2();
-    test_mul10();
-    test_div10();
     test_invoke_indexed_vector();
     return 0;
 }
