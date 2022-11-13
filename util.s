@@ -137,6 +137,8 @@ copy_bytes_higher_de:
 ; On return the byte count will remain in DE.
 ; BC SAFE
 
+clear_memory_a:
+        ldx     #0
 clear_memory:
         stax    DE                      ; Number of bytes in DE
 clear_memory_de:
@@ -164,15 +166,19 @@ clear_memory_de:
 @done:
         rts
 
-; Shifts the value in AX left by 1 bit, multiplying it by 2.
+; Shifts the value in AX left by 3 bits, multiplying it by 3.
 ; Y SAFE, BC SAFE
 
-mul2a:
+mul8a:
         ldx     #0                      ; Only multiply A by initializing high byte to 0     
-mul2:
+mul8:
         stx     E                       ; Park high byte in E so we can roll into it
-        asl     A                       ; Low byte * 2
-        rol     E                       ; High byte * 2
+        asl     A                       ; Shift AE left 3 bits to multiply by 8
+        rol     E
+        asl     A
+        rol     E
+        asl     A
+        rol     E
         ldx     E                       ; Reload X
         rts
 

@@ -343,9 +343,9 @@ static void test_set_variable_value_ptr(void) {
     set_variable_value_ptr(0);
     ASSERT_EQ(variable_value_ptr, (void*)((int*)value_table_ptr));
     set_variable_value_ptr(1);
-    ASSERT_EQ(variable_value_ptr, (void*)((int*)value_table_ptr + 1));
+    ASSERT_EQ(variable_value_ptr, (void*)((char*)value_table_ptr + 8));
     set_variable_value_ptr(127);
-    ASSERT_EQ(variable_value_ptr, (void*)((int*)value_table_ptr + 127));
+    ASSERT_EQ(variable_value_ptr, (void*)((char*)value_table_ptr + 1016));
 }
 
 int main(void) {

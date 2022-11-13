@@ -393,9 +393,9 @@ _clear_memory:
         ldax    DE                      ; Restore size into AX
         jmp     clear_memory
 
-_mul2:
-.export _mul2
-        jmp     mul2
+_mul8:
+.export _mul8
+        jmp     mul8
 
 _invoke_indexed_vector:
 .export _invoke_indexed_vector

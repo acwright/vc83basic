@@ -202,11 +202,9 @@ add_variable:
         bcs     @fail
         lda     variable_count
         jsr     set_variable_value_ptr  ; variable_value_ptr points to the space for the new value
-        ldy     #0                      ; Offset 0
-        tya
-        sta     (variable_value_ptr),y  ; Zero the new value
-        iny
-        sta     (variable_value_ptr),y  ; Zero the new value
+        mvaa    variable_value_ptr, dst_ptr ; Set as destination of clear operation
+        lda     #8                      ; Clear 8 bytes
+        jsr     clear_memory_a
         ldx     bp                      ; Reload read position
         ldy     #$FF                    ; Write position relative to name_ptr; init to -1 since we pre-increment
 @copy:

@@ -108,19 +108,19 @@ static void test_copy_bytes_higher(void) {
     test_copy_bytes_higher_case(4000, 256);
 }
 
-static void test_mul2(void) {
+static void test_mul8(void) {
     int result;
 
     PRINT_TEST_NAME();
 
-    result = mul2(0);
+    result = mul8(0);
     ASSERT_EQ(result, 0);
-    result = mul2(1);
-    ASSERT_EQ(result, 2);
-    result = mul2(30);
-    ASSERT_EQ(result, 60);
-    result = mul2(1000);
-    ASSERT_EQ(result, 2000);
+    result = mul8(1);
+    ASSERT_EQ(result, 8);
+    result = mul8(30);
+    ASSERT_EQ(result, 240);
+    result = mul8(1000);
+    ASSERT_EQ(result, 8000);
 }
 
 static int f1(void) {
@@ -152,7 +152,7 @@ int main(void) {
     test_clear_memory();
     test_copy_bytes();
     test_copy_bytes_higher();
-    test_mul2();
+    test_mul8();
     test_invoke_indexed_vector();
     return 0;
 }

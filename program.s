@@ -85,7 +85,7 @@ initialize_program:
 reset_program_state:
         mvaa    value_table_ptr, dst_ptr    ; Prepare to clear variable value table
         lda     variable_count          ; Amount to clear is variable_count * 2
-        jsr     mul2a
+        jsr     mul8a
         jsr     clear_memory            ; Leaves the size of variable value table in DE
         clc
         lda     D                       ; Add size of variable value table to value_table_ptr
@@ -343,7 +343,7 @@ check_himem:
 ; Y SAFE, BC SAFE
 
 set_variable_value_ptr:
-        jsr     mul2a                   ; Multiply by 2; since MSB was clear, this will clear carry
+        jsr     mul8a                   ; Multiply by 2; since MSB was clear, this will clear carry
         adc     value_table_ptr         ; Add to the value table offset
         sta     variable_value_ptr      ; Store low byte
         txa                             

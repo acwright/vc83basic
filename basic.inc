@@ -167,8 +167,8 @@
 
 ; util.s
 .global copy_bytes, copy_bytes_a, copy_bytes_de, copy_bytes_higher, copy_bytes_higher_a, copy_bytes_higher_de
-.global clear_memory
-.global mul2a, mul2
+.global clear_memory, clear_memory_a, clear_memory_de
+.global mul8a, mul8
 .global invoke_indexed_vector
 
 ; target/*

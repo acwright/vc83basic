@@ -201,6 +201,9 @@ static void test_add_variable(void) {
     ASSERT_EQ(variable_name_table_ptr[1], 0);
     ASSERT_EQ(value_table_ptr, variable_name_table_ptr + 2);
     ASSERT_EQ(*(int*)value_table_ptr, 0);
+    ASSERT_EQ(*((int*)value_table_ptr + 1), 0);
+    ASSERT_EQ(*((int*)value_table_ptr + 2), 0);
+    ASSERT_EQ(*((int*)value_table_ptr + 3), 0);
     ASSERT_EQ(free_ptr, (char*)value_table_ptr + 2);
 
     strcpy(buffer, "Y,Z");
