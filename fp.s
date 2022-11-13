@@ -663,91 +663,77 @@ char_to_digit:
 ; A, X = 16-bit integer.
 ; No return value.
 
-; _int_to_fp:
-; int_to_fp:
-;         sta     FPA+1                   ; Store low byte
-;         stx     FPA+2                   ; Store high byte
-;         txa                             ; High byte to A
-;         asl     A                       ; Shift sign bit into carry
-;         lda     #0
-;         sta     FPA                     ; Set exponent to 0
-;         adc     #$FF                    ; Carry still has sign bit; A = $FF if positive, 0 if negative
-;         eor     #$FF                    ; Invert bits; A is now $FF if number was negative
-;         sta     FPA+3                   ; Sign extend the 16-bit integer to 32-bit significand
-;         sta     FPA+4
-;         rts
+int_to_fp:
+        sta     FPA+Float::s            ; Store low byte
+        stx     FPA+Float::s+1          ; Store high byte
+        txa                             ; High byte to A
+        asl     A                       ; Shift sign bit into carry
+        lda     #0
+        sta     FPA                     ; Set exponent to 0
+        adc     #$FF                    ; Carry still has sign bit; A = $FF if positive, 0 if negative
+        eor     #$FF                    ; Invert bits; A is now $FF if number was negative
+        sta     FPA+Float::s+2          ; Sign extend the 16-bit integer to 32-bit significand
+        sta     FPA+Float::s+3
+        rts
 
-; ; Truncate FPA to an integer and return it in the integer pointed to by AX.
-; ; FPA must be in the range -32,768 to 32,767. FPA values aren't necessarily
-; ; normalized so we could encounter 10 as 10E+0, 1E+1, or 100E-1. First we
-; ; adjust the exponent to 0 by dividing or multiplying by 10. It's okay if, when dividing by 10,
-; ; we lose digits off the right since this is a truncation function. After adjusting we check
-; ; to see if the value is in range. 
-; ; Returns error code in A.
+; Truncates FPA to an integer and store the result in the lower two bytes of FPA.
+; FPA must be in the range -32,768 to 32,767. FPA values aren't necessarily
+; normalized so we could encounter 10 as 10E+0, 1E+1, or 100E-1. First we
+; adjust the exponent to 0 by dividing or multiplying by 10. It's okay if, when dividing by 10,
+; we lose digits off the right since this is a truncation function. After adjusting we check
+; to see if the value is in range. 
 
-; _truncate_fp_to_int:
-; truncate_fp_to_int:
-;         sta     ptr1                    ; Integer address into ptr1
-;         stx     ptr1+1
+truncate_fp_to_int:
 
-; ; Make the exponent 0, which will leave the integer value int the two least-significant bytes
-; ; of the significand.
+; Make the exponent 0, which will leave the integer value int the two least-significant bytes
+; of the significand.
 
-; truncate_fp_to_int_ptr1:                ; Entry point if ptr1 already set
-;         ldx     FPA                     ; Go get the exponent byte
-;         beq     @to_int                 ; E was 0, go directly to getting int
-;         bmi     @negative_e             ; E was negative
+@dec_e:
+        lda     FPA+Float::e            ; Test the exponent byte
+        beq     @to_int                 ; E was 0, go directly to getting int
+        bmi     @negative_e             ; E was negative
 
-; ; E is positive.
-; ; Adjust exponent down by multiplying significand by 10.
+; E is positive.
+; Adjust exponent down by multiplying significand by 10.
 
-; @dec_e:
-;         jsr     significand_mul_10
-;         bcs     @err_out_of_range
-;         dex
-;         bne     @dec_e
-;         jmp     @to_int
+        jsr     significand_mul_10
+        bcs     @err_out_of_range
+        dec     FPA+Float::e
+        bne     @dec_e
+        jmp     @to_int
 
-; ; Adjust exponent up by dividing by 10.
-; ; If significand is negative then negate it first.
+; Adjust exponent up by dividing by 10.
+; If significand is negative then negate it first.
 
-; @negative_e:
-;         lda     FPA+4                   ; Check MSB of significand for sign
-;         pha                             ; Remember what it was so we can restore later
-;         bpl     @inc_e                  ; It was positive
-;         jsr     fneg
-; @inc_e:
-;         jsr     significand_div_10
-;         inx
-;         bne     @inc_e
-;         pla                             ; Recall the original MSB
-;         bpl     @to_int                 ; It was positive before, no change
-;         jsr     fneg
+@negative_e:
+        jsr     negate_negative         ; Negate signifiand if it's negative
+        rol     E                       ; Roll the sign of the significand into E
+@inc_e:
+        jsr     significand_div_10
+        inc     FPA+Float::e
+        bne     @inc_e
+        lsr     E                       ; Get the flag back into carry
+        bcc     @to_int                 ; It was positive before, no change
+        jsr     fneg
 
-; @to_int:
-;         lda     FPA+2                   ; MSB of 16-bit int value
-;         asl     A                       ; Sign bit into carry
-;         lda     #$FF
-;         adc     #0                      ; A is 0 if sign bit was negative, $FF if positive
-;         eor     #$FF                    ; Invert bits
-;         cmp     FPA+3                   ; 2 most significant bytes of significand must be this value
-;         bne     @err_out_of_range
-;         cmp     FPA+4  
-;         bne     @err_out_of_range
-;         lda     FPA+1                   ; Low byte
-;         ldx     FPA+2                   ; High byte
-; @positive:
-;         ldy     #0                      ; Index
-;         sta     (ptr1),y                ; Store low byte
-;         iny
-;         txa
-;         sta     (ptr1),y                ; Store high byte
-;         jmp     return0                 ; Success
+@to_int:
+        lda     FPA+2                   ; MSB of 16-bit int value
+        asl     A                       ; Sign bit into carry
+        lda     #$FF
+        adc     #0                      ; A is 0 if sign bit was negative, $FF if positive
+        eor     #$FF                    ; Invert bits
+        cmp     FPA+3                   ; 2 most significant bytes of significand must be this value
+        bne     @err_out_of_range
+        cmp     FPA+4  
+        bne     @err_out_of_range
+        lda     FPA+1                   ; Low byte
+        ldx     FPA+2                   ; High byte
+        clc                             ; Signal success
+        rts
 
-; @err_out_of_range:
-;         lda     #ERR_OVERFLOW
-;         ldx     #0
-;         rts
+@err_out_of_range:
+        sec                             ; Signal error
+        rts
 
 ; Adds a value to FPA, returning result in FPA.
 ; The strategy is to get the number with the larger exponent into FPA.

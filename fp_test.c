@@ -92,79 +92,81 @@ void test_swap_fpa(void) {
     ASSERT_FP_EQ(value, 0, 0);
 }
 
-// static void test_int_to_fp(void) {
-//     PRINT_TEST_NAME();
-//     // 0
-//     int_to_fp(0);
-//     ASSERT_FP_EQ(reg_fpa, 0, 0);
-//     // 100
-//     int_to_fp(100);
-//     ASSERT_FP_EQ(reg_fpa, 0, 100);
-//     // 1000
-//     int_to_fp(1000);
-//     ASSERT_FP_EQ(reg_fpa, 0, 1000);
-//     // -1
-//     int_to_fp(-1);
-//     ASSERT_FP_EQ(reg_fpa, 0, -1);
-//     // -1000
-//     int_to_fp(-1000);
-//     ASSERT_FP_EQ(reg_fpa, 0, -1000);
-//     // 32767
-//     int_to_fp(32767);
-//     ASSERT_FP_EQ(reg_fpa, 0, 32767);
-//     // -32768
-//     int_to_fp((int)-32768L);
-//     ASSERT_FP_EQ(reg_fpa, 0, -32768L);
-// }
+static void test_int_to_fp(void) {
+    PRINT_TEST_NAME();
+    // 0
+    int_to_fp(0);
+    ASSERT_FP_EQ(reg_fpa, 0, 0);
+    // 100
+    int_to_fp(100);
+    ASSERT_FP_EQ(reg_fpa, 0, 100);
+    // 1000
+    int_to_fp(1000);
+    ASSERT_FP_EQ(reg_fpa, 0, 1000);
+    // -1
+    int_to_fp(-1);
+    ASSERT_FP_EQ(reg_fpa, 0, -1);
+    // -1000
+    int_to_fp(-1000);
+    ASSERT_FP_EQ(reg_fpa, 0, -1000);
+    // 32767
+    int_to_fp(32767);
+    ASSERT_FP_EQ(reg_fpa, 0, 32767);
+    // -32768
+    int_to_fp((int)-32768L);
+    ASSERT_FP_EQ(reg_fpa, 0, -32768L);
+}
 
-// static void test_truncate_fp_to_int(void) {
-//     char err;
-//     int int_value;
-//     PRINT_TEST_NAME();
-//     // 0
-//     SET_FP(reg_fpa, 0, 0);
-//     err = truncate_fp_to_int(&int_value);
-//     ASSERT_EQ(err, 0);
-//     ASSERT_EQ(int_value, 0);
-//     // 10 as 10E+0
-//     SET_FP(reg_fpa, 0, 10);
-//     err = truncate_fp_to_int(&int_value);
-//     ASSERT_EQ(err, 0);
-//     ASSERT_EQ(int_value, 10);
-//     // 10 as 1E+1
-//     SET_FP(reg_fpa, 1, 1);
-//     err = truncate_fp_to_int(&int_value);
-//     ASSERT_EQ(err, 0);
-//     ASSERT_EQ(int_value, 10);
-//     // 10 as 100E-1
-//     SET_FP(reg_fpa, -1, 100);
-//     err = truncate_fp_to_int(&int_value);
-//     ASSERT_EQ(err, 0);
-//     ASSERT_EQ(int_value, 10);
-//     // -10
-//     SET_FP(reg_fpa, 0, -10);
-//     err = truncate_fp_to_int(&int_value);
-//     ASSERT_EQ(err, 0);
-//     ASSERT_EQ(int_value, -10);
-//     // 3.14159 -> 3
-//     SET_FP(reg_fpa, -5, 314159);
-//     err = truncate_fp_to_int(&int_value);
-//     ASSERT_EQ(err, 0);
-//     ASSERT_EQ(int_value, 3);
-//     // 32767
-//     SET_FP(reg_fpa, 0, 32767);
-//     err = truncate_fp_to_int(&int_value);
-//     ASSERT_EQ(err, 0);
-//     ASSERT_EQ(int_value, 32767);
-//     // -32768
-//     SET_FP(reg_fpa, 0, (int)-32768L);
-//     err = truncate_fp_to_int(&int_value);
-//     ASSERT_EQ(err, 0);
-//     ASSERT_EQ(int_value, (int)-32768L);
-//     // 100000 -> overflow
-//     SET_FP(reg_fpa, 5, 1);
-//     err = truncate_fp_to_int(&int_value);
-// }
+static void test_truncate_fp_to_int(void) {
+    char err;
+    int* int_value_ptr = (int*)((char*)&reg_fpa + offsetof(Float, s));
+
+    PRINT_TEST_NAME();
+
+    // 0
+    SET_FP(reg_fpa, 0, 0);
+    err = truncate_fp_to_int();
+    ASSERT_EQ(err, 0);
+    ASSERT_EQ(*int_value_ptr, 0);
+    // 10 as 10E+0
+    SET_FP(reg_fpa, 0, 10);
+    err = truncate_fp_to_int();
+    ASSERT_EQ(err, 0);
+    ASSERT_EQ(*int_value_ptr, 10);
+    // 10 as 1E+1
+    SET_FP(reg_fpa, 1, 1);
+    err = truncate_fp_to_int();
+    ASSERT_EQ(err, 0);
+    ASSERT_EQ(*int_value_ptr, 10);
+    // 10 as 100E-1
+    SET_FP(reg_fpa, -1, 100);
+    err = truncate_fp_to_int();
+    ASSERT_EQ(err, 0);
+    ASSERT_EQ(*int_value_ptr, 10);
+    // -10
+    SET_FP(reg_fpa, 0, -10);
+    err = truncate_fp_to_int();
+    ASSERT_EQ(err, 0);
+    ASSERT_EQ(*int_value_ptr, -10);
+    // 3.14159 -> 3
+    SET_FP(reg_fpa, -5, 314159);
+    err = truncate_fp_to_int();
+    ASSERT_EQ(err, 0);
+    ASSERT_EQ(*int_value_ptr, 3);
+    // 32767
+    SET_FP(reg_fpa, 0, 32767);
+    err = truncate_fp_to_int();
+    ASSERT_EQ(err, 0);
+    ASSERT_EQ(*int_value_ptr, 32767);
+    // -32768
+    SET_FP(reg_fpa, 0, (int)-32768L);
+    err = truncate_fp_to_int();
+    ASSERT_EQ(err, 0);
+    ASSERT_EQ(*int_value_ptr, (int)-32768L);
+    // 100000 -> overflow
+    SET_FP(reg_fpa, 5, 1);
+    err = truncate_fp_to_int();
+}
 
 static void call_fp_to_string(void) {
     bp = 0;
@@ -494,8 +496,8 @@ int main(void) {
     test_fneg();
     test_char_to_digit();
     test_swap_fpa();
-    // test_int_to_fp();
-    // test_truncate_fp_to_int();
+    test_int_to_fp();
+    test_truncate_fp_to_int();
     test_fp_to_string();
     test_string_to_fp();
     test_fadd();

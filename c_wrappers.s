@@ -169,6 +169,15 @@ _char_to_digit:
         jsr     char_to_digit
         jmp     return_carry_flag
 
+_int_to_fp:
+.export _int_to_fp
+        jmp     int_to_fp
+
+_truncate_fp_to_int:
+.export _truncate_fp_to_int
+        jsr     truncate_fp_to_int
+        jmp     return_carry_flag
+
 _fp_to_string:
 .export _fp_to_string
         jmp     fp_to_string

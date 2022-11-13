@@ -93,6 +93,8 @@
 .global fp_to_string
 .global string_to_fp
 .global char_to_digit
+.global int_to_fp
+.global truncate_fp_to_int
 .global fadd
 .global fsub
 .global fmul
