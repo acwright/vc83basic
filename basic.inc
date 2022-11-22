@@ -83,7 +83,7 @@
 
 ; expression.s
 .global evaluate_expression
-.global push_value, pop_value
+.global push_fpa, pop_fpa
 .global stack_alloc, stack_free
 
 ; fp.s

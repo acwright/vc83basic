@@ -3,16 +3,16 @@
 static void test_parse_expression(void) {
     int err;
     
-    const char line_data_1[] = { TOKEN_NUM, 0x01, 0x00, TOKEN_NO_VALUE };
+    const char line_data_1[] = { TOKEN_NUM, 0x00, 0x01, 0x00, 0x00, 0x00, TOKEN_NO_VALUE };
     const char line_data_2[] = { 0x80, TOKEN_NO_VALUE };
-    const char line_data_3[] = { 0x80, TOKEN_OP | OP_ADD, TOKEN_NUM, 0x01, 0x00, TOKEN_NO_VALUE };
-    const char line_data_4[] = { TOKEN_PAREN, 0x80, TOKEN_OP | OP_ADD, TOKEN_NUM, 0x03, 0x00, TOKEN_NO_VALUE,
-        TOKEN_OP | OP_MUL, 0x81, TOKEN_NO_VALUE };
+    const char line_data_3[] = { 0x80, TOKEN_OP | OP_ADD, TOKEN_NUM, 0x00, 0x01, 0x00, 0x00, 0x00, TOKEN_NO_VALUE };
+    const char line_data_4[] = { TOKEN_PAREN, 0x80, TOKEN_OP | OP_ADD, TOKEN_NUM, 0x00, 0x03, 0x00, 0x00, 0x00, 
+        TOKEN_NO_VALUE, TOKEN_OP | OP_MUL, 0x81, TOKEN_NO_VALUE };
     const char line_data_5[] = { TOKEN_UNARY_OP | UNARY_OP_MINUS, 0x80, TOKEN_NO_VALUE };
-    const char line_data_6[] = { 0x80, TOKEN_OP | OP_EQ, TOKEN_NUM, 0x03, 0x00, TOKEN_OP | OP_OR, 0x80,
-        TOKEN_OP | OP_LE, 0x81, TOKEN_NO_VALUE };
+    const char line_data_6[] = { 0x80, TOKEN_OP | OP_EQ, TOKEN_NUM, 0x00, 0x03, 0x00, 0x00, 0x00,
+        TOKEN_OP | OP_OR, 0x80, TOKEN_OP | OP_LE, 0x81, TOKEN_NO_VALUE };
     const char line_data_7[] = { TOKEN_UNARY_OP | UNARY_OP_NOT, TOKEN_PAREN, 0x80, TOKEN_OP | OP_EQ, 
-        TOKEN_NUM, 0x03, 0x00, TOKEN_OP | OP_OR, TOKEN_UNARY_OP | UNARY_OP_NOT,
+        TOKEN_NUM, 0x00, 0x03, 0x00, 0x00, 0x00, TOKEN_OP | OP_OR, TOKEN_UNARY_OP | UNARY_OP_NOT,
         TOKEN_UNARY_OP | UNARY_OP_MINUS, 0x81, TOKEN_NO_VALUE, TOKEN_NO_VALUE };
 
     PRINT_TEST_NAME();
@@ -100,13 +100,14 @@ static void test_parse_argument_separator(void) {
 static void test_parse_directive(void) {
     int err;
 
-    const char line_data_1[] = { TOKEN_NUM, 0x01, 0x00, TOKEN_NO_VALUE };
+    const char line_data_1[] = { TOKEN_NUM, 0x00, 0x01, 0x00, 0x00, 0x00, TOKEN_NO_VALUE };
     const char line_data_2[] = { 0x80, TOKEN_NO_VALUE };
     const char line_data_3[] = { 0x80 };
     const char line_data_4[] = { 0x80, TOKEN_NO_VALUE };
     const char line_data_5[] = { 0x80, 0x81, TOKEN_NO_VALUE };
-    const char line_data_6[] = { TOKEN_NUM, 0x0A, 0x00 };
-    const char line_data_7[] = { TOKEN_NUM, 0x0A, 0x00, TOKEN_NUM, 0x14, 0x00, TOKEN_NO_VALUE };
+    const char line_data_6[] = { TOKEN_NUM, 0x00, 0x0A, 0x00, 0x00, 0x00 };
+    const char line_data_7[] = { TOKEN_NUM, 0x00, 0x0A, 0x00, 0x00, 0x00, TOKEN_NUM, 0x00, 0x14, 0x00, 0x00, 0x00,
+        TOKEN_NO_VALUE };
 
     PRINT_TEST_NAME();
 
@@ -165,17 +166,19 @@ static void test_parse_directive(void) {
 static void test_parse_element(void) {
     int err;
     const char line_data_1[] = { ST_RUN };
-    const char line_data_2[] = { ST_PRINT, TOKEN_NUM, 0x08, 0x00, TOKEN_NO_VALUE };
-    const char line_data_3[] = { ST_LET, 0x80, TOKEN_NUM, 0x64, 0x00, TOKEN_NO_VALUE };
+    const char line_data_2[] = { ST_PRINT, TOKEN_NUM, 0x00, 0x08, 0x00, 0x00, 0x00, TOKEN_NO_VALUE };
+    const char line_data_3[] = { ST_LET, 0x80, TOKEN_NUM, 0x00, 0x64, 0x00, 0x00, 0x00, TOKEN_NO_VALUE };
     const char line_data_4[] = { ST_INPUT, 0x80, 0x81, TOKEN_NO_VALUE };
-    const char line_data_5[] = { ST_LIST, TOKEN_NUM, 0x0A, 0x00, TOKEN_NO_VALUE, TOKEN_NUM, 0x14, 0x00,
-        TOKEN_NO_VALUE };
-    const char line_data_6[] = { ST_PRINT, TOKEN_PAREN, 0x80, TOKEN_OP | OP_ADD, TOKEN_NUM, 0x03, 0x00, TOKEN_NO_VALUE,
-        TOKEN_OP | OP_MUL, 0x81, TOKEN_NO_VALUE };
-    const char line_data_7[] = { ST_ON_GOTO, 0x80, TOKEN_OP | OP_DIV, TOKEN_NUM, 0x02, 0x00, TOKEN_NO_VALUE,
-        TOKEN_NUM, 0x0A, 0x00, TOKEN_NUM, 0x14, 0x00, TOKEN_NUM, 0x1E, 0x00, TOKEN_NO_VALUE };
+    const char line_data_5[] = { ST_LIST, TOKEN_NUM, 0x00, 0x0A, 0x00, 0x00, 0x00, TOKEN_NO_VALUE,
+        TOKEN_NUM, 0x00, 0x14, 0x00, 0x00, 0x00, TOKEN_NO_VALUE };
+    const char line_data_6[] = { ST_PRINT, TOKEN_PAREN, 0x80, TOKEN_OP | OP_ADD,
+        TOKEN_NUM, 0x00, 0x03, 0x00, 0x00, 0x00, TOKEN_NO_VALUE, TOKEN_OP | OP_MUL, 0x81, TOKEN_NO_VALUE };
+    const char line_data_7[] = { ST_ON_GOTO, 0x80, TOKEN_OP | OP_DIV, TOKEN_NUM, 0x00, 0x02, 0x00, 0x00, 0x00, 
+        TOKEN_NO_VALUE, TOKEN_NUM, 0x00, 0x0A, 0x00, 0x00, 0x00, TOKEN_NUM, 0x00, 0x14, 0x00, 0x00, 0x00,
+        TOKEN_NUM, 0x00, 0x1E, 0x00, 0x00, 0x00, TOKEN_NO_VALUE };
     const char line_data_8[] = { ST_ON_GOSUB, 0x80, TOKEN_NO_VALUE,
-        TOKEN_NUM, 0x0A, 0x00, TOKEN_NUM, 0x14, 0x00, TOKEN_NUM, 0x1E, 0x00, TOKEN_NO_VALUE };
+        TOKEN_NUM, 0x00, 0x0A, 0x00, 0x00, 0x00, TOKEN_NUM, 0x00, 0x14, 0x00, 0x00, 0x00,
+        TOKEN_NUM, 0x00, 0x1E, 0x00, 0x00, 0x00, TOKEN_NO_VALUE };
 
     PRINT_TEST_NAME();
 
@@ -262,9 +265,9 @@ static void test_parse_line(void) {
     int err;
 
     const Line line_1 = {
-        9,
+        12,
         10,
-        { ST_LET, 0x80, TOKEN_NUM, 0x64, 0x00, TOKEN_NO_VALUE }
+        { ST_LET, 0x80, TOKEN_NUM, 0x00, 0x64, 0x00, 0x00, 0x00, TOKEN_NO_VALUE }
     };
     const Line line_2 = {
         4,

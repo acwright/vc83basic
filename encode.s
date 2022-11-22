@@ -7,17 +7,22 @@
 ; All functions clobber X, so save it if you need it.
 
 ; Encodes a number.
-; AX = the number to encode
-; Y SAFE, DE SAFE
+; FPA = the number to encode
+; BC SAFE, DE SAFE
 
 encode_number:
         stax    BC
         lda     #TOKEN_NUM
         jsr     encode
-        lda     B
+        ldy     #0
+@loop:
+        lda     FPA,y
         jsr     encode
-        lda     C
-        jmp     encode_byte
+        iny
+        cpy     #.sizeof(Float)         ; Copied everything?
+        bne     @loop
+        clc                             ; Success
+        rts
 
 ; Encodes a variable by its ID.
 ; A = the variable ID

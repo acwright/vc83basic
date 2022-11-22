@@ -54,7 +54,7 @@ exec_on_gosub:
 exec_on:
         stax    on_handler              ; Store the handler address
         jsr     evaluate_expression     ; Evaluate the "ON" expression
-        jsr     pop_value
+        jsr     pop_fpa
         sta     on_value
         dec     on_value                ; Pre-decrement on_value so we can take the branch when it goes negative
 @loop:
@@ -109,10 +109,10 @@ exec_for:
         pha                             ; Save on the stack
         jsr     set_variable_value_ptr  ; Use the variable to set variable_value_ptr
         jsr     evaluate_expression     ; Start value
-        jsr     pop_value               ; Get the evaluated value
+        jsr     pop_fpa                 ; Get the evaluated value
         jsr     set_variable_value      ; Initialize the variable
         jsr     evaluate_expression     ; End value
-        jsr     pop_value               ; Get the evaluated value
+        jsr     pop_fpa                 ; Get the evaluated value
         stax    BC                      ; Store the end value into BC
         jsr     push_next_line_ptr      ; Push return address; X is now the stack pointer
         pla                             ; Get the variable from the stack before the branch
@@ -186,7 +186,7 @@ exec_pop:
 
 exec_if:
         jsr     evaluate_expression     ; Evaluate the expression
-        jsr     pop_value
+        jsr     pop_fpa
         sta     B                       ; Store low byte of result in B
         txa                             ; Transfer high byte into X
         ora     B                       ; Or the high and low bytes together

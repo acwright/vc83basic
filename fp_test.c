@@ -1,15 +1,5 @@
 #include "test.h"
 
-#define SET_FP(value, e_value, s_value) do { \
-    value.e = (e_value); \
-    value.s = (s_value); \
-} while (0)
-
-#define ASSERT_FP_EQ(value, e_value, s_value) do { \
-    ASSERT_EQ(value.e, e_value); \
-    ASSERT_EQ(value.s, s_value); \
-} while (0)
-
 static void test_load_fpa(void) {
     Float value;
     PRINT_TEST_NAME();

@@ -40,11 +40,11 @@ evaluate_variable:
         tax
         dey
         lda     (variable_value_ptr),y  ; Low byte of variable data
-        jmp     push_value
+        jmp     push_fpa
 
 evaluate_number:
         jsr     decode_number           ; Returns number in AX
-        jmp     push_value              ; Push number directly
+        jmp     push_fpa                ; Push number directly
 
 evaluate_operator:
         jsr     decode_operator         ; Return the operator in A
@@ -131,9 +131,9 @@ operator_vectors:
         .word   unary_op_not
 
 op_add:
-        jsr     pop_value               ; Get first value
+        jsr     pop_fpa                 ; Get first value
         stax    BC                      ; Save in BC
-        jsr     pop_value               ; Get second value
+        jsr     pop_fpa                 ; Get second value
         clc
         adc     B                       ; Add low byte
         sta     B                       ; Store back to B
@@ -141,12 +141,12 @@ op_add:
         adc     C                       ; Add high byte
         tax                             ; Move to high byte
         lda     B                       ; Load low byte back from B
-        jmp     push_value              ; Save on the value stack
+        jmp     push_fpa                ; Save on the value stack
 
 op_sub:
-        jsr     pop_value               ; Get value
+        jsr     pop_fpa                 ; Get value
         stax    BC                      ; Save in BC
-        jsr     pop_value               ; Get second value
+        jsr     pop_fpa                 ; Get second value
 op_sub_bc_from_ax:
         sec
         sbc     B                       ; Subtract low byte
@@ -155,10 +155,10 @@ op_sub_bc_from_ax:
         sbc     C
         tax                             ; Result of high byte back into X
         tya                             ; Low byte back into A
-        jmp     push_value
+        jmp     push_fpa
 
 unary_op_minus:
-        jsr     pop_value               ; Get value
+        jsr     pop_fpa                 ; Get value
         stax    BC                      ; Save in BC
         lda     #0                      ; Put zero into AX
         tax
@@ -210,9 +210,9 @@ op_gt:
 ; If carry is set, then Z will be also be set if the values are equal or clear if they are not.
 
 compare_values:
-        jsr     pop_value               ; Get value
+        jsr     pop_fpa                 ; Get value
         stax    BC                      ; Save in BC
-        jsr     pop_value        
+        jsr     pop_fpa        
         tay                             ; Move low byte into Y to make room for high byte
         txa
         cmp     C                       ; Subtract high byte
@@ -222,10 +222,9 @@ compare_values:
 @done:
         rts
 
-; Push the value in AX onto the value stack.
-; AX = the value to push
+; Push the value in FPA onto the value stack.
+; FPA = the value to push
 ; Returns carry clear if the push was successful, or carry set if there was no room on the stack.
-; DE SAFE
 
 push_value_0:
         lda     #0
@@ -235,26 +234,41 @@ push_value_1:
         lda     #1
 
 push_value_a:
-        ldx     #0
+        sta     FPA+Float::s
+        lda     #0
+        sta     FPA+Float::s+1
+        sta     FPA+Float::s+2
+        sta     FPA+Float::s+3
+        sta     FPA+Float::e
 
-push_value:
-        stax    BC                      ; Store value in BC while we update stack position
-        lda     #2                      ; Allocate 2 bytes for the value
-        jsr     stack_alloc
+push_fpa:
+        lda     #.sizeof(Float)         ; Allocate enough space for a float on the stack
+        jsr     stack_alloc             ; Returns with A set to the offset
         bcs     @done                   ; Fail if overflow
-        lda     B                       ; Save low byte
-        sta     primary_stack,x
-        lda     C                       ; Store high byte
-        sta     primary_stack+1,x
+        jsr     calculate_primary_stack_ptr
+        jsr     store_fpa               ; Store FPA in the AX address
 @done:
         rts
 
-pop_value: 
+pop_fpa: 
         ldy     psp                     ; Load stack pointer into Y to use as offset
-        lda     #2                      ; Free two bytes (retains Y)
+        lda     #.sizeof(Float)         ; Free space for float
         jsr     stack_free
-        lda     primary_stack,y         ; Load low byte into A
-        ldx     primary_stack+1,y       ; Load high byte into X
+        tya                             ; Previous position back in A to calculate pointer
+        jsr     calculate_primary_stack_ptr
+        jsr     load_fpa                ; Load value into FPA
+        rts
+
+; Calculates a stack pointer given a stack position.
+; A = the stack position
+
+calculate_primary_stack_ptr:
+        clc
+        adc     #<primary_stack         ; Add value in A to the primary stack address
+        ldx     #>primary_stack         ; High byte in X
+        bcc     @done                   ; Don't increment X if carry is clear
+        inx
+@done:
         rts
 
 ; Allocate space on the stack by moving the stack pointer down by some number of bytes.
@@ -283,31 +297,31 @@ stack_free:
         rts
 
 op_and:
-        jsr     pop_value
+        jsr     pop_fpa
         stax    BC
-        jsr     pop_value
+        jsr     pop_fpa
         and     B                       ; OR low byte
         tay                             ; Park in Y
         txa                             ; Get high byte
         and     C                       ; OR high byte
         tax                             ; Back into X
         tya                             ; Recover low byte from Y
-        jmp     push_value
+        jmp     push_fpa
 
 op_or:
-        jsr     pop_value
+        jsr     pop_fpa
         stax    BC
-        jsr     pop_value
+        jsr     pop_fpa
         ora     B                       ; OR low byte
         tay                             ; Park in Y
         txa                             ; Get high byte
         ora     C                       ; OR high byte
         tax                             ; Back into X
         tya                             ; Recover low byte from Y
-        jmp     push_value
+        jmp     push_fpa
 
 unary_op_not:
-        jsr     pop_value               ; Get value
+        jsr     pop_fpa                 ; Get value
         stx     B
         clc                             ; Carry will be used to set the result; default is 0
         ora     B                       ; OR the low and high bytes together

@@ -9,7 +9,7 @@ exec_let:
         jsr     evaluate_expression     ; Leaves the result on the stack
         pla                             ; Get the variable back
         jsr     set_variable_value_ptr  ; Calculate address of variable
-        jsr     pop_value               ; Get the evaluated value
+        jsr     pop_fpa                 ; Get the evaluated value
         jsr     set_variable_value      ; And save it
         clc                             ; Signal success
         rts

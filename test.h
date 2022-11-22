@@ -81,7 +81,7 @@ extern char reg_y;
 
 // decode.s
 void decode_expression(void** vector_table_ptr);
-int decode_number(void);
+void decode_number(void);
 char decode_variable(void);
 char decode_operator(void);
 char decode_unary_operator(void);
@@ -89,13 +89,13 @@ char decode_byte(void);
 
 // expression.h
 char evaluate_expression(void);
-char push_value(int value);
-int pop_value(void);
+char push_fpa(void);
+void pop_value(void);
 char stack_alloc(char size);
 void stack_free(char size);
 
 // encode.s
-int encode_number(int number);
+int encode_number(void);
 int encode_byte(char value);
 
 // fp.s
@@ -198,6 +198,16 @@ void hexdump(const char* name, const char* data, size_t length) {
 #define ASSERT_IS_OR_IS_NOT_NULL(a, s, op) do { fprintf(stderr, "  %s:%u: assert %s (%u, $%X) %s NULL: ", __FILE__, __LINE__, #a, (a), (a), s); assert((a) op NULL); fputs("OK\n", stderr); } while (0)
 #define ASSERT_NULL(a) ASSERT_IS_OR_IS_NOT_NULL(a, "is", ==)
 #define ASSERT_NOT_NULL(a) ASSERT_IS_OR_IS_NOT_NULL(a, "is not", !=)
+
+#define SET_FP(value, e_value, s_value) do { \
+    value.e = (e_value); \
+    value.s = (s_value); \
+} while (0)
+
+#define ASSERT_FP_EQ(value, e_value, s_value) do { \
+    ASSERT_EQ(value.e, e_value); \
+    ASSERT_EQ(value.s, s_value); \
+} while (0)
 
 #define DEBUG(x) fprintf(stderr, #x "=%d\n", (x))
 

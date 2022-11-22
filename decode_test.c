@@ -24,11 +24,14 @@ static void test_decode_byte(void) {
 }
 
 static void test_decode_number(void) {
-    int value;
     Line line = {
         12,
         10,
-        {  TOKEN_NUM, 0, 0, TOKEN_NUM, 0, 1, TOKEN_NUM, 1, 3 }
+        {
+            TOKEN_NUM, 0x00, 0x00, 0x01, 0x00, 0x00,
+            TOKEN_NUM, 0x00, 0xE8, 0x03, 0x00, 0x00,
+            TOKEN_NUM, 0xFB, 0x2F, 0xCB, 0x04, 0x00,
+        }
     };
 
     PRINT_TEST_NAME();
@@ -36,14 +39,14 @@ static void test_decode_number(void) {
     line_ptr = &line;
     lp = offsetof(Line, data);
 
-    value = decode_number();
-    ASSERT_EQ(value, 0);
+    decode_number();
+    ASSERT_FP_EQ(reg_fpa, 0, 256);
 
-    value = decode_number();
-    ASSERT_EQ(value, 256);
+    decode_number();
+    ASSERT_FP_EQ(reg_fpa, 0, 1000);
 
-    value = decode_number();
-    ASSERT_EQ(value, 769);
+    decode_number();
+    ASSERT_FP_EQ(reg_fpa, -5, 314159);
 }
 
 extern void* decode_xh_vectors[];
@@ -51,10 +54,10 @@ extern void* decode_xh_vectors[];
 static int num_count;
 
 static void xh_number(void) {
-    int value = decode_number();
+    decode_number();
     switch (++num_count) {
-        case 1: ASSERT_EQ(value, 4112); break;
-        case 2: ASSERT_EQ(value, 3); break;
+        case 1: ASSERT_FP_EQ(reg_fpa, 0, 4112); break;
+        case 2: ASSERT_FP_EQ(reg_fpa, 0, 3); break;
     }
 }
 
@@ -109,19 +112,19 @@ static void test_decode_expression(void) {
         16,
         10,
         {
-            TOKEN_NUM, 0x10, 0x10,          // 4,112
+            TOKEN_NUM, 0x00, 0x10, 0x10, 0x00, 0x00,  // 4,112
             TOKEN_OP | OP_ADD,        
             TOKEN_PAREN,
-            TOKEN_VAR | 1,                  // X
+            TOKEN_VAR | 1, // X
             TOKEN_OP | OP_DIV,              
-            TOKEN_NUM, 0x03, 0x00,          // 3
+            TOKEN_NUM, 0x00, 0x03, 0x00, 0x00, 0x00, // 3
             TOKEN_NO_VALUE,
             TOKEN_OP | OP_MUL, 
             TOKEN_UNARY_OP | UNARY_OP_MINUS,             
-            TOKEN_VAR | 1,                  // X
+            TOKEN_VAR | 1, // X
             TOKEN_OP | OP_OR,
             TOKEN_UNARY_OP | UNARY_OP_NOT,
-            TOKEN_VAR | 1,                  // X
+            TOKEN_VAR | 1, // X
             TOKEN_NO_VALUE
         }
     };

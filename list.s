@@ -192,7 +192,6 @@ list_statement:
 list_number:
         jsr     add_whitespace
         jsr     decode_number           ; Decode the number
-        jsr     int_to_fp
         jmp     fp_to_string            ; Format into buffer
 
 loop_list_repeated_number:

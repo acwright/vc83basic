@@ -117,14 +117,14 @@ _evaluate_expression:
         jsr     evaluate_expression
         jmp     return_carry_flag
 
-_push_value:
-.export _push_value
-        jsr     push_value
+_push_fpa:
+.export _push_fpa
+        jsr     push_fpa
         jmp     return_carry_flag
 
-_pop_value:
-.export _pop_value
-        jmp     pop_value
+_pop_fpa:
+.export _pop_fpa
+        jmp     pop_fpa
 
 _stack_alloc:
 .export _stack_alloc

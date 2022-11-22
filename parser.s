@@ -235,9 +235,7 @@ parse_unary_operator:
 parse_number:
         jsr     string_to_fp            ; Parse the number
         bcs     @done
-        jsr     truncate_fp_to_int      ; To integer
-        bcs     @done
-        jsr     encode_number           ; Will set carry if fail
+        jmp     encode_number           ; Will set carry if fail
 @done:
         rts
 
@@ -246,7 +244,7 @@ parse_repeated_number:
         bcs     @done                   ; If no number then fail
         jsr     parse_argument_separator
         bcs     parse_repeated_number   ; Parse another number after the separator
-        jsr     encode_no_value         ; Terminate the repeated list
+        jmp     encode_no_value         ; Terminate the repeated list
 @done:
         rts
 
@@ -266,7 +264,7 @@ parse_variable:
         jsr     add_variable
         bcs     @done
 @found:
-        jsr     encode_variable       
+        jmp     encode_variable       
 @done:
         rts
 
@@ -277,7 +275,7 @@ parse_repeated_variable:
         bcs     @done                   ; It's always an error if we expected a variable and didn't find one
         jsr     parse_argument_separator    ; Try to read a separator
         bcs     parse_repeated_variable ; If carry set keep going; if carry clear then no separator and we're done
-        jsr     encode_no_value         ; Terminate the repeated list
+        jmp     encode_no_value         ; Terminate the repeated list
 @done:
         rts
 

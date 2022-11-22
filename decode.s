@@ -62,19 +62,22 @@ decode_expression:
         bne     @loop                   ; If not zero then keep doing stuff; carry is clear here due to shifts
         rts
 
-; Decodes a number and returns it in AX.
+; Decodes a number and returns it in FPA.
 ; BC SAFE, DE SAFE
 
 decode_number:
-        inc     lp                      ; Advance past number marker token
-        inc     lp                      ; Increment read position to high byte 
-        ldy     lp                      ; Load position of high byte into Y
-        inc     lp                      ; Increment read one position again
-        lda     (line_ptr),y            ; Load the high byte of the number
-        tax                             ; Move into X
-        dey                             ; Decrement Y
-        lda     (line_ptr),y            ; Get the low byte of the number into A
-        rts     
+        ldy     lp                      ; Buffer index
+        iny                             ; Skip past TOKEN_NUM
+        ldx     #0                      ; FPA index
+@loop:
+        lda     (line_ptr),y
+        sta     FPA,x
+        inx
+        iny
+        cpx     #.sizeof(Float)         ; Copied everything?
+        bne     @loop
+        sty     lp                      ; Store line position
+        rts
 
 decode_variable:
         lda     #$7F
