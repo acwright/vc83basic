@@ -15,9 +15,8 @@ exec_input:
         jsr     set_variable_value_ptr  ; Sets variable_value_ptr to the storage for this variable
         jsr     string_to_fp            ; Parse the number
         bcs     @error                  ; Failed to read a number
-        jsr     truncate_fp_to_int      ; To integer and return in AX
-        bcs     @error                  ; Number was not an integer
-        jsr     set_variable_value      ; Store the value
+        jsr     push_fpa                ; Push FPA onto the value stack
+        ; jsr     set_variable_value      ; Store the value
         ldy     lp                      ; Peek at the next byte
         lda     (line_ptr),y            
         beq     @done                   ; It was TOKEN_NO_VALUE, nothing more to read

@@ -25,6 +25,7 @@
 
 .globalzp BC, B, C, DE, D, E
 .globalzp FPA
+.globalzp fp_ptr
 .globalzp bp
 .globalzp name_ptr
 .globalzp np
@@ -84,6 +85,7 @@
 ; expression.s
 .global evaluate_expression
 .global push_fpa, pop_fpa
+.global push_variable, pop_variable
 .global stack_alloc, stack_free
 
 ; fp.s
@@ -96,10 +98,10 @@
 .global char_to_digit
 .global int_to_fp
 .global truncate_fp_to_int
-.global fadd
-.global fsub
-.global fmul
-.global fdiv
+.global fadd, fadd_with_ptr
+.global fsub, fsub_with_ptr
+.global fmul, fmul_with_ptr
+.global fdiv, fdiv_with_ptr
 
 ; input.s
 .global exec_input
@@ -152,7 +154,6 @@
 .global calculate_bytes_to_move
 .global check_himem
 .global set_variable_value_ptr
-.global set_variable_value
 
 ; run.s
 .global exec_run

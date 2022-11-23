@@ -34,13 +34,7 @@ evaluate_vectors:
 
 evaluate_variable:
         jsr     decode_variable         ; Returns variable index in A
-        jsr     set_variable_value_ptr  ; Calculate address of variable
-        ldy     #1
-        lda     (variable_value_ptr),y  ; High byte of variable value
-        tax
-        dey
-        lda     (variable_value_ptr),y  ; Low byte of variable data
-        jmp     push_fpa
+        jmp     push_variable           ; Copy variable to stack
 
 evaluate_number:
         jsr     decode_number           ; Returns number in AX
@@ -130,39 +124,18 @@ operator_vectors:
         .word   unary_op_minus
         .word   unary_op_not
 
+op_sub:
+        jsr     unary_op_minus          ; Just treat A-B as A+(-B)
 op_add:
-        jsr     pop_fpa                 ; Get first value
-        stax    BC                      ; Save in BC
-        jsr     pop_fpa                 ; Get second value
-        clc
-        adc     B                       ; Add low byte
-        sta     B                       ; Store back to B
-        txa                             ; High byte into A
-        adc     C                       ; Add high byte
-        tax                             ; Move to high byte
-        lda     B                       ; Load low byte back from B
+        jsr     calculate_primary_stack_ptr
+        stax    fp_ptr                  ; fp_ptr -> operand at top of stack
+        lda     #.sizeof(Float)         ; Free that operand
+        jsr     stack_free
+        jsr     pop_fpa                 ; Other operand into FPA
+        jsr     fadd_with_ptr           ; Add them
         jmp     push_fpa                ; Save on the value stack
 
-op_sub:
-        jsr     pop_fpa                 ; Get value
-        stax    BC                      ; Save in BC
-        jsr     pop_fpa                 ; Get second value
-op_sub_bc_from_ax:
-        sec
-        sbc     B                       ; Subtract low byte
-        tay                             ; Move low byte into Y to make room for high byte
-        txa                             ; Subtract high byte
-        sbc     C
-        tax                             ; Result of high byte back into X
-        tya                             ; Low byte back into A
-        jmp     push_fpa
-
-unary_op_minus:
-        jsr     pop_fpa                 ; Get value
-        stax    BC                      ; Save in BC
-        lda     #0                      ; Put zero into AX
-        tax
-        beq     op_sub_bc_from_ax
+        jmp     op_add                  ; Now handle as add
 
 op_mul:
 op_div:
@@ -222,6 +195,19 @@ compare_values:
 @done:
         rts
 
+unary_op_minus:
+        jsr     pop_fpa                 ; Get value at top of stack
+        jsr     fneg                    ; Negate it
+        jmp     push_fpa                ; Return to stack
+
+unary_op_not:
+        jsr     pop_fpa                 ; Get value
+        stx     B
+        clc                             ; Carry will be used to set the result; default is 0
+        ora     B                       ; OR the low and high bytes together
+        bne     push_value_0            ; Value was not zero so we should return 0
+        beq     push_value_1
+
 ; Push the value in FPA onto the value stack.
 ; FPA = the value to push
 ; Returns carry clear if the push was successful, or carry set if there was no room on the stack.
@@ -259,8 +245,47 @@ pop_fpa:
         jsr     load_fpa                ; Load value into FPA
         rts
 
+; Pushes the variable value identified by A onto the stack.
+
+push_variable:
+        jsr     set_variable_value_ptr
+        lda     #.sizeof(Float)         ; Make space on the stack
+        jsr     stack_alloc
+        bcs     @done
+        jsr     calculate_primary_stack_ptr
+        stax    BC                      ; BC -> the target address on the stack
+        ldy     #0                      ; Index
+@next:
+        lda     (variable_value_ptr),y  ; Load variable value
+        sta     (BC),y                  ; Save to stack
+        iny
+        cpy     #.sizeof(Float)
+        bne     @next                   ; More bytes to copy
+        clc                             ; Signal success
+@done:
+        rts
+
+; Pops the value from the stack and copies it into the variable identified by A.
+
+pop_variable:
+        jsr     set_variable_value_ptr
+        jsr     calculate_primary_stack_ptr
+        stax    BC                      ; BC -> the source address on the stack
+        lda     #.sizeof(Float)         ; Free this many bytes
+        jsr     stack_free
+        ldy     #0                      ; Index
+@next:
+        lda     (BC),y                  ; Load value from stack
+        sta     (variable_value_ptr),y  ; Save to variable
+        iny
+        cpy     #.sizeof(Float)
+        bne     @next                   ; More bytes to copy
+        clc                             ; Signal success
+        rts
+
 ; Calculates a stack pointer given a stack position.
 ; A = the stack position
+; Returns the stack pointer in AX
 
 calculate_primary_stack_ptr:
         clc
@@ -319,11 +344,3 @@ op_or:
         tax                             ; Back into X
         tya                             ; Recover low byte from Y
         jmp     push_fpa
-
-unary_op_not:
-        jsr     pop_fpa                 ; Get value
-        stx     B
-        clc                             ; Carry will be used to set the result; default is 0
-        ora     B                       ; OR the low and high bytes together
-        bne     push_value_0            ; Value was not zero so we should return 0
-        beq     push_value_1

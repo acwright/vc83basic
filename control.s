@@ -106,11 +106,12 @@ push_next_line_ptr:
 
 exec_for:
         jsr     decode_variable         ; Get the variable
-        pha                             ; Save on the stack
-        jsr     set_variable_value_ptr  ; Use the variable to set variable_value_ptr
+        pha                             ; Save on the stack twice
+        pha
         jsr     evaluate_expression     ; Start value
-        jsr     pop_fpa                 ; Get the evaluated value
-        jsr     set_variable_value      ; Initialize the variable
+        pla                             ; Get variable back
+        jsr     set_variable_value_ptr  ; Use the variable to set variable_value_ptr
+        ; jsr     set_variable_value      ; Initialize the variable
         jsr     evaluate_expression     ; End value
         jsr     pop_fpa                 ; Get the evaluated value
         stax    BC                      ; Store the end value into BC

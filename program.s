@@ -346,14 +346,3 @@ set_variable_value_ptr:
         adc     value_table_ptr+1
         sta     variable_value_ptr+1
         rts
-
-; Sets the value of the variable referenced by variable_value_ptr to the value passed in AX.
-; BC SAFE, DE SAFE
-
-set_variable_value:
-        ldy     #0                      ; Index variable value with Y
-        sta     (variable_value_ptr),y  ; Low byte
-        iny
-        txa
-        sta     (variable_value_ptr),y  ; High byte
-        rts

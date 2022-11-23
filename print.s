@@ -14,6 +14,7 @@ exec_print:
 ; Prints the value in FPA to standard output.
 
 print_number:
+        mva     #0, bp
         jsr     fp_to_string            ; Format into buffer
         ldax    #buffer
         ldy     bp
