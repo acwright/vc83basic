@@ -102,6 +102,7 @@
 .global fsub, fsub_with_ptr
 .global fmul, fmul_with_ptr
 .global fdiv, fdiv_with_ptr
+.global fcmp, fcmp_with_ptr
 
 ; input.s
 .global exec_input
