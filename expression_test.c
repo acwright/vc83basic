@@ -44,7 +44,7 @@ static void set_line(const char* data, size_t length) {
     lp = (char)offsetof(Line, data);
 }
 
-static void test_one_op(char op, int expected00, int expected01, int expected10, int expected11) {
+static void test_one_op(char op, long expected00, long expected01, long expected10, long expected11) {
     char err;
     char line_data[] = {
             TOKEN_NUM, 0x00, 0x00, 0x00, 0x00, 0x00,    // 0-5

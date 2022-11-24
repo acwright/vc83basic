@@ -127,18 +127,23 @@ operator_vectors:
 op_sub:
         jsr     unary_op_minus          ; Just treat A-B as A+(-B)
 op_add:
-        jsr     calculate_primary_stack_ptr
-        stax    fp_ptr                  ; fp_ptr -> operand at top of stack
-        lda     #.sizeof(Float)         ; Free that operand
-        jsr     stack_free
-        jsr     pop_fpa                 ; Other operand into FPA
-        jsr     fadd_with_ptr           ; Add them
-        jmp     push_fpa                ; Save on the value stack
-
-        jmp     op_add                  ; Now handle as add
+        lda     #>(fadd_with_ptr-1)
+        ldx     #<(fadd_with_ptr-1)
+        jsr     call_binary_operator
+        jmp     push_fpa                ; Put result back onto stack
 
 op_mul:
+        lda     #>(fmul_with_ptr-1)
+        ldx     #<(fmul_with_ptr-1)
+        jsr     call_binary_operator
+        jmp     push_fpa                ; Put result back onto stack
+
 op_div:
+        lda     #>(fdiv_with_ptr-1)
+        ldx     #<(fdiv_with_ptr-1)
+        jsr     call_binary_operator
+        jmp     push_fpa                ; Put result back onto stack
+
 op_pow:
 op_concat:
         jmp     op_add
@@ -183,17 +188,24 @@ op_gt:
 ; If carry is set, then Z will be also be set if the values are equal or clear if they are not.
 
 compare_values:
-        jsr     pop_fpa                 ; Get value
-        stax    BC                      ; Save in BC
-        jsr     pop_fpa        
-        tay                             ; Move low byte into Y to make room for high byte
-        txa
-        cmp     C                       ; Subtract high byte
-        bcc     @done                   ; Second value is greater
-        tya                             ; Get low byte back
-        cmp     B                       ; Subtract low byte
-@done:
-        rts
+        lda     #>(fcmp_with_ptr-1)
+        ldx     #<(fcmp_with_ptr-1)
+
+; Fall through
+
+; Take the two values from the top of the stack and invoke a binary operator.
+; The operator handler address -1 is passed in XA (note least-significant byte is in X).
+
+call_binary_operator:
+        phax                            ; Push operator handler address -1 onto the stack so we can RTS to it
+        ldpha   psp                     ; Save current stack pointer
+        lda     #.sizeof(Float)         ; Free that operand
+        jsr     stack_free
+        jsr     pop_fpa                 ; Other operand into FPA
+        pla                             ; Get previous stack pointer back
+        jsr     calculate_primary_stack_ptr     ; Calculate stack pointer
+        stax    fp_ptr
+        rts                             ; This does JMP to the operator handler
 
 unary_op_minus:
         jsr     pop_fpa                 ; Get value at top of stack
@@ -211,6 +223,7 @@ unary_op_not:
 ; Push the value in FPA onto the value stack.
 ; FPA = the value to push
 ; Returns carry clear if the push was successful, or carry set if there was no room on the stack.
+; BC SAFE, DE SAFE
 
 push_value_0:
         lda     #0
@@ -286,6 +299,7 @@ pop_variable:
 ; Calculates a stack pointer given a stack position.
 ; A = the stack position
 ; Returns the stack pointer in AX
+; Y SAFE, BC SAFE, DE SAFE
 
 calculate_primary_stack_ptr:
         clc
