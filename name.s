@@ -196,8 +196,8 @@ add_variable:
         ldy     #value_table_ptr        ; Grow variable name table by moving value table pointer
         jsr     expand_a                ; Do the expand
         bcs     @fail
-        ldy     #free_ptr               ; Grow value table by 2
-        lda     #2
+        ldy     #free_ptr               ; Grow value table by 8
+        lda     #8
         jsr     expand_a
         bcs     @fail
         lda     variable_count
