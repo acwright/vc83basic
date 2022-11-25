@@ -9,16 +9,16 @@
     data .res 1
 .endstruct
 
-.struct Control
-    next_line_ptr .res 2
-    variable .res 1
-    end_value .res 2
-    step_value .res 2
-.endstruct
-
 .struct Float
     e .res 1    ; Exponent
     s .res 4    ; Significand
+.endstruct
+
+.struct Control
+    next_line_ptr .res 2
+    variable .res 1
+    end_value .res .sizeof(Float)
+    step_value .res .sizeof(Float)
 .endstruct
 
 ; Zero Page

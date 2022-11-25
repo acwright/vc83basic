@@ -110,56 +110,59 @@ exec_for:
         pha
         jsr     evaluate_expression     ; Start value
         pla                             ; Get variable back
-        jsr     set_variable_value_ptr  ; Use the variable to set variable_value_ptr
-        ; jsr     set_variable_value      ; Initialize the variable
+        jsr     pop_variable            ; Pop value from stack into variable
         jsr     evaluate_expression     ; End value
         jsr     pop_fpa                 ; Get the evaluated value
-        stax    BC                      ; Store the end value into BC
         jsr     push_next_line_ptr      ; Push return address; X is now the stack pointer
-        pla                             ; Get the variable from the stack before the branch
-        bcs     @done                   ; Stack overflow
-        sta     primary_stack+Control::variable,x   ; Store variable
-        lda     B
-        sta     primary_stack+Control::end_value,x
-        lda     C
-        sta     primary_stack+Control::end_value+1,x
+        pla                             ; Get variable again
+        sta     primary_stack+Control::variable,x   ; Store it in control record
+        txa                             ; Stack pointer into A
+        clc
+        adc     #Control::end_value     ; Add the offset of the end value
+        ldx     #>primary_stack         ; Segment of stack
+        jsr     store_fpa               ; Store FPA there
+        ldx     psp                     ; Get stack offset back into X
         lda     #1                      ; Set step value to 1
-        sta     primary_stack+Control::step_value,x
+        sta     primary_stack+Control::step_value+Float::s,x
         lda     #0                      ; High byte is 0
-        sta     primary_stack+Control::step_value+1,x
-@done:
+        sta     primary_stack+Control::step_value+Float::s+1,x
+        sta     primary_stack+Control::step_value+Float::s+2,x
+        sta     primary_stack+Control::step_value+Float::s+3,x
+        sta     primary_stack+Control::step_value+Float::e,x
+        clc
         rts
 
 ; NEXT statement:
 
 exec_next:
         jsr     decode_variable         ; Get the variable
-        sta     B                       ; Store it
-        jsr     set_variable_value_ptr  ; Use the variable to set variable_value_ptr
+        pha                             ; Save it on stack twice
+        pha
         ldx     psp                     ; Load stack position
         cpx     #PRIMARY_STACK_SIZE     ; Check if stack empty
         beq     @error                  ; If so then fail
-        lda     primary_stack+Control::variable,x   ; Get the variable
-        cmp     B                       ; Is it the one we saved earlier?
-        bne     @error                  ; If not then fail
-        ldy     #0                      ; Use Y to index variable value
+        pla                             ; Get the variable back
+        cmp     primary_stack+Control::variable,x   ; Is it the right one?
+        bne     @error2                 ; If not then fail
+        jsr     push_variable           ; Otherwise get the value and push onto the stack
+        jsr     pop_fpa                 ; Move it to FPA to prepare for fadd
+        lda     psp                     ; Get stack position again
         clc
-        lda     primary_stack+Control::step_value,x   ; Get low byte of step value
-        adc     (variable_value_ptr),y  ; Add to variable value
-        sta     (variable_value_ptr),y  ; Store back
-        sta     C                       ; Store in C also, to use in comparison
-        iny                             ; Increment to add high byte
-        lda     primary_stack+Control::step_value+1,x 
-        adc     (variable_value_ptr),y
-        sta     (variable_value_ptr),y
-        cmp     primary_stack+Control::end_value+1,x    ; Compare high byte to end value
-        bcc     @return_to_for          ; Value high byte < end, keep going
-        bne     exec_pop                ; Value high byte > end, stop
-        lda     C                       ; Load value low byte back from C
-        cmp     primary_stack+Control::end_value,x      ; Compare low byte to end value
-        bcc     @return_to_for          ; Value low byte < end, keep going
-        bne     exec_pop                ; Value high byte > end, stop
+        adc     #Control::step_value    ; Add offset of step value to stack pointer
+        ldx     #>primary_stack         ; Segment of stack
+        jsr     fadd                    ; Add the values
+        jsr     push_fpa                ; Push back onto stack
+        pla                             ; Get the variable back
+        jsr     pop_variable            ; Back into variable
+        lda     psp                     ; Get stack position again
+        clc
+        adc     #Control::end_value     ; Calculate address of end value
+        ldx     #>primary_stack
+        jsr     fcmp                    ; Compare the current value with the end value
+        bcc     @return_to_for          ; Had to borrow so end value > start value
+        bne     exec_pop                ; If not equal then end value < start value; terminate FOR
 @return_to_for:
+        ldx     psp                     ; Get stack pointer once again
         lda     primary_stack+Control::next_line_ptr,x
         sta     next_line_ptr           ; Restore next_line_ptr value
         lda     primary_stack+Control::next_line_ptr+1,x
@@ -168,6 +171,9 @@ exec_next:
         rts                            
 
 @error:
+        pla                             ; Get rid of variable on stack
+@error2:
+        pla                             ; Second copy of variable
         sec                             ; Signal error
         rts
 
