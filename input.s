@@ -12,19 +12,21 @@ exec_input:
         mva     #0, bp                  ; Reset the read position
 @next_var:
         jsr     decode_variable         ; Read the variable
-        jsr     set_variable_value_ptr  ; Sets variable_value_ptr to the storage for this variable
+        pha                             ; Save it
         jsr     string_to_fp            ; Parse the number
         bcs     @error                  ; Failed to read a number
         jsr     push_fpa                ; Push FPA onto the value stack
-        ; jsr     set_variable_value      ; Store the value
+        pla                             ; Recover variable
+        jsr     pop_variable            ; Store the value
         ldy     lp                      ; Peek at the next byte
-        lda     (line_ptr),y            
+        lda     (line_ptr),y
+        clc                             ; Clear carry in case we're done            
         beq     @done                   ; It was TOKEN_NO_VALUE, nothing more to read
         jsr     parse_argument_separator    ; We read something from ths line so need a ',' to continue
         bcc     exec_input              ; Didn't find ',' so issue a new prompt
         jmp     @next_var               ; Otherwise just read the next variable
 
-@done:
-        clc
 @error:
+        pla                             ; Remove variable from stack
+@done:
         rts
