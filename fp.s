@@ -10,20 +10,18 @@
 ;     If e = 0 and s = 0 then value = 0
 ;     If e = 0 and s != 0 then number is subnormal and actual exponent is -127
 ;     If e >= 1 then actual exponent is e-128 and actual significand is 1+t (implied 1. before t)
-; t = significand, 40 bits
-;
-; The 40-byte value is stored in little-endian format, i.e., lowest byte of significand comes first.
+; s = sign
+; t = fractional part of significand, 31 bits, lowest byte first
 ;
 ; In this module:
 ; Both B and C are used by the normalize function. B holds the rounding byte. C holds the high byte of the exponent.
-; Since most operations call normalize at the end, this means that all those operations will clobber B and C.
 ; B and C is also used in fdiv to accumulate quotient bits and to track the exponent adjustment introduced by
 ; normalizing a subnormal divisor.
 ; D and E are used by the string conversion functions.
 
 ; TODO: make sure B and C are handled correctly in each function.
 
-BIAS = 128
+BIAS = 127
 MAXDIGITS = 10
 
 .zeropage
@@ -50,8 +48,8 @@ fp_temp: .res .sizeof(Float)
 
 ; Floating-point constants
 
-one: .byte $00, $00, $00, $00, $80
-ten: .byte $00, $00, $00, $20, 131
+one: .byte $00, $00, $00, $00, 127
+ten: .byte $00, $00, $00, $20, 130
 
 ; Loads a new Float value from memory into FP0 or FP1.
 ; AY = a pointer to the value to load
@@ -91,7 +89,7 @@ load_fpx:
         rts
 
 @subnormal_or_zero:
-        lda     #$01                    ; Exponent is -127 ($01)
+        lda     #1                      ; Exponent is -126 (+BIAS = 1)
         sta     UnpackedFloat::e,x      ; Store exponent
         rts
 
@@ -327,13 +325,13 @@ int_to_fp:
 @positive:
         mva     #0, FP0t                ; Clear two low bytes
         sta     FP0t+1
-        lda     #143                    ; Starting exponent = 15
+        lda     #142                    ; Starting exponent = 15
         bne     int_to_fp_common        ; Unconditional
         
 ; Assumes that the 32-bit value in the FP0 signifcand is an integer and converts it to a float.
 
 int32_to_fp:
-        lda     #159                    ; Starting exponent = 31
+        lda     #158                    ; Starting exponent = 31
 
 ; Performs the part of integer to float conversion common to 16- and 32-bit cases:
 ; clear B, C, and FP2, and normalize.
@@ -348,7 +346,7 @@ int_to_fp_common:
 ; Truncates the FP value to a 16-bit integer and returns it in AX.
 
 truncate_fp_to_int:
-        lda     #144                    ; Target exponent is 15, but int_to_fp_common requires target+1
+        lda     #143                    ; Target exponent is 15, but int_to_fp_common requires target+1
         jsr     truncate_fp_to_int_common
         lda     FP0s                    ; Was float value negative?
         bpl     @positive
@@ -367,7 +365,7 @@ truncate_fp_to_int:
 ; will be in the significand field of FP0.
 
 truncate_fp_to_int32:
-        lda     #160                    ; Target exponent value is 31, but int_to_fp_common requires target+1
+        lda     #159                    ; Target exponent value is 31, but int_to_fp_common requires target+1
 
 ; Performs the part of float to integer conversion common to 16- and 32-bit cases:
 ; adjusts the significand right to reach a target exponent value.
@@ -384,7 +382,7 @@ truncate_fp_to_int_common:
 @shift:
         jsr     shift_right             ; Shift right
 @decrement:
-        iny                             ; For example if E was 159 then A = (159-160) = -1, so INY gives 0 and we stop
+        iny                             ; For example if E was 158 then A = (158-159) = -1, so INY gives 0 and we stop
         bne     @shift                  ; If not 0 then continue
         clc                             ; Signal success
         rts
@@ -394,8 +392,8 @@ truncate_fp_to_int_common:
 ; be enough space in the buffer for the write to succeed.
 ; bp = the write position in buffer
 
-string_max: .byte $00, $00, $00, $00, 160       ; 2^32     (4,294,967,296  )
-string_min: .byte $CC, $CC, $CC, $4C, 156       ; 2^31/10  (  429,496,729.6)
+string_max: .byte $00, $00, $00, $00, 159       ; 2^32     (4,294,967,296  )
+string_min: .byte $CC, $CC, $CC, $4C, 155       ; 2^31/10  (  429,496,729.6)
 
 fp_to_string:
         lda     FP0s                    ; Check for negative value
