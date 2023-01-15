@@ -62,7 +62,7 @@ decode_expression:
         bne     @loop                   ; If not zero then keep doing stuff; carry is clear here due to shifts
         rts
 
-; Decodes a number and returns it in FPA.
+; Decodes a number and returns it in FP0.
 ; BC SAFE, DE SAFE
 
 decode_number:
@@ -76,6 +76,10 @@ decode_number:
 @no_carry:
         jsr     load_fp0
         jmp     advance_lp_sizeof_float
+
+decode_int:
+        jsr     decode_number
+        jmp     truncate_fp_to_int
 
 decode_variable:
         lda     #$7F

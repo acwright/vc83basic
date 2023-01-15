@@ -75,6 +75,7 @@
 ; decode.s
 .global decode_expression
 .global decode_number
+.global decode_int
 .global decode_variable
 .global decode_operator
 .global decode_unary_operator
@@ -90,6 +91,7 @@
 
 ; expression.s
 .global evaluate_expression
+.global call_binary_operator
 .global push_fpx, push_fp0, pop_fpx, pop_fp0
 .global push_variable, pop_variable
 .global stack_alloc, stack_free

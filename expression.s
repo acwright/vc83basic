@@ -215,8 +215,9 @@ unary_op_not:
         bne     push_value_0            ; Value was not zero so we should return 0
         beq     push_value_1
 
-; Push the value in FPA onto the value stack.
-; FPA = the value to push
+; Push the value in an FP register onto the value stack.
+; X = #FP0 or #FP1 (the _fp0 entry points set this to FP0)
+; FP0/1 = the value to push
 ; Returns carry clear if the push was successful, or carry set if there was no room on the stack.
 ; BC SAFE, DE SAFE
 
@@ -238,6 +239,9 @@ push_fpx:
         jsr     store_fpx               ; Store FPx in the AY address
 @done:
         rts
+
+; Pops a value from the stack into an FP register.
+; FP0/1 = the value to push
 
 pop_fp0:
         ldx     #FP0

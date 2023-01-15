@@ -11,7 +11,7 @@ exec_print:
         clc                             ; Print always succeeds
         rts
 
-; Prints the value in FPA to standard output.
+; Prints the value in FP0 to standard output.
 
 print_number:
         mva     #0, bp

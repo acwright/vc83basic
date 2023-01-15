@@ -17,7 +17,7 @@ on_handler: .res 2
 ; GOTO statement:
 
 exec_goto:
-        jsr     decode_number           ; Go get the line number
+        jsr     decode_int              ; Go get the line number
 exec_goto_ax:
         jsr     find_line               ; Find the program line
         rts                             ; Either next_line_ptr is set or carry (error) is set
@@ -31,7 +31,7 @@ exec_on_goto:
 ; GOSUB statement:
 
 exec_gosub:
-        jsr     decode_number           ; GOSUB line number
+        jsr     decode_int              ; GOSUB line number
 exec_gosub_ax:
         stax    BC                      ; Temporarily store the line number in BC
         jsr     push_next_line_ptr      ; Save return address
@@ -61,7 +61,7 @@ exec_on:
         ldy     lp
         lda     (line_ptr),y            ; Peek at next character
         beq     @not_found              ; If it's TOKEN_NO_VLAUE, nothing matched; continue
-        jsr     decode_number           ; Get the next line number into AX
+        jsr     decode_int              ; Get the next line number into AX
         dec     on_value                ; Decrement the "ON" value
         bpl     @loop                   ; If still positive then keep looking
         jmp     (on_handler)            ; Jump to whatever handler was passed in
@@ -147,11 +147,13 @@ exec_next:
         cmp     primary_stack+Control::variable,x   ; Is it the right one?
         bne     @error2                 ; If not then fail
         jsr     push_variable           ; Otherwise get the value and push onto the stack
-        jsr     pop_fp0                 ; Move it to FPA to prepare for fadd
+        jsr     pop_fp0                 ; Move it to FP0 to prepare for fadd
         lda     psp                     ; Get stack position again
         clc
         adc     #Control::step_value    ; Add offset of step value to stack pointer
-        ldx     #>primary_stack         ; Segment of stack
+        ldy     #>primary_stack         ; Segment of stack
+        ldx     #FP1                    ; Load step into FP1
+        jsr     load_fpx
         jsr     fadd                    ; Add the values
         jsr     push_fp0                ; Push back onto stack
         pla                             ; Get the variable back
@@ -159,7 +161,9 @@ exec_next:
         lda     psp                     ; Get stack position again
         clc
         adc     #Control::end_value     ; Calculate address of end value
-        ldx     #>primary_stack
+        ldy     #>primary_stack
+        ldx     #FP1                    ; Load end value into FP1
+        jsr     load_fpx        
         jsr     fcmp                    ; Compare the current value with the end value
         bcc     @return_to_for          ; Had to borrow so end value > start value
         bne     exec_pop                ; If not equal then end value < start value; terminate FOR
