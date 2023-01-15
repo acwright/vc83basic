@@ -136,7 +136,7 @@ static IntConversionTestCase int_conversion_test_cases[] = {
     { 0, { 0x00000000, 1, POSITIVE } },
     { 1, { 0x80000000, 127, POSITIVE } },
     { 32767, { 0xFFFE0000, 141, POSITIVE } },
-    { -32768, { 0x80000000, 142, NEGATIVE } },
+    { (int)-32768L, { 0x80000000, 142, NEGATIVE } },
     { 4112, { 0x80800000, 139, POSITIVE } },
 };
 
@@ -455,6 +455,16 @@ static void call_string_to_fp(const char* string, char expect_s, char expect_e, 
     ASSERT_FPX_EQ(FP0, expect_s, expect_e, expect_t);
 }
 
+static void fail_string_to_fp(const char* string, int line) {
+    char err;
+    fprintf(stderr, "  %s:%d: string_to_fp(\"%s\")\n", __FILE__, line, string);
+    strcpy(buffer, string);
+    bp = 0;
+    err = string_to_fp();
+    ASSERT_NE(err, 0);
+    ASSERT_EQ(bp, 0);
+}
+
 static void test_string_to_fp(void) {
     PRINT_TEST_NAME();
 
@@ -480,7 +490,17 @@ static void test_string_to_fp(void) {
     call_string_to_fp("2147483647", POSITIVE, 157, 0xFFFFFFFE, __LINE__);
     // -2,147,483,648
     call_string_to_fp("-2147483648", NEGATIVE, 158, 0x80000000, __LINE__);
+
+    // Verify that string_to_fp stops on non-digit.
+    call_string_to_fp("10X", POSITIVE, 130, 0xA0000000, __LINE__);
+    call_string_to_fp("-100-", NEGATIVE, 133, 0xC8000000, __LINE__);
+    call_string_to_fp("3.14159+", POSITIVE, 128, 0xC90FCF81, __LINE__);
     
+    // Verify that string_to_fp leaves bp alone when faced with non-numbers.
+    fail_string_to_fp("X10", __LINE__);
+    fail_string_to_fp("*3", __LINE__);
+    fail_string_to_fp("-X", __LINE__);
+
 //     err = call_string_to_fp("0.0");
 //     ASSERT_EQ(err, 0);
 //     ASSERT_FLOAT_EQ(reg_fpa, -1, 0);

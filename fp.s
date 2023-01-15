@@ -628,15 +628,15 @@ output_y_zeros:
 string_to_fp:
         jsr     clear_fp0               ; Reset to zero (including sign)
         ldy     #$80                    ; Y counts digits after '.'; starts at -128 and jumps to 0 on '.'
-        ldx     bp                      ; Read index
+        mvx     bp, B                   ; Temporarily keep read position in B
         lda     buffer,x
         cmp     #'-'                    ; Check if it's negative
         bne     @not_negative
         ror     FP0s                    ; If equal then carry will have been set; roll into sign
 @next_character:
-        inc     bp                      ; Skip past negative sign
+        inc     B                       ; Skip past negative sign
 @not_negative:
-        ldx     bp
+        ldx     B
         lda     buffer,x                ; Get the next character
         cmp     #'.'                    ; Is it the decimal point?
         bne     @not_decimal_point      ; No
@@ -681,11 +681,11 @@ string_to_fp:
 @not_digit:
         cpy     #$80                    ; Has Y changed at all?
         beq     @err_not_digit          ; No, so this is an error: we wanted a number and didn't find one
-        lda     buffer,x                ; Load character again
 
 ; There was at least one digit character followed by a non-digit character that isn't E, so treat this as
 ; the end of the number. The number is now a 32-bit integer in FP0, so convert it into FP.
 
+        stx     bp                      ; X points to the first non-digit; update bp
         sty     D                       ; Use D to keep track of how many digits after decimal
         jsr     int32_to_fp
         lda     D                       ; Test number of digits
