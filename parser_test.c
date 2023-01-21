@@ -264,8 +264,10 @@ static void test_parse_element(void) {
 static void test_parse_line(void) {
     int err;
 
-    const char line_data_1[] = { ST_LET, 0x80, TOKEN_NUM, 0x00, 0x00, 0x00, 0x48, 133, TOKEN_NO_VALUE };
-    const char line_data_2[] = { ST_RUN };
+    const char line_data_1[] = { 13, ST_LET, 0x80, TOKEN_NUM, 0x00, 0x00, 0x00, 0x48, 133, TOKEN_NO_VALUE };
+    const char line_data_2[] = { 13, ST_LET, 0x80, TOKEN_NUM, 0x00, 0x00, 0x00, 0x48, 133, TOKEN_NO_VALUE,
+        17, ST_PRINT, 0x80, TOKEN_NO_VALUE };
+    const char line_data_3[] = { 5, ST_RUN };
 
     PRINT_TEST_NAME();
 
@@ -280,14 +282,23 @@ static void test_parse_line(void) {
     ASSERT_EQ(line_buffer.number, 10);
     ASSERT_MEMORY_EQ(line_buffer.data, line_data_1, sizeof line_data_1);
 
+    // Happy path with multiple statements
+
+    strcpy(buffer, "10 LET X=100:PRINT X");
+    err = parse_line();
+    ASSERT_EQ(err, 0);
+    ASSERT_EQ(line_buffer.next_line_offset, offsetof(Line, data) + sizeof line_data_2);
+    ASSERT_EQ(line_buffer.number, 10);
+    ASSERT_MEMORY_EQ(line_buffer.data, line_data_2, sizeof line_data_2);
+
     // Happy path immediate mode
 
     strcpy(buffer, "RUN");
     err = parse_line();
     ASSERT_EQ(err, 0);
-    ASSERT_EQ(line_buffer.next_line_offset,  offsetof(Line, data) + sizeof line_data_2);
+    ASSERT_EQ(line_buffer.next_line_offset,  offsetof(Line, data) + sizeof line_data_3);
     ASSERT_EQ(line_buffer.number, -1);
-    ASSERT_MEMORY_EQ(line_buffer.data, line_data_2, sizeof line_data_2);
+    ASSERT_MEMORY_EQ(line_buffer.data, line_data_3, sizeof line_data_3);
 
     // Empty line
 

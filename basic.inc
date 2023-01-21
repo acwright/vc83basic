@@ -5,7 +5,7 @@
 .struct Line
     next_line_offset .res 1
     number .res 2
-    ; data consists of next_statement_offset followed by tokenized data
+    ; data consists of next statement offset followed by tokenized data, repeated until end of line
     data .res 1
 .endstruct
 

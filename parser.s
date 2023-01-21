@@ -6,6 +6,9 @@
 ; Read/write position in buffer
 bp: .res 1
 
+; Position of current statement
+tp: .res 1
+
 ; The number of arguments that parse_argument_list is parsing
 argument_count: .res 1
 
@@ -36,13 +39,25 @@ parse_line:
         jsr     skip_whitespace         ; Detect a blank line; returns non-blank character in A, may be zero
         tax                             ; Transfer into X to check if it's zero
         beq     @blank_line
+
+; Parse one statement. The statement must be found because the line is not blank and this is either the first
+; statement or we just parsed a ':'.
+
+@next_statement:
+        mva     lp, tp                  ; Save start of statement position
+        inc     lp                      ; Begin tokenizing statement at next position
         ldax    #statement_name_table
         jsr     parse_element           ; Leaves the parsed statement in line_buffer and sets/clears carry
         bcs     @done                   ; Parse failed
+        lda     lp                      ; Write position is next statement offset
+        ldx     tp                      ; Store at start of statement
+        sta     line_buffer,x
+        jsr     parse_statement_separator
+        bcs     @next_statement
 @blank_line:
-        mva     lp, line_buffer+Line::next_line_offset  ; Write position is next statement offset
+        mva     lp, line_buffer+Line::next_line_offset  ; Write position is next line offset
         ldx     bp
-        lda     buffer,x                ; Verify the line ends as expected
+        lda     buffer,x                ; Verify the line ends with 0 as expected
         clc
         beq     @done                   ; If so then jump to done with carry still clear
         sec                             ; Otherwise set carry to indicate failure
@@ -285,13 +300,26 @@ parse_statement:
         ldax    #statement_name_table
         jmp     parse_element
 
+; Parses a mandatory colon beween arguments. Does not write any tokens.
+
+parse_statement_separator:
+        lda     #':'
+        bne     parse_separator
+
 ; Parses a mandatory comma beween arguments. Does not write any tokens.
+
+parse_argument_separator:
+        lda     #','
+
+; Parses a separator character.
+; A = the separator character
 ; Return codes are reversed: we return carry clear if we did *not* find a separator and carry set if we did.
 ; Y SAFE
 
-parse_argument_separator:
-        jsr     skip_whitespace         ; Leaves next character in A
-        cmp     #','                    ; Sets carry if character was ','
+parse_separator:
+        sta     B                       ; Use B for the comparison
+        jsr     skip_whitespace
+        cmp     B                       ; Compare non-whitespace character to separator
         bne     @error
         inc     bp
         rts
