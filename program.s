@@ -38,6 +38,9 @@ variable_value_ptr: .res 2
 ; Read/write position in line
 lp: .res 1
 
+; The next value of lp (analogous to next_line_ptr)
+next_lp: .res 1
+
 ; Whether the program is not running, running, stopped, or awaiting reset.
 program_state: .res 1
 
@@ -99,10 +102,12 @@ reset_program_state:
 
 reset_next_line_ptr:
         mvax    program_ptr, next_line_ptr
+        mva     #Line::data, next_lp
         rts
 
 ; Builds a line containing an END statement at next_line_ptr.
 ; This function makes assumptions about these offsets.
+; TODO: 30 bytes, try to reduce by just copying from a template since all values are constants
 
 .assert Line::next_line_offset = 0, error
 .assert Line::number = 1, error
@@ -110,12 +115,15 @@ reset_next_line_ptr:
 
 build_end_statement:
         ldy     #0                          ; Start at offset 0 to next_line_ptr
-        lda     #Line::data+1               ; Next line offset is data offset plus 1 for END 
+        lda     #Line::data+2               ; Next line offset is data offset +1 for next statement offset +1 for END
         sta     (next_line_ptr),y           ; Save as next line offset
         iny
         lda     #$FF                        ; Line number = -1
         sta     (next_line_ptr),y           ; Save line number low byte
         iny
+        sta     (next_line_ptr),y           ; Line number high byte
+        iny
+        lda     #Line::data+2               ; Next line offset is also next statement offset
         sta     (next_line_ptr),y           ; Line number high byte
         iny
         lda     #ST_END                     ; END
@@ -152,6 +160,21 @@ find_line:
 @done:        
         rts     
 
+; Given next_line_ptr and next_lp pointing to a statement, advance both to point to the next statement, either
+; on the current or next line.
+; next_line_ptr = current next line (updated)
+; next_lp = position of next statement (updated)
+; X SAFE, BC SAFE, DE SAFE
+
+advance_next_lp:
+        ldy     next_lp
+        lda     (next_line_ptr),y       ; Get next statement offset
+        ldy     #Line::next_line_offset
+        cmp     (next_line_ptr),y       ; Compare with next line offset
+        beq     advance_next_line_ptr_a ; It's the last statement so go to the next line with offset already in A
+        sta     next_lp                 ; Just set next_lp to the offset of the next statement
+        rts                             ; And return with next_line_ptr unchanged
+
 ; Advances next_line_ptr to the next line.
 ; next_line_ptr = current next line (updated)
 ; X SAFE, BC SAFE, DE SAFE
@@ -159,12 +182,14 @@ find_line:
 advance_next_line_ptr:
         ldy     #Line::next_line_offset
         lda     (next_line_ptr),y       ; Get next line offset into A
+advance_next_line_ptr_a:
         clc
         adc     next_line_ptr           ; Add line length to low byte of next_line_ptr
         sta     next_line_ptr           ; Save back
         bcc     @skip                   ; Don't need to change the high byte
         inc     next_line_ptr+1         ; Increment the high byte
 @skip:
+        mva     #Line::data, next_lp    ; Make next_lp point to the start of the next line
         rts        
 
 ; Updates the program based on the information in line_buffer.

@@ -32,6 +32,7 @@
 .globalzp BC, B, C, DE, D, E
 .globalzp FP0, FP0t, FP0e, FP0s, FP1, FP1t, FP1e, FP1s, FP2, FP3
 .globalzp bp
+.globalzp tp
 .globalzp name_ptr
 .globalzp np
 .globalzp src_ptr, dst_ptr
@@ -46,6 +47,7 @@
 .globalzp variable_count
 .globalzp variable_value_ptr
 .globalzp lp
+.globalzp next_lp
 .globalzp program_state
 .globalzp argument_count
 .globalzp osp
@@ -163,6 +165,7 @@
 .global reset_next_line_ptr
 .global build_end_statement
 .global find_line
+.global advance_next_lp
 .global advance_next_line_ptr
 .global insert_or_update_line
 .global expand, expand_a, compact, compact_a

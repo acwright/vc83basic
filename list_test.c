@@ -162,12 +162,15 @@ static void test_list_element(void) {
 static void test_list_line(void) {
     char err;
 
-    const char line_data_1[] = { ST_PRINT, TOKEN_NUM, 0x00, 0x00, 0x80, 0x00, 135, TOKEN_NO_VALUE };
-    const char line_data_2[] = { ST_LET, 0x80, TOKEN_NUM, 0x00, 0x00, 0xFE, 0x7F, 141, TOKEN_NO_VALUE };
-    const char line_data_end[] = { ST_END };
+    const char line_data_1[] = { 11, ST_PRINT, TOKEN_NUM, 0x00, 0x00, 0x80, 0x00, 135, TOKEN_NO_VALUE };
+    const char line_data_2[] = { 13, ST_LET, 0x80, TOKEN_NUM, 0x00, 0x00, 0xFE, 0x7F, 141, TOKEN_NO_VALUE };
+    const char line_data_3[] = { 13, ST_LET, 0x80, TOKEN_NUM, 0x00, 0x00, 0xFE, 0x7F, 141, TOKEN_NO_VALUE,
+        17, ST_PRINT, 0x80, TOKEN_NO_VALUE };
+    const char line_data_end[] = { 5, ST_END };
     
     const char list_1[] = "10 PRINT 257";
     const char list_2[] = "400 LET X=32767";
+    const char list_3[] = "400 LET X=32767:PRINT X";
 
     PRINT_TEST_NAME();
 
@@ -185,6 +188,12 @@ static void test_list_line(void) {
     ASSERT_EQ(err, 0);
     ASSERT_MEMORY_EQ(buffer, list_2, sizeof list_2 - 1);
     ASSERT_EQ(bp, sizeof list_2 - 1);
+
+    set_line(400, line_data_3, sizeof line_data_3);
+    err = list_line();
+    ASSERT_EQ(err, 0);
+    ASSERT_MEMORY_EQ(buffer, list_3, sizeof list_3 - 1);
+    ASSERT_EQ(bp, sizeof list_3 - 1);
 
     // Test that list_line returns carry set when at the last line (or any negative-numbered line):
 

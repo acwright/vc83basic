@@ -26,15 +26,16 @@ main:
         lda     program_state
         beq     @get_command
 
-; Program is running; set line_ptr and execute statement.
+; Program is running; set line_ptr and lp to next statement and execute it.
 
-        mvax    next_line_ptr, line_ptr ; Get the next line to run
-        jsr     advance_next_line_ptr   ; Move next_line_ptr to following line
+        mvax    next_line_ptr, line_ptr ; Get the next statement to run
+        mvy     next_lp, lp
+        jsr     advance_next_lp         ; Move next_line_ptr and next_lp to next statement
 
 ; Reads the statement from line_ptr and dispatch to a handler.
 
 @dispatch:
-        mva     #Line::data, lp         ; Initialize read position to start of data
+        inc     lp                      ; Skip over the next statement offset
         jsr     dispatch_next_statement
         bcc     @loop
 @error:
@@ -59,8 +60,9 @@ main:
         lda     line_buffer+Line::next_line_offset  ; See if there is any data in the buffer
         cmp     #Line::data             ; Does the "next line" start at the beginning of *this* line?
         beq     @wait_for_input         ; Yes, just ignore input
-        mvax    #line_buffer, line_ptr  ; Set line_ptr to point to line_buffer    
-        stax    next_line_ptr           ; And next_line_ptr
+        mvax    #line_buffer, line_ptr  ; Set line_ptr to point to line_buffer
+        mvy     #Line::data, lp         ; Set lp to start of line
+        stax    next_line_ptr           ; Set up next_line_ptr
         jsr     advance_next_line_ptr   ; So we can move it to the next statement
         jsr     build_end_statement     ; Populate END statement after the immediate mode statement
         mva     #PS_RUNNING, program_state  ; Set the program state to RUNNING
