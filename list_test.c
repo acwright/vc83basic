@@ -177,7 +177,7 @@ static void test_list_element(void) {
 static void test_list_line(void) {
     char err;
 
-    const char line_data_1[] = { 11, ST_PRINT, TOKEN_NUM, 0x00, 0x00, 0x80, 0x00, 135, TOKEN_NO_VALUE };
+    const char line_data_1[] = { 12, ST_PRINT, TOKEN_NUM, 0x00, 0x00, 0x80, 0x00, 135, TOKEN_NO_VALUE };
     const char line_data_2[] = { 13, ST_LET, 0x80, TOKEN_NUM, 0x00, 0x00, 0xFE, 0x7F, 141, TOKEN_NO_VALUE };
     const char line_data_3[] = { 13, ST_LET, 0x80, TOKEN_NUM, 0x00, 0x00, 0xFE, 0x7F, 141, TOKEN_NO_VALUE,
         17, ST_PRINT, 0x80, TOKEN_NO_VALUE };

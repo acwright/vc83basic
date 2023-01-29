@@ -162,11 +162,10 @@
 ; program.s
 .global initialize_program
 .global reset_program_state
-.global reset_next_line_ptr
+.global reset_next_line_ptr, reset_next_line_ptr_ax
 .global build_end_statement
 .global find_line
-.global advance_next_lp
-.global advance_next_line_ptr
+.global advance_next_line_ptr, advance_next_line_ptr_a
 .global insert_or_update_line
 .global expand, expand_a, compact, compact_a
 .global calculate_bytes_to_move

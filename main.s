@@ -25,17 +25,23 @@ main:
 @loop:
         lda     program_state
         beq     @get_command
+        bne     @dispatch
 
 ; Program is running; set line_ptr and lp to next statement and execute it.
+; If the next statement is the end of the line, then go to the next statement. This is the *only* place where we
+; move to the next line; during normal execution we can assume that next_line_ptr == line_ptr unless it has been
+; modified by a control statement.
 
-        mvax    next_line_ptr, line_ptr ; Get the next statement to run
-        mvy     next_lp, lp
-        jsr     advance_next_lp         ; Move next_line_ptr and next_lp to next statement
-
-; Reads the statement from line_ptr and dispatch to a handler.
-
+@next_line:
+        jsr     advance_next_line_ptr   ; Otherwise go to next line
 @dispatch:
-        inc     lp                      ; Skip over the next statement offset
+        mvax    next_line_ptr, line_ptr ; Move to next statement
+        mva     next_lp, lp
+        ldy     #Line::next_line_offset
+        cmp     (line_ptr),y            ; Is the current statement offset also the next line offset?
+        beq     @next_line              ; If yes then restart from next line
+        jsr     decode_byte             ; The next byte is the next statement offset
+        sta     next_lp
         jsr     dispatch_statement
         bcc     @loop
 @error:
@@ -60,13 +66,13 @@ main:
         lda     line_buffer+Line::next_line_offset  ; See if there is any data in the buffer
         cmp     #Line::data             ; Does the "next line" start at the beginning of *this* line?
         beq     @wait_for_input         ; Yes, just ignore input
-        mvax    #line_buffer, line_ptr  ; Set line_ptr to point to line_buffer
-        mvy     #Line::data, lp         ; Set lp to start of line
-        stax    next_line_ptr           ; Set up next_line_ptr
+        mvax    #line_buffer, next_line_ptr ; Set next_line_ptr to point to line_buffer
         jsr     advance_next_line_ptr   ; So we can move it to the next statement
         jsr     build_end_statement     ; Populate END statement after the immediate mode statement
         mva     #PS_RUNNING, program_state  ; Set the program state to RUNNING
-        bne     @dispatch
+        ldax    #line_buffer            ; Reset next_line_ptr to line_buffer
+        jsr     reset_next_line_ptr_ax
+        bne     @dispatch               ; Unconditional
 
 ; Decodes and executes one statement from the token stream.
 
