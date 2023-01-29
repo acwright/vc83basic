@@ -36,7 +36,7 @@ main:
 
 @dispatch:
         inc     lp                      ; Skip over the next statement offset
-        jsr     dispatch_next_statement
+        jsr     dispatch_statement
         bcc     @loop
 @error:
         jsr     print_error
@@ -70,7 +70,7 @@ main:
 
 ; Decodes and executes one statement from the token stream.
 
-dispatch_next_statement:
+dispatch_statement:
         jsr     decode_byte             ; Get statement number
         tay
         ldax    #statement_exec_vectors
