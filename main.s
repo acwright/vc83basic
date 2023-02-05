@@ -100,6 +100,8 @@ statement_exec_vectors:
         .word   exec_stop
         .word   exec_cont
         .word   exec_if
+        .word   exec_new
+        .word   exec_clr
 
 print_start:
         ldax    #start_message

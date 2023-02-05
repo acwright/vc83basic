@@ -1,0 +1,15 @@
+source [file join [file dirname [info script]] common.expinc]
+spawn_basic
+
+test {
+PRINT 0
+} {
+0
+}
+
+test {
+LET X=5
+PRINT X
+} {
+5
+}

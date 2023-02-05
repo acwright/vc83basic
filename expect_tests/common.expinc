@@ -1,0 +1,19 @@
+# spawn_basic
+# Spawns BASIC in simulator.
+
+proc spawn_basic {} {
+    global spawn_id
+    spawn sim65 basic_sim6502
+    fconfigure $spawn_id -translation { crlf lf }
+    expect "VC83 BASIC*BYTES FREE\n"
+    expect_before timeout { puts "**** Failed"; exit 1 }
+}
+
+# test
+# Sends a program or command BASIC and looks for a response.
+
+proc test { input output } {
+    send [string trimleft "$input" ]
+    expect -ex [string trimleft "$input"] { puts "**** Accepted" }
+    expect -ex [string trimleft "$output"] { puts "**** Passed" }
+}

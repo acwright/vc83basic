@@ -179,6 +179,8 @@
 .global exec_end
 .global exec_stop
 .global exec_cont
+.global exec_new
+.global exec_clr
 
 ; tables.s
 .global statement_name_table

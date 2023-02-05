@@ -50,6 +50,8 @@ program_state: .res 1
 .assert PS_STOPPED = 0, error
 
 ; Initializes a new program.
+; Clears the program, all variables, and the heap. Sets the run state to stopped. Does not set next_line_ptr since the
+; program is not running.
 ; Inserts an empty zero-length line -1 into the program space.
 
 initialize_program:
@@ -75,6 +77,8 @@ initialize_program:
 ; Fall through to reset_program_state
 
 ; Clears the runtime state of the program.
+; Clears all variables and the heap. The run state and next_line_ptr remain unchanged, so this can be called
+; while the program is running.
 ; value_table_ptr = the address of the variable value table, the next byte following the variable name table
 ; variable_count = the number of variables in the variable name table
 
@@ -93,10 +97,9 @@ reset_program_state:
         mva     #OP_STACK_SIZE, osp     ; Initialize stack positions
         mva     #PRIMARY_STACK_SIZE, psp
         mva     #0, resume_line_ptr+1   ; Initialize resume_line_ptr high byte to 0 to disable CONT
+        rts
 
-; Fall through
-
-; Sets next_line_ptr to program_ptr.
+; Sets next_line_ptr to program_ptr. Does not change the run state.
 ; Returns next_line_ptr in AX.
 ; BC SAFE, DE SAFE
 
@@ -352,4 +355,5 @@ set_variable_value_ptr:
         txa                             
         adc     value_table_ptr+1
         sta     variable_value_ptr+1
+        ldax    variable_value_ptr
         rts

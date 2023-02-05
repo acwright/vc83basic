@@ -13,9 +13,13 @@ resume_lp: .res 1
 
 ; RUN statement:
 ; Executes the program.
+; Perhaps surprisingly, this function does not actally set the run state. It doesn't need to, because in order for
+; this handler to execute, the program must already be running. The handler just resets the program state and resumes
+; execution at the first line of the program.
 
 exec_run:
         jsr     reset_program_state     ; Clear the variable name table
+        jsr     reset_next_line_ptr
         clc
         rts
 
@@ -51,4 +55,20 @@ exec_cont:
         mva     #PS_RUNNING, program_state
         clc
 @done:
+        rts
+
+; NEW statment:
+; Clears the program from memory, which also has the effect of stopping the program as if END.
+
+exec_new:
+        jsr     initialize_program
+        clc
+        rts
+
+; CLR statement:
+; Resets the runtime state of the program, but keeps the program in memory.
+
+exec_clr:
+        jsr     reset_program_state
+        clc
         rts

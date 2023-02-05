@@ -5,9 +5,6 @@ static void test_initalize_program(void) {
 
     initialize_program();
 
-    ASSERT_EQ(next_line_ptr, program_ptr);
-    ASSERT_EQ(next_line_ptr->next_line_offset, sizeof (Line) + 2); // +1 for next statement offset +1 for END token
-    ASSERT_EQ(next_line_ptr->number, -1);
     ASSERT_EQ((char*)variable_name_table_ptr, (char*)program_ptr + sizeof (Line) + 2);
     ASSERT_EQ(*variable_name_table_ptr, 0);
     ASSERT_EQ((void*)value_table_ptr, (void*)(variable_name_table_ptr + 1)); // Variable name table is empty with terminating 0
@@ -32,13 +29,14 @@ static void test_advance_next_line_ptr(void) {
 
     // Calling advance_next_line_ptr on the empty program should advance next_line_ptr to variable_name_table_ptr.
     initialize_program();
+    reset_next_line_ptr();
     advance_next_line_ptr();
     ASSERT_EQ((void*)next_line_ptr, (void*)variable_name_table_ptr);
 
     // If we put in a fake lines with various lengths then line_ptr should advance by the size of each.
-    // Note that we're charging into unallocated memory here, but that's okay since we own memory space
-    // after the BSS.
+    // Note that we're charging into unallocated memory here, but that's okay since we own memory space after the BSS.
     initialize_program();
+    reset_next_line_ptr();
     next_line_ptr->next_line_offset = 10;
     advance_next_line_ptr();
     ASSERT_EQ((char*)next_line_ptr, (char*)program_ptr + 10);
@@ -53,6 +51,7 @@ static void test_find_line(void) {
     PRINT_TEST_NAME();
 
     initialize_program();
+    reset_next_line_ptr();
 
     ASSERT_EQ(next_line_ptr, program_ptr);
 
@@ -213,6 +212,7 @@ static void test_expand(void) {
     PRINT_TEST_NAME();
 
     initialize_program();
+    reset_next_line_ptr();
 
     // Add 3 bytes to the program space by adding to line_ptr.
     // First make sure line_ptr points to the beginning of the program.
@@ -278,6 +278,7 @@ static void test_compact(void) {
     PRINT_TEST_NAME();
 
     initialize_program();
+    reset_next_line_ptr();
 
     // Create some program space.
     err = expand(&variable_name_table_ptr, 0x400);

@@ -41,6 +41,8 @@ def(ST_NEXT,           13)
 def(ST_STOP,           14)
 def(ST_CONT,           15)
 def(ST_IF_THEN,        16)
+def(ST_NEW,            17)
+def(ST_CLR,            18)
 
 comment Binary operator tokens: combine with TOKEN_OP
 

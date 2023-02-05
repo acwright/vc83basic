@@ -1,0 +1,105 @@
+source [file join [file dirname [info script]] common.expinc]
+
+spawn_basic
+
+# GOTO
+
+test {
+NEW
+10 PRINT 1
+20 GOTO 50
+30 PRINT 3
+40 END
+50 PRINT 2
+60 GOTO 30
+RUN
+} {
+1
+2
+3
+}
+
+# Missing line number
+
+test {
+NEW
+10 PRINT 1
+20 GOTO 40
+30 END
+RUN
+} {
+1
+ERROR
+}
+
+# ON...GOTO
+
+test {
+NEW
+10 ON 0 GOTO 40,50,60
+20 PRINT 1
+30 END
+40 PRINT 2
+50 PRINT 3
+60 PRINT 4
+RUN
+} {
+2
+3
+4
+}
+
+test {
+NEW
+10 ON 1 GOTO 40,50,60
+20 PRINT 1
+30 END
+40 PRINT 2
+50 PRINT 3
+60 PRINT 4
+RUN
+} {
+2
+3
+4
+}
+
+test {
+NEW
+10 ON 2 GOTO 40,50,60
+20 PRINT 1
+30 END
+40 PRINT 2
+50 PRINT 3
+60 PRINT 4
+RUN
+} {
+3
+4
+}
+
+test {
+NEW
+10 ON 3 GOTO 40,50,60
+20 PRINT 1
+30 END
+40 PRINT 2
+50 PRINT 3
+60 PRINT 4
+RUN
+} {
+4
+}
+
+test {
+NEW
+10 ON 4 GOTO 40,50,60
+20 PRINT 1
+30 END
+40 PRINT 2
+50 PRINT 3
+60 PRINT 4
+RUN
+} {
+1
+}

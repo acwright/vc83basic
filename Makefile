@@ -34,6 +34,8 @@ TESTS = \
 TEST_COMMON_SOURCES = c_wrappers.s $(filter-out $(TEST_TARGET)/$(TEST_TARGET)_startup.s,$(wildcard $(TEST_TARGET)/*.s))
 TEST_COMMON_OBJECTS = $(TEST_COMMON_SOURCES:.s=.o)
 
+EXPECT_TESTS = $(notdir $(basename $(wildcard expect_tests/*.exp)))
+
 ASMFLAGS = --create-dep $(@:.o=.d)
 CFLAGS = --create-dep $(@:.o=.d)
 LDFLAGS = -m $@.map
@@ -86,9 +88,24 @@ clean::
 
 endef
 
+# create-expect-test defines rules to run a Expect test.
+
+define create-expect-test
+
+.PHONY: run_expect_test_$1
+
+run_expect_test_$1:
+	expect expect_tests/$1.exp
+
+endef
+
+.PHONY: all test expect_test clean
+
 all: $(addprefix basic_,$(TARGETS)) $(TESTS)
 
 test: $(addprefix run_,$(TESTS))
+
+expect_test: $(addprefix run_expect_test_,$(EXPECT_TESTS))
 
 # Rules for building the constants files:
 constants.inc: constants.m4
@@ -100,6 +117,8 @@ constants.h: constants.m4
 $(foreach TARGET,$(TARGETS),$(eval $(call create-target,$(TARGET))))
 
 $(foreach TEST,$(TESTS),$(eval $(call create-test,$(TEST))))
+
+$(foreach TEST,$(EXPECT_TESTS),$(eval $(call create-expect-test,$(TEST))))
 
 # Builds a common object from a common assembly language source; used by tests
 %.o: %.s constants.inc

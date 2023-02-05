@@ -142,6 +142,7 @@ clear_memory_a:
 clear_memory:
         stax    DE                      ; Number of bytes in DE
 clear_memory_de:
+        ldax dst_ptr
         lda     #0                      ; Zero byte to write
         tax                             ; X is the number of blocks written; initialize to 0
         tay                             ; Y is the number of bytes written; initialize to 0

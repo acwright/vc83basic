@@ -1,0 +1,67 @@
+source [file join [file dirname [info script]] common.expinc]
+spawn_basic
+
+# FOR
+
+test {
+NEW
+10 FOR X=1 TO 5
+20 PRINT X
+30 NEXT X
+RUN
+} {
+1
+2
+3
+4
+5
+}
+
+test {
+NEW
+10 FOR X=1 TO 5
+20 FOR Y=1 TO 5
+30 PRINT X*Y
+40 NEXT Y
+50 NEXT X
+RUN
+} {
+1
+2
+3
+4
+5
+2
+4
+6
+8
+10
+3
+6
+9
+12
+15
+4
+8
+12
+16
+20
+5
+10
+15
+20
+25
+}
+
+# NEXT without FOR
+
+test {
+NEW
+10 FOR X=1 TO 5
+20 PRINT X
+30 NEXT Y
+RUN
+} {
+1
+ERROR
+}

@@ -1,0 +1,19 @@
+source [file join [file dirname [info script]] common.expinc]
+spawn_basic
+
+# RUN, STOP, CONT
+
+test {
+NEW
+10 PRINT 1
+20 STOP
+30 PRINT 2
+40 END
+RUN
+CONT
+} {
+1
+
+READY
+2
+}
