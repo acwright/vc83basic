@@ -6,7 +6,10 @@ proc spawn_basic {} {
     spawn sim65 basic_sim6502
     fconfigure $spawn_id -translation { crlf lf }
     expect "VC83 BASIC*BYTES FREE\n"
-    expect_before timeout { puts "**** Failed"; exit 1 }
+    expect_before {
+        timeout { puts "**** Failed"; exit 1 }
+        eof { puts "**** Child process quit"; exit 1 }
+    }
 }
 
 # test
