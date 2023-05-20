@@ -131,4 +131,4 @@ $(foreach TEST,$(EXPECT_TESTS),$(eval $(call create-expect-test,$(TEST))))
 -include $$(COMMON_SOURCES:.s=.d)
 
 clean::
-	rm -f constants.inc constants.h *.o *.d *.map
+	rm -f constants.inc constants.h *.o *.d *.map x
