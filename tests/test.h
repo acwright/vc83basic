@@ -28,6 +28,24 @@ typedef struct UnpackedFloat {
     char s;
 } UnpackedFloat;
 
+typedef struct String {
+    char length;
+    char data[];
+} String;
+
+typedef struct Value {
+    char type;
+    union {
+        struct {
+            Float number_value;
+        } number;
+        struct {
+            char* string_ptr;
+        } string;
+    };
+} Value;
+
+
 // Zero Page
 
 extern int reg_bc;
@@ -74,6 +92,10 @@ extern void* dst_ptr;
 #pragma zpsym ("dst_ptr")
 extern size_t size;
 #pragma zpsym ("size")
+extern char si;
+#pragma zpsym ("si")
+extern char di;
+#pragma zpsym ("di")
 extern void** vector_table_ptr;
 #pragma zpsym ("vector_table_ptr")
 extern char* name_ptr;
@@ -88,7 +110,7 @@ extern Line* next_line_ptr;
 #pragma zpsym ("next_line_ptr")
 extern char* variable_name_table_ptr;
 #pragma zpsym ("variable_name_table_ptr")
-extern void* value_table_ptr;
+extern Value* value_table_ptr;
 #pragma zpsym ("value_table_ptr")
 extern void* free_ptr;
 #pragma zpsym ("free_ptr")
@@ -124,6 +146,7 @@ extern char err;
 // decode.s
 void decode_expression(void** vector_table_ptr);
 void decode_number(void);
+const char* decode_string(void);
 char decode_variable(void);
 char decode_operator(void);
 char decode_unary_operator(void);
@@ -133,6 +156,8 @@ char decode_byte(void);
 void evaluate_expression(void);
 void push_fp0(void);
 void pop_fp0(void);
+void push_string(const String* value);
+const String* pop_string(void);
 char stack_alloc(char size);
 void stack_free(char size);
 
@@ -194,6 +219,9 @@ void check_himem(size_t size);
 void set_variable_value_ptr(char variable);
 int mul_value_size(int value);
 
+// string.s
+char read_string(void);
+
 // util.s
 void copy(char* to, const char* from, size_t size);
 void reverse_copy(char* to, const char* from, size_t size);
@@ -254,6 +282,7 @@ void set_line(int line, const char* data, size_t length) {
 #define ASSERT_NOT_NULL(a) ASSERT_IS_OR_IS_NOT_NULL(a, "is not", !=)
 
 #define DEBUG(x) fprintf(stderr, #x "=%d\n", (x))
+#define DEBUG_PTR(x) fprintf(stderr, #x "=%X\n", (x))
 
 #define HERE() fprintf(stderr, "%s:%d\n", __FILE__, __LINE__)
 

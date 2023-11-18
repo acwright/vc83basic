@@ -181,11 +181,84 @@ void test_evaluate_expression_precedence(void) {
     ASSERT_FLOAT_EQ(value, 127, 0x00000000);
 }
 
+void test_one_string_comparison(char op, const char* s1, const char* s2, const Float* expected, int line) {
+    char line_data[40];
+    size_t s1_length, s2_length;
+    size_t i;
+    Float value;
+
+    fprintf(stderr, "  %s:%d: test_one_string_comparison(%d, \"%s\", \"%s\")\n", __FILE__, line, op, s1, s2);
+
+    s1_length = strlen(s1);
+    s2_length = strlen(s2);
+
+    i = 0;
+    line_data[i++] = TOKEN_STRING;
+    line_data[i++] = s1_length;
+    memcpy(line_data + i, s1, s1_length);
+    i += s1_length;
+    line_data[i++] = TOKEN_OP | op;
+    line_data[i++] = TOKEN_STRING;
+    line_data[i++] = s2_length;
+    memcpy(line_data + i, s2, s2_length);
+    i += s2_length;
+    line_data[i++] = TOKEN_NO_VALUE;
+    set_line(0, line_data, i);
+
+    evaluate_expression();
+    ASSERT_EQ(err, 0);
+    pop_fp0();
+    store_fpx(&FP0, &value);
+    ASSERT_FLOAT_EQ(value, expected->e, expected->t);
+}
+
+void test_string_comparison(void) {
+    const Float value_0 = { 0x00000000, 0 };
+    const Float value_1 = { 0x00000000, 127 };
+
+    test_one_string_comparison(OP_EQ, "HELLO", "HELLO", &value_1, __LINE__);
+    test_one_string_comparison(OP_EQ, "HELLO", "HELLOX", &value_0, __LINE__);
+    test_one_string_comparison(OP_EQ, "HELLOX", "HELLO", &value_0, __LINE__);
+    test_one_string_comparison(OP_EQ, "ABC", "XYZ", &value_0, __LINE__);
+    test_one_string_comparison(OP_EQ, "", "", &value_1, __LINE__);
+
+    test_one_string_comparison(OP_NE, "HELLO", "HELLO", &value_0, __LINE__);
+    test_one_string_comparison(OP_NE, "HELLO", "HELLOX", &value_1, __LINE__);
+    test_one_string_comparison(OP_NE, "HELLOX", "HELLO", &value_1, __LINE__);
+    test_one_string_comparison(OP_NE, "ABC", "XYZ", &value_1, __LINE__);
+    test_one_string_comparison(OP_NE, "", "", &value_0, __LINE__);
+
+    test_one_string_comparison(OP_LT, "HELLO", "HELLO", &value_0, __LINE__);
+    test_one_string_comparison(OP_LT, "HELLO", "HELLOX", &value_1, __LINE__);
+    test_one_string_comparison(OP_LT, "HELLOX", "HELLO", &value_0, __LINE__);
+    test_one_string_comparison(OP_LT, "ABC", "XYZ", &value_1, __LINE__);
+    test_one_string_comparison(OP_LT, "", "", &value_0, __LINE__);
+
+    test_one_string_comparison(OP_LE, "HELLO", "HELLO", &value_1, __LINE__);
+    test_one_string_comparison(OP_LE, "HELLO", "HELLOX", &value_1, __LINE__);
+    test_one_string_comparison(OP_LE, "HELLOX", "HELLO", &value_0, __LINE__);
+    test_one_string_comparison(OP_LE, "ABC", "XYZ", &value_1, __LINE__);
+    test_one_string_comparison(OP_LE, "", "", &value_1, __LINE__);
+
+    test_one_string_comparison(OP_GT, "HELLO", "HELLO", &value_0, __LINE__);
+    test_one_string_comparison(OP_GT, "HELLO", "HELLOX", &value_0, __LINE__);
+    test_one_string_comparison(OP_GT, "HELLOX", "HELLO", &value_1, __LINE__);
+    test_one_string_comparison(OP_GT, "ABC", "XYZ", &value_0, __LINE__);
+    test_one_string_comparison(OP_GT, "", "", &value_0, __LINE__);
+
+    test_one_string_comparison(OP_GE, "HELLO", "HELLO", &value_1, __LINE__);
+    test_one_string_comparison(OP_GE, "HELLO", "HELLOX", &value_0, __LINE__);
+    test_one_string_comparison(OP_GE, "HELLOX", "HELLO", &value_1, __LINE__);
+    test_one_string_comparison(OP_GE, "ABC", "XYZ", &value_0, __LINE__);
+    test_one_string_comparison(OP_GE, "", "", &value_1, __LINE__);
+}
+
 int main(void) {
     initialize_target();
     initialize_program();
     test_stack_alloc_free();
     test_evaluate_expression();
     test_evaluate_expression_precedence();
+    test_string_comparison();
     return 0;
 }

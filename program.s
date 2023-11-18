@@ -49,6 +49,8 @@ reset_program_state:
         bmi     @reset_heap
         lda     variable_count
         jsr     set_variable_value_ptr
+        ldy     #Value::type
+        lda     (variable_value_ptr),y  ; Reset variable to the same type as before
         jsr     initialize_variable
         jmp     @reset_variable
 
@@ -336,10 +338,16 @@ mul_value_size:
         rts
 
 ; Clears the value of the variable referenced by variable_value_ptr.
+; A = the type of the value
+; X SAFE, BC SAFE, DE SAFE
+
+.assert Value::type = 0, error
 
 initialize_variable:
-        ldy     #0
+        ldy     #Value::type
+        sta     (variable_value_ptr),y  ; Set the type
         tya                             ; Set following bytes to 0
+        iny                             ; Starting at offset 1
 @next:
         sta     (variable_value_ptr),y
         iny

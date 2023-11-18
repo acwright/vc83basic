@@ -14,6 +14,11 @@ test "PRINT -1\n" "-1\n"
 test "PRINT -1.0\n" "-1\n"
 test "PRINT -3.14159\n" "-3.14159\n"
 
+# Strings
+
+test "PRINT \"HELLO\"\n" "HELLO\n"
+test "PRINT \"BUG OR \"\"FEATURE?\"\"\"\n" "BUG OR \"FEATURE?\"\n"
+
 # Simple expressions
 
 test "PRINT 1+1\n" "2\n"
@@ -55,6 +60,15 @@ test "PRINT 1=0 OR 0=0\n" "1\n"
 test "PRINT 1=0 OR 2=1\n" "0\n"
 test "PRINT 1=1 AND 0=0\n" "1\n"
 test "PRINT 1=1 AND 2=1\n" "0\n"
+
+# String comparisons
+
+test "PRINT \"HELLO\"=\"HELLO\"\n" "1\n"
+test "PRINT \"HELLO\"<>\"HELLO\"\n" "0\n"
+test "PRINT \"ABC\"<\"XYZ\"\n" "1\n"
+test "PRINT \"ABC\"<=\"ABC\"\n" "1\n"
+test "PRINT \"ABC\">\"XYZ\"\n" "0\n"
+test "PRINT \"ABC\">=\"ABC\"\n" "1\n"
 
 # Precedence
 

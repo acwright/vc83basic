@@ -130,6 +130,7 @@ list_argument_type_vectors:
         .word   list_number-1               ; NT_NUM
         .word   list_repeated_number-1      ; NT_RPT_NUM
         .word   list_statement-1            ; NT_STATEMENT
+        .word   list_print_expression-1     ; NT_PRINT_EXP
 
 ; Lists a single directive from the token stream.
 ; A = the directive
@@ -178,6 +179,35 @@ list_argument_list:
 @done:
         rts
 
+; List the elements of a print expression, which might be a tab, empty space, or expression.
+
+list_print_expression:
+        jsr     add_whitespace
+@next:
+        ldy     lp                      ; Read lp into Y
+        lda     (line_ptr),y            ; Peek at next character
+        beq     @done                   ; Found TOKEN_NO_VALUE
+        cmp     #TOKEN_EMPTY_SPACE
+        beq     @empty_space
+        cmp     #TOKEN_TAB
+        beq     @tab
+        jsr     list_expression         ; Not empty space or tab; must be expression
+        jmp     @next
+
+@tab:
+        lda     #','                    ; It's a tab
+        bne     @output                 ; Unconditional
+
+@empty_space:
+        lda     #';'
+@output:
+        jsr     append_buffer
+        inc     lp
+        bne     @next                   ; Unconditional
+
+@done:
+        rts
+
 ; Following logic depends on TOKEN_NO_VALUE being 0
 .assert TOKEN_NO_VALUE = 0, error
 
@@ -187,6 +217,7 @@ list_vectors:
         .word   list_operator-1         ; XH_OP
         .word   list_unary_operator-1   ; XH_UNARY_OP
         .word   list_paren-1            ; XH_PAREN
+        .word   list_string-1           ; XH_STRING
 
 list_expression:
         ldax    #list_vectors
@@ -253,8 +284,32 @@ list_paren:
         clc                             ; Signal success
         rts
 
+list_string:
+        jsr     add_whitespace
+        jsr     decode_string           ; Returns string address in AX
+        jsr     set_string_src_ptr
+        sty     D                       ; Length in D
+        ldy     #0                      ; Start at offset 0
+        lda     #'"'                    ; Start by writing a quote
+@append_quote:
+        jsr     append_buffer
+@next_character:
+        cpy     D                       ; If Y is equal to length then done
+        beq     @done
+        lda     (src_ptr),y             ; Get next string character
+        iny
+        jsr     append_buffer           ; Write the character to the buffer
+        cmp     #'"'
+        beq     @append_quote           ; If it was '#' then also write a second quote
+        bne     @next_character         ; Otherwise just continue with next character
+@done:
+        lda     #'"'
+        jsr     append_buffer
+        clc                             ; Signal success
+        rts
+
 ; Adds whitespace to the output if necessary.
-; Whitespace is necessary if bp > 0 and if buffer[bp-1] is a name character or is a ')'.
+; Whitespace is necessary if bp > 0 and if buffer[bp-1] is a name character or is a ')' or '"'.
 ; Y SAFE, BC SAFE, DE SAFE
 
 add_whitespace:
@@ -262,6 +317,8 @@ add_whitespace:
         beq     @done                   ; Just return if it's zero
         lda     buffer-1,x              ; Get buffer[x-1]
         cmp     #')'                    ; Is it ')'?
+        beq     append_buffer_space     ; Yes, add a space
+        cmp     #'"'                    ; Is it '"'?
         beq     append_buffer_space     ; Yes, add a space
         jsr     is_name_character       ; Is it a name character?
         bcc     append_buffer_space     ; Yes

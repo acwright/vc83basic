@@ -41,6 +41,21 @@ void test_decode_number(void) {
     ASSERT_FPX_EQ(FP0, POSITIVE, 128, 0xC90FCF81);
 }
 
+void test_decode_string(void) {
+    const char line_data[] = {
+        5, 'H', 'E', 'L', 'L', 'O'
+    };
+    const char* s;
+
+    PRINT_TEST_NAME();
+
+    set_line(0, line_data, sizeof line_data);
+
+    s = decode_string();
+    ASSERT_EQ(s, line_buffer.data);
+    ASSERT_EQ(lp, 9);
+}
+
 extern void* decode_xh_vectors[];
 
 int num_count;
@@ -132,6 +147,7 @@ int main(void) {
     initialize_target();
     test_decode_byte();
     test_decode_number();
+    test_decode_string();
     test_decode_expression();
     return 0;
 }

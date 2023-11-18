@@ -34,6 +34,10 @@ dst_ptr: .res 2
 ; Size for memory operations
 size: .res 2
 
+; Positions relative to src_ptr and dst_ptr
+si: .res 1
+di: .res 1
+
 ; Pointer to the table of vectors used by invoke_indexed_vector
 vector_table_ptr: .res 2
 
@@ -122,4 +126,6 @@ resume_line_ptr: .res 2
 ; Position of resume statement
 resume_lp: .res 1
 
-.bss
+; Tracks how many characters have been printed so tabs work correctly.
+; Is reset to 0 by printing the banner message and/or READY.
+print_column: .res 1

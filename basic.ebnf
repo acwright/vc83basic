@@ -62,11 +62,9 @@ opt_expression_2 = (expression (_ ',' expression)?)?
 
 opt_expression_3 = (expression (_ ',' expression (_ ',' expression)?)?)?
 
-print_expression ::= expression
-    | print_expression print_op print_expression
+print_expression ::= print_op* expression (print_op+ print_expression)?
 
-expression = primary_expression
-    | expression op expression
+expression = primary_expression (op expression)?
 
 primary_expression = number | string | var
     | function
@@ -97,7 +95,7 @@ repeated_number = number (_ ',' number)*
 
 repeated_var = var (_ ',' var)*
 
-var ::= _ letter (letter | digit | '_')*
+var ::= _ letter (letter | digit | '_')* '$'? '('?
 
 number ::= _ sign? digit+ ('.' digit*)? ('E' sign? digit+)
 

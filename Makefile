@@ -18,6 +18,7 @@ COMMON_SOURCES = \
 	print.s \
 	program.s \
 	run.s \
+	string.s \
 	tables.s \
 	util.s
 COMMON_OBJECTS = $(COMMON_SOURCES:.s=.o)

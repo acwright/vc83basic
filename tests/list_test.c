@@ -29,7 +29,7 @@ void call_list_directive(char directive, const char* line_data, size_t line_data
 }
 
 void test_list_directive(void) {
-    const char line_data_1[] = { TOKEN_NUM, 0x00, 0x00, 0x80, 0x00, 139, TOKEN_NO_VALUE };
+    const char line_data_1[] = { TOKEN_NUM, 0x00, 0x00, 0x80, 0x00, 139, TOKEN_NO_VALUE, TOKEN_NO_VALUE };
     const char line_data_2[] = { 0x80, TOKEN_NO_VALUE };
     const char line_data_3[] = { 0x80, TOKEN_NO_VALUE, TOKEN_NUM, 0x00, 0x00, 0x80, 0x00, 139, TOKEN_NO_VALUE };
     const char line_data_4[] = { 0x80 };
@@ -50,6 +50,9 @@ void test_list_directive(void) {
     const char line_data_13[] = { TOKEN_UNARY_OP | UNARY_OP_NOT, TOKEN_PAREN, 0x80, TOKEN_OP | OP_EQ,
         TOKEN_NUM, 0x00, 0x00, 0x00, 0x40, 128, TOKEN_OP | OP_OR, TOKEN_UNARY_OP | UNARY_OP_NOT,
         TOKEN_UNARY_OP | UNARY_OP_MINUS,  0x81, TOKEN_NO_VALUE, TOKEN_NO_VALUE };
+    const char line_data_14[] = { TOKEN_STRING, 5, 'H', 'E', 'L', 'L', 'O', TOKEN_NO_VALUE };
+    const char line_data_15[] = { TOKEN_STRING, 17, 'B', 'U', 'G', ' ', 'O', 'R', ' ', '"',
+        'F', 'E', 'A', 'T', 'U', 'R', 'E', '?', '"', TOKEN_NO_VALUE };
 
     const char list_1[] = "4112";
     const char list_2[] = "X";
@@ -64,6 +67,8 @@ void test_list_directive(void) {
     const char list_11[] = "X<=7 OR Y=4112";
     const char list_12[] = "(X+3) AND Y";
     const char list_13[] = "NOT (X=3 OR NOT -Y)";
+    const char list_14[] = "\"HELLO\"";
+    const char list_15[] = "\"BUG OR \"\"FEATURE?\"\"\"";
 
     PRINT_TEST_NAME();
 
@@ -83,6 +88,8 @@ void test_list_directive(void) {
     call_list_directive(1, line_data_11, sizeof line_data_11, list_11, __LINE__);
     call_list_directive(1, line_data_12, sizeof line_data_12, list_12, __LINE__);
     call_list_directive(1, line_data_13, sizeof line_data_13, list_13, __LINE__);
+    call_list_directive(1, line_data_14, sizeof line_data_14, list_14, __LINE__);
+    call_list_directive(1, line_data_15, sizeof line_data_15, list_15, __LINE__);
 }
 
 void call_list_statement(const char* line_data, size_t line_data_length, const char* expect_buffer, int line) {
@@ -130,10 +137,11 @@ void test_list_statment(void) {
 
 void test_list_line(void) {
 
-    const char line_data_1[] = { 12, ST_PRINT, TOKEN_NUM, 0x00, 0x00, 0x80, 0x00, 135, TOKEN_NO_VALUE };
+    const char line_data_1[] = { 13, ST_PRINT, TOKEN_NUM, 0x00, 0x00, 0x80, 0x00, 135, TOKEN_NO_VALUE,
+        TOKEN_NO_VALUE };
     const char line_data_2[] = { 13, ST_LET, 0x80, TOKEN_NUM, 0x00, 0x00, 0xFE, 0x7F, 141, TOKEN_NO_VALUE };
     const char line_data_3[] = { 13, ST_LET, 0x80, TOKEN_NUM, 0x00, 0x00, 0xFE, 0x7F, 141, TOKEN_NO_VALUE,
-        17, ST_PRINT, 0x80, TOKEN_NO_VALUE };
+        18, ST_PRINT, 0x80, TOKEN_NO_VALUE, TOKEN_NO_VALUE };
     const char line_data_end[] = { 5, ST_END };
     
     const char list_1[] = "10 PRINT 257";

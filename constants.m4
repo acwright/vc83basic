@@ -11,12 +11,16 @@ def(NT_RPT_VAR,         hex(11))
 def(NT_NUM,             hex(12))
 def(NT_RPT_NUM,         hex(13))
 def(NT_STATEMENT,       hex(14))
+def(NT_PRINT_EXP,       hex(15))
 def(NT_END,             hex(80))
 
 comment Tokenized form constants
 
 def(TOKEN_NO_VALUE,     hex(00))
 def(TOKEN_PAREN,        hex(01))
+def(TOKEN_STRING,       hex(02))
+def(TOKEN_EMPTY_SPACE,  hex(03)) comment Used in print expressions
+def(TOKEN_TAB,          hex(04)) comment Used in print expressions
 def(TOKEN_UNARY_OP,     hex(08)) comment OR with OP_UNARY_*
 def(TOKEN_OP,           hex(10)) comment OR with OP_*
 def(TOKEN_NUM,          hex(20))
@@ -73,6 +77,13 @@ def(XH_NUM,             1)
 def(XH_OP,              2)
 def(XH_UNARY_OP,        3)
 def(XH_PAREN,           4)
+def(XH_STRING,          5)
+
+comment Types
+
+def(TYPE_NONE,          hex(00))
+def(TYPE_NUM,           hex(01))
+def(TYPE_STRING,        hex(02))
 
 comment Expression precedence levels
 

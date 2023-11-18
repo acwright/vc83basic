@@ -113,7 +113,7 @@ void test_get_name_table_entry(void) {
 }
 
 void test_add_variable(void) {
-    const char num_init_value[] = { 0, 0, 0, 0, 0, 0 };
+    const char num_init_value[] = { TYPE_NUM, 0, 0, 0, 0, 0 };
     char index;
 
     PRINT_TEST_NAME();

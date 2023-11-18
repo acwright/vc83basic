@@ -72,7 +72,7 @@ void test_find_line(void) {
     // Patch up the program end.
     advance_next_line_ptr();
     variable_name_table_ptr = (char*)next_line_ptr;
-    value_table_ptr = line_ptr;
+    value_table_ptr = (Value*)line_ptr;
 
     // Test if we can find each line separately.
     find_line(10);

@@ -28,6 +28,21 @@
     step_value .res .sizeof(Float)
 .endstruct
 
+.struct Value
+    type .res 1
+    .union
+        .struct
+            number_value .res .sizeof(Float)
+        .endstruct
+        .struct
+            string_ptr .res 2
+        .endstruct
+    .endunion
+.endstruct
+
+; We allocate VALUE_SIZE bytes for each value so make sure Value will fit in that
+.assert .sizeof(Value) <= VALUE_SIZE, error
+
 ; Zero Page
 
 .globalzp B
@@ -49,6 +64,7 @@
 .globalzp argument_count
 .globalzp bp
 .globalzp decode_expression_vector_table_ptr
+.globalzp di
 .globalzp dst_ptr
 .globalzp fp_temp
 .globalzp free_ptr
@@ -66,12 +82,14 @@
 .globalzp on_handler
 .globalzp on_value
 .globalzp osp
+.globalzp print_column
 .globalzp program_ptr
 .globalzp program_state
 .globalzp psp
 .globalzp resume_line_ptr
 .globalzp resume_lp
 .globalzp size
+.globalzp si
 .globalzp src_ptr
 .globalzp statement_lp
 .globalzp value_table_ptr
@@ -104,6 +122,7 @@
 .global decode_expression
 .global decode_number
 .global decode_int
+.global decode_string
 .global decode_variable
 .global decode_operator
 .global decode_unary_operator
@@ -121,6 +140,7 @@
 .global evaluate_expression
 .global call_binary_operator
 .global push_fpx, push_fp0, pop_fpx, pop_fp0
+.global push_string, pop_string
 .global push_variable, pop_variable
 .global stack_alloc, stack_free
 
@@ -187,6 +207,8 @@
 ; print.s
 .global exec_print
 .global print_number
+.global print_string
+.global print_newline
 
 ; program.s
 .global initialize_program
@@ -209,6 +231,10 @@
 .global exec_cont
 .global exec_new
 .global exec_clr
+
+; string.s
+.global set_string_src_ptr
+.global read_string
 
 ; tables.s
 .global statement_name_table

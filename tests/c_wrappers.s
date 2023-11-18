@@ -35,6 +35,8 @@
 .export _src_ptr = src_ptr
 .export _dst_ptr = dst_ptr
 .export _size = size
+.export _si = si;
+.export _di = di;
 .export _vector_table_ptr = vector_table_ptr
 .export _buffer = buffer
 .export _line_buffer = line_buffer
@@ -94,6 +96,12 @@ _decode_number:
 .export _decode_number
         jmp     decode_number
 
+_decode_string:
+.export _decode_string
+        jsr     decode_string
+        sty     _reg_y
+        rts
+
 _decode_variable:
 .export _decode_variable
         jmp     decode_variable
@@ -137,6 +145,15 @@ _push_fp0:
 _pop_fp0:
 .export _pop_fp0
         jmp     pop_fp0
+
+_push_string:
+.export _push_string
+        jsr     push_string
+        jmp     set_err
+
+_pop_string:
+.export _pop_string
+        jmp     pop_string
 
 _stack_alloc:
 .export _stack_alloc
@@ -404,6 +421,13 @@ _set_variable_value_ptr:
 _mul_value_size:
 .export _mul_value_size
         jmp     mul_value_size
+
+; string.s
+
+_read_string:
+.export _read_string
+        jsr     read_string
+        jmp     set_err
 
 ; util.s
 

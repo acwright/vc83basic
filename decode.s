@@ -14,6 +14,7 @@
 
 .assert TOKEN_NO_VALUE = 0, error
 .assert TOKEN_PAREN = 1, error
+.assert TOKEN_STRING = 2, error
 .assert TOKEN_UNARY_OP = $08, error
 .assert TOKEN_OP = $10, error
 .assert TOKEN_NUM = $20, error
@@ -24,6 +25,7 @@
 .assert XH_OP = 2, error
 .assert XH_UNARY_OP = 3, error
 .assert XH_PAREN = 4, error
+.assert XH_STRING = 5, error
 
 decode_expression:
         stax    decode_expression_vector_table_ptr  ; Store the value passed in AX as the vector table
@@ -75,6 +77,26 @@ decode_number:
 decode_int:
         jsr     decode_number
         jmp     truncate_fp_to_int
+
+; Decodes a string.
+; Returns the address of the string in AX.
+; Upon entry, lp must point to the first byte of the string data, i.e., one byte past TOKEN_STRING.
+
+decode_string:
+        lda     lp                      ; lp is now offset of first string bytE
+        tax                             ; Copy into X and Y
+        tay
+        lda     (line_ptr),y            ; Load the length
+        sec                             ; Set carry to account for length byte
+        adc     lp                      ; Add in lp; this will not overflow so carry will remain clear
+        sta     lp                      ; Update lp to point past string
+        txa                             ; Get offset back into A
+        adc     line_ptr                ; Add line_ptr to get address of string
+        ldx     line_ptr+1
+        bcc     @no_carry
+        inx                             ; Add to low byte set carry so increment high byte
+@no_carry:
+        rts
 
 decode_variable:
         lda     #$7F

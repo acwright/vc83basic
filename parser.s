@@ -114,6 +114,7 @@ parse_argument_type_vectors:
         .word   parse_number-1              ; NT_NUM
         .word   parse_repeated_number-1     ; NT_RPT_NUM
         .word   parse_statement-1           ; NT_STATEMENT
+        .word   parse_print_expression-1    ; NT_PRINT_EXP
 
 ; Parses a single directive.
 ; Since parsing the directive can recursively invoke the name table element parser with new values for name_ptr etc.,
@@ -177,6 +178,45 @@ parse_argument_list:
 @error:
         rts
 
+; Parses a print expression, which is like an argument list except that we recognize both ',' and ';'
+; as separators.
+
+parse_print_expression:
+        jsr     parse_print_separators  ; Don't care how many initial separators we find
+@next_expression:
+        jsr     parse_expression        ; Parse one expresion
+        bcs     @done                   ; No expression when we expected to find one, so we're done
+        jsr     parse_print_separators  ; Look for more sepearators
+        bne     @next_expression        ; If there seperators then OK to parse another expression
+@done:
+        jsr     encode_no_value         ; Terminate list with TOKEN_NO_VALUE
+        clc                             ; Nothing more to do; signal success
+        rts
+
+; Parse a series of print separators.
+
+parse_print_separators:
+        ldy     lp                      ; Remember starting position
+@next_separator:
+        jsr     skip_whitespace
+        cmp     #';'                    ; Is it a semicolon?
+        beq     @empty_space
+        cmp     #','                    ; Is it a comma?
+        beq     @tab
+        cpy     lp                      ; Sets zero flag if we're still at the starting position
+        rts
+
+@empty_space:
+        lda     #TOKEN_EMPTY_SPACE
+        bne     @encode
+
+@tab:
+        lda     #TOKEN_TAB
+@encode:
+        jsr     encode_byte
+        inc     bp
+        bne     @next_separator
+
 ; Parses and tokenizes a expression.
 
 parse_expression:
@@ -205,6 +245,8 @@ parse_primary_expression:
         jsr     parse_parentheses       ; Look for an expression in parentheses
         bcc     @done
         jsr     parse_number
+        bcc     @done
+        jsr     parse_string
         bcc     @done
         jsr     parse_unary_operator
         bcc     @done
@@ -252,6 +294,27 @@ parse_repeated_number:
 @done:
         rts
 
+parse_string:
+        jsr     skip_whitespace         ; Returns character in A
+        cmp     #'"'                    ; Look for double quote
+        bne     @error
+        lda     #TOKEN_STRING           ; Encode the string token
+        jsr     encode_byte
+        mvaa    #buffer, src_ptr
+        mva     bp, si                  ; Start at bp
+        mvaa    #line_buffer, dst_ptr
+        mva     lp, di                  ; Start at lp
+        jsr     read_string
+        bcs     @error
+        mva     si, bp                  ; Update positions
+        mva     di, lp
+        clc
+        rts
+
+@error:
+        sec
+        rts
+
 ; Parses the unary operators '-' (minus) and NOT.
 
 parse_unary_operator:
@@ -275,6 +338,13 @@ parse_unary_operator:
 parse_variable:
         jsr     parse_name              ; Find a name
         bcs     @done
+        ldx     bp                      ; Check the char at bp
+        lda     buffer,x
+        cmp     #'$'                    ; Is it '$'?
+        bne     @not_string
+        inx                             ; Include '$' in the name
+@not_string:
+        stx     bp                      ; If we pulled in some type suffix characters, update bp
         ldax    variable_name_table_ptr
         jsr     find_name
         bcc     @found

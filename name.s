@@ -147,6 +147,12 @@ add_variable:
         ldy     #value_table_ptr        ; Grow variable name table by moving value table pointer
         jsr     grow_a                  ; Do the grow
         bcs     @fail
+        ldy     #free_ptr               ; Grow value table by VALUE_SIZE
+        lda     #VALUE_SIZE
+        jsr     grow_a
+        bcs     @fail
+        lda     variable_count
+        jsr     set_variable_value_ptr  ; variable_value_ptr points to the space for the new value
         ldx     name_bp                 ; Copy from name_bp
         ldy     #0                      ; Copy to name_ptr offset 0
 @next_character:
@@ -162,12 +168,13 @@ add_variable:
         lda     (name_ptr),y            ; Get the last name character saved to name table
         ora     #$80                    ; Set high bit in last value
         sta     (name_ptr),y            ; Save it again
-        ldy     #free_ptr               ; Grow value table by VALUE_SIZE
-        lda     #VALUE_SIZE
-        jsr     grow_a
-        bcs     @fail
-        lda     variable_count
-        jsr     set_variable_value_ptr  ; variable_value_ptr points to the space for the new value
+        ldy     #TYPE_NUM               ; Default type is number
+        lda     buffer-1,x              ; Look at previous character in name
+        cmp     #'$'                    ; Is it '$'?
+        bne     @not_string
+        ldy     #TYPE_STRING            ; Make it a string instead
+@not_string:
+        tya                             ; Pass type to initialize_variable
         jsr     initialize_variable
         lda     variable_count          ; This will become the return value
         inc     variable_count          ; Add one to variable count

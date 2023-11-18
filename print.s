@@ -3,19 +3,73 @@
 
 ; PRINT statement:
 
-exec_print:
-        jsr     evaluate_expression     ; Leaves value on stack
+.assert TOKEN_NO_VALUE = 0, error
+
+exec_print_number:
         jsr     pop_fp0                 ; Get the value
         jsr     print_number            ; Print the number
-        jsr     newline
-        clc                             ; Print always succeeds
-        rts
+exec_print:
+        ldy     lp                      ; Read lp into Y
+        lda     (line_ptr),y            ; Peek at next character
+        beq     @end_line               ; Found TOKEN_NO_VALUE
+@continue:
+        cmp     #TOKEN_EMPTY_SPACE
+        beq     @empty_space
+        cmp     #TOKEN_TAB
+        beq     @tab
+        jsr     evaluate_expression     ; Leaves value on stack
+        bcs     @done
+        ldx     psp                     ; Get the current stack pointer
+        lda     primary_stack+Value::type,x     ; Get the type of the variable
+        cmp     #TYPE_NUM
+        beq     exec_print_number
+        jsr     pop_string
+        jsr     print_string
+        jmp     exec_print
+
+@end_line:
+        jmp     print_newline
+
+@tab:
+        lda     #' '
+        jsr     putch
+        inc     print_column
+        lda     print_column
+        and     #$0F                    ; Is column evenly divisible by 16?
+        bne     @tab                    ; Not yet
+@empty_space:
+        inc     lp                      ; Skip over the empty space or tab token
+        ldy     lp
+        lda     (line_ptr),y            ; Peek at next character
+        bne     @continue               ; It's not the end of the PRINT so continue
+        clc
+@done:
+        rts                             ; Otherwise return without printing a carriage return
 
 ; Prints the value in FP0 to standard output.
 
 print_number:
-        mva     #0, bp
+        mva     #1, bp                  ; Start printing at buffer column 1
         jsr     fp_to_string            ; Format into buffer
-        ldax    #buffer
-        ldy     bp
+        ldx     bp                      ; Load length (including the length byte)
+        dex                             ; Length is one less than bp
+        stx     buffer                  ; Store the length in the first character of buffer; it is now a string
+        ldax    #buffer                 ; Load the address in AX and fall through to print_string
+
+; Prints the string pointed to by AX to the standard output.
+; DE SAFE
+
+print_string:
+        jsr     set_string_src_ptr      ; Get string address and length
+        tya                             ; Length into A for add
+        clc
+        adc     print_column            ; Increase print_column by the size of the printed string
+        sta     print_column
+        ldax    src_ptr                 ; Load string address into AX; length is already in Y
         jmp     write
+        
+print_newline:
+        jsr     newline
+        mva     #0, print_column
+        clc
+        rts

@@ -1,6 +1,9 @@
 .include "macros.inc"
 .include "basic.inc"
 
+; line_buffer must be page-aligned
+.assert <line_buffer = 0, error
+
 ; primary_stack must be page-aligned
 .assert <primary_stack = 0, error
 
@@ -19,6 +22,7 @@ evaluate_vectors:
         .word   evaluate_operator-1         ; XH_OP
         .word   evaluate_unary_operator-1   ; XH_UNARY_OP
         .word   evaluate_paren-1            ; XH_PAREN
+        .word   evaluate_string-1           ; XH_STRING
 
 evaluate_variable:
         jsr     decode_variable         ; Returns variable index in A
@@ -54,6 +58,11 @@ evaluate_paren:
         jsr     evaluate_expression     ; Evaluate the subexpression; may fail
         inc     osp                     ; Pop the open paren (even if evaluate_expression failed)
         rts
+
+evaluate_string:
+        jsr     decode_string           ; Returns pointer in AX
+        jsr     push_string
+        rts        
 
 push_operator:
         sec                             ; Set carry so can just return failure if stack pointer is 0
@@ -134,6 +143,39 @@ op_pow:
 op_concat:
         jmp     op_add
 
+; Compares two strings from the stack returns flags based on the comparison.
+; CMP s1 len, s2 len
+; C=1 (not borrow) if s2 len <= s1 len
+; C=0 (borrow) if s2 len > s1 len
+
+compare_string_values:
+        jsr     pop_string              ; Get second string
+        jsr     set_string_src_ptr
+        mvaa    src_ptr, dst_ptr        ; Copy it into dst_ptr
+        sty     B                       ; Length of dst_ptr string in B
+        sty     D                       ; D will be the shorter of the two lengths
+        jsr     pop_string              ; Get first string
+        jsr     set_string_src_ptr
+        sty     C                       ; Length of src_ptr string in C
+        cpy     B                       ; Compare string length to other string
+        bcs     @use_second_string_length
+        sty     D                       ; Replace D with the shorter first string length 
+@use_second_string_length:
+        ldy     #$FF                    ; Start at first character ($FF because we pre-increment Y)
+@next_character:
+        iny
+        cpy     D                       ; Out of characters?
+        beq     @compare_lengths        ; Yes
+        lda     (src_ptr),y             ; Compare the next character
+        cmp     (dst_ptr),y
+        beq     @next_character
+        rts                             ; Return with the flags from the comparison
+
+@compare_lengths:
+        lda     C                       ; Characters are the same, so shorter string is lesser or equal
+        cmp     B
+        rts
+
 op_eq:
         jsr     compare_values
         bcc     push_value_0            ; A < B
@@ -174,6 +216,15 @@ op_gt:
 ; If carry is set, then Z will be also be set if the values are equal or clear if they are not.
 
 compare_values:
+        ldy     psp                     ; Get stack pointer
+        lda     primary_stack+Value::type,y                 ; Type of first argument
+        cmp     primary_stack+.sizeof(Value)+Value::type,y  ; Type of second argument
+        beq     @same_types
+        rts                                                 ; Return early if the types differ
+    
+@same_types:
+        cmp     #TYPE_STRING            ; Is it a string?
+        beq     compare_string_values   ; Yes
         lda     #>(fcmp-1)
         ldx     #<(fcmp-1)
 
@@ -214,6 +265,8 @@ unary_op_not:
 ; Returns carry clear if the push was successful, or carry set if there was no room on the stack.
 ; BC SAFE, DE SAFE
 
+.assert Value::number_value = 1, error
+
 push_value_0:
         jsr     clear_fp0
         jmp     push_fp0
@@ -225,9 +278,14 @@ push_value_1:
 push_fp0:
         ldx     #FP0
 push_fpx:
-        lda     #.sizeof(Float)         ; Allocate enough space for a float on the stack
+        lda     #.sizeof(Value)         ; Allocate enough space for a float on the stack
         jsr     stack_alloc             ; Returns with A set to the offset
         bcs     @done                   ; Fail if overflow
+        tay                             ; Offset into X
+        lda     #TYPE_NUM               ; Assign the number type
+        sta     primary_stack+Value::type,y
+        iny
+        tya                             ; Low byte of store address
         ldy     #>primary_stack         ; Segment of stack
         jsr     store_fpx               ; Store FPx in the AY address
         clc                             ; Signal success
@@ -242,29 +300,61 @@ pop_fp0:
         ldx     #FP0
 pop_fpx: 
         ldy     psp                     ; Load stack pointer into Y to use as offset
-        lda     #.sizeof(Float)         ; Free space for float
+        lda     #.sizeof(Value)         ; Free space for float
         jsr     stack_free
-        tya                             ; Previous position back in A to use as pointer
+        iny                             ; Increment past the type byte
+        tya                             ; Back in A to use as pointer
         ldy     #>primary_stack         ; Segment of stack
         jsr     load_fpx                ; Load value into FPx
+        rts
+
+; Pushes the string at address AX on the stack.
+
+.assert Value::string_ptr = 1, error
+
+; Fall through
+
+; Pushes the string in AX onto the stack.
+; Returns carry clear on success, carry set on failure.
+
+push_string:
+        stax    BC                      ; Store string address in BC
+        lda     #.sizeof(Value)
+        jsr     stack_alloc
+        bcs     push_string_done   
+        tay
+        lda     #TYPE_STRING            ; Assign the string type
+        sta     primary_stack+Value::type,y
+        lda     B                       ; Recover low byte of string address
+        sta     primary_stack+Value::string_ptr,y   ; Save low and high byte of string address
+        lda     C                       ; High byte
+        sta     primary_stack+Value::string_ptr+1,y ; Carry still clear for return
+push_string_done:
+        rts
+
+; Pops the string value from the stack and returns the address in AX.
+; BC SAFE, DE SAFE
+
+pop_string:
+        ldy     psp                     ; Load original stack pointer to Y
+        lda     #.sizeof(Value)
+        jsr     stack_free
+        lda     primary_stack+Value::string_ptr,y   ; Return with address in AX
+        ldx     primary_stack+Value::string_ptr+1,y
         rts
 
 ; Pushes the variable value identified by A onto the stack.
 
 push_variable:
         jsr     set_variable_value_ptr
-        lda     #.sizeof(Float)         ; Make space on the stack
+        stax    src_ptr
+        lda     #.sizeof(Value)         ; Make space on the stack
         jsr     stack_alloc
         bcs     @done
         ldx     #>primary_stack         ; Segment of stack
-        stax    BC                      ; BC -> the target address on the stack
-        ldy     #0                      ; Index
-@next:
-        lda     (variable_value_ptr),y  ; Load variable value
-        sta     (BC),y                  ; Save to stack
-        iny
-        cpy     #.sizeof(Float)
-        bne     @next                   ; More bytes to copy
+        stax    dst_ptr
+        lda     #.sizeof(Value)         ; Make space on the stack
+        jsr     copy_a                  ; Copy variable data to stack
         clc                             ; Signal success
 @done:
         rts
@@ -273,18 +363,14 @@ push_variable:
 
 pop_variable:
         jsr     set_variable_value_ptr
+        stax    dst_ptr
         lda     psp                     ; Get stack pointer
         ldx     #>primary_stack         ; Segment of stack
-        stax    BC                      ; BC -> the source address on the stack
-        lda     #.sizeof(Float)         ; Free this many bytes
+        stax    src_ptr
+        lda     #.sizeof(Value)         ; Free this many bytes
         jsr     stack_free
-        ldy     #0                      ; Index
-@next:
-        lda     (BC),y                  ; Load value from stack
-        sta     (variable_value_ptr),y  ; Save to variable
-        iny
-        cpy     #.sizeof(Float)
-        bne     @next                   ; More bytes to copy
+        lda     #.sizeof(Value)
+        jsr     copy_a
         rts
 
 ; Allocate space on the stack by moving the stack pointer down by some number of bytes.
