@@ -55,7 +55,7 @@ typedef struct Value {
 extern int AX;
 extern char A;
 extern char X;
-extern char X;
+extern char Y;
 
 extern char err;
 
