@@ -98,8 +98,8 @@ void push_fp0(void);
 void pop_fp0(void);
 void push_string(/* AX */ const String* value);
 const String* pop_string(void);
-char stack_alloc(/* AX */ char size);
-void stack_free(/* AX */ char size);
+char stack_alloc(/* A */ char size);
+void stack_free(/* A */ char size);
 
 // encode.s
 void encode_number(void);
