@@ -18,15 +18,27 @@ evaluate_expression:
 
 evaluate_vectors:
         .word   evaluate_variable-1         ; XH_VAR
-        .word   evaluate_number-1           ; XH_NUM
         .word   evaluate_operator-1         ; XH_OP
         .word   evaluate_unary_operator-1   ; XH_UNARY_OP
-        .word   evaluate_paren-1            ; XH_PAREN
+        .word   evaluate_number-1           ; XH_NUM
         .word   evaluate_string-1           ; XH_STRING
+        .word   evaluate_paren-1            ; XH_PAREN
 
 evaluate_variable:
-        jsr     decode_variable         ; Returns variable index in A
-        jmp     push_variable           ; Copy variable to stack
+        jsr     decode_name
+        jsr     find_or_add_variable
+        bcs     @error                  ; No memory for new variable
+        lda     #.sizeof(Value)         ; Make space on the stack
+        jsr     stack_alloc
+        bcs     @error
+        ldx     #>primary_stack         ; Segment of stack
+        stax    dst_ptr                 ; Copy to stack
+        ldax    record_ptr              ; Copy from variable data
+        ldy     #.sizeof(Value)
+        jsr     copy_y_from
+        clc                             ; Signal success
+@error:
+        rts
 
 evaluate_number:
         jsr     decode_number           ; Returns number in FP0
@@ -145,8 +157,8 @@ op_concat:
 
 ; Compares two strings from the stack returns flags based on the comparison.
 ; CMP s1 len, s2 len
-; C=1 (not borrow) if s2 len <= s1 len
-; C=0 (borrow) if s2 len > s1 len
+; C=0 (borrow) if s1 len < s2 len
+; C=1 (not borrow) if s1 len >= s2 len
 
 compare_string_values:
         jsr     pop_string              ; Get second string
@@ -308,12 +320,6 @@ pop_fpx:
         jsr     load_fpx                ; Load value into FPx
         rts
 
-; Pushes the string at address AX on the stack.
-
-.assert Value::string_ptr = 1, error
-
-; Fall through
-
 ; Pushes the string in AX onto the stack.
 ; Returns carry clear on success, carry set on failure.
 
@@ -321,7 +327,7 @@ push_string:
         stax    BC                      ; Store string address in BC
         lda     #.sizeof(Value)
         jsr     stack_alloc
-        bcs     push_string_done   
+        bcs     @error   
         tay
         lda     #TYPE_STRING            ; Assign the string type
         sta     primary_stack+Value::type,y
@@ -329,7 +335,7 @@ push_string:
         sta     primary_stack+Value::string_ptr,y   ; Save low and high byte of string address
         lda     C                       ; High byte
         sta     primary_stack+Value::string_ptr+1,y ; Carry still clear for return
-push_string_done:
+@error:
         rts
 
 ; Pops the string value from the stack and returns the address in AX.
@@ -341,36 +347,6 @@ pop_string:
         jsr     stack_free
         lda     primary_stack+Value::string_ptr,y   ; Return with address in AX
         ldx     primary_stack+Value::string_ptr+1,y
-        rts
-
-; Pushes the variable value identified by A onto the stack.
-
-push_variable:
-        jsr     set_variable_value_ptr
-        stax    src_ptr
-        lda     #.sizeof(Value)         ; Make space on the stack
-        jsr     stack_alloc
-        bcs     @done
-        ldx     #>primary_stack         ; Segment of stack
-        stax    dst_ptr
-        lda     #.sizeof(Value)         ; Make space on the stack
-        jsr     copy_a                  ; Copy variable data to stack
-        clc                             ; Signal success
-@done:
-        rts
-
-; Pops the value from the stack and copies it into the variable identified by A.
-
-pop_variable:
-        jsr     set_variable_value_ptr
-        stax    dst_ptr
-        lda     psp                     ; Get stack pointer
-        ldx     #>primary_stack         ; Segment of stack
-        stax    src_ptr
-        lda     #.sizeof(Value)         ; Free this many bytes
-        jsr     stack_free
-        lda     #.sizeof(Value)
-        jsr     copy_a
         rts
 
 ; Allocate space on the stack by moving the stack pointer down by some number of bytes.

@@ -5,6 +5,8 @@ void test_stack_alloc_free(void) {
 
     PRINT_TEST_NAME();
 
+    initialize_program();
+
     ASSERT_EQ(osp, OP_STACK_SIZE);
     ASSERT_EQ(psp, PRIMARY_STACK_SIZE);
 
@@ -29,9 +31,15 @@ void test_stack_alloc_free(void) {
     stack_alloc(96);
     stack_alloc(96);
     ASSERT_NE(err, 0);
+}
 
-    // Re-initialize program since this test leaves it in a bad state.
-    initialize_program();
+void set_name_ptr(const char* name) {
+    // Parse given name to set name_ptr and high bit on final character.
+    // Also sets name_length, which would normally be set in decode_name.
+    strcpy(buffer, name);
+    name_ptr = buffer;
+    name_length = strlen(buffer);
+    buffer[name_length - 1] |= NT_STOP;
 }
 
 void test_one_op(char op, const Float* expected00, const Float* expected01, const Float* expected10, 
@@ -130,6 +138,8 @@ void test_evaluate_expression(void) {
 
     PRINT_TEST_NAME();
 
+    initialize_program();
+
     test_one_op(OP_ADD, &value_0, &value_1, &value_1, &value_2);
     test_one_op(OP_SUB, &value_0, &value_negative_1, &value_1, &value_0);
 
@@ -166,6 +176,8 @@ void test_evaluate_expression_precedence(void) {
 
     PRINT_TEST_NAME();
 
+    initialize_program();
+
     set_line(0, line_data_1, sizeof line_data_1);
     evaluate_expression();
     ASSERT_EQ(err, 0);
@@ -194,12 +206,12 @@ void test_one_string_comparison(char op, const char* s1, const char* s2, const F
 
     i = 0;
     line_data[i++] = TOKEN_STRING;
-    line_data[i++] = s1_length;
+    line_data[i++] = (char)s1_length;
     memcpy(line_data + i, s1, s1_length);
     i += s1_length;
     line_data[i++] = TOKEN_OP | op;
     line_data[i++] = TOKEN_STRING;
-    line_data[i++] = s2_length;
+    line_data[i++] = (char)s2_length;
     memcpy(line_data + i, s2, s2_length);
     i += s2_length;
     line_data[i++] = TOKEN_NO_VALUE;
@@ -215,6 +227,8 @@ void test_one_string_comparison(char op, const char* s1, const char* s2, const F
 void test_string_comparison(void) {
     const Float value_0 = { 0x00000000, 0 };
     const Float value_1 = { 0x00000000, 127 };
+
+    PRINT_TEST_NAME();
 
     test_one_string_comparison(OP_EQ, "HELLO", "HELLO", &value_1, __LINE__);
     test_one_string_comparison(OP_EQ, "HELLO", "HELLOX", &value_0, __LINE__);
@@ -255,7 +269,6 @@ void test_string_comparison(void) {
 
 int main(void) {
     initialize_target();
-    initialize_program();
     test_stack_alloc_free();
     test_evaluate_expression();
     test_evaluate_expression_precedence();

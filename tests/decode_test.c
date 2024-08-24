@@ -56,24 +56,30 @@ void test_decode_string(void) {
     ASSERT_EQ(line_pos, 9);
 }
 
-extern void* decode_xh_vectors[];
+void test_decode_name(void) {
+    const char line_data[] = {  'X' | NT_STOP, 'T', 'H', 'I', 'N', 'G', '3' | NT_STOP };
 
-int num_count;
+    PRINT_TEST_NAME();
 
-void xh_number(void) {
-    decode_number();
-    switch (++num_count) {
-        case 1: ASSERT_FPX_EQ(FP0, POSITIVE, 139, 0x80800000); break;
-        case 2: ASSERT_FPX_EQ(FP0, POSITIVE, 128, 0xC0000000); break;
-    }
+    set_line(0, line_data, sizeof line_data);
+
+    decode_name();
+    ASSERT_EQ(name_ptr, line_buffer.data);
+    ASSERT_EQ(name_length, 1);
+
+    decode_name();
+    ASSERT_EQ(name_ptr, line_buffer.data + 1);
+    ASSERT_EQ(name_length, 6);
 }
+
+extern void* decode_xh_vectors[];
 
 int var_count;
 
 void xh_variable(void) {
-    char var = decode_variable();
+    decode_name();
     ++var_count;
-    ASSERT_EQ(var, 1);
+    ASSERT_EQ(*name_ptr, 'X' | NT_STOP);
 }
 
 int op_count;
@@ -98,18 +104,36 @@ void xh_unary_operator(void) {
     }
 }
 
+int num_count;
+
+void xh_number(void) {
+    decode_number();
+    switch (++num_count) {
+        case 1: ASSERT_FPX_EQ(FP0, POSITIVE, 139, 0x80800000); break;
+        case 2: ASSERT_FPX_EQ(FP0, POSITIVE, 128, 0xC0000000); break;
+    }
+}
+
+void xh_string(void) {
+    decode_string();
+    // Don't do anything with strings
+}
+
 int paren_count;
 
 void xh_paren(void) {
     ++paren_count;
+    fprintf(stderr, "**** (\n");
     decode_expression(decode_xh_vectors);
+    fprintf(stderr, "**** )\n");
 }
 
 void* decode_xh_vectors[] = {
     (char*)xh_variable - 1,
-    (char*)xh_number - 1,
     (char*)xh_operator - 1,
     (char*)xh_unary_operator - 1,
+    (char*)xh_number - 1,
+    (char*)xh_string - 1,
     (char*)xh_paren - 1,
 };
 
@@ -118,16 +142,16 @@ void test_decode_expression(void) {
         TOKEN_NUM, 0x00, 0x00, 0x80, 0x00, 139,  // 4,112
         TOKEN_OP | OP_ADD,
         TOKEN_PAREN,
-        TOKEN_VAR | 1, // X
-        TOKEN_OP | OP_DIV,
+        'X' | NT_STOP,                  // X
+        TOKEN_OP | OP_DIV,              
         TOKEN_NUM, 0x00, 0x00, 0x00, 0x40, 128, // 3
         TOKEN_NO_VALUE,
         TOKEN_OP | OP_MUL,
         TOKEN_UNARY_OP | UNARY_OP_MINUS,             
-        TOKEN_VAR | 1, // X
+        'X' | NT_STOP,                  // X
         TOKEN_OP | OP_OR,
         TOKEN_UNARY_OP | UNARY_OP_NOT,
-        TOKEN_VAR | 1, // X
+        'X' | NT_STOP,                  // X
         TOKEN_NO_VALUE
     };
 
@@ -148,6 +172,7 @@ int main(void) {
     test_decode_byte();
     test_decode_number();
     test_decode_string();
+    test_decode_name();
     test_decode_expression();
     return 0;
 }
