@@ -33,7 +33,7 @@ evaluate_variable:
         bcs     @error
         ldx     #>primary_stack         ; Segment of stack
         stax    dst_ptr                 ; Copy to stack
-        ldax    record_ptr              ; Copy from variable data
+        ldax    node_ptr                ; Copy from variable data
         ldy     #.sizeof(Value)
         jsr     copy_y_from
         clc                             ; Signal success

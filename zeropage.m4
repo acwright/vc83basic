@@ -84,11 +84,11 @@ byte(statement_line_pos)
 comment The line number sought by find_line
 word(line_number, int)
 
-comment Pointer to current name table record
-word(record_ptr, char*)
+comment Pointer to current list node
+word(node_ptr, char*)
 
-comment Pointer to the next name table record
-word(next_record_ptr, char*)
+comment Pointer to the next list node
+word(next_node_ptr, char*)
 
 comment Pointer to current name table entry
 word(name_ptr, char*)
