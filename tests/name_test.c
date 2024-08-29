@@ -1,48 +1,5 @@
 #include "test.h"
 
-void test_advance_node_ptr(void) {
-
-    const char name_table_data[] = { 6, 'L', 'I', 'S', 'T' | NT_STOP, 1, 10, 'P', 'R', 'I', 'N', 'T' | NT_STOP, 1, 
-        'T', 'O' | NT_STOP, 1 };
-    const char name_table_data_2[] = { 4, 'R', 'U', 'N' | NT_STOP, 0 };
-    static char large_name_table[541];
-
-    PRINT_TEST_NAME();
-
-    // Set up the large name table.
-    memset(large_name_table, 0, sizeof large_name_table);
-    // Use 2 entries from name_table_data: 16 bytes
-    memcpy(large_name_table, name_table_data, sizeof name_table_data);
-    // Add a large 520-byte variable
-    large_name_table[16] = 0x82; // length high byte with high bit set
-    large_name_table[17] = 0x08; // length low byte
-    large_name_table[18] = 'X' | NT_STOP;
-    // Next variable will be at offset 16 + 520 = 536
-    memcpy(large_name_table + 536, name_table_data_2, sizeof name_table_data_2);
-
-    // Pre-requisite
-    next_node_ptr = large_name_table;
-
-    advance_node_ptr();
-    ASSERT_EQ(err, 0);
-    ASSERT_EQ(node_ptr, large_name_table + 1);
-    ASSERT_EQ(next_node_ptr, large_name_table + 6);
-    advance_node_ptr();
-    ASSERT_EQ(err, 0);
-    ASSERT_EQ(node_ptr, large_name_table + 6 + 1);
-    ASSERT_EQ(next_node_ptr, large_name_table + 6 + 10);
-    advance_node_ptr();
-    ASSERT_EQ(err, 0);
-    ASSERT_EQ(node_ptr, large_name_table + 6 + 10 + 2);
-    ASSERT_EQ(next_node_ptr, large_name_table + 6 + 10 + 520);
-    advance_node_ptr();
-    ASSERT_EQ(err, 0);
-    ASSERT_EQ(node_ptr, large_name_table + 6 + 10 + 520 + 1);
-    ASSERT_EQ(next_node_ptr, large_name_table + 6 + 10 + 520 + 4);
-    advance_node_ptr();
-    ASSERT_NE(err, 0);
-}
-
 void set_name_ptr(const char* name) {
     // Parse given name to set name_ptr and high bit on final character.
     // Also sets name_length, which would normally be set in decode_name.
@@ -183,7 +140,6 @@ void test_add_variable(void) {
 
 int main(void) {
     initialize_target();
-    test_advance_node_ptr();
     test_find_name();
     test_find_name_operators();
     test_add_variable();

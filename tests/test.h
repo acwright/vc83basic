@@ -136,7 +136,6 @@ void list_directive(/* A */ char directive);
 
 // name.s
 char find_name(/* AX */ const char* node_ptr);
-void advance_node_ptr(void);
 void add_variable(size_t data_size);
 
 // parser.s
@@ -157,6 +156,8 @@ void insert_or_update_line(void);
 void grow(/* Y */ void* ptr, /* AX */ size_t size);
 void shrink(/* Y */ void* ptr, /* AX */ size_t size);
 void check_himem(/* AX */ size_t size);
+void initialize_node_ptr(void* node_ptr);
+void advance_node_ptr(void);
 
 // string.s
 char read_string(void);
