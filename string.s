@@ -70,29 +70,43 @@ read_string:
 
 ; Allocates space for a new string on the string heap.
 ; A = the length of the new string (not including length byte)
-; Returns the address of the new string in string_ptr.
+; Returns the address of the new string in S0 and the length in A.
 ; BC SAFE
 
 string_alloc:
+        mvx     free_ptr, S0            ; New string will be at free_ptr; move into S0 through X
+        mvx     free_ptr+1, S0+1
         pha                             ; Save the original length
-        ldy     #free_ptr               ; Allocate space by moving up free_ptr
         ldx     #0                      ; Initialize high byte of block length to 0
         clc
         adc     #STRING_EXTRA           ; Add 3 bytes to length: 1 byte for length, 2 bytes for GC relocation pointer
         bcc     @skip_inx               ; If no carry then leave high byte at 0
         inx                             ; Otherwise it's 1
 @skip_inx:
+        ldy     #free_ptr               ; Allocate space by moving up free_ptr
         jsr     grow                    ; Grow the heap and set/clear carry
-        pla                             ; Return the length in A
+        bcs     string_alloc_error
+        ldy     #0                      ; Offset of length
+        pla                             ; Get length from stack
+        sta     (S0),y                  ; Set the length
+        ldax    S0                      ; Address of string length is S0; replace with string data
+
+; Fall through
+
+load_s0:
+        ldy     #S0
+load_sy:
+        stax    BC                      ; BC is a temporary pointer
+        sec
+        adc     #0                      ; Move past length byte
+        sta     0,y                     ; Set low byte of string pointer
+        bcc     @skip_inx
+        inx                             ; Increment high byte of address
+@skip_inx:
+        stx     1,y                     ; High byte of string pointer
+        lda     (BC),y                  ; Load the length for return
         rts
 
-load_string_ptr:
-        stax    string_ptr
-inc_string_ptr:
-        ldy     #0
-        lda     (string_ptr),y
-        inc     string_ptr
-        bne     @skip_inc
-        inc     string_ptr+1
-@skip_inc:
+string_alloc_error:
+        pla                             ; Pop the original length saved earlier; carry is set
         rts

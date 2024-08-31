@@ -33,8 +33,23 @@ void test_read_string(void) {
     call_read_string("\"REPEATED\"\"CHARS\"", 17, "\x0EREPEATED\"CHARS", 14, __LINE__);
 }
 
+void test_string_alloc(void) {
+    void* original_free_ptr;
+
+    PRINT_TEST_NAME();
+
+    initialize_program();
+
+    original_free_ptr = free_ptr;
+    string_alloc(10);
+    ASSERT_EQ(err, 0);
+    ASSERT_PTR_EQ(S0, (char*)original_free_ptr + 1);
+    ASSERT_PTR_EQ(free_ptr, (char*)original_free_ptr + 10 + STRING_EXTRA);
+}
+
 int main(void) {
     initialize_target();
     test_read_string();
+    test_string_alloc();
     return 0;
 }

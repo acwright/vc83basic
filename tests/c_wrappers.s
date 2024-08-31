@@ -367,6 +367,11 @@ _read_string:
         jsr     read_string
         jmp     set_err
 
+_string_alloc:
+.export _string_alloc
+        jsr     string_alloc
+        jmp     set_err
+
 ; util.s
 
 _copy:

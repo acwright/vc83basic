@@ -322,38 +322,32 @@ pop_fpx:
 ; Copy a string into the string heap, then pushes the string pointer onto the heap.
 
 copy_push_string:
-        jsr     load_st1
-        
-
-
-        jsr     load_string_ptr         ; Set string_ptr and return length
-        jsr     string_alloc            ; Allocate space for string
+        ldy     #S1
+        jsr     load_sy                 ; Returns length in A
+        jsr     string_alloc            ; Allocate space for string and sets S0
         bcs     push_string_error
+        tay                             ; Length is in Y
+        mvax    S0, dst_ptr             ; Newly-allocated string
+        ldax    S1                      ; Original string
+        jsr     copy_y_from             ; Copy string data
+        ldax    S0                      ; Load new string address in to AX as if we'd had it all along
 
-
-
-        stax    src_ptr                 ; Original string pointer into src_ptr
-        ldy     #0                      ; Offset of string length
-        lda     (stc_ptr),y             ; Load length
-        jsr     string_alloc            ; Allocate space for the string
-        bcs     push_string_error
-        mvax    string_ptr, dst_ptr
-             
+; Fall through
 
 ; Pushes the string in AX onto the stack.
 ; Returns carry clear on success, carry set on failure.
 
 push_string:
-        stax    BC                      ; Store string address in BC
+        stax    S0                      ; Store string address in S0
         lda     #.sizeof(Value)
         jsr     stack_alloc
         bcs     push_string_error   
         tay
         lda     #TYPE_STRING            ; Assign the string type
         sta     primary_stack+Value::type,y
-        lda     B                       ; Recover low byte of string address
+        lda     S0                      ; Recover low byte of string address
         sta     primary_stack+Value::string_ptr,y   ; Save low and high byte of string address
-        lda     C                       ; High byte
+        lda     S0+1                    ; High byte
         sta     primary_stack+Value::string_ptr+1,y ; Carry still clear for return
 push_string_error:
         rts

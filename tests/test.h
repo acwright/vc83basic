@@ -161,6 +161,7 @@ void advance_node_ptr(void);
 
 // string.s
 char read_string(void);
+void string_alloc(char length);
 
 // util.s
 void copy(/* AX */ size_t size);
