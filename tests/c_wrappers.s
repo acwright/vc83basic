@@ -372,6 +372,15 @@ _string_alloc:
         jsr     string_alloc
         jmp     set_err
 
+_load_sy:
+.export _load_sy
+        stax    BC                      ; value pointer
+        jsr     popax                   ; sy pointer
+        tay
+        ldax    BC
+        jmp     load_sy
+
+
 ; util.s
 
 _copy:

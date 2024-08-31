@@ -35,21 +35,38 @@ void test_read_string(void) {
 
 void test_string_alloc(void) {
     void* original_free_ptr;
+    String* s;
 
     PRINT_TEST_NAME();
 
     initialize_program();
 
     original_free_ptr = free_ptr;
-    string_alloc(10);
+    s = string_alloc(10);
     ASSERT_EQ(err, 0);
-    ASSERT_PTR_EQ(S0, (char*)original_free_ptr + 1);
+    ASSERT_PTR_EQ(s, original_free_ptr);
     ASSERT_PTR_EQ(free_ptr, (char*)original_free_ptr + 10 + STRING_EXTRA);
+}
+
+void test_load_sy(void) {
+
+    const String s = { 5, { 'H', 'E', 'L', 'L', 'O' }};
+    char length;
+
+    PRINT_TEST_NAME();
+
+    S0 = NULL;
+    S1 = NULL;
+
+    length = load_sy(&S0, &s);
+    ASSERT_PTR_EQ(S0, &s.data);
+    ASSERT_EQ(length, s.length);
 }
 
 int main(void) {
     initialize_target();
     test_read_string();
     test_string_alloc();
+    test_load_sy();
     return 0;
 }

@@ -323,14 +323,16 @@ pop_fpx:
 
 copy_push_string:
         ldy     #S1
-        jsr     load_sy                 ; Returns length in A
-        jsr     string_alloc            ; Allocate space for string and sets S0
+        jsr     load_sy                 ; Original string data is in S1; returns length in A
+        jsr     string_alloc            ; Allocate space for new string
         bcs     push_string_error
+        stax    BC                      ; Save new string address in BC
+        jsr     load_s0                 ; New string data is in S0; return length
         tay                             ; Length is in Y
-        mvax    S0, dst_ptr             ; Newly-allocated string
-        ldax    S1                      ; Original string
+        mvax    S0, dst_ptr             ; Newly-allocated string data
+        ldax    S1                      ; Original string data
         jsr     copy_y_from             ; Copy string data
-        ldax    S0                      ; Load new string address in to AX as if we'd had it all along
+        ldax    BC                      ; Load new string address in to AX as if we'd had it all along
 
 ; Fall through
 

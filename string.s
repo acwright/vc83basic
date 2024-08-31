@@ -70,12 +70,11 @@ read_string:
 
 ; Allocates space for a new string on the string heap.
 ; A = the length of the new string (not including length byte)
-; Returns the address of the new string in S0 and the length in A.
-; BC SAFE
+; Returns the address of the new string in AX.
 
 string_alloc:
-        mvx     free_ptr, S0            ; New string will be at free_ptr; move into S0 through X
-        mvx     free_ptr+1, S0+1
+        mvx     free_ptr, B             ; New string will be at free_ptr; hold in BC
+        mvx     free_ptr+1, C
         pha                             ; Save the original length
         ldx     #0                      ; Initialize high byte of block length to 0
         clc
@@ -85,13 +84,13 @@ string_alloc:
 @skip_inx:
         ldy     #free_ptr               ; Allocate space by moving up free_ptr
         jsr     grow                    ; Grow the heap and set/clear carry
-        bcs     string_alloc_error
+        pla                             ; Get length from stack; doesn't affect carry from grow call
+        bcs     @error
         ldy     #0                      ; Offset of length
-        pla                             ; Get length from stack
-        sta     (S0),y                  ; Set the length
-        ldax    S0                      ; Address of string length is S0; replace with string data
-
-; Fall through
+        sta     (BC),y                  ; Set the length
+        ldax    BC                      ; Return pointer in AX
+@error:
+        rts
 
 load_s0:
         ldy     #S0
@@ -104,9 +103,7 @@ load_sy:
         inx                             ; Increment high byte of address
 @skip_inx:
         stx     1,y                     ; High byte of string pointer
+        ldy     #0                      ; Length offset
         lda     (BC),y                  ; Load the length for return
         rts
 
-string_alloc_error:
-        pla                             ; Pop the original length saved earlier; carry is set
-        rts
