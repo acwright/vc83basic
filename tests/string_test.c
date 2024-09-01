@@ -34,18 +34,20 @@ void test_read_string(void) {
 }
 
 void test_string_alloc(void) {
-    void* original_free_ptr;
+    void* original_string_ptr;
     String* s;
 
     PRINT_TEST_NAME();
 
     initialize_program();
 
-    original_free_ptr = free_ptr;
+    DEBUG_PTR(string_ptr);
+
+    original_string_ptr = string_ptr;
     s = string_alloc(10);
     ASSERT_EQ(err, 0);
-    ASSERT_PTR_EQ(s, original_free_ptr);
-    ASSERT_PTR_EQ(free_ptr, (char*)original_free_ptr + 10 + STRING_EXTRA);
+    ASSERT_PTR_EQ(s, string_ptr);
+    ASSERT_PTR_EQ(string_ptr, (char*)original_string_ptr - 10 - STRING_EXTRA);
 }
 
 void test_load_sy(void) {

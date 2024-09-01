@@ -60,11 +60,11 @@ word(next_line_ptr, Line*)
 comment The start of the variable name table
 word(variable_name_table_ptr, char*)
 
-comment The beginning of the string space
-word(string_space_ptr, void*)
-
-comment The start of free space past the heap; initialized to heap_ptr
+comment The start of free space past the variable name table
 word(free_ptr, void*)
+
+comment The start of the string space, and the address of the most-recently-allocated string
+word(string_ptr, void*)
 
 comment The address of "high memory" that will not be touched by the interpreter
 word(himem_ptr, void*)

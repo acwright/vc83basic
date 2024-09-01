@@ -73,8 +73,6 @@ read_string:
 ; Returns the address of the new string in AX.
 
 string_alloc:
-        mvx     free_ptr, B             ; New string will be at free_ptr; hold in BC
-        mvx     free_ptr+1, C
         pha                             ; Save the original length
         ldx     #0                      ; Initialize high byte of block length to 0
         clc
@@ -82,14 +80,31 @@ string_alloc:
         bcc     @skip_inx               ; If no carry then leave high byte at 0
         inx                             ; Otherwise it's 1
 @skip_inx:
-        ldy     #free_ptr               ; Allocate space by moving up free_ptr
-        jsr     grow                    ; Grow the heap and set/clear carry
-        pla                             ; Get length from stack; doesn't affect carry from grow call
-        bcs     @error
+        eor     #$FF                    ; Invert length and set carry in order to do string_ptr - AX
+        sec                             ; This calculates proposed new value for string_ptr
+        adc     string_ptr
+        tay                             ; Store low byte of proposed value in Y
+        txa                             ; Do the same thing with the high byte
+        eor     #$FF
+        adc     string_ptr+1
+        tax                             ; Store high byte of proposed value in X
+        pla                             ; Recover length from stack
+        cpx     free_ptr+1              ; Compare high byte vs. free_ptr
+        bcc     @error                  ; New string_ptr high byte < free_ptr; it's definitely an error
+        bne     @string_ptr_ok          ; If it's greater then it's definitely okay
+        cpy     free_ptr
+        bcc     @error                  ; Less than free_ptr is an error, but >= is okay
+@string_ptr_ok:
+        sty     string_ptr              ; Proposed string_ptr >= free_ptr; go update it
+        stx     string_ptr+1
         ldy     #0                      ; Offset of length
-        sta     (BC),y                  ; Set the length
-        ldax    BC                      ; Return pointer in AX
+        sta     (string_ptr),y          ; Set the length
+        ldax    string_ptr              ; Return pointer in AX
+        clc                             ; Signal success
+        rts
+
 @error:
+        sec
         rts
 
 load_s0:

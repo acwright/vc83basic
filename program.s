@@ -32,7 +32,7 @@ initialize_program:
 ; BC SAFE
 
 reset_program_state:
-        lda     variable_name_table_ptr ; Add 1 to variable_name_table_ptr to get free_ptr
+        lda     variable_name_table_ptr ; Add 1 to variable_name_table_ptr to get string_space_ptr and free_ptr
         clc
         adc     #1
         sta     free_ptr
@@ -42,6 +42,7 @@ reset_program_state:
         lda     #0                      ; Load zero into A
         tay                             ; Write index is also zero
         sta     (variable_name_table_ptr),y ; Initialize variable name table to 0
+        mvax    himem_ptr, string_ptr   ; Clear string space
         mva     #OP_STACK_SIZE, osp     ; Initialize stack positions
         mva     #PRIMARY_STACK_SIZE, psp
         mva     #0, resume_line_ptr+1   ; Initialize resume_line_ptr high byte to 0 to disable CONT
