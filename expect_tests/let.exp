@@ -16,3 +16,28 @@ PRINT X
 } {
 2
 }
+
+# Strings
+
+test {
+LET MSG$="HELLO, WORLD"
+PRINT MSG$
+} {
+HELLO, WORLD
+}
+
+test {
+LET A$="HELLO"
+LET B$=A$&", WORLD"
+PRINT A$,B$
+} {
+HELLO           HELLO, WORLD
+}
+
+test {
+LET A$="HELLO"
+LET B$=A$&", WORLD"
+PRINT A$,B$
+} {
+HELLO           HELLO, WORLD
+}
