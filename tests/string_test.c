@@ -61,13 +61,18 @@ void test_string_alloc(void) {
 
     initialize_program();
 
-    DEBUG_PTR(string_ptr);
-
     original_string_ptr = string_ptr;
     s = string_alloc(10);
     ASSERT_EQ(err, 0);
     ASSERT_PTR_EQ(s, string_ptr);
     ASSERT_PTR_EQ(string_ptr, (char*)original_string_ptr - 10 - STRING_EXTRA);
+    ASSERT_EQ(s->length, 10);
+
+    s = string_alloc(20);
+    ASSERT_EQ(err, 0);
+    ASSERT_PTR_EQ(s, string_ptr);
+    ASSERT_PTR_EQ(string_ptr, (char*)original_string_ptr - 10 - STRING_EXTRA - 20 - STRING_EXTRA);
+    ASSERT_EQ(s->length, 20);
 }
 
 int main(void) {
