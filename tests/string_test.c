@@ -33,6 +33,21 @@ void test_read_string(void) {
     call_read_string("\"REPEATED\"\"CHARS\"", 17, "\x0EREPEATED\"CHARS", 14, __LINE__);
 }
 
+void test_load_sy(void) {
+
+    const String s = { 5, { 'H', 'E', 'L', 'L', 'O' }};
+    char length;
+
+    PRINT_TEST_NAME();
+
+    S0 = NULL;
+    S1 = NULL;
+
+    length = load_sy(&S0, &s);
+    ASSERT_PTR_EQ(S0, &s.data);
+    ASSERT_EQ(length, s.length);
+}
+
 void test_string_alloc(void) {
     void* original_string_ptr;
     String* s;
@@ -50,25 +65,10 @@ void test_string_alloc(void) {
     ASSERT_PTR_EQ(string_ptr, (char*)original_string_ptr - 10 - STRING_EXTRA);
 }
 
-void test_load_sy(void) {
-
-    const String s = { 5, { 'H', 'E', 'L', 'L', 'O' }};
-    char length;
-
-    PRINT_TEST_NAME();
-
-    S0 = NULL;
-    S1 = NULL;
-
-    length = load_sy(&S0, &s);
-    ASSERT_PTR_EQ(S0, &s.data);
-    ASSERT_EQ(length, s.length);
-}
-
 int main(void) {
     initialize_target();
     test_read_string();
-    test_string_alloc();
     test_load_sy();
+    test_string_alloc();
     return 0;
 }

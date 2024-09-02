@@ -161,8 +161,8 @@ void advance_node_ptr(void);
 
 // string.s
 char read_string(void);
-const String* string_alloc(/* A */ char length);
 char load_sy(/* Y */ void* sy, /* AY */ const String* value);
+const String* string_alloc(/* A */ char length);
 
 // util.s
 void copy(/* AX */ size_t size);

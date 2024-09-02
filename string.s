@@ -68,9 +68,31 @@ read_string:
         clc                             ; Signal success
         rts
 
+; Loads a string into one of the two S registers.
+; Returns length in A and a pointer to the string data in the selected S register: either S0 for load_s0, or the
+; register identified by Y for load_sy.
+; AX = a pointer to the string to load
+; DE SAFE
+
+load_s0:
+        ldy     #S0
+load_sy:
+        stax    BC                      ; BC is a temporary pointer
+        sec
+        adc     #0                      ; Move past length byte
+        sta     0,y                     ; Set low byte of string pointer
+        bcc     @skip_inx
+        inx                             ; Increment high byte of address
+@skip_inx:
+        stx     1,y                     ; High byte of string pointer
+        ldy     #0                      ; Length offset
+        lda     (BC),y                  ; Load the length for return
+        rts
+
 ; Allocates space for a new string on the string heap.
 ; A = the length of the new string (not including length byte)
 ; Returns the address of the new string in AX.
+; BC SAFE, DE SAFE
 
 string_alloc:
         pha                             ; Save the original length
@@ -106,19 +128,3 @@ string_alloc:
 @error:
         sec
         rts
-
-load_s0:
-        ldy     #S0
-load_sy:
-        stax    BC                      ; BC is a temporary pointer
-        sec
-        adc     #0                      ; Move past length byte
-        sta     0,y                     ; Set low byte of string pointer
-        bcc     @skip_inx
-        inx                             ; Increment high byte of address
-@skip_inx:
-        stx     1,y                     ; High byte of string pointer
-        ldy     #0                      ; Length offset
-        lda     (BC),y                  ; Load the length for return
-        rts
-
