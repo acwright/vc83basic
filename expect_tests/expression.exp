@@ -70,6 +70,10 @@ test "PRINT \"ABC\"<=\"ABC\"\n" "1\n"
 test "PRINT \"ABC\">\"XYZ\"\n" "0\n"
 test "PRINT \"ABC\">=\"ABC\"\n" "1\n"
 
+# String concatenation
+
+test "PRINT \"HELLO, \" & \"WORLD\"\n" "HELLO, WORLD\n"
+
 # Precedence
 
 test "PRINT 1+2*3\n" "7\n"

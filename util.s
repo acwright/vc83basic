@@ -4,7 +4,7 @@
 ; Copies bytes from a source address to a destination address.
 ; The source and destination byte ranges must not overlap unless the destination address is lower than the
 ; source address.
-; Alters src_ptr and dst_ptr.
+; On exit, src_ptr and dst_ptr will both have increased by size.
 ; src_ptr = source
 ; dst_ptr = destination (must be <=src_ptr)
 ; size = number of bytes to copy
@@ -21,9 +21,35 @@ copy_a:
 copy:
         stax    size                    ; Length into size
 copy_size:
-        ldy     #0                      ; Y = 0 meaning 256 bytes per block
-        ldx     size+1                  ; Number of 256-byte blocks
-        beq     @remaining              ; If no blocks, just do remaining bytes
+        lda     size+1                  ; Number of blocks
+        tax                             ; Keep in X
+        ora     size                    ; Check for size = 0
+        beq     @done                   ; Just skip everything
+        lda     #0                      ; Low byte of #256
+        sec
+        sbc     size                    ; Subtract size from 256; this is initial Y value for short block
+        tay                             ; Into Y
+        beq     @next_byte              ; Even number of blocks; skip all the short block stuff
+        clc                             ; Add size % 256 to source_ptr
+        lda     src_ptr
+        adc     size
+        sta     src_ptr
+        bcs     @src_has_carry          ; Need to add 1 to src_ptr high byte; can just skip decrement instead
+        dec     src_ptr+1
+@src_has_carry:
+        clc                             ; Add size % 256 to dst_ptr
+        lda     dst_ptr
+        adc     size
+        sta     dst_ptr
+        bcs     @dst_has_carry
+        dec     dst_ptr+1
+@dst_has_carry:
+        inx                             ; Add 1 to number of blocks to account for short block
+
+; Once we get here, X is >0, and either:
+; There are X 256-byte blocks to copy, and Y is 0.
+; There are X-1 256-byte blocks to copy, plus one short block, and Y is (256 - size of short block).
+
 @next_byte: 
         lda     (src_ptr),y             ; Copy one byte
         sta     (dst_ptr),y                
@@ -34,25 +60,15 @@ copy_size:
         dex                             ; Decrement number of blocks
         bne     @next_byte              ; More to move
 
-; Copies the remaining bytes.
-; Y must be 0 when we first reach this point, and size must be set to the number of bytes remaining (0 means none).
-
-@remaining:
-        cpy     size                    ; More?
-        beq     @done                   ; Nope
-        lda     (src_ptr),y             ; Otherwise move one more byte
-        sta     (dst_ptr),y    
-        iny                             ; Y is the number of bytes written so will not be zero, ...
-        bne     @remaining              ; therefore this is an unconditional branch
-
 @done:
         rts
 
 ; Copy bytes backwards from a source address to a destination address.
 ; Used when the source and destination byte ranges overlap and destination address is higher than the source address.
-; Alters src_ptr and dst_ptr.
+; Returns src_ptr and dst_ptr set to their original values, so can also be used for non-overlapping copies, when we
+; want to retain the src_ptr and dst_ptr values.
 ; src_ptr = source
-; dst_ptr = destination (must be <=src_ptr)
+; dst_ptr = destination (must be <=src_ptr if overlapping)
 ; size = number of bytes to copy
 ; Alternate entry points:
 ; reverse_copy_size uses the size already stored in size.
@@ -83,10 +99,12 @@ reverse_copy_size:
         lda     (src_ptr),y             ; Handle Y=0
         sta     (dst_ptr),y
 @next_block:
+        dex                             ; Any more blocks?
+        beq     @done                   ; Nope
         dec     src_ptr+1               ; Back up address 256 bytes
         dec     dst_ptr+1
-        dex                             ; One block down
-        bne     @decrement              ; More blocks to copy
+        bne     @decrement              ; Unconditional since we'll never copy into zero page
+@done:
         rts
 
 ; Clears memory to zero.

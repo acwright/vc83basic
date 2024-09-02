@@ -34,6 +34,9 @@ void test_copy_case(size_t size, size_t offset, int line) {
     copy(size);
     HEXDUMP(test_data, 16);
     verify_test_data(test_data, size);
+    // Verify that src_ptr and dst_ptr are left pointing to one past the source and destination buffers.
+    ASSERT_PTR_EQ(src_ptr, test_data + offset + size);
+    ASSERT_PTR_EQ(dst_ptr, test_data + size);
 }
 
 void test_copy(void) {
@@ -61,6 +64,9 @@ void test_reverse_copy_case(size_t size, size_t offset, int line) {
     reverse_copy(size);
     HEXDUMP(test_data + offset, 16);
     verify_test_data(test_data + offset, size);
+    // Verify that src_ptr and dst_ptr are unchanged.
+    ASSERT_PTR_EQ(src_ptr, test_data);
+    ASSERT_PTR_EQ(dst_ptr, test_data + offset);
 }
 
 void test_reverse_copy(void) {
