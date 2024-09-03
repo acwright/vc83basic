@@ -142,7 +142,6 @@ void advance_next_line_ptr(void);
 void insert_or_update_line(void);
 void grow(/* Y */ void* ptr, /* AX */ size_t size);
 void shrink(/* Y */ void* ptr, /* AX */ size_t size);
-void check_himem(/* AX */ size_t size);
 void initialize_node_ptr(void* node_ptr);
 void advance_node_ptr(void);
 
