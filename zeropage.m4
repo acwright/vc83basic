@@ -108,6 +108,9 @@ byte(node_index)
 comment Pointer to a variable within the variable value set by a statement like LET, INPUT, and READ
 word(variable_ptr, void*)
 
+comment The type of variable being assigned
+byte(variable_type)
+
 comment Whether the program is not running, running, stopped, or awaiting reset.
 byte(program_state)
 

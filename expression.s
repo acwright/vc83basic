@@ -286,7 +286,9 @@ call_binary_operator:
         phax                            ; Push operator handler address -1 onto the stack so we can RTS to it
         ldx     #FP1
         jsr     pop_fpx                 ; Top value into FP1
+        bcs     @error
         jsr     pop_fp0                 ; Next value into FP0
+@error:
         rts                             ; This does JMP to the operator handler
 
 ; Invokes a binary operator and pushes the result back.
@@ -297,14 +299,22 @@ call_binary_operator_push:
 
 unary_op_minus:
         jsr     pop_fp0                 ; Get value at top of stack
+        bcs     @error
         jsr     fneg                    ; Negate it
         jmp     push_fp0                ; Return to stack
 
+@error:
+        rts
+
 unary_op_not:
         jsr     pop_fp0                 ; Get value
+        bcs     @error
         jsr     fp0_is_zero
         bne     push_value_0            ; Value was not zero so we should return 0
         beq     push_value_1
+
+@error:
+        rts
 
 ; Push the value in an FP register onto the value stack.
 ; X = #FP0 or #FP1 (the _fp0 entry points set this to FP0)
@@ -341,16 +351,23 @@ push_fpx:
 ; well-formed expressions.
 ; FP0/1 = the value to push
 
+.assert TYPE_NUM = 0, error
+
 pop_fp0:
         ldx     #FP0
 pop_fpx: 
         ldy     psp                     ; Load stack pointer into Y to use as offset
+        sec                             ; Set carry in case type check fails
+        lda     primary_stack+Value::type,y
+        bne     @error
         lda     #.sizeof(Value)         ; Free space for float
         jsr     stack_free
         iny                             ; Increment past the type byte
         tya                             ; Back in A to use as pointer
         ldy     #>primary_stack         ; Segment of stack
         jsr     load_fpx                ; Load value into FPx
+        clc                             ; Success
+@error:
         rts
 
 ; Copy a string into the string space, then pushes the string pointer onto the stack.
@@ -448,8 +465,11 @@ op_or:
 
 set_up_logical_op:
         jsr     pop_fp0
+        bcs     @error
         jsr     truncate_fp_to_int
         stax    DE                      ; Store returned value in DE
         jsr     pop_fp0
+        bcs     @error
         jsr     truncate_fp_to_int
+@error:
         rts                             ; Return with value in DE

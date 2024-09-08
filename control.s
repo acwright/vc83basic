@@ -47,6 +47,7 @@ exec_on:
         stax    on_handler              ; Store the handler address
         jsr     evaluate_expression     ; Evaluate the "ON" expression
         jsr     pop_fp0
+        bcs     @error
         jsr     truncate_fp_to_int      ; FP0 -> integer in AX
         sta     on_value
         sec                             ; Set carry in case this next check fails
@@ -86,10 +87,15 @@ exec_return:
 
 ; FOR statement:
 
+.assert TYPE_NUM = 0, error
+
 exec_for:
         jsr     push_next_line_ptr      ; Save return address
         bcs     @error                  ; Stack overflow
         jsr     decode_name             ; Get the name (now in name_ptr)
+        sec                             ; Set carry for error return if type check goes wrong
+        lda     name_type               ; No string variables please
+        bne     @error
         ldx     psp                     ; Get stack pointer to store name
         lda     name_ptr                ; Store pointer to variable name
         sta     primary_stack+Control::variable_name_ptr,x
@@ -102,9 +108,9 @@ exec_for:
         jsr     assign_variable
         jsr     evaluate_expression     ; End value
         jsr     pop_fp0                 ; Get the evaluated value
+        bcs     @error
         lda     psp                     ; Stack pointer
-        clc
-        adc     #Control::end_value     ; Add the offset of the end value
+        adc     #Control::end_value     ; Add the offset of the end value; carry is clear
         ldy     #>primary_stack         ; Segment of stack
         jsr     store_fp0               ; Store FP0 there
         lday    #fp_one
@@ -125,6 +131,7 @@ exec_next:
         bcs     @error
         mvax    node_ptr, variable_ptr  ; Set up target for assign_variable later
         jsr     pop_fp0                 ; Variable value is now in FP0
+        bcs     @error
         ldx     psp                     ; Load stack position
         cpx     #PRIMARY_STACK_SIZE     ; Check if stack empty
         sec                             ; Set carry in case one of these two BEQs fails
@@ -182,10 +189,12 @@ exec_pop:
 exec_if:
         jsr     evaluate_expression     ; Evaluate the expression
         jsr     pop_fp0
+        bcs     @error
         jsr     fp0_is_zero             ; Check if zero
         beq     @next_line              ; If zero then don't execute the THEN or any other statements on this line
         jsr     dispatch_statement      ; Otherwise execute the THEN
         clc
+@error:
         rts
 
 @next_line:

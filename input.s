@@ -15,6 +15,7 @@ exec_input:
         jsr     find_or_add_variable
         bcs     @done
         mvax    node_ptr, variable_ptr  ; Set up target for assign_variable
+        mva     name_type, variable_type
         jsr     string_to_fp            ; Parse the number
         bcs     @done                   ; Failed to read a number
         jsr     push_fp0                ; Push FP0 onto the value stack

@@ -12,6 +12,7 @@ exec_let:
 ; Store it in variable_ptr because we might need node_ptr when parsing the right hand value.
 
         mvax    node_ptr, variable_ptr
+        mva     name_type, variable_type
         jsr     evaluate_expression
         jmp     assign_variable
 
@@ -24,6 +25,9 @@ exec_let:
 assign_variable:
         mvax    variable_ptr, dst_ptr   ; Copy into variable data
         ldx     psp                     ; Get stack pointer
+        lda     variable_type           ; Check the variable type
+        cmp     primary_stack+Value::type,x
+        bne     @error                  ; Value and variable are different types
         inx                             ; Skip past the type
         txa                             ; Becomes low byte of source address
         ldx     #>primary_stack         ; Segment of stack
@@ -32,4 +36,8 @@ assign_variable:
         lda     #.sizeof(Value)         ; Discard from stack
         jsr     stack_free
         clc                             ; Success
+        rts
+
+@error:
+        sec
         rts
