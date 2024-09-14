@@ -36,7 +36,7 @@ evaluate_variable:
         jsr     stack_alloc
         bcs     @error
         tax                             ; Stack position into X to set type
-        lda     #TYPE_NUM               ; Set type of value on stack
+        lda     name_type               ; Set type of value on stack
         sta     primary_stack+Value::type,x
         inx                             ; Write value to next byte
         txa                             ; Use as low byte of copy address
