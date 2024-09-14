@@ -35,15 +35,16 @@ evaluate_variable:
         lda     #.sizeof(Value)         ; Make space on the stack
         jsr     stack_alloc
         bcs     @error
-        tax                             ; Stack position into X to set type
+        tay                             ; Stack position into Y to set type
         lda     name_type               ; Set type of value on stack
-        sta     primary_stack+Value::type,x
-        inx                             ; Write value to next byte
-        txa                             ; Use as low byte of copy address
+        sta     primary_stack+Value::type,y
+        tax                             ; Move the type into X
+        iny                             ; Write value to next byte
+        tya                             ; Use as low byte of copy address
+        ldy     type_size_table,x       ; Replace Y with the size of the type
         ldx     #>primary_stack         ; Segment of stack
         stax    dst_ptr                 ; Copy to stack
         ldax    node_ptr                ; Copy from variable data
-        ldy     #.sizeof(Float)
         jsr     copy_y_from
         clc                             ; Signal success
 @error:

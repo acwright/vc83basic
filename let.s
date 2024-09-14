@@ -24,14 +24,14 @@ exec_let:
 
 assign_variable:
         mvax    variable_ptr, dst_ptr   ; Copy into variable data
-        ldx     psp                     ; Get stack pointer
-        lda     variable_type           ; Check the variable type
-        cmp     primary_stack+Value::type,x
+        ldy     psp                     ; Get stack pointer
+        ldx     primary_stack+Value::type,y ; Get the type of the value on the stack
+        cpx     variable_type           ; Compare vs. variable type
         bne     @error                  ; Value and variable are different types
-        inx                             ; Skip past the type
-        txa                             ; Becomes low byte of source address
+        iny                             ; Skip past the type
+        tya                             ; Becomes low byte of source address
+        ldy     type_size_table,x       ; Replace Y with the size of the type
         ldx     #>primary_stack         ; Segment of stack
-        ldy     #.sizeof(Float)
         jsr     copy_y_from             ; Copy from stack into variable data
         lda     #.sizeof(Value)         ; Discard from stack
         jsr     stack_free
