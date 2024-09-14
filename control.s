@@ -96,6 +96,7 @@ exec_for:
         sec                             ; Set carry for error return if type check goes wrong
         lda     name_type               ; No string variables please
         bne     @error
+        sta     variable_type           ; While we have the type in A, save in variable_type
         ldx     psp                     ; Get stack pointer to store name
         lda     name_ptr                ; Store pointer to variable name
         sta     primary_stack+Control::variable_name_ptr,x
@@ -130,6 +131,7 @@ exec_next:
         jsr     evaluate_variable       ; Evaluates the variable after next; sets name_ptr
         bcs     @error
         mvax    node_ptr, variable_ptr  ; Set up target for assign_variable later
+        mva     name_type, variable_type
         jsr     pop_fp0                 ; Variable value is now in FP0
         bcs     @error
         ldx     psp                     ; Load stack position
