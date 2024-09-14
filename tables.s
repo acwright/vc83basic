@@ -55,3 +55,7 @@ unary_operator_name_table:
         .byte   :+ - *, '-' | NT_STOP
 :       .byte   :+ - *, 'N', 'O', 'T' | NT_STOP
 :       .byte   0
+
+type_size_table:
+        .byte .sizeof(Float)    ; TYPE_NUM
+        .byte 2                 ; TYPE_STRING

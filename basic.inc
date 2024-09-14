@@ -193,6 +193,7 @@ FP1s = FP1+UnpackedFloat::s
 .global operator_name_table
 .global unary_operator_name_table
 .global operator_precedence_table
+.global type_size_table
 
 ; util.s
 .global copy, copy_a, copy_size, copy_y_from

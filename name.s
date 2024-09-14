@@ -52,10 +52,6 @@ match_name:
         sec                             ; Signal error
         rts
 
-type_size_table:
-        .byte .sizeof(Float)    ; TYPE_NUM
-        .byte 2                 ; TYPE_STRING
-
 ; Finds a variable, or adds it.
 ; name_ptr = pointer to the variable name
 ; name_length = the length of the variable
