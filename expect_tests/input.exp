@@ -59,3 +59,53 @@ PRINT Y
 } {
 6
 }
+
+# Strings
+
+send_echo {
+INPUT A$
+}
+expect -ex "?"
+send_echo {
+HELLO
+}
+test {
+PRINT A$
+} {
+HELLO
+}
+
+# Mutiple strings
+
+send_echo {
+INPUT FIRST$,LAST$
+}
+expect -ex "?"
+send_echo {
+WILLIS,BLACKBURN
+}
+test {
+PRINT FIRST$
+} {
+WILLIS
+}
+test {
+PRINT LAST$
+} {
+BLACKBURN
+}
+
+# Mutiple strings
+
+send_echo {
+INPUT A$,B$,C$
+}
+expect -ex "?"
+send_echo {
+HELLO," WORLD"," WITH ""QUOTES"""
+}
+test {
+PRINT A$;B$;C$
+} {
+HELLO WORLD WITH "QUOTES"
+}
