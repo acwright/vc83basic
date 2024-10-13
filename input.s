@@ -15,7 +15,7 @@ exec_input:
         jsr     decode_name             ; Read the variable name
         jsr     find_or_add_variable
         bcs     @done
-        mvax    node_ptr, variable_ptr  ; Set up target for assign_variable
+        mvax    name_ptr, variable_ptr  ; Set up target for assign_variable
         mva     name_type, variable_type
         bne     @string
         jsr     string_to_fp            ; Parse the number

@@ -44,7 +44,7 @@ evaluate_variable:
         ldy     type_size_table,x       ; Replace Y with the size of the type
         ldx     #>primary_stack         ; Segment of stack
         stax    dst_ptr                 ; Copy to stack
-        ldax    node_ptr                ; Copy from variable data
+        ldax    name_ptr                ; Copy from variable data
         jsr     copy_y_from
         clc                             ; Signal success
 @error:
