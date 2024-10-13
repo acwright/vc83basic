@@ -263,6 +263,15 @@ _find_name:
         jsr     find_name
         jmp     set_err
 
+_initialize_node_ptr:
+.export _initialize_node_ptr
+        jmp     initialize_node_ptr
+
+_advance_node_ptr:
+.export _advance_node_ptr
+        jsr     advance_node_ptr
+        jmp     set_err
+
 _add_variable:
 .export _add_variable
         jsr     add_variable
@@ -344,15 +353,6 @@ _shrink:
         tay                             ; Store in Y
         ldax    BC                      ; Get the size again
         jsr     shrink
-        jmp     set_err
-
-_initialize_node_ptr:
-.export _initialize_node_ptr
-        jmp     initialize_node_ptr
-
-_advance_node_ptr:
-.export _advance_node_ptr
-        jsr     advance_node_ptr
         jmp     set_err
 
 ; string.s

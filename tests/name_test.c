@@ -1,5 +1,17 @@
 #include "test.h"
 
+void test_initialize_node_ptr(void) {
+
+    PRINT_TEST_NAME();
+
+    node_ptr = NULL;
+    next_node_ptr = NULL;
+
+    initialize_node_ptr(0xA000);
+    ASSERT_PTR_EQ(node_ptr, NULL);
+    ASSERT_PTR_EQ(next_node_ptr, 0xA000);
+}
+
 void test_advance_node_ptr(void) {
 
     const char name_table_data[] = { 6, 'L', 'I', 'S', 'T' | NT_STOP, 1, 10, 'P', 'R', 'I', 'N', 'T' | NT_STOP, 1, 
@@ -183,6 +195,8 @@ void test_add_variable(void) {
 
 int main(void) {
     initialize_target();
+    test_initialize_node_ptr();
+    test_advance_node_ptr();
     test_find_name();
     test_find_name_operators();
     test_add_variable();
