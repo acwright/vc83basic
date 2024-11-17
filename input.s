@@ -3,7 +3,6 @@
 
 ; INPUT statement:
 
-.assert TOKEN_NO_VALUE = 0, error
 .assert TYPE_NUM = 0, error
 
 exec_input:
@@ -18,8 +17,11 @@ exec_input:
         mvax    name_ptr, variable_ptr  ; Set up target for assign_variable
         mva     name_type, variable_type
         bne     @string
+        ldax    #buffer                 ; Point to buffer
+        ldy     buffer_pos              ; Starting at buffer_pos
         jsr     string_to_fp            ; Parse the number
         bcs     @done                   ; Failed to read a number
+        sty     buffer_pos              ; Update buffer_pos
         jsr     push_fp0                ; Push FP0 onto the value stack
 
 @assign:
