@@ -95,7 +95,6 @@ FP1s = FP1+UnpackedFloat::s
 .global evaluate_variable
 .global call_binary_operator
 .global push_fpx, push_fp0, pop_fpx, pop_fp0
-.global copy_push_string
 .global push_string, pop_string
 .global stack_alloc
 .global stack_free

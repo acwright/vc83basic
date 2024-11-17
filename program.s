@@ -32,7 +32,7 @@ initialize_program:
 ; BC SAFE
 
 reset_program_state:
-        lda     variable_name_table_ptr ; Add 1 to variable_name_table_ptr to get string_space_ptr and free_ptr
+        lda     variable_name_table_ptr ; Add 1 to variable_name_table_ptr to get free_ptr
         clc
         adc     #1
         sta     free_ptr

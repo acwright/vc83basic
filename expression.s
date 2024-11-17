@@ -81,7 +81,7 @@ evaluate_paren:
 
 evaluate_string:
         jsr     decode_string           ; Returns pointer in AX
-        jmp     copy_push_string
+        jmp     push_string
 
 push_operator:
         sec                             ; Set carry so can just return failure if stack pointer is 0
@@ -368,23 +368,6 @@ pop_fpx:
         clc                             ; Success
 @error:
         rts
-
-; Copy a string into the string space, then pushes the string pointer onto the stack.
-
-copy_push_string:
-        ldy     #S1
-        jsr     load_sy                 ; Original string data is in S1; returns length in A
-        jsr     string_alloc            ; Allocate space for new string
-        bcs     push_string_error
-        stax    BC                      ; Save new string address in BC
-        jsr     load_s0                 ; New string data is in S0; return length
-        tay                             ; Length is in Y
-        mvax    S0, dst_ptr             ; Newly-allocated string data
-        ldax    S1                      ; Original string data
-        jsr     copy_y_from             ; Copy string data
-        ldax    BC                      ; Load new string address in to AX as if we'd had it all along
-
-; Fall through
 
 ; Pushes the string in AX onto the stack.
 ; Returns carry clear on success, carry set on failure.
