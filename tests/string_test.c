@@ -135,32 +135,34 @@ void test_compact(void) {
     ASSERT_PTR_EQ(string_ptr, (char*)himem_ptr - 10 - 3 - 5 - 3 - 120 - 3);
     compact();
     // Only the "HELLO" string should remain.
-    
     ASSERT_PTR_EQ(string_ptr, (char*)himem_ptr - 5 - 3);
-    ASSERT_EQ(string_ptr->length, 5);
-    ASSERT_EQ(memcmp(string_ptr->data, "HELLO", 5), 0);
+    parse_and_decode_name("A$");
+    find_name(variable_name_table_ptr);
+    ASSERT_EQ(err, 0);
+    ASSERT_EQ((*(const String**)name_ptr)->length, 5);
+    ASSERT_EQ(memcmp((*(const String**)name_ptr)->data, "HELLO", 5), 0);
 
-    // // Try some large strings.
-    // // Populate the string with values from 0 to 255 to verify they're copied correctly.
-    // string_alloc(255);
-    // ASSERT_EQ(err, 0);
-    // s = string_alloc(255);
-    // ASSERT_EQ(err, 0);
-    // for (offset = 0; offset < 255; offset++) {
-    //     s->data[offset] = (char)offset;
-    // }
-    // add_string_variable_with_name("B$", s);
-    // string_alloc(10);
-    // ASSERT_EQ(err, 0);
-    // string_alloc(10);
-    // ASSERT_EQ(err, 0);
-    // compact();
-    // // string_ptr should point to B$.
-    // ASSERT_PTR_EQ(string_ptr, (char*)himem_ptr - 5 - 3 - 255 - 3);
-    // ASSERT_EQ(string_ptr->length, 255);
-    // ASSERT_EQ(string_ptr->data[0], 0);
-    // ASSERT_EQ(string_ptr->data[1], 1);
-    // ASSERT_EQ(string_ptr->data[255], 255);
+    // Try some large strings.
+    // Populate the string with values from 0 to 255 to verify they're copied correctly.
+    string_alloc(255);
+    ASSERT_EQ(err, 0);
+    s = string_alloc(255);
+    ASSERT_EQ(err, 0);
+    for (offset = 0; offset < 255; offset++) {
+        s->data[offset] = (char)offset;
+    }
+    add_string_variable_with_name("B$", s);
+    string_alloc(10);
+    ASSERT_EQ(err, 0);
+    string_alloc(10);
+    ASSERT_EQ(err, 0);
+    compact();
+    // string_ptr should point to B$.
+    ASSERT_PTR_EQ(string_ptr, (char*)himem_ptr - 5 - 3 - 255 - 3);
+    ASSERT_EQ(string_ptr->length, 255);
+    ASSERT_EQ(string_ptr->data[0], 0);
+    ASSERT_EQ(string_ptr->data[1], 1);
+    ASSERT_EQ(string_ptr->data[255], 255);
 }
 
 int main(void) {

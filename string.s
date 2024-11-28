@@ -152,18 +152,14 @@ compact:
 
 ; Phase 1: Set the relocation address low byte of all strings to 0.
 
-        debug $00
         mvax    string_ptr, src_ptr     ; Use src_ptr to scan string space
         bne     @clear_next_2           ; Unconditional bypass set_src_ptr_next_string call
 @clear_next:
         jsr     set_src_ptr_next_string ; Move src_ptr past relocation address and to next string
 @clear_next_2:
-        debug $01
         jsr     check_src_ptr
-        debug $02
         bcs     @mark                   ; No more to clear
         jsr     set_src_ptr_relocation_address
-        debug $03
         lda     #0
         sta     (src_ptr),y             ; Set to 0
         jmp     @clear_next
@@ -171,15 +167,12 @@ compact:
 ; Phase 2: Find all string variables and mark each string in memory.
 
 @mark:
-        debug $10
         ldax    variable_name_table_ptr ; Prepare to scan variables
         jsr     initialize_name_ptr
 @mark_next:
         jsr     advance_name_ptr
-        debug $11
         bcs     @calculate
         jsr     find_variable_data
-        debug $12
         beq     @mark_next              ; Not a string; move on to the next one
         jsr     set_src_ptr_relocation_address  ; Add length to src_ptr; Y points to relocation address
         lda     #1
@@ -189,19 +182,15 @@ compact:
 ; Phase 3: Calculate the relocation address for each string.
 
 @calculate:
-        debug $20
         mvax    string_ptr, src_ptr
         mvax    free_ptr, dst_ptr
         bne     @calculate_next_2       ; Unconditional bypass set_src_ptr_next_string call
 @calculate_next:
         jsr     set_src_ptr_next_string ; Move src_ptr past relocation address and to next string
 @calculate_next_2:
-        debug $21
         jsr     check_src_ptr
-        debug $22
         bcs     @update                 ; No more strings
         jsr     set_src_ptr_relocation_address
-        debug $23
         lda     (src_ptr),y             ; Marked?
         beq     @calculate_next         ; Nope, move on
         lda     dst_ptr                 ; Save current value of dst_ptr into relocation address
@@ -213,7 +202,6 @@ compact:
         jsr     add_dst_ptr             ; Add to dst_ptr
         lda     #STRING_EXTRA
         jsr     add_dst_ptr             ; Allow for string overhead
-        debug $24
         jmp     @calculate_next
 
 ; Phase 4: Update string variables to point to the new addresses.
@@ -226,12 +214,10 @@ compact:
         lda     dst_ptr+1
         sbc     free_ptr+1
         pha
-        debug $30
         ldax    variable_name_table_ptr ; Prepare to scan variables
         jsr     initialize_name_ptr
 @update_next:
         jsr     advance_name_ptr
-        debug $31
         bcs     @relocate
         jsr     find_variable_data
         beq     @update_next            ; Not a string; move on to the next one
@@ -250,14 +236,12 @@ compact:
 ; relocation address itself, as it's not needed after this phase.
 
 @relocate:
-        debug $40
         mvax    string_ptr, src_ptr
         bne     @relocate_next_2        ; Unconditional bypass set_src_ptr_next_string call 
 @relocate_next:
         jsr     set_src_ptr_next_string ; Move src_ptr past relocation address and to next string
 @relocate_next_2:        
         jsr     check_src_ptr
-        debug $41
         bcs     @shift                  ; No more strings
         mvaa    src_ptr, BC             ; Save the src_ptr value in BC so we can get it back later for copy
         jsr     set_src_ptr_relocation_address
@@ -274,7 +258,6 @@ compact:
         bne     @no_size_rollover       ; Was not 0 so adding 1 didn't cause rollover
         inc     size+1                  ; Did rollover, so increment high byte
 @no_size_rollover:
-        debug $42
         jsr     copy_size               ; Copy from src_ptr to dst_ptr
         jmp     @relocate_next
 
@@ -286,7 +269,6 @@ compact:
 
 @shift:
         plstaa  size                    ; Recover size we calculated earlier
-        debug $50
         sec                             ; Prepare for second subtract
         lda     himem_ptr
         sbc     size
@@ -297,7 +279,6 @@ compact:
         sta     string_ptr+1
         sta     dst_ptr+1
         mvax    free_ptr, src_ptr
-        debug $60
         jsr     copy_size
         rts                             ; All done!
 
