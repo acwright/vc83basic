@@ -3,7 +3,13 @@
 
 ; DIM statement:
 
+.assert TYPE_ARRAY = $80, error
+
 exec_dim:
-    debug $00
-    clc
-    rts
+        jsr     decode_name             ; Get the name and type
+        clc
+        lda     name_type               ; See if it's an array name
+        bpl     @done                   ; Nope; nothing to do
+
+@done:
+        rts
