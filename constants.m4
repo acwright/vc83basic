@@ -76,6 +76,7 @@ comment Types
 
 def(TYPE_NUMBER,        hex(00))
 def(TYPE_STRING,        hex(01))
+def(TYPE_ARRAY,         hex(80))
 
 comment Expression precedence levels
 

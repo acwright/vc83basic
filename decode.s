@@ -94,6 +94,7 @@ decode_string:
 
 .assert TYPE_NUMBER = 0, error
 .assert TYPE_STRING = 1, error
+.assert TYPE_STRING = 0x80, error
 
 decode_name:
         lda     line_pos                ; Add line_pos to line_ptr to get decode_name_ptr
@@ -117,7 +118,15 @@ decode_name:
         adc     line_pos
         sta     line_pos                ; Update line_pos
         ldx     #TYPE_NUMBER            ; Variable is a number unless we learn otherwise
-        dey                             ; Back up one so we can check if the last character is '$'
+        dey                             ; Back up one so we can check if the last character is '('
+        lda     (decode_name_ptr),y
+        cmp     #'('| NT_STOP
+        bne     @not_array
+        ldx     #TYPE_ARRAY
+
+
+
+
         lda     (decode_name_ptr),y
         cmp     #'$' | NT_STOP          ; If it's there, it will have the high bit set
         bne     @not_string
@@ -125,6 +134,16 @@ decode_name:
 @not_string:
         stx     decode_name_type        ; Remember the type
         rts
+
+; Back up one character and check if it matches the character in A.
+
+check_previous_character:
+        dey
+        cmp     (decode_name_ptr),y     ; Does it match?
+        rts
+
+
+
 
 decode_operator:
         lda     #$0F

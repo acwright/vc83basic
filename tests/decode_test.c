@@ -60,7 +60,13 @@ void test_decode_string(void) {
 }
 
 void test_decode_name(void) {
-    const char line_data[] = {  'X' | NT_STOP, 'T', 'H', 'I', 'N', 'G', '3' | NT_STOP, 'A', '$' | NT_STOP };
+    const char line_data[] = {
+        'X' | NT_STOP,
+        'T', 'H', 'I', 'N', 'G', '3' | NT_STOP,
+        'A', '$' | NT_STOP,
+        'X', '(' | NT_STOP,
+        'A', '$', '(' | NT_STOP,
+     };
 
     PRINT_TEST_NAME();
 
@@ -80,6 +86,16 @@ void test_decode_name(void) {
     ASSERT_EQ(decode_name_ptr, line_buffer.data + 7);
     ASSERT_EQ(decode_name_length, 2);
     ASSERT_EQ(decode_name_type, TYPE_STRING);
+
+    decode_name();
+    ASSERT_EQ(decode_name_ptr, line_buffer.data + 9);
+    ASSERT_EQ(decode_name_length, 2);
+    ASSERT_EQ(decode_name_type, TYPE_NUMBER | TYPE_ARRAY);
+
+    decode_name();
+    ASSERT_EQ(decode_name_ptr, line_buffer.data + 11);
+    ASSERT_EQ(decode_name_length, 3);
+    ASSERT_EQ(decode_name_type, TYPE_STRING | TYPE_ARRAY);
 }
 
 extern void* decode_xh_vectors[];
