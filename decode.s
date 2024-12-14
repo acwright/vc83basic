@@ -134,16 +134,6 @@ decode_name:
         stx     decode_name_type        ; Remember the type
         rts
 
-; Back up one character and check if it matches the character in A.
-
-check_previous_character:
-        dey
-        cmp     (decode_name_ptr),y     ; Does it match?
-        rts
-
-
-
-
 decode_operator:
         lda     #$0F
         bne     decode_byte_with_mask   ; Unconditional jump
