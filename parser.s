@@ -160,6 +160,7 @@ parse_directive:
 
 parse_variable:
         jsr     parse_name              ; Parse the variable name
+        bcs     @done
         cpy     #<(name_pattern_op - name_pattern)  ; Make sure it was a name not an operator
         bcs     @done                   ; Was an operator
         cmp     #'(' | NT_STOP          ; Was the last character of the name a paren?
