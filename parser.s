@@ -161,8 +161,15 @@ parse_directive:
 parse_variable:
         jsr     parse_name              ; Parse the variable name
         cpy     #<(name_pattern_op - name_pattern)  ; Make sure it was a name not an operator
-        bcs     @error                  ; Was an operator
-
+        bcs     @done                   ; Was an operator
+        cmp     #'(' | NT_STOP          ; Was the last character of the name a paren?
+        clc                             ; If not we're going to return with carry clear
+        bne     @done
+        jsr     parse_argument_list     ; Parse the array arguments
+        bcs     @done                   ; Failed
+        jsr     parse_close             ; Parse the closing parenthesis
+        bcs     @done
+        jmp     encode_zero             ; Encode zero to terminate the array argument list
 
 @done:
         rts                             ; CPY sets carry correctly for return
@@ -208,6 +215,7 @@ parse_print_expression:
         jsr     parse_print_separators  ; Look for more sepearators
         bne     @next_expression        ; If there seperators then OK to parse another expression
 @done:
+        debug $10
         jsr     encode_zero             ; Terminate list with 0
         clc                             ; Nothing more to do; signal success
         rts
@@ -244,6 +252,7 @@ parse_expression:
         jmp     parse_expression        ; Otherwise parse the following expression
 
 @no_operator:
+        debug $20
         jsr     encode_zero             ; Terminate expression with 0
         clc                             ; Signal success
 @error:
@@ -260,7 +269,7 @@ parse_primary_expression:
         bcc     @done
         jsr     parse_unary_operator
         bcc     @done
-        jsr     parse_name              ; Try to parse a variable name
+        jsr     parse_variable          ; Try to parse a variable name
 @done:
         rts
 
@@ -269,21 +278,25 @@ parse_primary_expression:
 parse_parentheses:
         jsr     skip_whitespace         ; Skip whitespace and return the next character
         cmp     #'('                    ; Is is a left paren?
-        bne     @error                  ; This is not an expression in parentheses
+        sec                             ; Prepare to return error in case it's not
+        bne     @done                   ; This is not an expression in parentheses
         jsr     encode_byte
         inc     buffer_pos              ; Skip over the left paren
         jsr     parse_expression        ; Parse the expression in the parentheses
-        jsr     skip_whitespace         ; Find the next character, ...
-        cmp     #')'                    ; which had better be a right parenthesis
-        bne     @error                  ; But it wasn't
-        inc     buffer_pos              ; Skip over the close paren
-        clc                             ; Clear carry to indicate success
-        rts
-    
-@error:
-        sec                             ; Set carry to indicate error and return
+        bcc     parse_close
+@done:
         rts
 
+parse_close:
+        jsr     skip_whitespace         ; Find the next character, ...
+        cmp     #')'                    ; which had better be a right parenthesis
+        sec                             ; Set carry so if we take the next branch we return error
+        bne     @done                   ; But it wasn't
+        inc     buffer_pos              ; Skip over the close paren
+        clc                             ; Clear carry to indicate success
+@done:
+        rts
+ 
 ; Parses the unary operators '-' (minus) and NOT.
 
 parse_unary_operator:

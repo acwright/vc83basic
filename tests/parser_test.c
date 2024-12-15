@@ -145,8 +145,8 @@ void test_parse_expression(void) {
     const char line_data_10[] = { '"', 'B', 'U', 'G', ' ', 'O', 'R', ' ', '"', '"', 
         'F', 'E', 'A', 'T', 'U', 'R', 'E', '?', '"', '"', '"', 0 };
     const char line_data_11[] = { 'A', '$' | NT_STOP, TOKEN_OP | OP_CONCAT, '"', 'A', 'B', 'C', '"', 0 };
-    const char line_data_12[] = { 'X', '(' | NT_STOP, '2', 0, '5', 0, 0 };
-    const char line_data_13[] = { 'A', '$', '(' | NT_STOP, '1', 0, 0 };
+    const char line_data_12[] = { 'X', '(' | NT_STOP, '2', 0, 0, '5', 0, 0, 0, 0 };
+    const char line_data_13[] = { 'A', '$', '(' | NT_STOP, '1', 0, 0, 0, 0 };
 
     PRINT_TEST_NAME();
 
@@ -163,7 +163,7 @@ void test_parse_expression(void) {
     call_parse_expression("\"HELLO\"", line_data_9, sizeof line_data_9, __LINE__);
     call_parse_expression("\"BUG OR \"\"FEATURE?\"\"\"", line_data_10, sizeof line_data_10, __LINE__);
     call_parse_expression("A$ & \"ABC\"", line_data_11, sizeof line_data_11, __LINE__);
-    call_parse_expression("X(2, 5)", line_data_12, sizeof line_data_12, __LINE__);
+    call_parse_expression("X(2,5)", line_data_12, sizeof line_data_12, __LINE__);
     call_parse_expression("A$(1)", line_data_13, sizeof line_data_13, __LINE__);
 }
 
