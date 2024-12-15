@@ -37,7 +37,6 @@ encode_byte:
 
 encode:
         ldx     line_pos                ; line_pos is line position but it is also the current line length
-        debug $00
         cpx     #MAX_LINE_LENGTH-1      ; Subtract 1 for this byte
         bcs     @error                  ; If carry set (no borrow) then line length >= MAX_LINE_LENGTH-1
         sta     line_buffer,x

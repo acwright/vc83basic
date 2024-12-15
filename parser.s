@@ -216,7 +216,6 @@ parse_print_expression:
         jsr     parse_print_separators  ; Look for more sepearators
         bne     @next_expression        ; If there seperators then OK to parse another expression
 @done:
-        debug $10
         jsr     encode_zero             ; Terminate list with 0
         clc                             ; Nothing more to do; signal success
         rts
@@ -253,7 +252,6 @@ parse_expression:
         jmp     parse_expression        ; Otherwise parse the following expression
 
 @no_operator:
-        debug $20
         jsr     encode_zero             ; Terminate expression with 0
         clc                             ; Signal success
 @error:
