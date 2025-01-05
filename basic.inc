@@ -95,7 +95,7 @@ FP1s = FP1+UnpackedFloat::s
 
 ; expression.s
 .global evaluate_expression
-.global evaluate_variable
+.global evaluate_variable, evaluate_decoded_variable
 .global call_binary_operator
 .global push_value_0, push_value_1
 .global push_fp0, pop_fp0
