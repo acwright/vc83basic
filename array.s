@@ -34,7 +34,7 @@ exec_dim:
         bcs     @done                   ; Value was too large
         sec                             ; Set carry in case next check fails
         bmi     @done                   ; Value was negative
-        
+        jsr     add_variable            ; Add the space for the variable
         
 
         
