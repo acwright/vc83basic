@@ -68,6 +68,7 @@ S1 = FPX+2
 
 ; array.s
 .global exec_dim
+.global imul_16
 
 ; control.s
 .global exec_goto

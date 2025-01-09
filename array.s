@@ -47,3 +47,38 @@ exec_dim:
 
 @done:
         rts
+
+
+; Multiply the 16-bit operand in BC with the 16-bit operand in AX. Returns the result in AX.
+; Returns carry clear on success or carry set if the result overflowed.
+
+imul_16:
+        stax    S1                      ; Hold operand in S1
+        ldx     #16                     ; Number of shift operations
+        mva     #0, S0                  ; Accumulate product in S0
+        sta     S0+1
+@next:
+        asl     S0
+        rol     S0+1
+        bcs     @error                  ; Product overflowed
+        asl     S1
+        rol     S1+1
+        bcc     @skip_add
+        clc
+        lda     S0
+        adc     B
+        sta     S0
+        lda     S0+1
+        adc     C
+        sta     S0+1
+@skip_add:
+        dex
+        bne     @next
+        ldax    S0
+@error:
+        rts    
+
+
+        
+
+

@@ -74,6 +74,9 @@ extern const char statement_name_table[];
 
 // Prototypes for C wrapper functions
 
+// array.s
+int imul_16(int value1, int value2);
+
 // decode.s
 void decode_expression(/* AX */ void** vector_table_ptr);
 void decode_number(void);
