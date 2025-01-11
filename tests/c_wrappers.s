@@ -54,7 +54,7 @@ set_err:
 
 _imul_16:
 .export _imul_16
-        stax    BC                      ; Second argument
+        stax    array_element_size      ; Second argument
         jsr     popax                   ; First argument
         jsr     imul_16
         jmp     set_err

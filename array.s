@@ -17,39 +17,37 @@ exec_dim:
         tax                             ; Transfer into X
         lda     type_size_table,x       ; In order to look up the size for this type
         ldx     #0                      ; AX is the 16-bit size
-        jsr     int_to_fp               ; Load as float into FP0
-        jsr     push_fp0                ; Push onto the stack
-        bcs     @done                   ; Out of space
 @next:
+        stax    array_element_size      ; Update current size
+        ldy     line_pos                ; Peek at next byte
+        lda     (line_ptr),y
+        beq     @no_more_dimensions
         jsr     evaluate_expression     ; Evaluate the next expression; the value is now on the stack
         bcs     @done
-        jsr     push_value_1            ; We have to add one to the value
-        bcs     @done
-        jsr     op_add
-        jsr     op_mul                  ; Multiply the two stack values together
-        ldy     line_pos
-        lda     (line_ptr),y            ; Peek at next character
-        bne     @next                   ; Keep decoding more dimensions
-        jsr     truncate_fp_to_int
+        jsr     pop_fp0                 ; Load into FP0
+        jsr     truncate_fp_to_int      ; Convert to 16-bit integer
         bcs     @done                   ; Value was too large
-        sec                             ; Set carry in case next check fails
-        bmi     @done                   ; Value was negative
-        jsr     add_variable            ; Add the space for the variable
-        
+        clc
+        adc     #1                      ; Add one because DIM(n) creates n+1 elements from 0 to n
+        bcc     @skip_inx
+        inx
+@skip_inx:
+        jsr     imul_16                 ; Multiply the current element size by the new value
+        bcs     @done
+        sec                             ; In case next check fails
+        bmi     @done                   ; Size exceeded 32K
+        debug $00
+        bpl     @next
 
-        
-        
-        
-        
-
-
-
+@no_more_dimensions:
+        debug $10
+        ldax    array_element_size      ; Use this as the size of the variable
+        jsr     add_variable
 
 @done:
         rts
 
-
-; Multiply the 16-bit operand in BC with the 16-bit operand in AX. Returns the result in AX.
+; Multiply the 16-bit operand in array_element_size with the 16-bit operand in AX. Returns the result in AX.
 ; Returns carry clear on success or carry set if the result overflowed.
 
 imul_16:
@@ -66,19 +64,14 @@ imul_16:
         bcc     @skip_add
         clc
         lda     S0
-        adc     B
+        adc     array_element_size
         sta     S0
         lda     S0+1
-        adc     C
+        adc     array_element_size+1
         sta     S0+1
 @skip_add:
         dex
         bne     @next
         ldax    S0
 @error:
-        rts    
-
-
-        
-
-
+        rts
