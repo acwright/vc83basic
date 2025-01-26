@@ -36,11 +36,9 @@ exec_dim:
         bcs     @done
         sec                             ; In case next check fails
         bmi     @done                   ; Size exceeded 32K
-        debug $00
         bpl     @next
 
 @no_more_dimensions:
-        debug $10
         ldax    array_element_size      ; Use this as the size of the variable
         jsr     add_variable
 

@@ -144,7 +144,7 @@ comment Is reset to 0 by printing the banner message and/or READY.
 byte(print_column)
 
 comment The size of the array element. Used to calculate array offsets.
-word(array_element_size)
+word(array_element_size, int)
 
 comment The offset of an element in the array.
-word(array_element_offset)
+word(array_element_offset, int)

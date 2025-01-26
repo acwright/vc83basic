@@ -71,7 +71,6 @@ decode_number:
         ldax    line_ptr
         ldy     line_pos
         jsr     string_to_fp            ; May fail with carry set
-        iny                             ; Skip over the 0 that terminated the number
         sty     line_pos                ; Update line_pos
         rts
 
@@ -120,14 +119,14 @@ decode_name:
         ldx     #TYPE_NUMBER            ; Variable is a number unless we learn otherwise
         dey                             ; Back up one so we can check if the last character is '('
         lda     (decode_name_ptr),y
-        cmp     #'(' | NT_STOP          ; Last character will always have high bit set
+        cmp     #'(' | EOT              ; Last character will always have high bit set
         bne     @not_array
         ldx     #TYPE_ARRAY
         dey                             ; Back up again in order to check for '$'
         lda     (decode_name_ptr),y
-        eor     #NT_STOP                ; Pretend that this was the last character
+        eor     #EOT                    ; Pretend that this was the last character
 @not_array:
-        cmp     #'$' | NT_STOP          ; Check if it's a string
+        cmp     #'$' | EOT              ; Check if it's a string
         bne     @not_string
         inx                             ; It was a string; all we have to is increment
 @not_string:

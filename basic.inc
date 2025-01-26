@@ -92,8 +92,6 @@ S1 = FPX+2
 .global decode_byte
 
 ; encode.s
-.global encode_operator
-.global encode_unary_operator
 .global encode_zero
 .global encode_byte
 
@@ -141,7 +139,6 @@ S1 = FPX+2
 .global exec_list
 .global list_line
 .global list_statement
-.global list_name
 .global list_directive
 
 ; main.s
