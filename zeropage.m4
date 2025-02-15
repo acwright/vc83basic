@@ -112,7 +112,7 @@ byte(decode_name_length)
 comment The type of the name referred to by decode_name_ptr
 byte(decode_name_type)
 
-comment Whether the program is not running, running, stopped, or awaiting reset.
+comment Whether the program is not running, running, stopped, or awaiting reset
 byte(program_state)
 
 comment The vector table pointer that was passed into decode_expression
@@ -146,5 +146,5 @@ byte(print_column)
 comment The size of the array element. Used to calculate array offsets.
 word(array_element_size, int)
 
-comment The offset of an element in the array.
+comment The offset of an element in the array
 word(array_element_offset, int)
