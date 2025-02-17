@@ -116,12 +116,20 @@ decode_name:
         dey                             ; Back up one so we can check if the last character is '('
         lda     (decode_name_ptr),y
         cmp     #'(' | EOT              ; Last character will always have high bit set
-        bne     @not_array
+        beq     @array
+        txa                             ; To be stored in decode_name_arity (X = 0 here)
+        beq     @check_string           ; Unconditional
+@array:
         ldx     #TYPE_ARRAY
+        iny                             ; Array arity will be the byte following the end of the name
+        lda     (decode_name_ptr),y     ; Load arity
         dey                             ; Back up again in order to check for '$'
+        dey
+        inc     line_pos                ; Have to move line_pos past the arity byte too
+@check_string:
+        sta     decode_name_arity       ; Save the arity
         lda     (decode_name_ptr),y
-        eor     #EOT                    ; Pretend that this was the last character
-@not_array:
+        ora     #EOT                    ; Pretend that this was the last character, even if it wasn't
         cmp     #'$' | EOT              ; Check if it's a string
         bne     @not_string
         inx                             ; It was a string; all we have to is increment
