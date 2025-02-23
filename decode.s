@@ -89,7 +89,6 @@ decode_string:
 
 .assert TYPE_NUMBER = $00, error
 .assert TYPE_STRING = $01, error
-.assert TYPE_ARRAY = $80, error
 
 decode_name:
         lda     line_pos                ; Add line_pos to line_ptr to get decode_name_ptr
@@ -129,9 +128,6 @@ decode_name:
         sta     decode_name_arity
         inc     line_pos                ; Move line_pos past '(' and arity
         inc     line_pos
-        txa
-        ora     #TYPE_ARRAY             ; OR the array bit into the type
-        tax
 @not_array:
         stx     decode_name_type        ; Remember the type
         rts

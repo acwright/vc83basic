@@ -3,8 +3,6 @@
 
 ; DIM statement:
 
-.assert TYPE_ARRAY = $80, error
-
 exec_dim:
         jsr     decode_name             ; Get the name and type
         clc
