@@ -51,8 +51,7 @@ exec_on:
         txa                             ; Check the high byte
         bne     @error                  ; If high byte is set then value is out of range (either <0 or >255)
 @loop:
-        ldy     line_pos
-        lda     (line_ptr),y            ; Peek at next character
+        jsr     peek_decode_byte
         beq     @not_found              ; If it's 0, nothing matched; continue
         jsr     get_line_number         ; Get the next line number into AX
         dec     on_value                ; Decrement the "ON" value

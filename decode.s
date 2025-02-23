@@ -25,8 +25,7 @@ decode_expression:
         jsr     invoke_indexed_vector   ; Invoke the vector for the type of token we found
         bcs     @error                  ; The handler failed
 @start:
-        ldy     line_pos                ; Peek at next byte in token stream
-        lda     (line_ptr),y
+        jsr     peek_decode_byte
         beq     @end                    ; If we're at the end of the expression then stop
         and     #$7F                    ; Clear high bit if set
         sec                             ; Set carry for subtracts to follow
@@ -151,4 +150,14 @@ decode_byte_with_mask:
         ldy     line_pos                ; Read line_pos into Y and increment
         inc     line_pos  
         and     (line_ptr),y            ; AND byte with mask and return
+        rts
+
+; Checks the next byte. JSR to here saves 1 byte for each use.
+; Returns the byte in A and the flags set from reading that byte. Leaves Y set to the value in line_pos.
+; The caller should increment line_pos if it decided to use the returned value.
+; X SAFE, BC SAFE, DE SAFE
+
+peek_decode_byte:
+        ldy     line_pos                ; Read line_pos into Y
+        lda     (line_ptr),y            ; Peek at next character
         rts

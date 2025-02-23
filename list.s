@@ -210,8 +210,7 @@ list_argument_list:
 list_print_expression:
         jsr     add_whitespace
 @next:
-        ldy     line_pos                ; Read line_pos into Y
-        lda     (line_ptr),y            ; Peek at next character
+        jsr     peek_decode_byte
         beq     @done                   ; Found 0
         cmp     #';'
         beq     @output
@@ -266,8 +265,7 @@ loop_list_repeated_literal:
         jsr     append_buffer
 list_repeated_literal:
         jsr     list_literal            ; List one number
-        ldy     line_pos                ; Peek next byte
-        lda     (line_ptr),y
+        jsr     peek_decode_byte
         bne     loop_list_repeated_literal  ; Not 0 so keep going
         inc     line_pos                ; Skip over 0
         clc                             ; Signal success
@@ -275,8 +273,7 @@ list_repeated_literal:
 
 list_variable:
         jsr     list_literal            ; Will return with the last character written in A
-        ldy     line_pos                ; Peek next byte
-        lda     (line_ptr),y
+        jsr     peek_decode_byte
         cmp     #'('                    ; Is this an array?
         bne     @done                   ; If not then we're done
         inc     line_pos                ; Move past it
@@ -294,8 +291,7 @@ loop_list_repeated_variable:
         jsr     append_buffer
 list_repeated_variable:
         jsr     list_variable           ; List one number
-        ldy     line_pos                ; Peek next byte
-        lda     (line_ptr),y
+        jsr     peek_decode_byte
         bne     loop_list_repeated_variable ; Not 0 so keep going
         inc     line_pos                ; Skip over 0
         clc                             ; Signal success

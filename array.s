@@ -17,8 +17,7 @@ exec_dim:
         ldx     #0                      ; AX is the 16-bit size
 @next:
         stax    array_element_size      ; Update current size
-        ldy     line_pos                ; Peek at next byte
-        lda     (line_ptr),y
+        jsr     peek_decode_byte
         beq     @no_more_dimensions
         jsr     evaluate_expression     ; Evaluate the next expression; the value is now on the stack
         bcs     @done

@@ -25,8 +25,7 @@ exec_input:
 
 @assign:
         jsr     assign_variable         ; Store the value
-        ldy     line_pos                ; Peek at the next byte
-        lda     (line_ptr),y
+        jsr     peek_decode_byte
         clc                             ; Clear carry in case we're done            
         beq     @done                   ; It was 0, nothing more to read
         jsr     parse_argument_separator    ; We read something from ths line so need a ',' to continue
