@@ -175,7 +175,7 @@ parse_variable:
         tay                             ; Park it in Y
         pla                             ; Get the original line_pos back
         tax                             ; Into X
-        tya                             ; Argumetn count into A
+        tya                             ; Argument count into A
         sta     line_buffer,x           ; Update the count in line_buffer
         bcs     @done                   ; This is where we finally check if parse_argument_list failed
         jsr     parse_close             ; Parse the closing parenthesis and return result
