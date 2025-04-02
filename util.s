@@ -103,15 +103,24 @@ reverse_copy:
 ; Clears 1-256 bytes of memory to zero.
 ; AX = address of memory to clear
 ; Y = number of bytes (if Y=0, will clear 256 bytes)
+; The set_memory entry point just writes whatever is in A to 1-256 bytes starting at dst_ptr.
 
 clear_memory:
         stax    dst_ptr                 ; Store the address
         lda     #0 
-@next:
+set_memory:
         dey
         sta     (dst_ptr),y             ; Does not affect Z
-        bne     @next
+        bne     set_memory
         rts
+
+; Clears memory for an array.
+; dst_ptr = pointer to the memory to clear
+; AX = the amount of memory to clear
+
+array_clear_memory:
+        
+
 
 ; Invokes a vector selected from an table of vectors.
 ; JSR to here to have the routine at the vector return to the caller of this function, or JMP to have it

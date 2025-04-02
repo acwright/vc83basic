@@ -66,10 +66,6 @@ S1 = FPX+2
 
 ; Functions
 
-; array.s
-.global exec_dim
-.global imul_16
-
 ; control.s
 .global exec_goto
 .global exec_on_goto
@@ -80,6 +76,9 @@ S1 = FPX+2
 .global exec_next
 .global exec_pop
 .global exec_if
+
+; dim.s
+.global exec_dim
 
 ; decode.s
 .global decode_expression
@@ -97,6 +96,7 @@ S1 = FPX+2
 
 ; expression.s
 .global evaluate_expression
+.global evaluate_argument_list
 .global evaluate_variable, evaluate_decoded_variable
 .global call_binary_operator
 .global push_value_0, push_value_1
@@ -153,11 +153,15 @@ S1 = FPX+2
 .global rebase_name_ptr
 .global find_or_add_variable
 .global add_variable
+.global dimension_array
+.global find_array_element
+.global imul_16
 
 ; parser.s
 .global parse_line
 .global parse_statement
 .global parse_directive
+.global parse_variable
 .global parse_expression
 .global parse_name
 .global parse_number
@@ -204,7 +208,7 @@ S1 = FPX+2
 ; util.s
 .global copy, copy_a, copy_y_from
 .global reverse_copy
-.global clear_memory
+.global clear_memory, set_memory
 .global invoke_indexed_vector
 
 ; target/*

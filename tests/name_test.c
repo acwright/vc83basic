@@ -165,6 +165,107 @@ void test_add_variable(void) {
     ASSERT_PTR_EQ(array_name_table_ptr, variable_name_table_ptr + 7 + 8 + 7 + 1);
 }
 
+int call_test_imul_16(int value1, int value2) {
+    array_element_size = value1;
+    return imul_16(value2);
+}
+
+void test_imul_16(void) {
+    int result;
+    
+    PRINT_TEST_NAME();
+
+    result = call_test_imul_16(0, 0);
+    ASSERT_EQ(err, 0);
+    ASSERT_EQ(result, 0);
+    result = call_test_imul_16(1, 0);
+    ASSERT_EQ(err, 0);
+    ASSERT_EQ(result, 0);
+    result = call_test_imul_16(1, 1);
+    ASSERT_EQ(err, 0);
+    ASSERT_EQ(result, 1);
+    result = call_test_imul_16(1, 2);
+    ASSERT_EQ(err, 0);
+    ASSERT_EQ(result, 2);
+    result = call_test_imul_16(2, 1);
+    ASSERT_EQ(err, 0);
+    ASSERT_EQ(result, 2);
+    result = call_test_imul_16(2, 2);
+    ASSERT_EQ(err, 0);
+    ASSERT_EQ(result, 4);
+    result = call_test_imul_16(3, 45);
+    ASSERT_EQ(err, 0);
+    ASSERT_EQ(result, 135);
+    result = call_test_imul_16(100, 90);
+    ASSERT_EQ(err, 0);
+    ASSERT_EQ(result, 9000);
+    result = call_test_imul_16(1, 32767);
+    ASSERT_EQ(err, 0);
+    ASSERT_EQ(result, 32767);
+    result = call_test_imul_16(2, 32767);
+    ASSERT_EQ(err, 0);
+    ASSERT_EQ(result, -2); // Rolls over
+
+    result = call_test_imul_16(1000, 1000);
+    ASSERT_NE(err, 0);
+    result = call_test_imul_16(3, 32767);
+    ASSERT_NE(err, 0);
+}
+
+void test_dimension_array() {
+    const char line_data_1[] = { 'X' | EOT, '(', 1, '3' | EOT, 0 };
+    char index;
+ 
+    PRINT_TEST_NAME();
+
+    // Call initialize_program to set up variable_name_table_ptr.
+    initialize_program();
+    ASSERT_EQ(array_name_table_ptr[0], 0);
+    ASSERT_PTR_EQ(free_ptr, array_name_table_ptr + 1);
+
+    // Single-dimension array
+
+    // Look up X as an array
+    set_line(0, line_data_1, sizeof line_data_1);
+    decode_name();
+    ASSERT_EQ(decode_name_arity, 1);
+    index = find_name(array_name_table_ptr);
+    ASSERT_NE(err, 0);
+    ASSERT_EQ(index, 0);
+
+    // Parse dimension values
+    evaluate_argument_list(decode_name_arity);
+
+    // Make sure argument is on the stack
+    ASSERT_EQ(stack_pos, PRIMARY_STACK_SIZE - 6);
+
+    // Add as new array
+    dimension_array();
+    ASSERT_EQ(err, 0);
+
+    HEXDUMP(array_name_table_ptr, 64);
+
+    // We now expect to find in the array name table:
+    // Name table entry length (2 bytes, high-low, MSB set): $80, $1A
+    // Name: 'X' | EOT ($D8)
+    // Arity: $01
+    // Dimension values (2 bytes, low-high): $03, $00
+    // Data: 4 floats (indexes 0-3) * 5 bytes = 20 bytes
+    // Total 26 bytes
+
+    ASSERT_PTR_EQ(free_ptr, array_name_table_ptr + 26 + 1);
+}
+
+void test_find_array_element() {
+
+    PRINT_TEST_NAME();
+
+    // Call initialize_program to set up variable_name_table_ptr.
+    initialize_program();
+
+}
+
+
 int main(void) {
     initialize_target();
     test_initialize_name_ptr();
@@ -172,5 +273,8 @@ int main(void) {
     test_find_name();
     test_find_name_operators();
     test_add_variable();
+    test_imul_16();
+    test_dimension_array();
+    test_find_array_element();
     return 0;
 }

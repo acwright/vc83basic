@@ -74,9 +74,6 @@ extern const char statement_name_table[];
 
 // Prototypes for C wrapper functions
 
-// array.s
-int imul_16(int value1, int value2);
-
 // decode.s
 void decode_expression(/* AX */ void** vector_table_ptr);
 void decode_number(void);
@@ -91,6 +88,7 @@ void encode_byte(/* A */ char value);
 
 // expression.s
 void evaluate_expression(void);
+void evaluate_argument_list(char n);
 void push_fp0(void);
 void pop_fp0(void);
 void push_string(/* AX */ const String* value);
@@ -133,11 +131,15 @@ char find_name(/* AX */ const char* name_ptr);
 void initialize_name_ptr(void* name_ptr);
 void advance_name_ptr(void);
 void add_variable(void);
+void dimension_array(void);
+void find_array_element(void);
+int imul_16(/* AX */ int value);
 
 // parser.s
 void parse_line(void);
 void parse_statement(void);
 void parse_directive(/* A */ char directive);
+void parse_variable(void);
 void parse_expression(void);
 void parse_name(void);
 void parse_number(void);

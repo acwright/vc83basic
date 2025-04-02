@@ -50,15 +50,6 @@ set_err:
 
 ; Function wrappers
 
-; array.s
-
-_imul_16:
-.export _imul_16
-        stax    array_element_size      ; Second argument
-        jsr     popax                   ; First argument
-        jsr     imul_16
-        jmp     set_err
-
 ; decode.s
 
 _decode_expression:
@@ -103,6 +94,11 @@ _encode_byte:
 _evaluate_expression:
 .export _evaluate_expression
         jsr     evaluate_expression
+        jmp     set_err
+
+_evaluate_argument_list:
+.export _evaluate_argument_list
+        jsr     evaluate_argument_list
         jmp     set_err
 
 _push_fp0:
@@ -298,6 +294,21 @@ _add_variable:
         jsr     add_variable
         jmp     set_err
 
+_dimension_array:
+.export _dimension_array
+        jsr     dimension_array
+        jmp     set_err
+
+_find_array_element:
+.export _find_array_element
+        jsr     find_array_element
+        jmp     set_err
+
+_imul_16:
+.export _imul_16
+        jsr     imul_16
+        jmp     set_err
+
 ; parser.s
 
 _parse_line:
@@ -313,6 +324,11 @@ _parse_statement:
 _parse_directive:
 .export _parse_directive
         jsr     parse_directive
+        jmp     set_err
+
+_parse_variable:
+.export _parse_variable
+        jsr     parse_variable
         jmp     set_err
 
 _parse_expression:

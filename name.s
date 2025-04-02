@@ -132,6 +132,188 @@ add_variable:
         ldy     #0                      ; Start writing length to name_ptr starting at offset 0
         sta     (name_ptr),y
         iny
+        jsr     copy_name
+        ldx     decode_name_type        ; Set up to clear the data bytes
+        ldy     type_size_table,x
+        iny                             ; Clear one more byte to recreate the 0 that terminates the name table
+        ldax    name_ptr
+        jsr     clear_memory            ; Clear the variable data
+@done:
+        clc                             ; Signal success
+@error:
+        rts
+
+ARRAY_TRIAL_GROW_SIZE = $80
+
+; Adds a new array variable.
+; The requirements of add_variable apply: name_ptr must be at the end of the name table etc.
+; The number of dimensions is in decode_name_arity. The dimensions are on the value stack.
+; Returns carry clear on success or carry set on error.
+
+dimension_array:
+
+; First, do a trial allocation of ARRAY_TRIAL_GROW_SIZE bytes to make sure we have enough space to store the
+; dimensions. If it works then shrink back.
+
+        lda     #ARRAY_TRIAL_GROW_SIZE
+        ldy     #free_ptr
+        jsr     grow_a
+        bcc     @trial_grow_ok
+        rts
+
+@trial_grow_ok:
+        lda     #ARRAY_TRIAL_GROW_SIZE  ; Cheaper in terms of space to shrink, rather than save/restore free_ptr
+        ldy     #free_ptr
+        jsr     shrink_a
+
+; Set up the first few fields.
+
+        mvax    name_ptr, dst_ptr       ; Remember name_ptr in dst_ptr so we can update the length later
+        ldy     #2                      ; We don't know the length yet so just skip over it
+        jsr     copy_name
+        ldy     #0                      ; name_ptr now points past end of name; start copying at offset 0
+        lda     decode_name_arity       ; Copy arity into name table
+        sta     (name_ptr),y            ; This will be the byte after the name
+        sta     D                       ; D = arity countdown
+        iny                             ; Will start writing the dimension values from here
+
+; Calculate space required for this array:
+; 2 bytes for name table entry length
+; decode_name_length bytes for name
+; 1 byte for arity
+; 2 * decode_name_arity bytes for dimension values
+; element size * D1 * D2 * ... * Dn bytes for data
+
+        ldx     decode_name_type        ; Figure out the element size from type: start of multiplication process
+        lda     type_size_table,x
+        ldx     #0                      ; AX is the 16-bit size
+        stax    array_element_size
+@next:
+        sty     E                       ; Preserve current write position relative to name_ptr in C
+        jsr     pop_fp0                 ; Get the next value off the stack (preserves DE)
+        jsr     truncate_fp_to_int      ; Make it an integer; the value is in AX (preserves DE)
+        bcs     @error                  ; Value was too large
+        clc
+        adc     #1                      ; Add one because DIM(n) creates n+1 elements from 0 to n
+        bcc     @skip_inx
+        inx
+@skip_inx:
+        jsr     imul_16                 ; Multiply the current element size by the new value
+        bcs     @error                  ; Size >= 64K
+        sec                             ; In case next check fails
+        bmi     @error                  ; Size >= 32K
+        stax    array_element_size
+        ldy     E                       ; Write position
+        sta     (name_ptr),y            ; The value we're writing is the size of the array so far
+        txa
+        iny
+        sta     (name_ptr),y
+        iny
+        dec     D                       ; One down
+        bne     @next                   ; More to go
+
+; At this point, Y is coincidentally equal to 1 + arity * 2.
+; name_ptr still points to the first byte after the name, which is where we'll leave it.
+; name_ptr + Y is the start of the array element data.
+
+        sty     E                       ; Store offset of array data in E
+        tya
+        clc
+        adc     #2                      ; Add 2 for length bytes at start of name table entry; assume no overflow
+        adc     decode_name_length      ; Name length; assume no overflow
+        adc     array_element_size      ; Add in the space required for the data elements; assume no overflow
+        sta     size                    ; Save in size
+        lda     #0
+        tay                             ; Will need 0 in Y too
+        adc     array_element_size+1
+        sta     size+1
+        bmi     @error                  ; It can't be >= 64K but might be >= 32K
+        ora     #$80                    ; High bit was clear before; now it's set
+        sta     (dst_ptr),y             ; Store high byte of length with high bit set
+        iny
+        lda     size
+        sta     (dst_ptr),y             ; Low byte
+        ldax    size
+        ldy     #free_ptr
+        jsr     grow                    ; Grow to accommodate the entire array
+        bcc     @error                  ; Oops, too big
+        ldax    name_ptr                ; Calculate start of array data as name_ptr + B
+        clc
+        adc     E
+        bcc     @skip_inx_2
+        inx
+@skip_inx_2:
+        stax    dst_ptr                 ; dst_ptr is start of array data; array_element_size is the size to clear
+        ldy     #0                      ; Initialize Y to 0
+        tya                             ; Set with 0
+@next_block:
+        dec     size+1                  ; Will only be minus if it was 0 to start; size can't be >=32K
+        beq     @no_more_blocks         ; No more blocks
+        jsr     set_memory
+        beq     @next_block             ; Unconditional; uaranteed Y=0 and Z flag set on return
+@no_more_blocks:
+        ldy     size                    ; Set the remaining bytes
+        beq     @no_remaining_bytes
+        jsr     set_memory
+@no_remaining_bytes:
+        clc                             ; Signal success
+@error:
+        rts                             ; Carry is clear here because ADC of array_element_size cannot overflow
+
+; Moves name_ptr, which is assumed to pointing to the byte after the end of an array name in the array table,
+; to an element offset based on the indexes that are on the expression stack.
+
+find_array_element:
+        ldy     #0                      ; Arity is at offset 0
+        lda     (name_ptr),y            ; Get arity
+        cmp     decode_name_arity       ; Check if the arity of this reference matches the array
+        sta     B                       ; Use B to count down arity
+        sec                             ; Set carry in case it doesn't
+        bne     @error                  ; Arity doesn't match so return error
+        sty     array_element_offset    ; Array element offset starts at 0
+        sty     array_element_offset+1
+        ldx     decode_name_type        ; Figure out the element size from type: start of multiplication process
+        lda     type_size_table,x       ; Initialize array_element_size to the size of one value of the array's type
+        stay    array_element_size
+        iny                             ; Start reading dimensions at offset 1
+@next:
+        jsr     pop_fp0                 ; Get the next value off the stack
+        jsr     truncate_fp_to_int      ; Make it an integer; the value is in AX (preserves BC)
+        bcs     @error                  ; Value was too large
+        jsr     imul_16                 ; Multiply it by the value in array_element_size
+        sta     C                       ; Park low byte in C
+        lda     (name_ptr),y            ; Copy low and high byte of limit into array_element_size
+        sta     array_element_size
+        iny
+        lda     (name_ptr),y
+        sta     array_element_size+1
+        iny
+        txa                             ; Compare the multiplication result (currently in CX) with the limit
+        cmp     array_element_size+1    ; Result high byte < limit high byte?
+        bcc     @ok                     ; <
+        bne     @error                  ; >, otherwise =
+        lda     C                       ; Same with low byte
+        cmp     array_element_size
+        bcs     @error                  ; >=
+@ok:
+        lda     C                       ; Result still in CX; make sure we have low byte of result in A
+        adc     array_element_offset    ; Add result to array_element_offset; carry will always be clear
+        sta     array_element_offset
+        txa
+        adc     array_element_offset+1
+        sta     array_element_offset+1
+        dec     B
+        bne     @next                   ; Carry should be clear here because array offset calculation must not overflow
+@error:
+        rts
+
+; Copies the decoded name into the name table, ending at a character with the EOT bit set.
+; decode_name_ptr = copy source
+; name_ptr = destination
+; Y = Offset to add to name_ptr prior to start of copy (avoids inevitably having to do this in calling function)
+; Returns with name_ptr pointing to the byte after the name.
+
+copy_name:
         jsr     rebase_name_ptr         ; Add Y to name_ptr
         ldy     #0                      ; Start copying name at offset 0
 @copy_next_character:
@@ -143,13 +325,34 @@ add_variable:
 
 @copy_complete:
         iny                             ; Last character
-        jsr     rebase_name_ptr         ; Make name_ptr point past end of data
-        ldx     decode_name_type        ; Set up to clear the data bytes
-        ldy     type_size_table,x
-        iny                             ; Clear one more byte to recreate the 0 that terminates the name table
-        ldax    name_ptr
-        jsr     clear_memory            ; Clear the variable data
-@done:
-        clc                             ; Signal success
+        jmp     rebase_name_ptr         ; Make name_ptr point past end of data
+
+; Multiply the 16-bit operand in array_element_size with the 16-bit operand in AX. Returns the result in AX.
+; Returns carry clear on success or carry set if the result overflowed.
+; Y SAFE, BC SAFE, DE SAFE (but uses S0 and S1)
+
+imul_16:
+        stax    S1                      ; Hold operand in S1
+        ldx     #16                     ; Number of shift operations
+        mva     #0, S0                  ; Accumulate product in S0
+        sta     S0+1
+@next:
+        asl     S0
+        rol     S0+1
+        bcs     @error                  ; Product overflowed
+        asl     S1
+        rol     S1+1
+        bcc     @skip_add
+        clc
+        lda     S0
+        adc     array_element_size
+        sta     S0
+        lda     S0+1
+        adc     array_element_size+1
+        sta     S0+1
+@skip_add:
+        dex
+        bne     @next
+        ldax    S0
 @error:
         rts

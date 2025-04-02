@@ -25,6 +25,32 @@ evaluate_expression:
 @error:
         rts
 
+; Evaluate a number of arguments.
+; A = the number of arguments expected (must be at least 1)
+; Returns the number of arguments that were not NO_VALUE in A.
+
+evaluate_argument_list:
+        pha                             ; Save the number of arguments expected on the stack
+@next:
+        jsr     peek_decode_byte        ; Empty value?
+        beq     @no_value               ; Yes
+        jsr     evaluate_expression     ; Read the next expression
+        tsx                             ; Get ready to access stack
+        dec     $101,x                  ; Decrement the number of arguments
+        bne     @next                   ; More to do
+@done:
+        clc
+        pla                             ; Return number of arguments read
+        rts
+
+@no_value:
+        tsx
+        lda     $101,x                  ; The number of arguments remaining to be read
+        clc
+        adc     line_pos                ; Add to line_pos to skip over the "no value" bytes
+        sta     line_pos
+        bne     @done                   ; Unconditional
+
 evaluate_variable:
         jsr     decode_name
 evaluate_decoded_variable:

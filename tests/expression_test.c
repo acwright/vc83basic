@@ -234,11 +234,40 @@ void test_string_comparison(void) {
     test_one_string_comparison(OP_GE, "", "", &value_1, __LINE__);
 }
 
+void test_evaluate_argument_list(void) {
+    const char line_data[] = { '1', '2', '8' | EOT, 0, '1' | EOT, TOKEN_OP | OP_ADD, '2' | EOT, 0 };
+    const Float value_128 = { 0x00000000, 134 };
+    const Float value_3 = { 0x40000000, 128 };
+
+    Float value = { 0x00000000, 0 };
+
+    PRINT_TEST_NAME();
+
+    initialize_program();
+    ASSERT_EQ(stack_pos, PRIMARY_STACK_SIZE);
+
+    set_line(0, line_data, sizeof line_data);
+    evaluate_argument_list(2);
+
+    ASSERT_EQ(stack_pos, PRIMARY_STACK_SIZE - 12 /* 5 bytes plus 1 byte for type for each value */);
+
+    pop_fp0();
+    store_fp0(&value);
+    ASSERT_FLOAT_EQ(value, value_3);
+
+    pop_fp0();
+    store_fp0(&value);
+    ASSERT_FLOAT_EQ(value, value_128);
+
+    ASSERT_EQ(stack_pos, PRIMARY_STACK_SIZE);
+}
+
 int main(void) {
     initialize_target();
     test_stack_alloc_free();
     test_evaluate_expression_op();
     test_evaluate_expression_op_precedence();
     test_string_comparison();
+    test_evaluate_argument_list();
     return 0;
 }

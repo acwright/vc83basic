@@ -41,3 +41,13 @@ PRINT A$,B$
 } {
 HELLO           HELLO, WORLD
 }
+
+# Arrays
+
+test {
+LET A(1)=1
+LET A(2)=2
+PRINT A(1),A(2)
+} {
+1               2
+}
