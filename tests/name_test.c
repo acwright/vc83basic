@@ -222,7 +222,7 @@ void test_imul_16(void) {
 
 void test_dimension_array() {
     const char line_data_1[] = { 'X' | EOT, '(', 1, '3' | EOT, 0 };
-    const char line_data_2[] = { 'Y' | EOT, '(', 2, '2' | EOT, 0, '5' | EOT, 0 };
+    const char line_data_2[] = { 'Y' | EOT, '(', 2, '2', '5' | EOT, 0, '5' | EOT, 0 };
     const char expect_array_data_1[] = {
         0x80, 0x1A,     // size (26 bytes)
         'X' | EOT,      // name
@@ -233,6 +233,14 @@ void test_dimension_array() {
         0, 0, 0, 0, 0,  // index 2
         0, 0, 0, 0, 0,  // index 3
         0               // next entry: end of table
+    };
+    const char expect_array_data_2[] = {
+        0x83, 0x14,     // size (788 bytes)
+        'Y' | EOT,      // name
+        0x02,           // arity
+        0x1E, 0x00,     // dimension 1
+        0x0C, 0x03,     // dimension 2
+        // ... 780 bytes of data ...
     };
     char index;
  
@@ -288,8 +296,28 @@ void test_dimension_array() {
     ASSERT_NE(err, 0);
     ASSERT_EQ(index, 1);
 
+    // Parse dimension values
+    evaluate_argument_list(decode_name_arity);
 
+    // Make sure argument is on the stack
+    ASSERT_EQ(stack_pos, PRIMARY_STACK_SIZE - 12);
 
+    // Add as new array
+    dimension_array();
+    ASSERT_EQ(err, 0);
+
+    HEXDUMP(array_name_table_ptr, 64);
+
+    // All the stuff that was there before should still be there, plus:
+    // Second name table entry length: $83 $14
+    // Name: 'Y' | EOT
+    // Arity: $02
+    // Dimension values (last dimension comes first): $1E, $00, $0C, $03
+    // Data: 156 floats * 5 bytes = 780 bytes
+    // Total: 788 bytes
+
+    ASSERT_PTR_EQ(free_ptr, array_name_table_ptr + 26 + 788 + 1);
+    ASSERT_MEMORY_EQ(array_name_table_ptr + 26, expect_array_data_2, sizeof expect_array_data_2);
 }
 
 void test_find_array_element() {
