@@ -320,12 +320,75 @@ void test_dimension_array() {
     ASSERT_MEMORY_EQ(array_name_table_ptr + 26, expect_array_data_2, sizeof expect_array_data_2);
 }
 
+void call_find_array_element(const char* line_data, size_t line_data_length, char expect_index,
+    const char* expect_name_ptr, int line) {
+    char index;
+
+    fprintf(stderr, "  %s:%d: find_array_element()\n", __FILE__, line);
+
+    set_line(0, line_data, line_data_length);
+    decode_name();
+    index = find_name(array_name_table_ptr);
+    ASSERT_EQ(err, 0);
+    ASSERT_EQ(index, expect_index);
+
+    evaluate_argument_list(decode_name_arity);
+    find_array_element();
+    ASSERT_EQ(err, 0);
+    ASSERT_PTR_EQ(name_ptr, expect_name_ptr);
+}
+
 void test_find_array_element() {
+    const char line_data_1[] = { 'X' | EOT, '(', 1, '3' | EOT, 0 };
+    const char line_data_2[] = { 'Y' | EOT, '(', 2, '2', '5' | EOT, 0, '5' | EOT, 0 };
+    const char line_data_x_0[] = { 'X' | EOT, '(', 1, '0' | EOT, 0 };
+    const char line_data_x_1[] = { 'X' | EOT, '(', 1, '1' | EOT, 0 };
+    const char line_data_x_3[] = { 'X' | EOT, '(', 1, '3' | EOT, 0 };
+    const char line_data_x_4[] = { 'X' | EOT, '(', 1, '3' | EOT, 0 };
+    const char line_data_y_0_0[] = { 'Y' | EOT, '(', 2, '0' | EOT, 0, '0' | EOT, 0 };
+    const char line_data_y_1_1[] = { 'Y' | EOT, '(', 2, '1' | EOT, 0, '1' | EOT, 0 };
+    char index;
 
     PRINT_TEST_NAME();
 
     // Call initialize_program to set up variable_name_table_ptr.
     initialize_program();
+
+    // Create a one-dimensional array and a two-dimensional array.
+    // The dimension_array API has already been tested.
+
+    // X
+    set_line(0, line_data_1, sizeof line_data_1);
+    decode_name();
+    index = find_name(array_name_table_ptr);
+    ASSERT_NE(err, 0);
+    ASSERT_EQ(index, 0);
+    evaluate_argument_list(decode_name_arity);
+    dimension_array();
+    ASSERT_EQ(err, 0);
+
+    // Offset 0 -> 6 to skip length (2), name (1), arity (1), dimension value (2)
+    // Offset 1 -> 6 + 5 (first value)
+    // etc.
+    call_find_array_element(line_data_x_0, sizeof line_data_x_0, 0, array_name_table_ptr + 6, __LINE__);
+    call_find_array_element(line_data_x_1, sizeof line_data_x_1, 0, array_name_table_ptr + 6 + 5, __LINE__);
+    call_find_array_element(line_data_x_3, sizeof line_data_x_3, 0, array_name_table_ptr + 6 + 15, __LINE__);
+
+    // Y
+    set_line(0, line_data_2, sizeof line_data_2);
+    decode_name();
+    index = find_name(array_name_table_ptr);
+    ASSERT_NE(err, 0);
+    ASSERT_EQ(index, 1);
+    evaluate_argument_list(decode_name_arity);
+    dimension_array();
+    ASSERT_EQ(err, 0);
+
+    // Offset 0, 0 -> 26 (offset of Y) + 8
+    // Offset 1, 1 -> 26 + 8 + 5 (first value on row 1) + 30 (all 6 values of row 0)
+    call_find_array_element(line_data_y_0_0, sizeof line_data_y_0_0, 1, array_name_table_ptr + 26 + 8, __LINE__);
+    call_find_array_element(line_data_y_1_1, sizeof line_data_y_1_1, 1, array_name_table_ptr + 26 + 8 + 5 + 30,
+        __LINE__);
 
 }
 

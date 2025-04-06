@@ -274,45 +274,56 @@ dimension_array:
 
 find_array_element:
         ldy     #0                      ; Arity is at offset 0
-        lda     (name_ptr),y            ; Get arity
-        cmp     decode_name_arity       ; Check if the arity of this reference matches the array
-        sta     B                       ; Use B to count down arity
-        sec                             ; Set carry in case it doesn't
-        bne     @error                  ; Arity doesn't match so return error
         sty     array_element_offset    ; Array element offset starts at 0
         sty     array_element_offset+1
+        sty     array_element_size+1    ; High byte of array element size starts at 0
+        lda     (name_ptr),y            ; Get arity
+        cmp     decode_name_arity       ; Check if the arity of this reference matches the array
+        sta     D                       ; Use D to count down arity
+        sec                             ; Set carry in case it doesn't
+        bne     @error                  ; Arity doesn't match so return error
+        iny
+        jsr     rebase_name_ptr         ; Advance name_ptr past arity
         ldx     decode_name_type        ; Figure out the element size from type: start of multiplication process
         lda     type_size_table,x       ; Initialize array_element_size to the size of one value of the array's type
-        stay    array_element_size
-        iny                             ; Start reading dimensions at offset 1
+        sta     array_element_size
 @next:
         jsr     pop_fp0                 ; Get the next value off the stack
         jsr     truncate_fp_to_int      ; Make it an integer; the value is in AX (preserves BC)
         bcs     @error                  ; Value was too large
         jsr     imul_16                 ; Multiply it by the value in array_element_size
-        sta     C                       ; Park low byte in C
+        sta     E                       ; Park low byte in E
+        ldy     #0                      ; Read next dimension value starting at name_ptr
         lda     (name_ptr),y            ; Copy low and high byte of limit into array_element_size
         sta     array_element_size
         iny
         lda     (name_ptr),y
         sta     array_element_size+1
         iny
-        txa                             ; Compare the multiplication result (currently in CX) with the limit
+        jsr     rebase_name_ptr         ; Move name_ptr to the next dimension value
+        txa                             ; Compare the multiplication result (currently in EX) with the limit
         cmp     array_element_size+1    ; Result high byte < limit high byte?
         bcc     @ok                     ; <
         bne     @error                  ; >, otherwise =
-        lda     C                       ; Same with low byte
+        lda     E                       ; Same with low byte
         cmp     array_element_size
         bcs     @error                  ; >=
 @ok:
-        lda     C                       ; Result still in CX; make sure we have low byte of result in A
+        lda     E                       ; Result still in EX; make sure we have low byte of result in A
         adc     array_element_offset    ; Add result to array_element_offset; carry will always be clear
         sta     array_element_offset
         txa
         adc     array_element_offset+1
         sta     array_element_offset+1
-        dec     B
+        dec     D
         bne     @next                   ; Carry should be clear here because array offset calculation must not overflow
+        clc
+        lda     name_ptr                ; Add array_element_offset to name_ptr
+        adc     array_element_offset
+        sta     name_ptr
+        lda     name_ptr+1
+        adc     array_element_offset+1
+        sta     name_ptr+1
 @error:
         rts
 
