@@ -111,10 +111,33 @@ advance_rebase_name_ptr_done:
 ; Returns carry clear if find_name or add_variable succeeded, or carry set on error.
 
 find_or_add_variable:
+        lda     decode_name_arity       ; Is it an array?
+        bne     @array                  ; Go handle array
         ldax    variable_name_table_ptr
         jsr     find_name               ; Look for a variable with this name
         bcs     add_variable            ; Most common case is that it's found, so branch only if it's not
-        rts                             ; Return success
+@error:
+        rts
+
+@array:
+        phzp    DECODE_NAME_STATE, DECODE_NAME_STATE_SIZE   ; Remember the decoded name
+        jsr     evaluate_argument_list  ; Evaluate the array arguments
+        plzp    DECODE_NAME_STATE, DECODE_NAME_STATE_SIZE   ; Recover the decoded name
+        ldax    array_name_table_ptr
+        jsr     find_name               ; Look for an array with this name
+        bcc     @found_array
+        mva     decode_name_arity, D    ; Do DIM var(10, 10, ..., 10); D counts down arity
+        lday    #fp_ten
+        jsr     load_fp0                ; Set FP0 to 10
+@push:
+        jsr     push_fp0
+        bcs     @error
+        dec     D
+        bne     @push                   ; Push one more
+        jsr     dimension_array         ; Returns with name_ptr set to array data
+        bcs     @error
+@found_array:
+        jmp     find_array_element      ; On return name_ptr points to the location of the element
 
 ; Fall through
 

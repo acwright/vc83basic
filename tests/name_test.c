@@ -389,7 +389,6 @@ void test_find_array_element() {
     call_find_array_element(line_data_y_0_0, sizeof line_data_y_0_0, 1, array_name_table_ptr + 26 + 8, __LINE__);
     call_find_array_element(line_data_y_1_1, sizeof line_data_y_1_1, 1, array_name_table_ptr + 26 + 8 + 5 + 30,
         __LINE__);
-
 }
 
 
