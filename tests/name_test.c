@@ -347,6 +347,7 @@ void test_find_array_element() {
     const char line_data_x_4[] = { 'X' | EOT, '(', 1, '3' | EOT, 0 };
     const char line_data_y_0_0[] = { 'Y' | EOT, '(', 2, '0' | EOT, 0, '0' | EOT, 0 };
     const char line_data_y_1_1[] = { 'Y' | EOT, '(', 2, '1' | EOT, 0, '1' | EOT, 0 };
+    const char line_data_y_26_1[] = { 'Y' | EOT, '(', 2, '2', '6' | EOT, 0, '1' | EOT, 0 };
     char index;
 
     PRINT_TEST_NAME();
@@ -389,6 +390,14 @@ void test_find_array_element() {
     call_find_array_element(line_data_y_0_0, sizeof line_data_y_0_0, 1, array_name_table_ptr + 26 + 8, __LINE__);
     call_find_array_element(line_data_y_1_1, sizeof line_data_y_1_1, 1, array_name_table_ptr + 26 + 8 + 5 + 30,
         __LINE__);
+
+    // Make sure bounds checks work.
+    set_line(0, line_data_y_26_1, sizeof line_data_y_26_1);
+    decode_name();
+    find_name(array_name_table_ptr);
+    evaluate_argument_list(decode_name_arity);
+    find_array_element();
+    ASSERT_NE(err, 0);
 }
 
 
