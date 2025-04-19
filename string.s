@@ -168,7 +168,7 @@ string_alloc:
 
 compact:
 
-; Phase 1: Set the relocation address high byte of all strings to 0.
+; Phase 1: Set the relocation address high byte of all strings to $FF.
 
         mvax    string_ptr, src_ptr     ; Use src_ptr to scan string space
         bne     @clear_next_2           ; Unconditional bypass set_src_ptr_next_string call
@@ -179,8 +179,8 @@ compact:
         bcs     @mark                   ; No more to clear
         jsr     set_src_ptr_relocation_address
         iny
-        lda     #0
-        sta     (src_ptr),y             ; Set to 0
+        lda     #$FF
+        sta     (src_ptr),y             ; Set to $FF
         jmp     @clear_next
 
 ; Phase 2: Find all string variables and mark each string in memory.
@@ -195,9 +195,9 @@ compact:
         beq     @mark_next              ; Not a string; move on to the next one
         jsr     set_src_ptr_relocation_address  ; Add length to src_ptr; Y points to relocation address
         iny
-        lda     #1
-        sta     (src_ptr),y             ; Store 1 into the relocation address field.
-        bne     @mark_next
+        lda     #0
+        sta     (src_ptr),y             ; Store 0 into the relocation address field.
+        beq     @mark_next              ; Unconditional
 
 ; Phase 3: Calculate the relocation address for each string.
 
@@ -215,7 +215,7 @@ compact:
         sta     (src_ptr),y
         iny
         lda     (src_ptr),y             ; Marked?
-        beq     @calculate_next         ; Nope, move on
+        bne     @calculate_next         ; Unmarked strings will have a non-zero address high byte
         lda     dst_ptr+1
         sta     (src_ptr),y
         txa                             ; Length is still in X from the call to set_src_ptr_relocation_address
@@ -290,7 +290,8 @@ compact:
         sta     dst_ptr    
         iny
         lda     (src_ptr),y
-        beq     @relocate_next          ; If not marked then skip
+        cmp     #$FF
+        beq     @relocate_next          ; String was never marked as in use; skip
         sta     dst_ptr+1
 
 ; src_ptr now points to the relocation address, so subtract the length (still in X) and 1 (length byte) to recover
