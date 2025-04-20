@@ -133,15 +133,7 @@ void test_compact(void) {
     string_alloc(120);
     ASSERT_EQ(err, 0);
     ASSERT_PTR_EQ(string_ptr, (char*)himem_ptr - 10 - STRING_EXTRA - 5 - STRING_EXTRA - 120 - STRING_EXTRA);
-
-    HEXDUMP(variable_name_table_ptr, 16);
-    HEXDUMP(string_ptr, (char*)himem_ptr - (char*)string_ptr);
-
     compact();
-
-    HEXDUMP(variable_name_table_ptr, 16);
-    HEXDUMP(string_ptr, (char*)himem_ptr - (char*)string_ptr);
-
     // Only the "HELLO" string should remain.
     ASSERT_PTR_EQ(string_ptr, (char*)himem_ptr - 5 - STRING_EXTRA);
     // Check A$
@@ -167,16 +159,7 @@ void test_compact(void) {
     ASSERT_EQ(err, 0);
     string_alloc(10);
     ASSERT_EQ(err, 0);
-
-    HEXDUMP(variable_name_table_ptr, 16);
-    HEXDUMP(string_ptr, (char*)himem_ptr - (char*)string_ptr);
-
     compact();
-
-    HEXDUMP(variable_name_table_ptr, 16);
-    HEXDUMP(string_ptr, (char*)himem_ptr - (char*)string_ptr);
-
-
     // string_ptr should point to B$.
     ASSERT_PTR_EQ(string_ptr, (char*)himem_ptr - 5 - STRING_EXTRA - 255 - STRING_EXTRA);
     // Check A$
