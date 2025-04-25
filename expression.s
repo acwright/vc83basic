@@ -16,6 +16,11 @@ evaluate_vectors:
         .word   evaluate_variable-1         ; XH_VAR
         .word   evaluate_paren-1            ; XH_PAREN
 
+evaluate_paren:
+        inc     line_pos                ; Consume the '('
+
+; Fall through
+
 ; Evaluate a full expression.
 ; Evaluating an expression often involves evaluating names, and decoding names affects decode_name_ptr and related
 ; values. Sometimes the caller is using them (for example, they might identify the variable that LET is setting), so
@@ -23,12 +28,15 @@ evaluate_vectors:
 
 evaluate_expression:
         phzp    DECODE_NAME_STATE, DECODE_NAME_STATE_SIZE   ; Remember the decoded name
+        lda     #PR_OPEN_PAREN          ; Push the open paren, which will never be removed by process_operators
+        jsr     push_operator
         ldax    #evaluate_vectors
         jsr     decode_expression
         bcs     @error                  ; Expression evaluation failed
         lda     #PR_CLOSE_PAREN         ; Process any operators not yet processed (except open paren)
         jsr     process_operators       ; May fail with carry set
 @error:
+        inc     op_stack_pos            ; Pop the open paren (even if evaluation failed)
         plzp    DECODE_NAME_STATE, DECODE_NAME_STATE_SIZE   ; Recover the decoded name
         rts
 
@@ -102,14 +110,6 @@ evaluate_unary_operator:
         jsr     decode_unary_operator   ; Get the unary operator
         ora     #PR_UNARY_OP            ; Unary ops have highest precedence and are right-assoc so don't do anything
         jmp     push_operator           ; Except push the operator onto the stack
-
-evaluate_paren:
-        inc     line_pos                ; Consume the '('
-        lda     #PR_OPEN_PAREN          ; Push the open paren, which will never be removed by process_operators
-        jsr     push_operator
-        jsr     evaluate_expression     ; Evaluate the subexpression; may fail
-        inc     op_stack_pos            ; Pop the open paren (even if evaluate_expression failed)
-        rts
 
 evaluate_string:
         jsr     decode_string           ; Returns pointer in AX
