@@ -186,18 +186,8 @@ compact:
 ; Phase 2: Find all string variables and mark each string in memory.
 
 @mark:
-        ldax    variable_name_table_ptr ; Prepare to scan variables
-        jsr     initialize_name_ptr
-@mark_next:
-        jsr     advance_name_ptr
-        bcs     @calculate
-        jsr     set_name_ptr_data
-        beq     @mark_next              ; Not a string; move on to the next one
-        jsr     set_src_ptr_relocation_offset   ; Add length to src_ptr; Y points to relocation offset
-        iny
-        lda     #0
-        sta     (src_ptr),y             ; Set relocation offset high byte to 0
-        beq     @mark_next              ; Unconditional
+        ldax    #mark_one_string
+        jsr     for_all_referenced_strings
 
 ; Phase 3: Calculate the relocation offset for each string and determine total size of string space.
 
@@ -237,23 +227,8 @@ compact:
         lda     himem_ptr+1
         sbc     size+1
         sta     E
-        ldax    variable_name_table_ptr ; Prepare to scan variables
-        jsr     initialize_name_ptr
-@update_next:
-        jsr     advance_name_ptr
-        bcs     @relocate
-        jsr     set_name_ptr_data
-        beq     @update_next            ; Not a string; move on to the next one
-        jsr     set_src_ptr_relocation_offset   ; Add length to src_ptr; Y points to relocation offset
-        clc                             ; Do new string_ptr (DE) + relocation offset into variable address
-        lda     (src_ptr),y
-        adc     D
-        sta     (name_ptr),y
-        iny                             ; Y=1
-        lda     (src_ptr),y
-        adc     E
-        sta     (name_ptr),y
-        bne     @update_next            ; Unconditional since high byte of address will never be 0
+        ldax    #update_one_string
+        jsr     for_all_referenced_strings
 
 ; Phase 5: Move each still-referenced string down to free_ptr + its relocation offset.
 ; For each string we take one of two paths. If it's marked, we call copy to move its length byte and data, which
@@ -323,6 +298,48 @@ compact:
         plax                            ; Get the size we pushed earlier
         jsr     copy
         rts                             ; All done!
+
+; Invokes a handler vector for each string value in the variable name table.
+
+for_all_referenced_strings:
+        stax    dst_ptr                 ; Save the vector into dst_ptr
+        ldax    variable_name_table_ptr ; Prepare to scan variables
+        jsr     initialize_name_ptr
+        bne     @next                   ; Unconditional since initialize_name_ptr exits with Z clear
+
+@process_entry:
+        jsr     set_name_ptr_data
+        beq     @next                   ; Not a string; move on to the next one
+        jsr     set_src_ptr_relocation_offset   ; Add length to src_ptr; Y points to relocation offset
+        jsr     @invoke
+@next:
+        jsr     advance_name_ptr
+        bcc     @process_entry
+        rts
+
+@invoke:
+        jmp     (dst_ptr)               ; Jump to handler; RTS from handler will return to point after JSR @invoke
+
+; Phase 2 handler
+
+mark_one_string:
+        iny
+        lda     #0
+        sta     (src_ptr),y             ; Set relocation offset high byte to 0
+        rts
+
+; Phase 4 handler
+
+update_one_string:
+        clc                             ; Do new string_ptr (DE) + relocation offset into variable address
+        lda     (src_ptr),y
+        adc     D
+        sta     (name_ptr),y
+        iny                             ; Y=1
+        lda     (src_ptr),y
+        adc     E
+        sta     (name_ptr),y
+        rts
 
 ; Rebases name_ptr so it points to the variable data.
 ; Returns the type of variable in A.
