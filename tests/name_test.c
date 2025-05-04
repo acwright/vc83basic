@@ -223,6 +223,7 @@ void test_imul_16(void) {
 void test_dimension_array() {
     const char line_data_1[] = { 'X' | EOT, '(', 1, '3' | EOT, 0 };
     const char line_data_2[] = { 'Y' | EOT, '(', 2, '2', '5' | EOT, 0, '5' | EOT, 0 };
+    const char line_data_3[] = { 'A', '$' | EOT, '(', 1, '5' | EOT, 0 };
     const char expect_array_data_1[] = {
         0x80, 0x1A,     // size (26 bytes)
         'X' | EOT,      // name
@@ -241,6 +242,19 @@ void test_dimension_array() {
         0x1E, 0x00,     // dimension 1
         0x0C, 0x03,     // dimension 2
         // ... 780 bytes of data ...
+    };
+    const char expect_array_data_3[] = {
+        0x80, 0x13,     // size (19 bytes)
+        'A', '$' | EOT, // name
+        0x01,           // arity
+        0x0C, 0x00,     // dimension 1
+        0, 0,           // index 0
+        0, 0,           // index 1
+        0, 0,           // index 2
+        0, 0,           // index 3
+        0, 0,           // index 4
+        0, 0,           // index 5
+        0               // next entry: end of table
     };
     char index;
  
@@ -318,6 +332,33 @@ void test_dimension_array() {
 
     ASSERT_PTR_EQ(free_ptr, array_name_table_ptr + 26 + 788 + 1);
     ASSERT_MEMORY_EQ(array_name_table_ptr + 26, expect_array_data_2, sizeof expect_array_data_2);
+
+    // Test string array
+
+    // Look up A$ as an array
+    set_line(0, line_data_3, sizeof line_data_3);
+    decode_name();
+    ASSERT_EQ(decode_name_arity, 1);
+    index = find_name(array_name_table_ptr);
+    ASSERT_NE(err, 0);
+    ASSERT_EQ(index, 2);
+
+    // Parse dimension values
+    evaluate_argument_list(decode_name_arity);
+
+    // Make sure argument is on the stack
+    ASSERT_EQ(stack_pos, PRIMARY_STACK_SIZE - 6);
+
+    // Add as new array
+    dimension_array();
+    ASSERT_EQ(err, 0);
+
+    HEXDUMP(array_name_table_ptr, 64);
+
+    // Verify array name table again
+
+    ASSERT_PTR_EQ(free_ptr, array_name_table_ptr + 26 + 788 + 19 + 1);
+    ASSERT_MEMORY_EQ(array_name_table_ptr + 26 + 788, expect_array_data_3, sizeof expect_array_data_3);
 }
 
 void call_find_array_element(const char* line_data, size_t line_data_length, char expect_index,
