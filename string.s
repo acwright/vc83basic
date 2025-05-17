@@ -256,7 +256,7 @@ for_all_referenced_strings:
 @continue:
         jsr     set_name_ptr_data
         beq     @next                   ; Not a string; move on to the next one
-        jsr     handle_string
+        jsr     load_src_ptr_handle_string
 @next:
         jsr     advance_name_ptr
         bcc     @continue
@@ -283,13 +283,7 @@ for_all_referenced_strings:
         cmp     next_name_ptr
         beq     @next_array             ; Out of array elements
 @continue_element:
-        ldy     #0
-        lda     (name_ptr),y            ; Set up src_ptr
-        sta     src_ptr
-        iny
-        lda     (name_ptr),y
-        sta     src_ptr+1
-        jsr     handle_string
+        jsr     load_src_ptr_handle_string
         ldy     #2
         bne     @next_element           ; Unconditional because Y=2
 
@@ -298,6 +292,7 @@ for_all_referenced_strings:
         bcc     @continue_array
 
 ; And each string variable on the expression stack.
+; In this section we use name_ptr to point to the value on the stack, just as in the variable and array sections.
 
         ldpha   stack_pos               ; Save stack_pos value
         cmp     #PRIMARY_STACK_SIZE     ; Stack empty?
@@ -308,9 +303,9 @@ for_all_referenced_strings:
         lda     stack+Value::type,x     ; Get value type
         bmi     @stack_done             ; If it's negative then it's a control structure: no more values
         beq     @next_stack_value       ; Not a string
-        stx     src_ptr                 ; Set up src_ptr to point into stack
-        mva     #>stack, src_ptr+1
-        jsr     handle_string
+        stx     name_ptr                ; Set up name_ptr to point into stack
+        mva     #>stack, name_ptr+1
+        jsr     load_src_ptr_handle_string
 
 @next_stack_value:
         jsr     stack_free_value
@@ -319,6 +314,18 @@ for_all_referenced_strings:
 @stack_done:
         plsta   stack_pos               ; Restore stack_pos
         rts
+
+; Loads src_ptr from name_ptr and then falls through to handle_string.
+
+load_src_ptr_handle_string:
+        ldy     #0
+        lda     (name_ptr),y            ; Set up src_ptr
+        sta     src_ptr
+        iny
+        lda     (name_ptr),y
+        sta     src_ptr+1
+
+; Fall through
 
 ; With src_ptr pointing to a string, adds the length of the string referenced by src_ptr plus one to src_ptr, so that
 ; src_ptr points to the relocation offset.
@@ -444,12 +451,6 @@ set_name_ptr_data:
 @not_string:
         iny                             ; Advance past last character
         jsr     rebase_name_ptr         ; Point name_ptr to data
-        ldy     #0                      ; Set up src_ptr
-        lda     (name_ptr),y
-        sta     src_ptr
-        iny
-        lda     (name_ptr),y
-        sta     src_ptr+1
         txa                             ; Return type in A (setting flags)
         rts
 
