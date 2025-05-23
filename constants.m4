@@ -17,6 +17,7 @@ comment Tokenized form constants
 
 def(TOKEN_UNARY_OP,     hex(08)) comment OR with OP_UNARY_*
 def(TOKEN_OP,           hex(10)) comment OR with OP_*
+def(TOKEN_FUNCTION,     hex(80)) comment OR with index of function
 
 comment Statement tokens
 

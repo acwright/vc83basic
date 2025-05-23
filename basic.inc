@@ -203,6 +203,8 @@ S1 = FPX+2
 .global statement_name_table
 .global operator_name_table
 .global unary_operator_name_table
+.global function_name_table
+.global function_arity_table
 .global operator_precedence_table
 .global type_size_table
 

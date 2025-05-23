@@ -45,6 +45,15 @@ unary_operator_name_table:
 :       .byte   :+ - *, 'N', 'O', 'T' | EOT
 :       .byte   0
 
+function_name_table:
+        .byte   :+ - *, 'L', 'E', 'N' | EOT
+:       .byte   :+ - *, 'S', 'T', 'R', '$' | EOT
+:       .byte   0
+
+function_arity_table:
+        .byte   1   ; LEN
+        .byte   1   ; STR$
+
 ; Operator precedence table
 ; We index this by the operator index divided by 2.
 

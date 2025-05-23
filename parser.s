@@ -281,6 +281,8 @@ parse_primary_expression:
         bcc     @done
         jsr     parse_unary_operator
         bcc     @done
+        jsr     parse_function          ; Try to parse a function invocation
+        bcc     @done
         jsr     parse_variable          ; Try to parse a variable name
 @done:
         rts
@@ -320,6 +322,29 @@ parse_unary_operator:
         bcs     @error
         jmp     parse_primary_expression    ; Continue and parse the following unary expression, which must exist
 @error:
+        rts
+
+; Parses a function call.
+
+parse_function:
+        ldax    #function_name_table
+        jsr     parse_tokenized_name
+        bcs     @done
+        ldx     buffer_pos              ; The next character must be a '(' w/o any whitespace
+        ldy     buffer,x
+        cpy     #'('
+        sec                             ; Set carry in case next check fails
+        bne     @done
+        tay                             ; Save function number in Y
+        ora     #TOKEN_FUNCTION         ; OR in the function token
+        jsr     encode_byte             ; Store the token
+        bcs     @done
+        inc     buffer_pos              ; Skip '('
+        lda     function_arity_table,y  ; Function number is in Y; look up how many arguments we need
+        jsr     parse_argument_list
+        sec                             ; Set carry in case next test fails
+        beq     parse_close
+@done:
         rts
 
 ; Parses a name from the buffer, using the state machine passed in AX, then looks up a name in the name table.
