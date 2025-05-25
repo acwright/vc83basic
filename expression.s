@@ -14,7 +14,7 @@ evaluate_vectors:
         .word   evaluate_number-1           ; XH_NUMBER
         .word   evaluate_string-1           ; XH_STRING
         .word   evaluate_variable-1         ; XH_VAR
-        .word   0
+        .word   evaluate_function-1         ; XH_FUNCTION
         .word   evaluate_paren-1            ; XH_PAREN
 
 evaluate_paren:
@@ -86,6 +86,52 @@ evaluate_decoded_variable:
         jsr     copy_y_from
         clc                             ; Signal success
 @error:
+        rts
+
+function_vectors:
+        .word   exec_function_len-1
+        .word   exec_function_str_s-1    
+
+evaluate_function:
+        jsr     decode_function
+        pha                             ; Remember what function it was, while we go decode the arguments
+        tax
+        lda     function_arity_table,x  ; How many arguments?
+        jsr     evaluate_argument_list
+        pla                             ; Recover the function number
+        bcs     @done                   ; Argument evaluation failed
+        tay
+        ldax    #function_vectors
+        jmp     invoke_indexed_vector
+
+@done:
+        rts
+
+exec_function_len:
+        jsr     pop_string
+        jsr     load_s0                 ; Length comes back in A, which is what we want
+        ldx     #0                      ; High byte is always 0
+        jsr     int_to_fp               ; Into FP0
+        jmp     push_fp0                ; Push return value
+
+exec_function_str_s:
+        jsr     pop_fp0
+        mva     #1, buffer_pos          ; Write at buffer position 1
+        jsr     fp_to_string
+        ldy     buffer_pos              ; Save the length byte at offset 0
+        dey                             ; Don't include the length byte
+        sty     buffer
+        tya
+        jsr     string_alloc            ; Allocate space for the string
+        bcs     @done                   ; No space left
+        ldy     buffer_pos              ; Already includes the length byte
+        mvax    string_ptr, dst_ptr     ; Set up copy destination
+        ldax    #buffer                 ; Source
+        jsr     copy_y_from
+        ldax    string_ptr
+        jmp     push_string
+
+@done:
         rts
 
 evaluate_number:
