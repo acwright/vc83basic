@@ -133,6 +133,9 @@ S1 = FPX+2
 ; functions.s
 .global fun_asc
 .global fun_chr_s
+.global fun_left_s
+.global fun_right_s
+.global fun_mid_s
 .global fun_len
 .global fun_str_s
 
