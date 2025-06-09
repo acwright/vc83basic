@@ -47,6 +47,8 @@ evaluate_expression:
 
 evaluate_argument_list:
         pha                             ; Save the number of arguments expected on the stack
+        tax                             ; Test for zero
+        beq     @done                   ; Was zero; don't evaluate anything
 @next:
         jsr     peek_decode_byte        ; Empty value?
         beq     @no_value               ; Yes
