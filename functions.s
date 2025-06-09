@@ -27,6 +27,7 @@ fun_chr_s:
         rts
 
 fun_fre:
+        jsr     compact                 ; GC strings
         sec                             ; Calculate free memory
         lda     himem_ptr
         sbc     free_ptr
