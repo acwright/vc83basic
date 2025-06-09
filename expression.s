@@ -97,6 +97,7 @@ function_vectors:
         .word   fun_right_s-1
         .word   fun_mid_s-1
         .word   fun_val-1
+        .word   fun_fre-1
 
 evaluate_function:
         jsr     decode_function

@@ -26,6 +26,18 @@ fun_chr_s:
 @done:
         rts
 
+fun_fre:
+        sec                             ; Calculate free memory
+        lda     himem_ptr
+        sbc     free_ptr
+        tay                             ; Park low byte
+        lda     himem_ptr+1
+        sbc     free_ptr+1
+        tax                             ; High byte in X
+        tya                             ; Low byte back into A
+        jsr     int_to_fp               ; Load into FP0
+        jmp     push_fp0
+
 fun_left_s:
         jsr     fun_mid_s_setup         ; Requested length in D
         bcs     fun_mid_s_error         ; If setup failed

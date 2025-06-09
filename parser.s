@@ -162,6 +162,7 @@ parse_directive:
         rts
 
 parse_variable:
+        jsr     save_parser_state
         jsr     parse_name              ; Parse the variable name
         bcs     @done
         cpy     #<(name_pattern_op - name_pattern)  ; Make sure it was a name not an operator
@@ -301,6 +302,7 @@ parse_binary_operator:
 ; Parses an expression in parentheses.
 
 parse_parentheses:
+        jsr     save_parser_state
         jsr     skip_whitespace         ; Skip whitespace and return the next character
         cmp     #'('                    ; Is is a left paren?
         sec                             ; Prepare to return error in case it's not
