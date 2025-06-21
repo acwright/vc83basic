@@ -1,10 +1,26 @@
+/* 
+    Whitespace strategy: consume whitespace
+        1. Before a statement keyword (parse_statement)
+        2. Before literal text within statement (parse_statement)
+        3. Before a (binary) operator (parse_operator)
+        4. Before a unary operator (parse_unary_operator)
+        5. Before a print operator (parse_print_separators)
+        6. Before the opening parenthesis of a subexpression (parse_primary_expression)
+        7. Before a closing parentheses in any context (parse_close)
+        8. Before an argument separator (parse_argument_separator)
+        9. Before a channel number (TBD)
+       10. Before the semicolon that separates prompt text from variables in INPUT (TBD)
+       11. Before a literal string (parse_string) or number (parse_number)
+       12. Before a variable name (parse_variable) or function name (parse_function)
+*/
+
 program_line ::= number statement (_ ':' statement)*
 
 statement ::= _ (
       assert_statement
+    | data_statement
     | goto_statement
-    | let_statement
-    | ... )
+    | let_statement )
 
 /* ASSERT value [, error-message] */
 assert_statement ::= 'ASSERT' arguments_2
@@ -18,9 +34,7 @@ data_statement ::= 'DATA' text
 dim_statement ::= 'DIM' var
 
 /* FOR var = start-value TO end-value STEP step-value */
-for_statement ::= 'FOR' var _ '=' expression _ 'TO' expression step?
-
-step ::= _ 'STEP' expression
+for_statement ::= 'FOR' var _ '=' expression _ 'TO' expression (_ 'STEP' expression)?
 
 /* GOTO line-number */
 goto_statement ::= 'GOTO'? number
@@ -40,9 +54,9 @@ on_goto_statement ::= 'ON' expression1 _ 'GOTO' repeated_number
 /* PRINT print-value */
 print_statement ::= 'PRINT' channel print_expression
 
-print_expression ::= print_op* expression (print_op+ print_expression)?
+print_expression ::= print_separator* expression (print_separator+ expression?)?
 
-print_op ::= _ (',' | ';')
+print_separator ::= _ (',' | ';')
 
 /* READ var [, var] ... */
 read_statement ::= 'READ' repeated_var
@@ -56,9 +70,14 @@ arguments_2 ::= (expression (_ ',' expression)?)?
 
 arguments_3 ::= (expression (_ ',' expression (_ ',' expression)?)?)?
 
-expression ::= primary_expression (op expression)?
+arguments_list ::=
+    | expression (_ ',' expression)*
 
-primary_expression ::= number | string | var
+expression ::= primary_expression (op expression)*
+
+primary_expression ::= number 
+    | string
+    | var
     | function
     | _ '(' expression _ ')'
     | unary_op primary_expression
@@ -66,16 +85,15 @@ primary_expression ::= number | string | var
 function ::= _ (
       len_function
     | max_function
-    | min_function
-    | ... )
+    | min_function )
 
 /* LEN(string-value) */
-len_function ::= 'LEN' _ '(' arguments_1 _ ')'
+len_function ::= 'LEN(' arguments_1 _ ')'
 
 /* MAX(value, value) */
 /* MIN(value, value) */
-max_function ::= 'MAX' _ '(' arguments_2 _ ')'
-min_function ::= 'MIN' _ '(' arguments_2 _ ')'
+max_function ::= 'MAX(' arguments_2 _ ')'
+min_function ::= 'MIN(' arguments_2 _ ')'
 
 op ::= _ ('<=' | '>=' | '<>' | '<' | '>' | '=' | '+' | '-' | '*' | '/' | '^' | '&' | 'AND' | 'OR')
 
@@ -83,20 +101,18 @@ unary_op ::= _ ('-' | 'NOT')
 
 repeated_number ::= number (_ ',' number)*
 
+number ::= _ sign? digit+ ('.' digit*)? ('E' sign? digit+)
+
 repeated_var ::= var (_ ',' var)*
 
 /* Note no space allowed before open paren */
-var ::= var_name ('(' expression (',' expression)* ')')?
-
-var_name ::= _ letter (letter | digit | '_')* '$'?
-
-number ::= _ sign? digit+ ('.' digit*)? ('E' sign? digit+)
+var ::= _ letter (letter | digit | '_')* '$'? ('(' expression (',' expression)* ')')?
 
 string ::= _ '"' ([^"] | '""')* '"' 
 
 channel ::= _ ('#' number)?
 
-prompt ::= _ (string _ ';')?
+prompt ::= (string _ ';')?
 
 letter ::= [A-Z]
 
@@ -104,6 +120,6 @@ digit ::= [0-9]
 
 sign ::= [-+]
 
-_ ::= [ \t]*
+text ::= ' ' [#x20-#x7f]
 
-text ::= [^\n]
+_ ::= [ ]*

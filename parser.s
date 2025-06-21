@@ -366,7 +366,7 @@ parse_function:
 
 parse_number:
         ldy     #<(number_pattern - name_pattern - 3)
-        jmp     parse_pattern
+        jmp     skip_whitespace_parse_pattern
 
 parse_repeated_number:
         jsr     parse_number            ; Parse a first number
@@ -379,7 +379,7 @@ parse_repeated_number:
 
 parse_string:
         ldy     #<(string_pattern - name_pattern - 3)
-        jmp     parse_pattern
+        jmp     skip_whitespace_parse_pattern
 
 name_pattern:
         .byte   'A', 26, <(name_pattern_identifier - name_pattern)
@@ -461,10 +461,11 @@ parse_name:
 ; buffer must be page-aligned
 .assert <buffer = 0, error
 
+skip_whitespace_parse_pattern:
+        jsr     skip_whitespace
 parse_pattern:
         mva     line_pos, decode_name_ptr           ; Initialize decode_name_ptr to the write position in line_buffer
         mva     #>line_buffer, decode_name_ptr+1    ; High byte of buffer address into decode_name_ptr
-        jsr     skip_whitespace
         ldpha   buffer_pos              ; Save buffer_pos so we can restore if error
 @next_state:
         iny                             ; Move to next state
