@@ -12,6 +12,7 @@ def(NT_NUMBER,          hex(12))
 def(NT_RPT_NUMBER,      hex(13))
 def(NT_STATEMENT,       hex(14))
 def(NT_PRINT_EXP,       hex(15))
+def(NT_TEXT,            hex(16))
 
 comment Tokenized form constants
 
@@ -40,6 +41,9 @@ def(ST_CONT,           15)
 def(ST_IF_THEN,        16)
 def(ST_NEW,            17)
 def(ST_CLR,            18)
+def(ST_DIM,            19)
+def(ST_REM,            20)
+def(ST_DATA,           21)
 
 comment Binary operator tokens: combine with TOKEN_OP
 

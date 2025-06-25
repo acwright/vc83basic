@@ -280,6 +280,7 @@ void test_parse_directive(void) {
         '1' | EOT, 0, 0 };
     const char line_data_11[] = { ',', ',', 'X' | EOT, 0, ';',
         '1' | EOT, 0, ',', 'Y' | EOT, 0, ';', 0 };
+    const char line_data_12[] = { 'T', 'E', 'X', 'T', ' ', ' ' | EOT };
 
     PRINT_TEST_NAME();
 
@@ -296,6 +297,7 @@ void test_parse_directive(void) {
     call_parse_directive("X,1", NT_PRINT_EXP, line_data_9, sizeof line_data_9, __LINE__);
     call_parse_directive("X;1", NT_PRINT_EXP, line_data_10, sizeof line_data_10, __LINE__);
     call_parse_directive(",,X;1,Y;", NT_PRINT_EXP, line_data_11, sizeof line_data_11, __LINE__);
+    call_parse_directive("  TEXT  ", NT_TEXT, line_data_12, sizeof line_data_12, __LINE__);
 }
 
 void call_parse_statement(const char* s, const char* expect_line_data, size_t expect_line_data_length, int line) {
@@ -325,6 +327,7 @@ void test_parse_statement(void) {
         '1', '0' | EOT, '2', '0' | EOT, '3', '0' | EOT, 0 };
     const char line_data_8[] = { ST_ON_GOSUB, 'X' | EOT, 0,
         '1', '0' | EOT, '2', '0' | EOT, '3', '0' | EOT, 0 };
+    const char line_data_9[] = { ST_DATA, 'H', 'E', 'L', 'L', 'O', ' ' | EOT };
 
     PRINT_TEST_NAME();
 
@@ -341,6 +344,10 @@ void test_parse_statement(void) {
     // Test that the parser can differentiate between ON...GOTO and ON...GOSUB.
 
     call_parse_statement("ON X GOSUB 10,20,30", line_data_8, sizeof line_data_8, __LINE__);
+
+    // DATA should retain spaces.
+
+    call_parse_statement("DATA  HELLO ", line_data_9, sizeof line_data_9, __LINE__);
 
     // Test that adding spaces here and there doesn't mix up the parser.
 

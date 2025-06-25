@@ -128,6 +128,7 @@ parse_argument_type_vectors:
         .word   parse_repeated_number-1     ; NT_RPT_NUMBER
         .word   parse_statement-1           ; NT_STATEMENT
         .word   parse_print_expression-1    ; NT_PRINT_EXP
+        .word   parse_text-1                ; NT_TEXT
 
 ; Parses a single directive.
 ; Since parsing the directive can recursively invoke the parser with new values for name_ptr etc.,
@@ -262,6 +263,12 @@ parse_print_separators:
         inc     buffer_pos
         bne     @next_separator
 
+; Parses free-form text until the end of the line.
+
+parse_text:
+        ldy     #<(text_pattern - name_pattern - 3)
+        jmp     parse_pattern
+
 ; Parses and tokenizes a expression.
 
 parse_expression:
@@ -370,7 +377,7 @@ parse_function:
 
 parse_number:
         ldy     #<(number_pattern - name_pattern - 3)
-        jmp     skip_whitespace_parse_pattern
+        jmp     parse_pattern
 
 parse_repeated_number:
         jsr     parse_number            ; Parse a first number
@@ -383,7 +390,7 @@ parse_repeated_number:
 
 parse_string:
         ldy     #<(string_pattern - name_pattern - 3)
-        jmp     skip_whitespace_parse_pattern
+        jmp     parse_pattern
 
 name_pattern:
         .byte   'A', 26, <(name_pattern_identifier - name_pattern)
@@ -429,6 +436,9 @@ string_pattern_2:
 string_pattern_3:
         .byte   '"',  1, <(string_pattern_2 - name_pattern)
         .byte   PATTERN_OK
+text_pattern:
+        .byte   ' ', 96, <(text_pattern - name_pattern)
+        .byte   PATTERN_OK
 
 ; Parses a name from the buffer, using the state machine passed in AX, then looks up a name in the name table.
 ; AX = pointer to the start of the name table
@@ -465,9 +475,8 @@ parse_name:
 ; buffer must be page-aligned
 .assert <buffer = 0, error
 
-skip_whitespace_parse_pattern:
-        jsr     skip_whitespace
 parse_pattern:
+        jsr     skip_whitespace
         mva     line_pos, decode_name_ptr           ; Initialize decode_name_ptr to the write position in line_buffer
         mva     #>line_buffer, decode_name_ptr+1    ; High byte of buffer address into decode_name_ptr
         ldpha   buffer_pos              ; Save buffer_pos so we can restore if error

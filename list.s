@@ -157,6 +157,7 @@ list_argument_type_vectors:
         .word   list_repeated_literal-1     ; NT_RPT_NUMBER
         .word   list_statement-1            ; NT_STATEMENT
         .word   list_print_expression-1     ; NT_PRINT_EXP
+        .word   list_literal-1              ; NT_TEXT
 
 ; Lists a single directive from the token stream.
 ; A = the directive
