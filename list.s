@@ -84,8 +84,10 @@ list_statement:
         lda     (name_ptr),y            ; Read next byte of statement syntax
         and     #$E0                    ; Check if it's a directive (000x xxxx) or a literal
         bne     @literal                ; It's a literal
+        phzp    NAME_STATE, NAME_STATE_SIZE
         lda     (name_ptr),y            ; It's a directive; read the type
         jsr     list_directive
+        plzp    NAME_STATE, NAME_STATE_SIZE
         ldy     #1                      ; Set Y to 1 so rebase moves name_ptr past the directive
         bne     @next                   ; Unconditional
 
@@ -167,22 +169,17 @@ list_argument_type_vectors:
 
 list_directive:
         tay                             ; Keep in Y while using A to save state
-        phzp    name_ptr, 4
         tya                             ; Recover directive from Y
         sec
         sbc     #NT_VAR                 ; If we can subtract NT_VAR without borrowing then it's a single-arg directive
         bcs     @single
         tya
-        jsr     list_argument_list
-        jmp     @pop_state
+        jmp     list_argument_list
 
 @single:
         tay                             ; The value left in A after subtracting NT_VAR is the vector index
         ldax    #list_argument_type_vectors
-        jsr     invoke_indexed_vector   ; Jump to the parser for the argument type
-@pop_state:
-        plzp    name_ptr, 4
-        rts
+        jmp     invoke_indexed_vector   ; Jump to the parser for the argument type
 
 list_argument_list:
         and     #$07                    ; Isolate the count
