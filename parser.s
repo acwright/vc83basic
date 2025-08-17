@@ -55,7 +55,7 @@ parse_line:
         rts
 
 ; Parses a complete statement.
-; The last byte the statement should be 0, which won't match anything. This avoids the need to keep checking
+; The last byte of the statement should be 0, which won't match anything. This avoids the need to keep checking
 ; the buffer length.
 ; Returns carry clear if buffer was a valid statement, or carry set if it was not.
 
@@ -78,41 +78,38 @@ parse_next_statement:
         jsr     parse_tokenized_name_2
         bcs     @error
         jsr     encode_byte             ; Encode statement token
+@after_directive:
+        jsr     skip_whitespace         ; Skip whitespace after the keyword and after a directive
+        ldy     #0                      ; Start reading from name_ptr offset 0
 @next:
-        lda     name_ptr                ; Check to see if we've run out of statement syntax data
+        tya                             ; Read position into A
+        clc
+        adc     name_ptr                ; Add to name_ptr; A is now low byte of read position
         cmp     next_name_ptr           ; Is it the next name_ptr?
         beq     @success                ; If so, have reached the end of the statement
-        ldy     #0                      ; Start reading from name_ptr offset 0
-        lda     (name_ptr),y            ; Read next byte of statement syntax
-        and     #$E0                    ; Check if it's a directive (000x xxxx) or a literal
-        bne     @literal                ; It's a literal
-        phzp    NAME_STATE, NAME_STATE_SIZE
-        lda     (name_ptr),y            ; It's a directive; read the type
-        jsr     parse_directive
-        plzp    NAME_STATE, NAME_STATE_SIZE
-        bcs     @error
-        ldy     #1                      ; Set Y to 1 so rebase moves name_ptr past the directive
-        bne     @rebase
+        lda     (name_ptr),y
+        iny                             ; Move to next byte in name table entry data
+        tax                             ; Temporarily store in X
+        and     #$60                    ; Check if it's a directive (not a literal, x00x xxxx)
+        beq     @directive              ; It is
+        txa                             ; Restore byte from name table entry data
+        ldx     buffer_pos              ; Compare it to the current character in the buffer
+        inc     buffer_pos              ; Increment buffer pointer
+        cmp     buffer,x
+        beq     @next
+        bne     @error
 
-@literal:
-        jsr     skip_whitespace         ; Discard any whitespace before handling literal
-@next_literal:
-        lda     (name_ptr),y            ; Read byte again
-        php                             ; Push flags so we can check high bit later
-        iny
-        and     #$7F                    ; Clear EOT if it's set
-        ldx     buffer_pos              ; Get buffer pos into X
-        inc     buffer_pos              ; Move past
-        cmp     buffer,x                ; Check match
-        bne     @no_match               ; Did not match
-        plp                             ; Recover flags
-        bpl     @next_literal           ; If EOT wasn't set then keep matching
-@rebase:
+@directive:
         jsr     rebase_name_ptr         ; Catch up name_ptr
-        bcc     @next                   ; Unconditional
+        txa                             ; Recover the directive
+        tay                             ; Move into Y in order to use A to save name state
+        phzp    NAME_STATE, NAME_STATE_SIZE
+        tya                             ; Recover directive from Y
+        jsr     parse_directive
+        jsr     encode_zero             ; Terminate with 0
+        plzp    NAME_STATE, NAME_STATE_SIZE
+        bcc     @after_directive
 
-@no_match:
-        plp                             ; Pop and discard the saved flags
 @error:
         sec                             ; Tell save_parser_state epilogue to restore state
         rts
@@ -147,24 +144,15 @@ parse_directive:
         tya                             ; Pass in expected number of arguments
         jsr     parse_argument_list
         bcs     @done                   ; Error parsing arguments
-        beq     @done                   ; Parsed all arguments; carry must be clear here because BCS above
-        sec                             ; If next condition met, return failure
-        bmi     @done                   ; Parsed too many arguments
-        sta     B                       ; Store number of remaining arguments in B
-@next_missing_argument:
-        jsr     encode_zero             ; Store 0 (no value) for any remaining arguments
-        bcs     @done                   ; encode_byte error
-        dec     B                       ; Done with one "no value"
-        bne     @next_missing_argument  ; Loop if more
-        beq     @done                   ; Otherwise done; carry will be clear because BCS above
+        bpl     @done                   ; Parsed all or some arguments; too few are okay
+        sec                             ; Parsed too many arguments; fail
+@done:
+        rts
 
 @single:
         tay                             ; The value left in A after subtracting NT_VAR is the vector index
         ldax    #parse_argument_type_vectors
-        jsr     invoke_indexed_vector   ; Jump to the parser for the argument type
-
-@done:
-        rts
+        jmp     invoke_indexed_vector   ; Jump to the parser for the argument type
 
 parse_variable:
         jsr     save_parser_state
@@ -179,17 +167,8 @@ parse_variable:
         bne     @done
         inc     buffer_pos              ; Skip past it
         jsr     encode_byte             ; Encode the '('
-        ldpha   line_pos                ; Save the value of line_pos; this is where we'll store the arity
-        inc     line_pos                ; Skip past the length byte
-        lda     #$FF                    ; Set argument count to -1 instead of 0 so I can just invert bits
-        jsr     parse_argument_list     ; Parse the array arguments
-        eor     #$FF                    ; Invert bits to get argument count
-        tay                             ; Park it in Y
-        pla                             ; Get the original line_pos back
-        tax                             ; Into X
-        tya                             ; Argument count into A
-        sta     line_buffer,x           ; Update the count in line_buffer
-        bcs     @done                   ; This is where we finally check if parse_argument_list failed
+        jsr     parse_argument_list     ; Parse the array arguments; A will still be '(' but we don't care
+        bcs     @done
         jsr     parse_close             ; Parse the closing parenthesis and return result
 @done:
         rts                             ; CPY sets carry correctly for return
@@ -199,9 +178,8 @@ parse_variable:
 parse_repeated_variable:
         jsr     parse_variable          ; Parse next variable name
         bcs     @done                   ; It's always an error if we expected a variable and didn't find one
-        jsr     parse_argument_separator    ; Try to read a separator
+        jsr     parse_encode_argument_separator ; Try to read a separator
         bcs     parse_repeated_variable ; If carry set keep going; if carry clear then no separator and we're done
-        jmp     encode_zero             ; Terminate the repeated list
 
 @done:
         rts
@@ -223,7 +201,7 @@ parse_argument_list:
 @next:
         tsx                             ; Set up stack access
         dec     $101,x                  ; Decrement the argument count
-        jsr     parse_argument_separator    ; Look for argument separator
+        jsr     parse_encode_argument_separator ; Try to read a separator
         bcc     @done                   ; No separator; return
         jsr     parse_expression        ; Parse the argument following the separator
         bcc     @next                   ; Failing to parse an argument just means we reached the end
@@ -242,7 +220,8 @@ parse_print_expression:
         jsr     parse_print_separators  ; Look for more sepearators
         bne     @next_expression        ; If there seperators then OK to parse another expression
 @done:
-        jmp     encode_zero             ; Terminate list with 0
+        clc
+        rts
 
 ; Parse a series of print separators.
 
@@ -275,8 +254,7 @@ parse_expression:
         bcs     @error                  ; Not found; must be an error
         jsr     parse_operator
         bcc     parse_expression        ; Binary operator found; keep parsing
-        jmp     encode_zero             ; Terminate expression with 0
-
+        clc                             ; Success
 @error:
         rts
 
@@ -329,6 +307,7 @@ parse_close:
         cmp     #')'                    ; which had better be a right parenthesis
         sec                             ; Set carry so if we take the next branch we return error
         bne     @done                   ; But it wasn't
+        jsr     encode_byte             ; Store it
         inc     buffer_pos              ; Skip over the close paren
         clc                             ; Clear carry to indicate success
 @done:
@@ -343,7 +322,6 @@ parse_unary_operator:
         bcs     @error
         ora     #TOKEN_UNARY_OP         ; OR in the unary operator token
         jsr     encode_byte             ; Store the unary minus token
-        bcs     @error
         jmp     parse_primary_expression    ; Continue and parse the following unary expression, which must exist
 @error:
         rts
@@ -363,7 +341,6 @@ parse_function:
         tay                             ; Save function number in Y
         ora     #TOKEN_FUNCTION         ; OR in the function token
         jsr     encode_byte             ; Store the token
-        bcs     @done
         inc     buffer_pos              ; Skip '('
         lda     function_arity_table,y  ; Function number is in Y; look up how many arguments we need
         jsr     parse_argument_list
@@ -381,10 +358,8 @@ parse_number:
 parse_repeated_number:
         jsr     parse_number            ; Parse a first number
         bcs     @done                   ; If no number then fail
-        jsr     parse_argument_separator
+        jsr     parse_encode_argument_separator
         bcs     parse_repeated_number   ; Parse another number after the separator
-        jmp     encode_zero             ; Terminate the repeated list
-
 @done:
         rts
 
@@ -461,6 +436,18 @@ parse_tokenized_name_2:
 
 parse_name:
         ldy     #<(name_pattern - name_pattern - 3)
+        jsr     parse_pattern
+        bcs     @error
+
+; Set the EOT bit on most recently encoded byte.
+
+        ldx     line_pos                ; Get line_buffer write position
+        dex                             ; Back to last character we wrote
+        lda     line_buffer,x
+        ora     #EOT                    ; Set bit 7
+        sta     line_buffer,x           ; Write back
+@error:
+        rts
 
 ; Fall through
 
@@ -498,26 +485,22 @@ parse_pattern:
         lda     buffer,x                ; Reload character from buffer
         jsr     encode_byte             ; Encode
         inc     buffer_pos              ; Next character; should always be >0
-        bne     @match
+        bne     @match                  ; Unconditional
 
 @terminal:
         ror     A                       ; Shift low bit from PATTERN_OK/ERROR into carry
         pla                             ; Pop saved value of buffer_pos off the stack
-        bcs     @error
-
-; Set the EOT bit on most recently encoded byte.
-
-        ldx     line_pos                ; Get line_buffer write position
-        dex                             ; Back to last character we wrote
-        lda     line_buffer,x
-        ora     #EOT                    ; Set bit 7
-        sta     line_buffer,x           ; Write back
-        rts
-
+        bcc     @done
 @error:
         sta     buffer_pos              ; Restore buffer_pos from stack
         mva     decode_name_ptr, line_pos   ; Restore line_pos to the value we saved earlier 
+@done:
         rts
+
+parse_encode_argument_separator:
+        jsr     parse_argument_separator
+        bcc     parse_argument_separator_done
+        jmp     encode_byte             ; Does not affect carry
 
 ; Parses a mandatory colon beween arguments. Does not write any tokens.
 
@@ -532,18 +515,19 @@ parse_argument_separator:
 
 ; Parses a separator character.
 ; A = the separator character
-; Return codes are reversed: we return carry clear if we did *not* find a separator and carry set if we did.
+; Return codes are reversed: we return carry clear if we did *not* find a separator and carry set if we did. This is
+; because often not finding the separator (carry clear) means that the parse has succeeded.
 ; Y SAFE
 
 parse_separator:
         sta     B                       ; Use B for the comparison
         jsr     skip_whitespace
         cmp     B                       ; Compare non-whitespace character to separator
-        bne     @error
+        bne     parse_argument_separator_done
         inc     buffer_pos
         rts
 
-@error:
+parse_argument_separator_done:
         clc                             ; Clear carry since we don't know its state following the CMP above
         rts
 
