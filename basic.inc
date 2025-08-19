@@ -194,6 +194,10 @@ S1 = FPX+2
 .global insert_or_update_line
 .global grow, grow_a, shrink, shrink_a
 
+; read.s
+.global exec_read
+.global exec_restore
+
 ; run.s
 .global exec_run
 .global exec_end

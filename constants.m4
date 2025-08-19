@@ -44,6 +44,8 @@ def(ST_CLR,            18)
 def(ST_DIM,            19)
 def(ST_REM,            20)
 def(ST_DATA,           21)
+def(ST_READ,           22)
+def(ST_RESTORE,        23)
 
 comment Binary operator tokens: combine with TOKEN_OP
 

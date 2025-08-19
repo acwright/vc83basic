@@ -23,6 +23,8 @@ statement_name_table:
 :       .byte   :+ - *, 'D', 'I', 'M' | EOT, NT_VAR
 :       .byte   :+ - *, 'R', 'E', 'M' | EOT, NT_TEXT
 :       .byte   :+ - *, 'D', 'A', 'T', 'A' | EOT, NT_TEXT
+:       .byte   :+ - *, 'R', 'E', 'A', 'D' | EOT, NT_RPT_VAR
+:       .byte   :+ - *, 'R', 'E', 'S', 'T', 'O', 'R', 'E' | EOT, NT_NUMBER
 :       .byte   0
 
 operator_name_table:

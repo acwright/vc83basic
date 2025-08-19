@@ -105,6 +105,10 @@ statement_exec_vectors:
         .word   exec_new-1
         .word   exec_clr-1
         .word   exec_dim-1
+        .word   exec_rem-1
+        .word   exec_data-1
+        .word   exec_read-1
+        .word   exec_restore-1
 
 print_start:
         ldax    #start_message
