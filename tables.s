@@ -25,6 +25,7 @@ statement_name_table:
 :       .byte   :+ - *, 'D', 'A', 'T', 'A' | EOT, NT_TEXT
 :       .byte   :+ - *, 'R', 'E', 'A', 'D' | EOT, NT_RPT_VAR
 :       .byte   :+ - *, 'R', 'E', 'S', 'T', 'O', 'R', 'E' | EOT
+:       .byte   :+ - *, 'P', 'O', 'K', 'E' | EOT, 2
 :       .byte   0
 
 operator_name_table:
@@ -59,6 +60,7 @@ function_name_table:
 :       .byte   :+ - *, 'M', 'I', 'D', '$' | EOT
 :       .byte   :+ - *, 'V', 'A', 'L' | EOT
 :       .byte   :+ - *, 'F', 'R', 'E' | EOT
+:       .byte   :+ - *, 'P', 'E', 'E', 'K' | EOT
 :       .byte   0
 
 function_arity_table:
@@ -71,6 +73,7 @@ function_arity_table:
         .byte   3   ; MID$
         .byte   1   ; VAL
         .byte   0   ; FRE
+        .byte   1   ; PEEK
 
 ; Operator precedence table
 ; We index this by the operator index divided by 2.

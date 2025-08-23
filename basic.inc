@@ -134,6 +134,7 @@ S1 = FPX+2
 .global fun_right_s
 .global fun_mid_s
 .global fun_len
+.global fun_peek
 .global fun_str_s
 .global fun_val
 
@@ -176,6 +177,9 @@ S1 = FPX+2
 .global parse_name
 .global parse_number
 .global parse_argument_separator
+
+; poke.s
+.global exec_poke
 
 ; print.s
 .global exec_print

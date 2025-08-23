@@ -165,6 +165,16 @@ fun_str_s:
 @done:
         rts
 
+fun_peek:
+        jsr     pop_fp0                 ; Get the argument
+        jsr     truncate_fp_to_int      ; Convert it to an address
+        stax    BC                      ; Need it to be a pointer
+        ldy     #0                      ; Index 0
+        lda     (BC),y                  ; Get the value there
+        ldx     #0                      ; High byte is always 0
+        jsr     int_to_fp               ; Into FP0
+        jmp     push_fp0                ; Push return value
+
 fun_val:
         jsr     pop_string              ; Get the argument string
         sta     D                       ; Store the length into D

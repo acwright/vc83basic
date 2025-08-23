@@ -16,6 +16,7 @@ COMMON_SOURCES = \
 	main.s \
 	name.s \
 	parser.s \
+	poke.s \
 	print.s \
 	program.s \
 	read.s \
