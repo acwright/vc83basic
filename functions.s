@@ -1,6 +1,17 @@
 .include "macros.inc"
 .include "basic.inc"
 
+fun_adr:
+        jsr     pop_string
+        bcs     @done
+        jsr     load_s0
+        ldax    S0
+        jsr     int_to_fp
+        jmp     push_fp0
+
+@done:
+        rts
+
 fun_asc:
         jsr     pop_string              ; TODO: pop_string + load_s0 is common and should be one function
         jsr     load_s0
