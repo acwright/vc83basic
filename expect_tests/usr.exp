@@ -1,7 +1,16 @@
 source [file join [file dirname [info script]] common.expinc]
 spawn_basic
 
-# FOR
+# USR
+
+# The DATA values encode a program that shifts AX left by one bit, multiplying it by 2:
+#     ASL A
+#     TAY
+#     TXA
+#     ROL A
+#     TAX
+#     TYA
+#     RTS
 
 test {
 10 DATA 10,168,138,42,170,152,96
@@ -13,3 +22,4 @@ RUN
 } {
 2046
 }
+
