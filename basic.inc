@@ -137,6 +137,7 @@ S1 = FPX+2
 .global fun_len
 .global fun_peek
 .global fun_str_s
+.global fun_usr
 .global fun_val
 
 ; input.s

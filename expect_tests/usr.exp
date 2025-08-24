@@ -1,0 +1,15 @@
+source [file join [file dirname [info script]] common.expinc]
+spawn_basic
+
+# FOR
+
+test {
+10 DATA 10,168,138,42,170,152,96
+20 FOR I=1 TO 7
+30 READ B:LET SHIFT$=SHIFT$&CHR$(B)
+40 NEXT I
+50 PRINT USR(ADR(SHIFT$),1023)
+RUN
+} {
+2046
+}

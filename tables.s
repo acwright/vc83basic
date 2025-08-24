@@ -62,6 +62,7 @@ function_name_table:
 :       .byte   :+ - *, 'F', 'R', 'E' | EOT
 :       .byte   :+ - *, 'P', 'E', 'E', 'K' | EOT
 :       .byte   :+ - *, 'A', 'D', 'R' | EOT
+:       .byte   :+ - *, 'U', 'S', 'R' | EOT
 :       .byte   0
 
 function_arity_table:
@@ -76,6 +77,7 @@ function_arity_table:
         .byte   0   ; FRE
         .byte   1   ; PEEK
         .byte   1   ; ADR
+        .byte   2   ; USR
 
 ; Operator precedence table
 ; We index this by the operator index divided by 2.
