@@ -744,7 +744,7 @@ shift_right_normalize:
 ;   * If adding 1 to the significand for rounding caused the significand to increase to be >=2, then shift right
 ;       (increase exponent) once again.
 ;   * If the exponent is >127, fail with an overflow error. (TODO: need to handle this)
-; Otherwise, return the final result.
+; Otherwise, return the final result with carry clear. Carry set indicates error.
 ; This function uses and clobbers all registers except DE, which means that any function that calls it (fadd, fsub,
 ; fmul, fdiv, etc.) also clobber those registers.
 ; DE SAFE
@@ -1136,3 +1136,38 @@ fcmp:
         sbc     FP1t
 @done:
         rts                             ; Flags will be set correctly here
+
+; Applies a polynomial to the value in FP0 using Horner's method. Stores the argument in FPtemp, which is aliased
+; to buffer, so will clobber anything stored there.
+; The input to the function is a list of floating point polynomial coefficients, with the largest power first. If
+; there are N coefficients, then the first is for the N-1 term, the next for the N-2 term, etc. The last coefficient
+; is a constant (the N-N or zero-power term).
+; AX = pointer to the polynomial coefficients
+; Y = the number of coefficients
+
+polynomial:
+        sty     D                       ; Store the number of coefficients in D
+        stax    src_ptr                 ; Use src_ptr to point to coefficients
+        lday    #FPtemp
+        jsr     store_fp0               ; Store the argument in FPtemp
+        lday    src_ptr
+        jsr     load_fp0                ; Load the first coefficient into FP0
+@next:
+        dec     D                       ; Finished with one coefficient
+        beq     @done                   ; If no more coefficients then exit with result in FP0
+        lday    #FPtemp                 ; Multiply by input value
+        jsr     fmul
+        clc                             ; Advance to the next coefficient
+        lda     src_ptr
+        adc     #.sizeof(Float)
+        sta     src_ptr
+        bne     @skip_inc
+        inc     src_ptr+1
+@skip_inc:
+        lday    src_ptr                 ; Add the next coefficient
+        jsr     fadd
+        jmp     @next
+        
+@done:
+        clc                             ; Signal success (last operation was load_fp0 which does not clear carry)
+        rts

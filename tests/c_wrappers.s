@@ -253,6 +253,14 @@ _fcmp:
         ldax    #-1
         rts
 
+_polynomial:
+.export _polynomial
+        sta     B                       ; Number of coefficients; goes to Y
+        jsr     popax                   ; AX points to the list of coefficients
+        ldy     B
+        jsr     polynomial
+        jmp     set_err
+
 ; list.s
 
 _list_line:

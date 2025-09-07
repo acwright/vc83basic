@@ -54,6 +54,8 @@ FP1t = FP1+UnpackedFloat::t
 FP1e = FP1+UnpackedFloat::e
 FP1s = FP1+UnpackedFloat::s
 
+FPtemp = buffer
+
 S0 = FPX
 S1 = FPX+2
 
@@ -124,6 +126,7 @@ S1 = FPX+2
 .global fdiv
 .global fneg
 .global fcmp
+.global polynomial
 
 ; functions.s
 .global fun_adr

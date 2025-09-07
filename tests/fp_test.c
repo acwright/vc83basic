@@ -558,6 +558,41 @@ void test_string_to_fp(void) {
     fail_string_to_fp("-X", __LINE__);
 }
 
+void test_polynomial(void) {
+    // 4
+    Float arg = { 0x00000000, 130 };
+    // 1
+    Float coefficients_1[] = {
+        { 0x00000000, 128 }
+    };
+    // 2x + 1 = 9
+    Float coefficients_2[] = {
+        { 0x00000000, 129 }, { 0x00000000, 128 }
+    };
+    // 3x^2 + 2x + 1 = 57
+    Float coefficients_3[] = {
+        { 0x40000000, 129 }, { 0x00000000, 129 }, { 0x00000000, 128 }
+    };
+    Float result;
+
+    PRINT_TEST_NAME();
+
+    load_fp0(&arg);
+    polynomial(coefficients_1, 1);
+    ASSERT_EQ(err, 0);
+    ASSERT_FP_FIELDS_EQ(FP0, POSITIVE, 128, 0x80000000);
+
+    load_fp0(&arg);
+    polynomial(coefficients_2, 2);
+    ASSERT_EQ(err, 0);
+    ASSERT_FP_FIELDS_EQ(FP0, POSITIVE, 131, 0x90000000);
+
+    load_fp0(&arg);
+    polynomial(coefficients_3, 3);
+    ASSERT_EQ(err, 0);
+    ASSERT_FP_FIELDS_EQ(FP0, POSITIVE, 133, 0xE4000000);
+}
+
 int main(void) {
     initialize_target();
     test_load_fp();
@@ -577,5 +612,6 @@ int main(void) {
     test_char_to_digit();
     test_fp_to_string();
     test_string_to_fp();
+    test_polynomial();
     return 0;
 }
