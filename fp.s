@@ -1139,9 +1139,10 @@ fcmp:
 
 ; Applies a polynomial to the value in FP0 using Horner's method. Stores the argument in FPtemp, which is aliased
 ; to buffer, so will clobber anything stored there.
-; The input to the function is a list of floating point polynomial coefficients, with the largest power first. If
-; there are N coefficients, then the first is for the N-1 term, the next for the N-2 term, etc. The last coefficient
-; is a constant (the N-N or zero-power term).
+; The function accepts an argument in FP0 and a list of floating point polynomial coefficients, with the largest power
+; first. If there are N coefficients, then the first is for the N-1 term, the next for the N-2 term, etc. The last'
+; coefficient is a constant (the N-N or zero-power term).
+; FP0 = the polynomial argument
 ; AX = pointer to the polynomial coefficients
 ; Y = the number of coefficients
 
@@ -1155,7 +1156,7 @@ polynomial:
 @next:
         dec     D                       ; Finished with one coefficient
         beq     @done                   ; If no more coefficients then exit with result in FP0
-        lday    #FPtemp                 ; Multiply by input value
+        lday    #FPtemp                 ; Multiply by argument
         jsr     fmul
         clc                             ; Advance to the next coefficient
         lda     src_ptr
