@@ -562,7 +562,7 @@ void test_string_to_fp(void) {
     fail_string_to_fp("-X", __LINE__);
 }
 
-void test_polynomial(void) {
+void test_fpoly(void) {
     // 4
     Float arg = { 0x00000000, 130 };
     // 1
@@ -577,24 +577,73 @@ void test_polynomial(void) {
     Float coefficients_3[] = {
         { 0x40000000, 129 }, { 0x00000000, 129 }, { 0x00000000, 128 }
     };
-    Float result;
 
     PRINT_TEST_NAME();
 
     load_fp0(&arg);
-    polynomial(coefficients_1, 1);
+    fpoly(coefficients_1, 1);
     ASSERT_EQ(err, 0);
     ASSERT_FP_FIELDS_EQ(FP0, POSITIVE, 128, 0x80000000);
 
     load_fp0(&arg);
-    polynomial(coefficients_2, 2);
+    fpoly(coefficients_2, 2);
     ASSERT_EQ(err, 0);
     ASSERT_FP_FIELDS_EQ(FP0, POSITIVE, 131, 0x90000000);
 
     load_fp0(&arg);
-    polynomial(coefficients_3, 3);
+    fpoly(coefficients_3, 3);
     ASSERT_EQ(err, 0);
     ASSERT_FP_FIELDS_EQ(FP0, POSITIVE, 133, 0xE4000000);
+}
+
+void test_fpoly_odd(void) {
+    // 4
+    Float arg = { 0x00000000, 130 };
+    // 1x = 4
+    Float coefficients_1[] = {
+        { 0x00000000, 128 }
+    };
+    // 2x^3 + 1x = 132
+    Float coefficients_2[] = {
+        { 0x00000000, 129 }, { 0x00000000, 128 }
+    };
+    // 3x^5 + 2x^3 + 1x = 3204
+    Float coefficients_3[] = {
+        { 0x40000000, 129 }, { 0x00000000, 129 }, { 0x00000000, 128 }
+    };
+
+    PRINT_TEST_NAME();
+
+    load_fp0(&arg);
+    fpoly_odd(coefficients_1, 1);
+    ASSERT_EQ(err, 0);
+    ASSERT_FP_FIELDS_EQ(FP0, POSITIVE, 130, 0x80000000);
+
+    load_fp0(&arg);
+    fpoly_odd(coefficients_2, 2);
+    ASSERT_EQ(err, 0);
+    ASSERT_FP_FIELDS_EQ(FP0, POSITIVE, 135, 0x84000000);
+
+    load_fp0(&arg);
+    fpoly_odd(coefficients_3, 3);
+    ASSERT_EQ(err, 0);
+    ASSERT_FP_FIELDS_EQ(FP0, POSITIVE, 139, 0xC8400000);
+}
+
+void test_flog(void) {
+    Float result;
+
+    // log(2) = 0.693147181
+    Float arg_2 = { 0x00000000, 130 };
+    Float log_2 = { 0x317217FA, 127 };
+
+    PRINT_TEST_NAME();
+
+    load_fp0(&arg_2);
+    flog();
+    ASSERT_EQ(err, 0);
+    store_fp0(&result);
+    ASSERT_FLOAT_EQ(result, log_2);
 }
 
 int main(void) {
@@ -616,6 +665,8 @@ int main(void) {
     test_char_to_digit();
     test_fp_to_string();
     test_string_to_fp();
-    test_polynomial();
+    test_fpoly();
+    test_fpoly_odd();
+    test_flog();
     return 0;
 }

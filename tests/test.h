@@ -118,7 +118,9 @@ void fmul(/* AY */ const Float* value);
 void fdiv(/* AY */ const Float* value);
 void fneg(void);
 int fcmp(/* AY */ const Float* value);
-void polynomial(const Float* coefficients, char n);
+void fpoly(const Float* coefficients, char n);
+void fpoly_odd(const Float* coefficients, char n);
+void flog(void);
 
 // list.s
 void list_line(void);

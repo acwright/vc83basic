@@ -1140,6 +1140,16 @@ fcmp:
 @done:
         rts                             ; Flags will be set correctly here
 
+; Polynomial functions use space on the stack.
+; We just put them at the very top of the stack (the lowest address since it grows down) rather than try to use the
+; stack pointer.
+
+fpoly_arg = stack
+fpoly_odd_arg = stack + .sizeof(Float)
+flog_arg = stack + .sizeof(Float) * 2
+flog_arg_plus_1 = stack + .sizeof(Float) * 3
+flog_exp = stack + .sizeof(Float) * 4
+
 ; Applies a polynomial to the value in FP0 using Horner's method. Stores temporary variables in stack space, so
 ; the stack must not be using that space.
 ; The function accepts an argument in FP0 and a list of floating point polynomial coefficients, with the largest power
@@ -1148,9 +1158,6 @@ fcmp:
 ; FP0 = the polynomial argument
 ; AX = pointer to the polynomial coefficients
 ; Y = the number of coefficients
-
-fpoly_arg = stack
-fpoly_odd_arg = stack + .sizeof(Float)
 
 fpoly:
         sty     D                       ; Store the number of coefficients in D
@@ -1182,15 +1189,6 @@ fpoly_2:
         clc                             ; Signal success (last operation was load_fp0 which does not clear carry)
         rts
 
-; Variation of polynomial that multiplies the final result by the polynomial argument.
-; This increases the power of all the polynomial terms by one, so instead of N terms from power N-1 to zero,
-; the polynomial has N terms from power N to 1.
-
-fpoly_x:
-        jsr     fpoly                   ; Call the regular polynomial function
-        lday    #fpoly_arg              ; Final multiplication by the argument, which is in fpoly_arg
-        jmp     fmul
-
 ; Variation of fpoly that only includes coefficients of odd powers.
 ; It works by first replacing the argument with the square of the argument, which doubles the power of every
 ; polynomial term, then multiplying the final result by the original argument.
@@ -1198,7 +1196,7 @@ fpoly_x:
 fpoly_odd:
         sty     D
         stax    src_ptr                 ; Have to store the coefficients before doing anything else
-        lday    fpoly_odd_arg           ; Store original argument for later
+        lday    #fpoly_odd_arg          ; Store original argument for later
         jsr     store_fp0
         jsr     copy_fp0_fp1            ; Copy the argument into FP1
         jsr     fmul_2                  ; Multiply argument by itself (argument already in FP1)
@@ -1218,13 +1216,9 @@ fpoly_odd:
 ; approximation is most accurate for values near 1.
 ; Then we just add that to the natural log of the exponential part that we calculated earlier.
 
-flog_arg = stack + .sizeof(Float) * 2
-flog_arg_plus_1 = stack + .sizeof(Float) * 3
-flog_exp = stack + .sizeof(Float) * 4
-
 fp_log_coefficients:
-        .byte $CD, $CC, $CC, $CC, 125   ; 1/5
-        .byte $AA, $AA, $AA, $AA, 126   ; 1/3
+        .byte $CD, $CC, $CC, $4C, 125   ; 1/5
+        .byte $AA, $AA, $AA, $2A, 126   ; 1/3
         .byte $00, $00, $00, $00, 128   ; 1
 
 flog:

@@ -124,7 +124,8 @@ S1 = FPX+2
 .global fdiv
 .global fneg
 .global fcmp
-.global fpoly
+.global fpoly, fpoly_odd
+.global flog
 
 ; functions.s
 .global fun_adr
