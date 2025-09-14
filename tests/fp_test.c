@@ -634,7 +634,7 @@ void test_flog(void) {
     Float result;
 
     // log(2) = 0.693147181
-    Float arg_2 = { 0x00000000, 130 };
+    Float arg_2 = { 0x00000000, 129 };
     Float log_2 = { 0x317217FA, 127 };
 
     PRINT_TEST_NAME();
