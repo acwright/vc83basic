@@ -546,6 +546,10 @@ void test_string_to_fp(void) {
     call_string_to_fp("-2147483648", NEGATIVE, 159, 0x80000000, __LINE__);
     // 1.025
     call_string_to_fp("1.025", POSITIVE, 128, 0x83333333, __LINE__);
+    // log(2)                                         
+    call_string_to_fp("0.693147181", POSITIVE, 127, 0xB17217FA, __LINE__);
+    // sqrt(2)                                         
+    call_string_to_fp("1.414213562", POSITIVE, 128, 0xB504F333, __LINE__);
 
     // Verify that string_to_fp stops on non-digit.
     call_string_to_fp("10X", POSITIVE, 131, 0xA0000000, __LINE__);

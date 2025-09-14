@@ -32,6 +32,8 @@ fp_one:         .byte $00, $00, $00, $00, 128
 fp_ten:         .byte $00, $00, $00, $20, 131
 fp_string_max:  .byte $00, $00, $00, $00, 160       ; 2^32     (4,294,967,296  )
 fp_string_min:  .byte $CC, $CC, $CC, $4C, 156       ; 2^32/10  (  429,496,729.6)
+fp_log_2:       .byte $EF, $2F, $E4, $62, 127
+fp_sqrt_2:      .byte $33, $F3, $04, $B5, 128
 
 ; Loads a new Float value from memory into FP0 or FP1.
 ; AY = a pointer to the value to load
@@ -363,6 +365,7 @@ truncate_fp_to_int_common:
 ; buffer_pos = the write position in buffer
 
 fp_to_string:
+        debug $00
         lda     FP0s                    ; Check for negative value
         bpl     @positive               ; Nope
         ldx     buffer_pos              ; Write index
@@ -912,6 +915,7 @@ fsub:
 
 fmul:
         jsr     load_fp1
+fmul_2:
         lda     FP0e                    ; Is FP0 zero?
         beq     @return_zero            ; Yes, just return
         lda     FP1e                    ; Test FP1
@@ -1136,8 +1140,8 @@ fcmp:
 @done:
         rts                             ; Flags will be set correctly here
 
-; Applies a polynomial to the value in FP0 using Horner's method. Stores the argument in FPtemp, which is aliased
-; to buffer, so will clobber anything stored there.
+; Applies a polynomial to the value in FP0 using Horner's method. Stores temporary variables in stack space, so
+; the stack must not be using that space.
 ; The function accepts an argument in FP0 and a list of floating point polynomial coefficients, with the largest power
 ; first. If there are N coefficients, then the first is for the N-1 term, the next for the N-2 term, etc. The last'
 ; coefficient is a constant (the N-N or zero-power term).
@@ -1145,17 +1149,23 @@ fcmp:
 ; AX = pointer to the polynomial coefficients
 ; Y = the number of coefficients
 
-polynomial:
+fpoly_arg = stack
+fpoly_odd_arg = stack + .sizeof(Float)
+
+fpoly:
         sty     D                       ; Store the number of coefficients in D
         stax    src_ptr                 ; Use src_ptr to point to coefficients
-        lday    #FPtemp
-        jsr     store_fp0               ; Store the argument in FPtemp
+fpoly_2:
+        lday    #fpoly_arg
+        jsr     store_fp0               ; Store the argument in polynomial_arg
         lday    src_ptr
         jsr     load_fp0                ; Load the first coefficient into FP0
 @next:
         dec     D                       ; Finished with one coefficient
         beq     @done                   ; If no more coefficients then exit with result in FP0
-        lday    #FPtemp                 ; Multiply by argument
+        lda     stack_pos
+
+        lday    #fpoly_arg              ; Multiply by argument
         jsr     fmul
         clc                             ; Advance to the next coefficient
         lda     src_ptr
@@ -1171,3 +1181,85 @@ polynomial:
 @done:
         clc                             ; Signal success (last operation was load_fp0 which does not clear carry)
         rts
+
+; Variation of polynomial that multiplies the final result by the polynomial argument.
+; This increases the power of all the polynomial terms by one, so instead of N terms from power N-1 to zero,
+; the polynomial has N terms from power N to 1.
+
+fpoly_x:
+        jsr     fpoly                   ; Call the regular polynomial function
+        lday    #fpoly_arg              ; Final multiplication by the argument, which is in fpoly_arg
+        jmp     fmul
+
+; Variation of fpoly that only includes coefficients of odd powers.
+; It works by first replacing the argument with the square of the argument, which doubles the power of every
+; polynomial term, then multiplying the final result by the original argument.
+
+fpoly_odd:
+        sty     D
+        stax    src_ptr                 ; Have to store the coefficients before doing anything else
+        lday    fpoly_odd_arg           ; Store original argument for later
+        jsr     store_fp0
+        jsr     copy_fp0_fp1            ; Copy the argument into FP1
+        jsr     fmul_2                  ; Multiply argument by itself (argument already in FP1)
+        jsr     fpoly_2                 ; Invoke the polynomial function with D and src_ptr already set
+        lday    #fpoly_odd_arg          ; Multiply again by original arg
+        jmp     fmul                    ; Multiply again
+
+; Calculate the natural logarithm of the argument in FP0.
+; Strategy:
+;     FP0 is in the format t * e^2
+;     log(t * e^2) = log(t) + log(e^2)
+;     log(t * e^2) = log(t) + log2(e^2) * log(2)
+;     log(t * e^2) = log(t) + e * log(2)
+; To get the natural log of the exponential part, we take the base-2 log, which is just e, and multiply by log(2).
+; Since t is in the range [1, 2) we divide by sqrt(2) = 1.414 to bring it into the range ~0.707 to ~1.414, then use
+; a polynomial approximation to generate the natural log of t. The multiplication is necessary because the
+; approximation is most accurate for values near 1.
+; Then we just add that to the natural log of the exponential part that we calculated earlier.
+
+flog_arg = stack + .sizeof(Float) * 2
+flog_arg_plus_1 = stack + .sizeof(Float) * 3
+flog_exp = stack + .sizeof(Float) * 4
+
+fp_log_coefficients:
+        .byte $CD, $CC, $CC, $CC, 125   ; 1/5
+        .byte $AA, $AA, $AA, $AA, 126   ; 1/3
+        .byte $00, $00, $00, $00, 128   ; 1
+
+flog:
+        lday    #flog_arg               ; Store the original argument
+        jsr     store_fp0
+        lda     FP0e                    ; Load the exponent into A
+        ldx     #0                      ; High byte of exponent is 0
+        sec
+        sbc     #BIAS                   ; Remove the bias
+        bcs     @skip_dex               ; If carry ("no borrow") clear, don't borrow from X
+        dex                             ; Otherwise decrement X
+@skip_dex:
+        jsr     int_to_fp               ; Promote up to a float
+        lday    #fp_log_2               ; Multiply by log(2) to convert to natural logarithm of exponent part
+        jsr     fmul
+        lday    #flog_exp
+        jsr     store_fp0               ; Store the result in flog_exp; we'll add it back later
+        lday    #flog_arg               ; Get the original argument back
+        mva     #BIAS, FP0e             ; Set the exponent to 0 (+BIAS) because we took care of exponent part already
+        lday    #fp_sqrt_2              ; Divide by sqrt(2)
+        jsr     fdiv
+        lday    #flog_arg               ; Save the adjusted value back over the original argument
+        jsr     store_fp0
+        lday    #fp_one                 ; Calculate and save arg + 1
+        jsr     fadd
+        lday    #flog_arg_plus_1
+        jsr     store_fp0
+        lday    #flog_arg
+        jsr     load_fp0
+        lday    #fp_one                 ; Calculate arg - 1
+        jsr     fsub
+        lday    #flog_arg_plus_1        ; Calculate (arg - 1) / (arg + 1)
+        jsr     fdiv
+        ldax    #fp_log_coefficients
+        ldy     #3
+        jsr     fpoly_odd
+        lday    #flog_exp               ; Add in the log of the exponent
+        jmp     fadd
