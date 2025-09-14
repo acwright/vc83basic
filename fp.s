@@ -1217,10 +1217,10 @@ fpoly_odd:
 ; Then we just add that to the natural log of the exponential part that we calculated earlier.
 
 fp_log_coefficients:
-        .byte $92, $24, $49, $12, 125   ; 1/7 (x^7 / 7)
-        .byte $CD, $CC, $CC, $4C, 125   ; 1/5 (x^5 / 5)
-        .byte $AA, $AA, $AA, $2A, 126   ; 1/3 (x^3 / 3)
-        .byte $00, $00, $00, $00, 128   ; 1
+        .byte $92, $24, $49, $12, 125   ; 1/7   x^7 / 7 +
+        .byte $CD, $CC, $CC, $4C, 125   ; 1/5   x^5 / 5 +
+        .byte $AA, $AA, $AA, $2A, 126   ; 1/3   x^3 / 3 +
+        .byte $00, $00, $00, $00, 128   ; 1     x
 
 flog:
         lday    #flog_arg               ; Store the original argument
