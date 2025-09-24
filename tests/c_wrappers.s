@@ -164,6 +164,11 @@ _truncate_fp_to_int32:
         jsr     truncate_fp_to_int32
         jmp     set_err
 
+_truncate:
+.export _truncate
+        jsr     truncate
+        jmp     set_err
+
 _char_to_digit:
 .export _char_to_digit
         jsr     char_to_digit

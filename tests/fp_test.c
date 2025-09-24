@@ -252,6 +252,39 @@ void test_truncate_fp_to_int32(void) {
     }
 }
 
+void test_truncate(void) {
+    Float test_cases[] = {
+        { 0x00000000, 0 },          // 0
+        { 0x00000000, 128 },        // 1
+        { 0x490FCF81, 129 },        // 3.14159
+        { 0xC90FCF81, 129 },        // -3.14159
+        { 0x3A43B73D, 164 },        // 9.99999999E10
+        { 0xDBE6FECE, 0 },          // 9.99999999E-11
+    };
+    Float expected_results[] = {
+        { 0x00000000, 0 },          // 0
+        { 0x00000000, 128 },        // 1
+        { 0x40000000, 129 },        // 3
+        { 0xC0000000, 129 },        // -3
+        { 0x3A43B73D, 164 },        // 9.99999999E10
+        { 0x00000000, 0 },          // 0
+    };
+    Float result;
+    int i;
+
+    PRINT_TEST_NAME();
+
+    for (i = 0; i < sizeof test_cases / sizeof *test_cases; i++) {
+        Float* test_case = test_cases + i;
+        fprintf(stderr, "  %s:%d: truncate(t=$%08LX e=%02X)\n", __FILE__, __LINE__, test_case->t, test_case->e);
+        load_fp0(test_case);
+        truncate();
+        store_fp0(&result);
+        ASSERT_EQ(err, 0);
+        ASSERT_FLOAT_EQ(result, expected_results[i]);
+    }
+}
+
 typedef struct OperationTestCase {
     Float arg0;
     Float arg1;
@@ -657,6 +690,7 @@ int main(void) {
     test_int32_to_fp();
     test_truncate_fp_to_int();
     test_truncate_fp_to_int32();
+    test_truncate();
     test_fadd();
     test_fsub();
     test_fmul();

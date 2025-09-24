@@ -388,6 +388,54 @@ truncate_fp_to_int32:
         sec
         rts
 
+; Truncates a floating point value by zeroing out all of the bits to the right of the binary point.
+; We use the same logic as truncate_fp_to_int32 does to generate a shift count, but instead of shifting the
+; significand right, we're shifting a bit mask left. If the shift count is > 8, we're going
+; to mask out all the bits in the low byte, so we can just set them to 0 without bothering to shift anything. In fact
+; we can just clear the lowest (shift count / 8) bytes, then generate and apply the mask to the next byte.
+
+truncate:
+        lda     FP0e                    ; Exponent
+        sec
+        sbc     #BIAS                   ; Subtract out bias; max unbiased e value is 127
+        bcc     @e_neg                  ; Carry ("no borrow") clear we had to borrow so e < BIAS meaning e < 0
+        beq     @e_zero                 ; Exactly 0 so return 1
+        eor     #$FF                    ; A is now -e-1; I want 31-e, so just add 31 and let carry negate the -1
+        adc     #31
+        beq     @done                   ; Result was 0 so we don't have to shift at all
+        bmi     @done                   ; If negative then e was >= 32 and number has no fractional component
+        ldx     #0                      ; Start with least significant byte
+        ldy     #0                      ; The 0 value we're going to store
+@zero:
+        sec
+        sbc     #8                      ; Subtract 8 from shift count
+        bcc     @mask                   ; If count went negative then mask the next byte
+        sty     FP0t,x                  ; Store 0 in this significand byte
+        inx                             ; Move to next significand byte
+        bne     @zero
+@mask:
+        adc     #8                      ; The carry will be set here, so ADC with 8 to re-add the 8 we subtracted
+        tay                             ; Into Y
+        beq     @done                   ; If 0 then nothing to do
+        lda     #$FF                    ; Initialize the mask for this byte to all 1s
+@shift:
+        asl     A                       ; Shift the mask left
+        dey
+        bne     @shift
+        and     FP0t,x                  ; AND in the significand value
+        sta     FP0t,x                  ; Store back
+@done:
+        clc
+        rts
+
+@e_neg:
+        jmp     clear_fp0
+
+@e_zero:
+        clc                             ; load_fp0 doesn't clear carry
+        lday    #fp_one
+        jmp     load_fp0
+
 ; Converts FP number in FP0 into a string.
 ; Writes the string to buffer at the position specified by buffer_pos. Does not perform any error checking; there must 
 ; be enough space in the buffer for the write to succeed.
