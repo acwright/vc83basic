@@ -285,6 +285,47 @@ void test_truncate(void) {
     }
 }
 
+void test_round(void) {
+    Float test_cases[] = {
+        { 0x00000000, 0 },          // 0
+        { 0x00000000, 128 },        // 1
+        { 0x490FCF81, 129 },        // 3.14159
+        { 0xC90FCF81, 129 },        // -3.14159
+        { 0x4CCCCCCD, 130 },        // 6.4
+        { 0x50000000, 130 },        // 6.5
+        { 0x53333333, 130 },        // 6.6
+        { 0xCCCCCCCD, 130 },        // -6.4
+        { 0xD0000000, 130 },        // -6.5
+        { 0xD3333333, 130 },        // -6.6
+    };
+    Float expected_results[] = {
+        { 0x00000000, 0 },          // 0
+        { 0x00000000, 128 },        // 1
+        { 0x40000000, 129 },        // 3
+        { 0xC0000000, 129 },        // -3
+        { 0x40000000, 130 },        // 6
+        { 0x60000000, 130 },        // 7
+        { 0x60000000, 130 },        // 7
+        { 0xC0000000, 130 },        // -6
+        { 0xE0000000, 130 },        // -7
+        { 0xE0000000, 130 },        // -7
+    };
+    Float result;
+    int i;
+
+    PRINT_TEST_NAME();
+
+    for (i = 0; i < sizeof test_cases / sizeof *test_cases; i++) {
+        Float* test_case = test_cases + i;
+        fprintf(stderr, "  %s:%d: round(t=$%08LX e=%02X)\n", __FILE__, __LINE__, test_case->t, test_case->e);
+        load_fp0(test_case);
+        round();
+        store_fp0(&result);
+        ASSERT_EQ(err, 0);
+        ASSERT_FLOAT_EQ(result, expected_results[i]);
+    }
+}
+
 typedef struct OperationTestCase {
     Float arg0;
     Float arg1;
@@ -691,6 +732,7 @@ int main(void) {
     test_truncate_fp_to_int();
     test_truncate_fp_to_int32();
     test_truncate();
+    test_round();
     test_fadd();
     test_fsub();
     test_fmul();

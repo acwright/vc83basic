@@ -107,6 +107,7 @@ void int_to_fp(/* AX */ int value);
 void int32_to_fp(void);
 int truncate_fp_to_int(void);
 void truncate_fp_to_int32(void);
+void round(void);
 void truncate(void);
 void fp_to_string(void);
 void string_to_fp(/* AX */ const char* ptr, /* Y */ char pos);

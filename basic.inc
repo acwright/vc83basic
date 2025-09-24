@@ -113,6 +113,7 @@ S1 = FPX+2
 .global clear_fp0
 .global int_to_fp, int32_to_fp
 .global truncate_fp_to_int, truncate_fp_to_int32
+.global round
 .global truncate
 .global fp_to_string
 .global string_to_fp

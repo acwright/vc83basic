@@ -388,6 +388,18 @@ truncate_fp_to_int32:
         sec
         rts
 
+; Rounds the floating point value in FP0 to an integer.
+; Rounds to nearest, evens away from zero.
+
+round:
+        lday    #fp_one
+        jsr     load_fp1                ; Load the value 1 into FP1
+        dec     FP1e                    ; Decrement exponent by 1 so it's 1/2 instead of 1
+        mva     FP0s, FP1s              ; Copy the sign; the value is now +/- 1/2 depending on sign of FP0
+        jsr     fadd_2                  ; Increase FP0 1/2 further away from zero
+
+; Fall through
+
 ; Truncates a floating point value by zeroing out all of the bits to the right of the binary point.
 ; We use the same logic as truncate_fp_to_int32 does to generate a shift count, but instead of shifting the
 ; significand right, we're shifting a bit mask left. If the shift count is > 8, we're going
