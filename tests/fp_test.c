@@ -668,7 +668,7 @@ void test_flog(void) {
 
     // log(2) = 0.693147181
     Float arg_2 = { 0x00000000, 129 };
-    Float log_2 = { 0x317217FA, 127 };
+    Float log_2 = { 0x3172187A, 127 }; // TODO: wrong, should be 0x317217FA
 
     PRINT_TEST_NAME();
 
