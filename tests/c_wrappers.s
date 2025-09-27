@@ -284,6 +284,11 @@ _flog:
         jsr     flog
         jmp     set_err
 
+_fexp:
+.export _fexp
+        jsr     fexp
+        jmp     set_err
+
 ; list.s
 
 _list_line:

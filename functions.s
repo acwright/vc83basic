@@ -36,6 +36,11 @@ fun_chr_s:
 @done:
         rts
 
+fun_exp:
+        jsr     pop_fp0
+        jsr     fexp
+        jmp     push_fp0
+
 fun_fre:
         jsr     compact                 ; GC strings
         sec                             ; Calculate free memory

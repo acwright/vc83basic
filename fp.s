@@ -992,6 +992,7 @@ fadd_2:
 
 fsub:
         jsr     load_fp1
+fsub_2:
         lda     FP1s
         eor     #$80
         sta     FP1s
@@ -1234,9 +1235,6 @@ fcmp:
 
 fpoly_arg = stack
 fpoly_odd_arg = stack + .sizeof(Float)
-flog_arg = stack + .sizeof(Float) * 2
-flog_arg_plus_1 = stack + .sizeof(Float) * 3
-flog_exp = stack + .sizeof(Float) * 4
 
 ; Applies a polynomial to the value in FP0 using Horner's method. Stores temporary variables in stack space, so
 ; the stack must not be using that space.
@@ -1294,7 +1292,8 @@ fpoly_odd:
 
 ; Calculate the natural logarithm of the argument in FP0.
 ; Strategy:
-;     FP0 is in the format t * e^2
+;     FP0 is in the format t * e^2 [note e is the exponent not the natural log base]
+;     log(x) = log(t * e^2)
 ;     log(t * e^2) = log(t) + log(e^2)
 ;     log(t * e^2) = log(t) + log2(e^2) * log(2)
 ;     log(t * e^2) = log(t) + e * log(2)
@@ -1310,6 +1309,10 @@ fp_log_coefficients:
         .byte $CD, $CC, $CC, $4C, 125   ; 1/5   x^5 / 5 +
         .byte $AA, $AA, $AA, $2A, 126   ; 1/3   x^3 / 3 +
         .byte $00, $00, $00, $00, 128   ; 1     x
+
+flog_arg = stack + .sizeof(Float) * 2
+flog_arg_plus_1 = stack + .sizeof(Float) * 3
+flog_exp = stack + .sizeof(Float) * 4
 
 flog:
         lday    #flog_arg               ; Store the original argument
@@ -1353,4 +1356,59 @@ flog:
         jsr     load_fp1                ; Load log(2) info FP1
         dec     FP1e                    ; Synthesize log(sqrt(2)) as log(2)/2
         jsr     fadd_2
+        rts
+
+; Calculates e raised to the power of the value in FP0.
+; Strategy:
+;     exp(x) = exp(k*log(2) + r)
+;     exp(x) = exp(k*log(2) * exp(r)
+;     exp(x) = exp(log(2))^k * exp(r)
+;     exp(x) = 2^k * exp(r)
+; We want to split up the argument into one part that we can easily raise to a power and a much smaller remainder.
+; We apply the Taylor series to the remainder and multiply. The Taylor series can generate the result on its own, but
+; it would require many more terms to cover the full range of input values.
+; To find k, convert the input into a base-2 log (divide by log(2)), then round to an integer. Raising 2 to the power
+; is easy and will get us close to the result. Then convert the remainder back to a natural log (multiply by log(2))
+; and apply the Taylor series.
+
+fexp_x = stack + .sizeof(Float) * 2
+fexp_k = stack + .sizeof(Float) * 3
+
+fp_exp_coefficients:
+
+
+        .byte $92, $24, $49, $12, 125   ; 1/7   x^7 / 7 +
+        .byte $CD, $CC, $CC, $4C, 125   ; 1/5   x^5 / 5 +
+        .byte $AA, $AA, $AA, $2A, 126   ; 1/3   x^3 / 3 +
+        .byte $00, $00, $00, $00, 128   ; 1     x
+
+fexp:
+        lday    #fexp_x
+        jsr     store_fp0
+        debug $00
+        lday    #fp_log_2               ; Divide by log(2) and round to an integer
+        jsr     fdiv                    ; Now number is a base-2 log
+        debug $01
+        jsr     round
+        jsr     copy_fp0_fp1            ; Move into FP1
+        jsr     truncate_fp_to_int      ; Convert into an signed integer (will not affect FP1)
+        sta     E                       ; Store as signed 8-bit value inE
+        debug $02
+        lday    #fp_log_2               ; Multiply rounded value in FP1 by log(2) to convert to rounded log
+        jsr     load_fp0
+        debug $03
+        jsr     fmul_2
+        debug $04
+        jsr     copy_fp0_fp1            ; Move it into FP1
+        lday    #fexp_x                 ; Get the argument back
+        jsr     fsub_2                  ; Subtract the natural log version if k from the original argument
+        debug $05
+
+
+        lday    #fp_one
+        jsr     load_fp0
+        clc
+        lda     FP0e
+        adc     E
+        sta     FP0e
         rts

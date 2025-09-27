@@ -123,6 +123,7 @@ int fcmp(/* AY */ const Float* value);
 void fpoly(const Float* coefficients, char n);
 void fpoly_odd(const Float* coefficients, char n);
 void flog(void);
+void fexp(void);
 
 // list.s
 void list_line(void);

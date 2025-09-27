@@ -720,6 +720,22 @@ void test_flog(void) {
     ASSERT_FLOAT_EQ(result, log_2);
 }
 
+void test_fexp(void) {
+    Float result;
+
+    // exp(0.693147181) = 2
+    Float arg_2 = { 0x3172187A, 127 };
+    Float exp_2 = { 0x00000000, 129 };
+
+    PRINT_TEST_NAME();
+
+    load_fp0(&arg_2);
+    fexp();
+    ASSERT_EQ(err, 0);
+    store_fp0(&result);
+    ASSERT_FLOAT_EQ(result, exp_2);
+}
+
 int main(void) {
     initialize_target();
     test_load_fp();
@@ -744,5 +760,6 @@ int main(void) {
     test_fpoly();
     test_fpoly_odd();
     test_flog();
+    test_fexp();
     return 0;
 }

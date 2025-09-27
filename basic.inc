@@ -128,11 +128,13 @@ S1 = FPX+2
 .global fcmp
 .global fpoly, fpoly_odd
 .global flog
+.global fexp
 
 ; functions.s
 .global fun_adr
 .global fun_asc
 .global fun_chr_s
+.global fun_exp
 .global fun_fre
 .global fun_int
 .global fun_left_s
