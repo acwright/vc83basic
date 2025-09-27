@@ -129,24 +129,30 @@ S1 = FPX+2
 .global fpoly, fpoly_odd
 .global flog
 .global fexp
+.global fcos
+.global fsin
+.global ftan
 
 ; functions.s
 .global fun_adr
 .global fun_asc
 .global fun_chr_s
-.global fun_exp
 .global fun_fre
 .global fun_int
 .global fun_left_s
 .global fun_right_s
 .global fun_mid_s
 .global fun_len
-.global fun_log
 .global fun_peek
 .global fun_round
 .global fun_str_s
 .global fun_usr
 .global fun_val
+.global fun_log
+.global fun_exp
+.global fun_sin
+.global fun_cos
+.global fun_tan
 
 ; input.s
 .global exec_input

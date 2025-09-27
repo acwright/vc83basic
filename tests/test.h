@@ -124,6 +124,9 @@ void fpoly(const Float* coefficients, char n);
 void fpoly_odd(const Float* coefficients, char n);
 void flog(void);
 void fexp(void);
+void fcos(void);
+void fsin(void);
+void ftan(void);
 
 // list.s
 void list_line(void);

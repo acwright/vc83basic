@@ -289,6 +289,21 @@ _fexp:
         jsr     fexp
         jmp     set_err
 
+_fcos:
+.export _fcos
+    jsr     fcos
+    jmp     set_err
+
+_fsin:
+.export _fsin
+    jsr     fsin
+    jmp     set_err
+
+_ftan:
+.export _ftan
+    jsr     ftan
+    jmp     set_err
+
 ; list.s
 
 _list_line:

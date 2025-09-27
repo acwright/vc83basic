@@ -63,10 +63,13 @@ function_name_table:
 :       .byte   :+ - *, 'P', 'E', 'E', 'K' | EOT
 :       .byte   :+ - *, 'A', 'D', 'R' | EOT
 :       .byte   :+ - *, 'U', 'S', 'R' | EOT
-:       .byte   :+ - *, 'L', 'O', 'G' | EOT
 :       .byte   :+ - *, 'I', 'N', 'T' | EOT
 :       .byte   :+ - *, 'R', 'O', 'U', 'N', 'D' | EOT
+:       .byte   :+ - *, 'L', 'O', 'G' | EOT
 :       .byte   :+ - *, 'E', 'X', 'P' | EOT
+:       .byte   :+ - *, 'S', 'I', 'N' | EOT
+:       .byte   :+ - *, 'C', 'O', 'S' | EOT
+:       .byte   :+ - *, 'T', 'A', 'N' | EOT
 :       .byte   0
 
 function_arity_table:
@@ -82,10 +85,13 @@ function_arity_table:
         .byte   1   ; PEEK
         .byte   1   ; ADR
         .byte   2   ; USR
-        .byte   1   ; LOG
         .byte   1   ; INT
         .byte   1   ; ROUND
+        .byte   1   ; LOG
         .byte   1   ; EXP
+        .byte   1   ; SIN
+        .byte   1   ; COS
+        .byte   1   ; TAN
 
 ; Operator precedence table
 ; We index this by the operator index divided by 2.

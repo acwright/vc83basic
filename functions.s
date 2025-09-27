@@ -36,11 +36,6 @@ fun_chr_s:
 @done:
         rts
 
-fun_exp:
-        jsr     pop_fp0
-        jsr     fexp
-        jmp     push_fp0
-
 fun_fre:
         jsr     compact                 ; GC strings
         sec                             ; Calculate free memory
@@ -167,11 +162,6 @@ fun_len:
         jsr     int_to_fp               ; Into FP0
         jmp     push_fp0                ; Push return value
 
-fun_log:
-        jsr     pop_fp0
-        jsr     flog
-        jmp     push_fp0
-
 fun_round:
         jsr     pop_fp0
         jsr     round
@@ -247,3 +237,27 @@ fun_val:
         ldax    #buffer
         jsr     string_to_fp            ; Parse it
         jmp     push_fp0                ; Push FP0 and return carry from string_to_fp
+
+fun_log:
+        jsr     pop_fp0
+        jsr     flog
+        jmp     push_fp0
+
+fun_exp:
+        jsr     pop_fp0
+        jsr     fexp
+        jmp     push_fp0
+
+fun_cos:
+        jsr     pop_fp0
+        jsr     fcos
+        jmp     push_fp0
+
+fun_sin:
+        jsr     pop_fp0
+        jsr     fsin
+        jmp     push_fp0
+
+fun_tan:
+        clc
+        rts
