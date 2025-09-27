@@ -1239,7 +1239,7 @@ fpoly_odd_arg = stack + .sizeof(Float)
 ; Applies a polynomial to the value in FP0 using Horner's method. Stores temporary variables in stack space, so
 ; the stack must not be using that space.
 ; The function accepts an argument in FP0 and a list of floating point polynomial coefficients, with the largest power
-; first. If there are N coefficients, then the first is for the N-1 term, the next for the N-2 term, etc. The last'
+; first. If there are N coefficients, then the first is for the N-1 term, the next for the N-2 term, etc. The last
 ; coefficient is a constant (the N-N or zero-power term).
 ; FP0 = the polynomial argument
 ; AX = pointer to the polynomial coefficients
@@ -1375,40 +1375,33 @@ fexp_x = stack + .sizeof(Float) * 2
 fexp_k = stack + .sizeof(Float) * 3
 
 fp_exp_coefficients:
-
-
-        .byte $92, $24, $49, $12, 125   ; 1/7   x^7 / 7 +
-        .byte $CD, $CC, $CC, $4C, 125   ; 1/5   x^5 / 5 +
-        .byte $AA, $AA, $AA, $2A, 126   ; 1/3   x^3 / 3 +
+        .byte $AB, $AA, $AA, $2A, 123   ; 1/4!  x^4 / 4! +
+        .byte $AB, $AA, $AA, $2A, 125   ; 1/3!  x^3 / 3! +
+        .byte $00, $00, $00, $00, 127   ; 1     x^2 / 2! +
         .byte $00, $00, $00, $00, 128   ; 1     x
+        .byte $00, $00, $00, $00, 128   ; 1     1
 
 fexp:
         lday    #fexp_x
         jsr     store_fp0
-        debug $00
         lday    #fp_log_2               ; Divide by log(2) and round to an integer
         jsr     fdiv                    ; Now number is a base-2 log
-        debug $01
         jsr     round
         jsr     copy_fp0_fp1            ; Move into FP1
         jsr     truncate_fp_to_int      ; Convert into an signed integer (will not affect FP1)
         sta     E                       ; Store as signed 8-bit value inE
-        debug $02
         lday    #fp_log_2               ; Multiply rounded value in FP1 by log(2) to convert to rounded log
         jsr     load_fp0
-        debug $03
         jsr     fmul_2
-        debug $04
         jsr     copy_fp0_fp1            ; Move it into FP1
         lday    #fexp_x                 ; Get the argument back
-        jsr     fsub_2                  ; Subtract the natural log version if k from the original argument
-        debug $05
-
-
-        lday    #fp_one
         jsr     load_fp0
+        jsr     fsub_2                  ; Subtract the natural log version if k from the original argument
+        ldax    #fp_exp_coefficients
+        ldy     #5
+        jsr     fpoly                   ; Apply the polynomial to get exp(r)
         clc
-        lda     FP0e
-        adc     E
+        lda     FP0e                    ; Now multiply by 2^k, which just means increasing by exponent by k
+        adc     E                       ; Leaves carry clear
         sta     FP0e
         rts

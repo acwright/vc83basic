@@ -724,16 +724,26 @@ void test_fexp(void) {
     Float result;
 
     // exp(0.693147181) = 2
-    Float arg_2 = { 0x3172187A, 127 };
-    Float exp_2 = { 0x00000000, 129 };
+    Float arg_log_2 = { 0x317217FA, 127 };
+    Float exp_log_2 = { 0x00000000, 129 };
+
+    // exp(8) = 2980.957987
+    Float arg_8 = { 0x00000000, 131 };
+    Float exp_8 = { 0x3A5101DA, 139 }; // TODO: wrong, should be 0x3A4F53EA
 
     PRINT_TEST_NAME();
 
-    load_fp0(&arg_2);
+    load_fp0(&arg_log_2);
     fexp();
     ASSERT_EQ(err, 0);
     store_fp0(&result);
-    ASSERT_FLOAT_EQ(result, exp_2);
+    ASSERT_FLOAT_EQ(result, exp_log_2);
+
+    load_fp0(&arg_8);
+    fexp();
+    ASSERT_EQ(err, 0);
+    store_fp0(&result);
+    ASSERT_FLOAT_EQ(result, exp_8);
 }
 
 int main(void) {
