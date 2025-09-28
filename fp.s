@@ -454,6 +454,9 @@ truncate:
 ; be enough space in the buffer for the write to succeed.
 ; buffer_pos = the write position in buffer
 
+; TODO: adding two bytes here causes flog test to fail?!
+; .byte 0, 0
+
 fp_to_string:
         lda     FP0s                    ; Check for negative value
         bpl     @positive               ; Nope
@@ -1423,10 +1426,11 @@ fcos:
 fsin_x = stack + .sizeof(Float) * 2
 
 fp_sin_coefficients:
-        .byte $2B, $1D, $EF, $38, 109   ; 1/9!     x^9 / 9! +
-        .byte $D0, $00, $0D, $D0, 115   ; 1/7!   - x^7 / 7! +
-        .byte $89, $88, $88, $08, 121   ; 1/5!   + x^5 / 5! +
-        .byte $AB, $AA, $AA, $AA, 125   ; 1/3!   - x^3 / 3! +
+        .byte $40, $2B, $32, $D7, 102   ; 1/11!  - x^11 / 11!
+        .byte $2B, $1D, $EF, $38, 109   ; 1/9!   + x^9 / 9!
+        .byte $D0, $00, $0D, $D0, 115   ; 1/7!   - x^7 / 7!
+        .byte $89, $88, $88, $08, 121   ; 1/5!   + x^5 / 5!
+        .byte $AB, $AA, $AA, $AA, 125   ; 1/3!   - x^3 / 3!
         .byte $00, $00, $00, $00, 128   ; 1      + x
 
 fsin:
@@ -1444,7 +1448,7 @@ fsin:
         jsr     load_fp0                ; Load it into FP0
         jsr     fsub_2                  ; Subtract giving the remainder of x/2pi
         ldax    #fp_sin_coefficients    ; Apply Taylor series
-        ldy     #5
+        ldy     #6
         jmp     fpoly_odd
 
 ftan:

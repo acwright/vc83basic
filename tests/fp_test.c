@@ -704,72 +704,91 @@ void test_fpoly_odd(void) {
     ASSERT_FP_FIELDS_EQ(FP0, POSITIVE, 139, 0xC8400000);
 }
 
-void test_flog(void) {
+typedef struct FunctionTestCase {
+    Float arg;
+    Float result;
+} FunctionTestCase;
+
+void test_function(const char* f_name, void (*f)(void), const FunctionTestCase* test_cases, size_t count) {
+    const FunctionTestCase* test_case;
+    int i;
     Float result;
 
+    for (i = 0; i < count; i++) {
+        test_case = test_cases + i;
+        fprintf(stderr, "  %s:%d %s(t=%08LX e=%02X)\n", __FILE__, __LINE__, f_name,
+            test_case->arg.t, test_case->arg.e);
+        load_fp0(&test_case->arg);
+        f();
+        ASSERT_EQ(err, 0);
+        store_fp0(&result);
+        ASSERT_FLOAT_EQ(result, test_case->result);
+    }    
+}
+
+#define TEST_FUNCTION(f) \
+    void test_##f(void) { \
+        PRINT_TEST_NAME(); \
+        test_function(#f, f, f##_test_cases, sizeof f##_test_cases / sizeof *f##_test_cases); \
+    }
+
+const FunctionTestCase flog_test_cases[] = {
     // log(2) = 0.693147181
-    Float arg_2 = { 0x00000000, 129 };
-    Float log_2 = { 0x3172187A, 127 }; // TODO: wrong, should be 0x317217FA
+    { { 0x00000000, 129 }, { 0x3172187A, 127 } }, // TODO: wrong, should be 0x317217FA
+};
 
-    PRINT_TEST_NAME();
+TEST_FUNCTION(flog);
 
-    load_fp0(&arg_2);
-    flog();
-    ASSERT_EQ(err, 0);
-    store_fp0(&result);
-    ASSERT_FLOAT_EQ(result, log_2);
-}
-
-void test_fexp(void) {
-    Float result;
-
+const FunctionTestCase fexp_test_cases[] = {
     // exp(0.693147181) = 2
-    Float arg_log_2 = { 0x317217FA, 127 };
-    Float exp_log_2 = { 0x00000000, 129 };
-
+    { { 0x317217FA, 127 }, { 0x00000000, 129 } }, // TODO: wrong, should be 0x317217FA
     // exp(8) = 2980.957987
-    Float arg_8 = { 0x00000000, 131 };
-    Float exp_8 = { 0x3A5101DA, 139 }; // TODO: wrong, should be 0x3A4F53EA
+    { { 0x00000000, 131 }, { 0x3A5101DA, 139 } },
+};
 
-    PRINT_TEST_NAME();
+TEST_FUNCTION(fexp);
 
-    load_fp0(&arg_log_2);
-    fexp();
-    ASSERT_EQ(err, 0);
-    store_fp0(&result);
-    ASSERT_FLOAT_EQ(result, exp_log_2);
+// For trig test cases, pi = 3.14159265 so values are not what they would be if we could represent
+// pi more accurately.
 
-    load_fp0(&arg_8);
-    fexp();
-    ASSERT_EQ(err, 0);
-    store_fp0(&result);
-    ASSERT_FLOAT_EQ(result, exp_8);
-}
+const FunctionTestCase fsin_test_cases[] = {
+    // sin(0) = 0
+    { { 0x00000000,   0 }, { 0x00000000,   0 } },
+    // sin(pi/2) = 1
+    { { 0x490FDA9E, 128 }, { 0x7FFFFF0F,   127 } },
+    // sin(pi) = 0
+    { { 0x490FDA9E, 129 }, { 0x00000000,   129 } },
+    // sin(pi/2) = -1
+    { { 0x490FDA9E, 128 }, { 0x80000000,   128 } },
+};
+
+TEST_FUNCTION(fsin);
 
 int main(void) {
     initialize_target();
-    test_load_fp();
-    test_store_fp0();
-    test_swap_fp0_fp1();
-    test_adjust_exponent();
-    test_normalize();
-    test_int_to_fp();
-    test_int32_to_fp();
-    test_truncate_fp_to_int();
-    test_truncate_fp_to_int32();
-    test_truncate();
-    test_round();
-    test_fadd();
-    test_fsub();
-    test_fmul();
-    test_fdiv();
-    test_fcmp();
-    test_char_to_digit();
-    test_fp_to_string();
-    test_string_to_fp();
-    test_fpoly();
-    test_fpoly_odd();
-    test_flog();
-    test_fexp();
+    // test_load_fp();
+    // test_store_fp0();
+    // test_swap_fp0_fp1();
+    // test_adjust_exponent();
+    // test_normalize();
+    // test_int_to_fp();
+    // test_int32_to_fp();
+    // test_truncate_fp_to_int();
+    // test_truncate_fp_to_int32();
+    // test_truncate();
+    // test_round();
+    // test_fadd();
+    // test_fsub();
+    // test_fmul();
+    // test_fdiv();
+    // test_fcmp();
+    // test_char_to_digit();
+    // test_fp_to_string();
+    // test_string_to_fp();
+    // test_fpoly();
+    // test_fpoly_odd();
+    // test_flog();
+    // test_fexp();
+    test_fsin();
     return 0;
 }
