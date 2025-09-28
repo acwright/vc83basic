@@ -1407,6 +1407,8 @@ fexp:
         rts
 
 fsin_x = stack + .sizeof(Float) * 2
+ftan_x = stack + .sizeof(Float) * 3
+ftan_cos_x = stack + .sizeof(Float) * 4
 
 fp_sin_coefficients:
         .byte $40, $2B, $32, $D7, 102   ; 1/11!  - x^11 / 11!
@@ -1449,6 +1451,16 @@ fsin:
         ldy     #6
         jmp     fpoly_odd
 
+; Calculates the tangent of the value in FP0 as sin/cos.
+
 ftan:
-        clc
-        rts
+        lday    #ftan_x                 ; Store the original argument
+        jsr     store_fp0
+        jsr     fcos                    ; Calculate cosine first
+        lday    #ftan_cos_x             ; Store it
+        jsr     store_fp0
+        lday    #ftan_x                 ; Get the original value back
+        jsr     load_fp0
+        jsr     fsin                    ; Calculate sine
+        lday    #ftan_cos_x             ; Divide by the cosine value
+        jmp     fdiv

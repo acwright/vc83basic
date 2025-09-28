@@ -259,5 +259,7 @@ fun_sin:
         jmp     push_fp0
 
 fun_tan:
-        clc
-        rts
+        jsr     pop_fp0
+        jsr     ftan
+        jmp     push_fp0
+
