@@ -1447,4 +1447,6 @@ fsin:
         ldy     #5
         jmp     fpoly_odd
 
-
+ftan:
+        clc
+        rts
