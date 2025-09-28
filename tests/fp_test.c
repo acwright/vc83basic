@@ -734,14 +734,14 @@ void test_function(const char* f_name, void (*f)(void), const FunctionTestCase* 
 
 const FunctionTestCase flog_test_cases[] = {
     // log(2) = 0.693147181
-    { { 0x00000000, 129 }, { 0x3172187A, 127 } }, // TODO: wrong, should be 0x317217FA
+    { { 0x00000000, 129 }, { 0x3172187A, 127 } },   // TODO: wrong, should be 0x317217FA
 };
 
 TEST_FUNCTION(flog);
 
 const FunctionTestCase fexp_test_cases[] = {
     // exp(0.693147181) = 2
-    { { 0x317217FA, 127 }, { 0x00000000, 129 } }, // TODO: wrong, should be 0x317217FA
+    { { 0x317217FA, 127 }, { 0x00000000, 129 } },   // TODO: wrong, should be 0x317217FA
     // exp(8) = 2980.957987
     { { 0x00000000, 131 }, { 0x3A5101DA, 139 } },
 };
@@ -755,11 +755,11 @@ const FunctionTestCase fsin_test_cases[] = {
     // sin(0) = 0
     { { 0x00000000,   0 }, { 0x00000000,   0 } },
     // sin(pi/2) = 1
-    { { 0x490FDA9E, 128 }, { 0x7FFFFF0F,   127 } },
+    { { 0x490FDA9E, 128 }, { 0x7FFFFF0F,   127 } }, // Should be 1, is 0.999999943
     // sin(pi) = 0
-    { { 0x490FDA9E, 129 }, { 0x00000000,   129 } },
-    // sin(pi/2) = -1
-    { { 0x490FDA9E, 128 }, { 0x80000000,   128 } },
+    { { 0x490FDA9E, 129 }, { 0x669B2382,   116 } }, // Should be 0, is 0.000439846059
+    // sin(3pi/2) = -1
+    { { 0x16CBE3F7, 130 }, { 0xFFFFFF10,   127 } }, // Should be -1, is -0.999999944
 };
 
 TEST_FUNCTION(fsin);

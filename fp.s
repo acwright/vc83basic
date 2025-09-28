@@ -455,7 +455,6 @@ truncate:
 ; buffer_pos = the write position in buffer
 
 fp_to_string:
-        debug $00
         lda     FP0s                    ; Check for negative value
         bpl     @positive               ; Nope
         ldx     buffer_pos              ; Write index
