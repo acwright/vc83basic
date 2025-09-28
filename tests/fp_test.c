@@ -764,31 +764,40 @@ const FunctionTestCase fsin_test_cases[] = {
 
 TEST_FUNCTION(fsin);
 
+int make_checksum(void) {
+    int sum = 0;
+    const char* p = (const char*)0x500;
+    while (p < (const char*)0xFFF0) {
+        sum += (int)*p++;
+    }
+    return sum;
+}
+
 int main(void) {
     initialize_target();
-    // test_load_fp();
-    // test_store_fp0();
-    // test_swap_fp0_fp1();
-    // test_adjust_exponent();
-    // test_normalize();
-    // test_int_to_fp();
-    // test_int32_to_fp();
-    // test_truncate_fp_to_int();
-    // test_truncate_fp_to_int32();
-    // test_truncate();
-    // test_round();
-    // test_fadd();
-    // test_fsub();
-    // test_fmul();
-    // test_fdiv();
-    // test_fcmp();
-    // test_char_to_digit();
-    // test_fp_to_string();
-    // test_string_to_fp();
-    // test_fpoly();
-    // test_fpoly_odd();
-    // test_flog();
-    // test_fexp();
+    test_load_fp();
+    test_store_fp0();
+    test_swap_fp0_fp1();
+    test_adjust_exponent();
+    test_normalize();
+    test_int_to_fp();
+    test_int32_to_fp();
+    test_truncate_fp_to_int();
+    test_truncate_fp_to_int32();
+    test_truncate();
+    test_round();
+    test_fadd();
+    test_fsub();
+    test_fmul();
+    test_fdiv();
+    test_fcmp();
+    test_char_to_digit();
+    test_fp_to_string();
+    test_string_to_fp();
+    test_fpoly();
+    test_fpoly_odd();
+    test_flog();
+    test_fexp();
     test_fsin();
     return 0;
 }

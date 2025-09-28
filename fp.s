@@ -454,10 +454,8 @@ truncate:
 ; be enough space in the buffer for the write to succeed.
 ; buffer_pos = the write position in buffer
 
-; TODO: adding two bytes here causes flog test to fail?!
-; .byte 0, 0
-
 fp_to_string:
+        debug $00
         lda     FP0s                    ; Check for negative value
         bpl     @positive               ; Nope
         ldx     buffer_pos              ; Write index
