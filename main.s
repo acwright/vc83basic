@@ -24,6 +24,10 @@ main:
         jsr     print_start
         tsx                             ; Remember the stack pointer so we can return to main later
         stx     main_loop_sp
+        jmp     main_loop
+
+on_raise:
+        sta     program_state
 
 main_loop:
         lda     program_state

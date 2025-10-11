@@ -1153,8 +1153,7 @@ fdiv_fp1:
         beq     @return_zero            ; Yes, just return
         lda     FP1e                    ; Test FP1
         bne     @initalize
-        sec                             ; Error if FP1 is zero
-        rts
+        raise   ERR_DIVIDE_BY_ZERO
 
 @return_zero:
         jsr     clear_fp0               ; Return zero

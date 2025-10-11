@@ -189,3 +189,26 @@
         iny
 :
 .endmacro
+
+; Raises an error.
+
+.macro raise error
+        lda     #error
+        jmp     on_raise
+.endmacro
+
+; Raises an error if carry is clear.
+
+.macro raicc error
+        bcc     :+
+        raise   error
+:
+.endmacro
+
+; Raises an error if carry is set.
+
+.macro raics error
+        bcc     :+
+        raise   error
+:
+.endmacro
