@@ -122,41 +122,6 @@ rebase_name_ptr:
 advance_rebase_name_ptr_done:
         rts
 
-; Finds a variable, or adds it.
-; decode_name_ptr = pointer to the variable name
-; decode_name_length = the length of the variable
-; Returns carry clear if find_name or add_variable succeeded, or carry set on error.
-
-find_or_add_variable:
-        lda     decode_name_arity       ; Is it an array?
-        bmi     @array                  ; Go handle array
-        ldax    variable_name_table_ptr
-        jsr     find_name               ; Look for a variable with this name
-        bcs     add_variable            ; Most common case is that it's found, so branch only if it's not
-@error:
-        rts
-
-@array:
-        jsr     evaluate_argument_list  ; Evaluate the array arguments: arity $FF is still in A
-        bcs     @error
-        eor     #$FF                    ; A is now arity of array reference
-        sta     decode_name_arity
-        ldax    array_name_table_ptr
-        jsr     find_name               ; Look for an array with this name
-        bcc     @found_array
-        mva     decode_name_arity, D    ; Do DIM var(10, 10, ..., 10); D counts down arity
-        lday    #fp_ten
-        jsr     load_fp0                ; Set FP0 to 10
-@push:
-        jsr     push_fp0
-        bcs     @error
-        dec     D
-        bne     @push                   ; Push one more
-        jsr     dimension_array         ; Returns with name_ptr set to array data
-        bcs     @error
-@found_array:
-        jmp     find_array_element      ; On return name_ptr points to the location of the element
-
 ; Extends the variable name table by adding a new name.
 ; The new name consists of the characters defined by decode_name_ptr and decode_name_length.
 ; These are both set in decode_name. The name must already end in a character with the high bit set.
@@ -186,6 +151,98 @@ add_variable:
         jsr     clear_memory            ; Clear the variable data
 @done:
         clc                             ; Signal success
+@error:
+        rts
+
+; Finds a variable, or adds it.
+; decode_name_ptr = pointer to the variable name
+; decode_name_length = the length of the variable
+; Returns carry clear if find_name or add_variable succeeded, or carry set on error.
+
+find_or_add_variable:
+        lda     decode_name_arity       ; Is it an array?
+        bmi     @array                  ; Go handle array
+        ldax    variable_name_table_ptr
+        jsr     find_name               ; Look for a variable with this name
+        bcs     add_variable            ; Most common case is that it's found, so branch only if it's not
+@error:
+        rts
+
+@array:
+        jsr     evaluate_argument_list  ; Evaluate the array arguments: arity $FF is still in A
+        bcs     @error
+        eor     #$FF                    ; A is now arity of array reference
+        sta     decode_name_arity
+        ldax    array_name_table_ptr
+        jsr     find_name               ; Look for an array with this name
+        bcc     find_array_element
+        mva     decode_name_arity, D    ; Do DIM var(10, 10, ..., 10); D counts down arity
+        lday    #fp_ten
+        jsr     load_fp0                ; Set FP0 to 10
+@push:
+        jsr     push_fp0
+        bcs     @error
+        dec     D
+        bne     @push                   ; Push one more
+        jsr     dimension_array         ; Returns with name_ptr set to array data
+        bcs     @error
+
+; Fall through
+
+; Moves name_ptr, which is assumed to pointing to the byte after the end of an array name in the array table,
+; to an element offset based on the indexes that are on the expression stack.
+
+find_array_element:
+        ldy     #0                      ; Arity is at offset 0
+        sty     array_element_offset    ; Array element offset starts at 0
+        sty     array_element_offset+1
+        sty     array_element_size+1    ; High byte of array element size starts at 0
+        lda     (name_ptr),y            ; Get arity
+        cmp     decode_name_arity       ; Check if the arity of this reference matches the array
+        raine   ERR_ARITY_MISMATCH      ; Arity doesn't match so return error
+        sta     D                       ; Use D to count down arity
+        iny
+        jsr     rebase_name_ptr         ; Advance name_ptr past arity
+        ldx     decode_name_type        ; Figure out the element size from type: start of multiplication process
+        lda     type_size_table,x       ; Initialize array_element_size to the size of one value of the array's type
+        sta     array_element_size
+@next:
+        jsr     pop_fp0                 ; Get the next value off the stack
+        jsr     truncate_fp_to_int      ; Make it an integer; the value is in AX (preserves BC)
+        bcs     @error                  ; Value was too large
+        jsr     imul_16                 ; Multiply it by the value in array_element_size
+        sta     E                       ; Park low byte in E
+        ldy     #0                      ; Read next dimension value starting at name_ptr
+        lda     (name_ptr),y            ; Copy low and high byte of limit into array_element_size
+        sta     array_element_size
+        iny
+        lda     (name_ptr),y
+        sta     array_element_size+1
+        iny
+        jsr     rebase_name_ptr         ; Move name_ptr to the next dimension value
+        txa                             ; Compare the multiplication result (currently in EX) with the limit
+        cmp     array_element_size+1    ; Result high byte < limit high byte?
+        bcc     @ok                     ; <
+        bne     @error                  ; >, otherwise =
+        lda     E                       ; Same with low byte
+        cmp     array_element_size
+        bcs     @error                  ; >=
+@ok:
+        lda     E                       ; Result still in EX; make sure we have low byte of result in A
+        adc     array_element_offset    ; Add result to array_element_offset; carry will always be clear
+        sta     array_element_offset
+        txa
+        adc     array_element_offset+1
+        sta     array_element_offset+1
+        dec     D
+        bne     @next                   ; Carry should be clear here because array offset calculation must not overflow
+        clc
+        lda     name_ptr                ; Add array_element_offset to name_ptr
+        adc     array_element_offset
+        sta     name_ptr
+        lda     name_ptr+1
+        adc     array_element_offset+1
+        sta     name_ptr+1
 @error:
         rts
 
@@ -307,64 +364,6 @@ dimension_array:
         clc                             ; Signal success
 @error:
         rts                             ; Carry is clear here because ADC of array_element_size cannot overflow
-
-; Moves name_ptr, which is assumed to pointing to the byte after the end of an array name in the array table,
-; to an element offset based on the indexes that are on the expression stack.
-
-find_array_element:
-        ldy     #0                      ; Arity is at offset 0
-        sty     array_element_offset    ; Array element offset starts at 0
-        sty     array_element_offset+1
-        sty     array_element_size+1    ; High byte of array element size starts at 0
-        lda     (name_ptr),y            ; Get arity
-        cmp     decode_name_arity       ; Check if the arity of this reference matches the array
-        sta     D                       ; Use D to count down arity
-        sec                             ; Set carry in case it doesn't
-        bne     @error                  ; Arity doesn't match so return error
-        iny
-        jsr     rebase_name_ptr         ; Advance name_ptr past arity
-        ldx     decode_name_type        ; Figure out the element size from type: start of multiplication process
-        lda     type_size_table,x       ; Initialize array_element_size to the size of one value of the array's type
-        sta     array_element_size
-@next:
-        jsr     pop_fp0                 ; Get the next value off the stack
-        jsr     truncate_fp_to_int      ; Make it an integer; the value is in AX (preserves BC)
-        bcs     @error                  ; Value was too large
-        jsr     imul_16                 ; Multiply it by the value in array_element_size
-        sta     E                       ; Park low byte in E
-        ldy     #0                      ; Read next dimension value starting at name_ptr
-        lda     (name_ptr),y            ; Copy low and high byte of limit into array_element_size
-        sta     array_element_size
-        iny
-        lda     (name_ptr),y
-        sta     array_element_size+1
-        iny
-        jsr     rebase_name_ptr         ; Move name_ptr to the next dimension value
-        txa                             ; Compare the multiplication result (currently in EX) with the limit
-        cmp     array_element_size+1    ; Result high byte < limit high byte?
-        bcc     @ok                     ; <
-        bne     @error                  ; >, otherwise =
-        lda     E                       ; Same with low byte
-        cmp     array_element_size
-        bcs     @error                  ; >=
-@ok:
-        lda     E                       ; Result still in EX; make sure we have low byte of result in A
-        adc     array_element_offset    ; Add result to array_element_offset; carry will always be clear
-        sta     array_element_offset
-        txa
-        adc     array_element_offset+1
-        sta     array_element_offset+1
-        dec     D
-        bne     @next                   ; Carry should be clear here because array offset calculation must not overflow
-        clc
-        lda     name_ptr                ; Add array_element_offset to name_ptr
-        adc     array_element_offset
-        sta     name_ptr
-        lda     name_ptr+1
-        adc     array_element_offset+1
-        sta     name_ptr+1
-@error:
-        rts
 
 ; Copies the decoded name into the name table, ending at a character with the EOT bit set.
 ; decode_name_ptr = copy source

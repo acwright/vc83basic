@@ -14,8 +14,7 @@ exec_dim:
         sta     decode_name_arity
         ldax    array_name_table_ptr    ; Look for the name in the name table
         jsr     find_name
-        ldax    name_ptr
-        bcc     @error                  ; Name already exists
+        raicc   ERR_ALREADY_DIMENSIONED
         jmp     dimension_array         ; Go do it
 
 @error:
