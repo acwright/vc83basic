@@ -336,10 +336,7 @@ compare_values:
         ldy     stack_pos               ; Get stack pointer
         lda     stack+Value::type,y                 ; Type of first argument
         cmp     stack+.sizeof(Value)+Value::type,y  ; Type of second argument
-        beq     @same_types
-        rts                                                 ; Return early if the types differ
-    
-@same_types:
+        raine   ERR_TYPE_MISMATCH
         cmp     #TYPE_STRING            ; Is it a string?
         beq     compare_string_values   ; Yes
         lda     #>(fcmp-1)
