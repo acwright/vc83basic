@@ -9,6 +9,7 @@
 
 ; Parses a line from the buffer. The line is an optional line number followed by statements.
 ; If the line number is missing, set it to -1.
+; Returns normally if buffer was a valid program line, or raises an exception.
 
 parse_line:
         mva     #0, buffer_pos              ; Initialize the read pointer
@@ -37,7 +38,6 @@ parse_line:
         mva     line_pos, statement_line_pos        ; Save start of statement position
         inc     line_pos                ; Begin tokenizing statement at next position
         jsr     parse_statement         ; Leaves the parsed statement in line_buffer and sets/clears carry
-        bcs     @done                   ; Parse failed
         lda     line_pos                ; Write position is next statement offset
         ldx     statement_line_pos      ; Store at start of statement
         sta     line_buffer,x
@@ -47,16 +47,13 @@ parse_line:
         mva     line_pos, line_buffer+Line::next_line_offset    ; Write position is next line offset
         ldx     buffer_pos
         lda     buffer,x                ; Verify the line ends with 0 as expected
-        clc
-        beq     @done                   ; If so then jump to done with carry still clear
-        sec                             ; Otherwise set carry to indicate failure
-@done:
+        bne     syntax_error            ; Nope, fail
         rts
 
 ; Parses a complete statement.
 ; The last byte of the statement should be 0, which won't match anything. This avoids the need to keep checking
 ; the buffer length.
-; Returns carry clear if buffer was a valid statement, or carry set if it was not.
+; Returns normally if buffer was a valid statement, or raises an exception.
 
 parse_statement:
         ldax    #statement_name_table
@@ -64,7 +61,6 @@ parse_statement:
 @next:
         jsr     parse_next_statement    ; Will restore parser state on failure
         bcs     @next                   ; Failed; try again; will raise exception if we run out of names
-@done:
         rts                             ; Will either return here with carry clear or raise exception
 
 ; Try to parse the buffer starting with the name table entry at name_ptr.
@@ -102,16 +98,19 @@ parse_next_statement:
         phzp    NAME_STATE, NAME_STATE_SIZE
         tya                             ; Recover directive from Y
         jsr     parse_directive
-        jsr     encode_zero             ; Terminate with 0
+        tay                             ; Save return value while clearing stack
         plzp    NAME_STATE, NAME_STATE_SIZE
-        bcc     @after_directive
+        bcs     @error                  ; If parse_directive failed
+        tya                             ; Recover return value
+        jsr     encode_zero             ; Terminate with 0
+        jmp     @after_directive
 
 @error:
         sec                             ; Tell save_parser_state epilogue to restore state
         rts
 
 @success:
-        clc
+        clc                             ; Tell save_parser_state to discard state
         rts
 
 syntax_error:
@@ -515,7 +514,9 @@ parse_argument_separator:
         cmp     #','
         bne     separator_not_found
         inc     buffer_pos              ; Skip ','
-        jmp     encode_byte             ; Leaves carry set on equal
+        jsr     encode_byte             ; Leaves carry set on equal
+        sec
+        rts
 
 separator_not_found:
         clc                             ; Means not found

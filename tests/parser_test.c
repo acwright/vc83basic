@@ -360,8 +360,8 @@ void test_parse_statement(void) {
     buffer_pos = 0;
     line_pos = offsetof(Line, data);
     parse_statement();
-    ASSERT_NE(err, 0);
-    ASSERT_EQ(buffer_pos, 0);
+    ASSERT_EQ(err, ERR_SYNTAX_ERROR);
+    ASSERT_EQ(buffer_pos, 6);
 }
 
 void test_parse_line(void) {

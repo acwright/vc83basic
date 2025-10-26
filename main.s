@@ -49,17 +49,17 @@ main:
         tay
         ldax    name_ptr
         jsr     write
-        ldy     #Line::number+1         ; Print line number if >= 0, else we're in immediate mode
-        lda     (line_ptr),y
-        bmi     @no_line_number
-        ldax    #error_message_2
-        ldy     #error_message_2_length
-        jsr     write
-        mva     #0, buffer_pos
-        jsr     line_number_to_string
-        ldy     buffer_pos
-        ldax    #buffer
-        jsr     write
+        ; ldy     #Line::number+1         ; Print line number if >= 0, else we're in immediate mode
+        ; lda     (line_ptr),y
+        ; bmi     @no_line_number
+        ; ldax    #error_message_2
+        ; ldy     #error_message_2_length
+        ; jsr     write
+        ; mva     #0, buffer_pos
+        ; jsr     line_number_to_string
+        ; ldy     buffer_pos
+        ; ldax    #buffer
+        ; jsr     write
 @no_line_number:
         jsr     newline
 
@@ -102,8 +102,6 @@ main:
         sta     next_line_pos           ; By default the "next line" is the next statement on this line
         jsr     dispatch_statement
         jmp     @dispatch               ; Keep on truckin
-
-; TODO: remove return value handling
 
 @error:
         raise   ERR_INTERNAL_ERROR

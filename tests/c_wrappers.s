@@ -224,39 +224,40 @@ _string_to_fp:
 
 _normalize:
 .export _normalize
-        jsr     normalize
-        jmp     set_err
+        startwrap
+        jmp     normalize
 
 _fadd:
 .export _fadd
+        startwrap
         stx     B                       ; Move argument in AX to AY
         ldy     B
-        jsr     fadd
-        jmp     set_err
+        jmp     fadd
 
 _fsub:
 .export _fsub
+        startwrap
         stx     B                       ; Move argument in AX to AY
         ldy     B
-        jsr     fsub
-        jmp     set_err
+        jmp     fsub
 
 _fmul:
 .export _fmul
+        startwrap
         stx     B                       ; Move argument in AX to AY
         ldy     B
-        jsr     fmul
-        jmp     set_err
+        jmp     fmul
 
 _fdiv:
 .export _fdiv
+        startwrap
         stx     B                       ; Move argument in AX to AY
         ldy     B
-        jsr     fdiv
-        jmp     set_err
+        jmp     fdiv
 
 _fneg:
 .export _fneg
+        startwrap
         jmp     fneg
 
 ; Possible returns from fcmp are:
@@ -267,6 +268,7 @@ _fneg:
 
 _fcmp:
 .export _fcmp
+        startwrap
         stx     B                       ; Move argument in AX to AY
         ldy     B
         jsr     fcmp
@@ -285,44 +287,45 @@ _fcmp:
 
 _fpoly:
 .export _fpoly
+        startwrap
         sta     B                       ; Number of coefficients; goes to Y
         jsr     popax                   ; AX points to the list of coefficients
         ldy     B
-        jsr     fpoly
-        jmp     set_err
+        jmp     fpoly
 
 _fpoly_odd:
 .export _fpoly_odd
+        startwrap
         sta     B
         jsr     popax
         ldy     B
-        jsr     fpoly_odd
-        jmp     set_err
+        jmp     fpoly_odd
 
 _flog:
 .export _flog
-        jsr     flog
+        startwrap
+        jmp     flog
         jmp     set_err
 
 _fexp:
 .export _fexp
-        jsr     fexp
-        jmp     set_err
+        startwrap
+        jmp     fexp
 
 _fcos:
 .export _fcos
-    jsr     fcos
-    jmp     set_err
+        startwrap
+        jmp     fcos
 
 _fsin:
 .export _fsin
-    jsr     fsin
-    jmp     set_err
+        startwrap
+        jmp     fsin
 
 _ftan:
 .export _ftan
-    jsr     ftan
-    jmp     set_err
+        startwrap
+        jmp     ftan
 
 ; list.s
 
@@ -383,13 +386,13 @@ _imul_16:
 
 _parse_line:
 .export _parse_line
-        jsr     parse_line
-        jmp     set_err
+        startwrap
+        jmp     parse_line
 
 _parse_statement:
 .export _parse_statement
-        jsr     parse_statement
-        jmp     set_err
+        startwrap
+        jmp     parse_statement
 
 _parse_directive:
 .export _parse_directive
