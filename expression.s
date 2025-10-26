@@ -31,8 +31,7 @@ evaluate_expression:
         ldax    #evaluate_vectors
         jsr     decode_expression
         lda     #PR_CLOSE_PAREN         ; Process any operators not yet processed (except open paren)
-        jsr     process_operators       ; May fail with carry set
-@error:
+        jsr     process_operators
         inc     op_stack_pos            ; Pop the open paren (even if evaluation failed)
         plzp    DECODE_NAME_STATE, DECODE_NAME_STATE_SIZE   ; Recover the decoded name
         rts
@@ -68,7 +67,6 @@ evaluate_variable:
         jsr     decode_name
 evaluate_decoded_variable:
         jsr     find_or_add_variable
-        bcs     @error                  ; No memory for new variable
         jsr     stack_alloc_value
         tay                             ; Stack position into Y to set type
         lda     decode_name_type        ; Set type of value on stack
@@ -79,10 +77,7 @@ evaluate_decoded_variable:
         ldx     #>stack                 ; Stack page
         stax    dst_ptr                 ; Copy to stack
         ldax    name_ptr                ; Copy from variable data
-        jsr     copy_y_from
-        clc                             ; Signal success
-@error:
-        rts
+        jmp     copy_y_from
 
 function_vectors:
         .word   fun_len-1
@@ -243,7 +238,7 @@ op_concat:
         sta     D                       ; Length of first string in D
         clc
         adc     E                       ; Get total length of string
-        bcs     @error                  ; Combined string is too long
+        bcs     @out_of_range           ; Combined string is too long
         jsr     string_alloc            ; Otherwise A is length of new string; allocate it
         sta     dst_ptr                 ; New space is destination for the copy
         inc     dst_ptr                 ; Move past length byte
@@ -257,9 +252,10 @@ op_concat:
         ldax    S1                      ; Copy S1
         ldy     E
         jsr     copy_y_from
-        jsr     push_string             ; Happily, string_ptr is still the address of the new string
-@error:
-        rts
+        jmp     push_string             ; Happily, string_ptr is still the address of the new string
+
+@out_of_range:
+        raise   ERR_OUT_OF_RANGE
 
 ; Compares two strings from the stack returns flags based on the comparison.
 ; CMP s1 len, s2 len

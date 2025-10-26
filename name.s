@@ -159,12 +159,10 @@ find_or_add_variable:
         ldax    variable_name_table_ptr
         jsr     find_name               ; Look for a variable with this name
         bcs     add_variable            ; Most common case is that it's found, so branch only if it's not
-@error:
         rts
 
 @array:
         jsr     evaluate_argument_list  ; Evaluate the array arguments: arity $FF is still in A
-        bcs     @error
         eor     #$FF                    ; A is now arity of array reference
         sta     decode_name_arity
         ldax    array_name_table_ptr
@@ -177,8 +175,7 @@ find_or_add_variable:
         jsr     push_fp0
         dec     D
         bne     @push                   ; Push one more
-        jsr     dimension_array         ; Returns with name_ptr set to array data
-        bcs     @error
+        jmp     dimension_array         ; Returns with name_ptr set to array data
 
 ; Fall through
 
@@ -382,7 +379,7 @@ imul_16:
 @next:
         asl     S0
         rol     S0+1
-        bcs     @error                  ; Product overflowed
+        bcs     @overflow               ; Product overflowed
         asl     S1
         rol     S1+1
         bcc     @skip_add
@@ -397,5 +394,5 @@ imul_16:
         dex
         bne     @next
         ldax    S0
-@error:
+@overflow:
         rts

@@ -197,14 +197,11 @@ fun_str_s:
         sty     buffer
         tya
         jsr     string_alloc            ; Allocate space for the string
-        bcs     @done                   ; No space left
         ldy     buffer_pos              ; Already includes the length byte
         mvax    string_ptr, dst_ptr     ; Set up copy destination
         ldax    #buffer                 ; Source
         jsr     copy_y_from
         jmp     push_string
-
-@done:
         rts
 
 fun_usr:

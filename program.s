@@ -205,20 +205,20 @@ grow:
         tax                             ; Low byte into X
         lda     E                       ; Re-load high byte of size from E
         adc     free_ptr+1              ; Add high byte of free_ptr
-        bcs     @error                  ; If carry is set after high byte add then address has overflowed
+        bcs     @out_of_memory          ; If carry is set after high byte add then address has overflowed
         cmp     string_ptr+1            ; Test new high byte of free_ptr
         bcc     @continue               ; Less, everything okay, return
-        bne     @error                  ; Not equal so greater, return with carry set
+        bne     @out_of_memory          ; Not equal so greater, return with carry set
         txa                             ; High bytes are equal; compare low bytes
         cmp     string_ptr
         bcc     @continue               ; Same logic for low byte
-        bne     @error
+        bne     @out_of_memory
 @continue:
         jsr     grow_shrink_common
         jsr     reverse_copy            ; Copy data up to the higher address
         rts
 
-@error:
+@out_of_memory:
         raise   ERR_OUT_OF_MEMORY
 
 ; Shrinks memory by decreasing one of the zero-page pointers, and all subsequent pointers up to (but not including)

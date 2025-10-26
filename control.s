@@ -48,7 +48,7 @@ exec_on:
         sta     on_value
         sec                             ; Set carry in case this next check fails
         txa                             ; Check the high byte
-        bne     @error                  ; If high byte is set then value is out of range (either <0 or >255)
+        bne     @out_of_range           ; If high byte is set then value is out of range (either <0 or >255)
 @loop:
         dec     on_value                ; Decrease value sought by 1
         bmi     @zero                   ; If it went negative then it was originally 0
@@ -56,7 +56,7 @@ exec_on:
         ldy     line_pos                ; Otherwise advance to the next ','
 @next_byte:
         lda     (line_ptr),y
-        beq     @error                  ; Found the terminator instead
+        beq     @out_of_range           ; Found the terminator instead
         iny
         cmp     #','
         bne     @next_byte
@@ -68,18 +68,19 @@ exec_on:
         jmp     (on_handler)            ; Jump to whatever handler was passed in
 
 @zero:
-        clc
-@error:
         rts
+
+@out_of_range:
+        raise   ERR_OUT_OF_RANGE
 
 ; RETURN statement:
 
 exec_return:
         ldx     stack_pos               ; Check stack pointer
         cpx     #PRIMARY_STACK_SIZE     ; Stack empty?
-        beq     @error
+        beq     @return_without_gosub
         lda     stack+Control::variable_name_ptr+1,x    ; Check if high byte of variable name pointer is 0
-        bne     @error                   ; Variable was not GOSUB signal
+        bne     @return_without_gosub   ; Variable was not GOSUB signal
         lda     stack+Control::next_line_ptr,x
         sta     next_line_ptr           ; Restore next_line_ptr value
         lda     stack+Control::next_line_ptr+1,x
@@ -88,7 +89,7 @@ exec_return:
         sta     next_line_pos           ; Restore next_line_pos value
         jmp     exec_pop_2
 
-@error:
+@return_without_gosub:
         raise   ERR_RETURN_WITHOUT_GOSUB
 
 ; FOR statement:
@@ -141,16 +142,16 @@ exec_next:
         jsr     decode_name             ; Sets decode_name_ptr
         ldx     stack_pos               ; Load stack position
         cpx     #PRIMARY_STACK_SIZE     ; Check if stack empty
-        beq     @error                  ; If so then fail
+        beq     @next_without_for       ; If so then fail
         lda     stack+Control::variable_name_ptr,x  ; Point name_ptr to name at top of control stack
         sta     name_ptr
         lda     stack+Control::variable_name_ptr+1,x
-        beq     @error                  ; If it was zero then top of stack is GOSUB not FOR
+        beq     @next_without_for       ; If it was zero then top of stack is GOSUB not FOR
         sta     name_ptr+1
         jsr     match_name              ; Make sure it's the right name
         bcs     @invalid_variable
         jsr     evaluate_decoded_variable   ; Continue with evaluation of variable decoded above
-        bcs     @error
+        bcs     @next_without_for
         jsr     pop_fp0                 ; Variable value is now in FP0
         lda     stack_pos               ; Get stack position again
         adc     #Control::step_value    ; Add offset of step value to stack pointer (carry will be clear)
@@ -176,7 +177,7 @@ exec_next:
         clc                             ; Signal success
         rts
 
-@error:
+@next_without_for:
         raise   ERR_NEXT_WITHOUT_FOR                            
 
 @invalid_variable:

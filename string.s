@@ -45,7 +45,7 @@ read_string:
         sty     B                       ; Read position relative to read_ptr
         ldax    #(255 + STRING_EXTRA + STRING_EXTRA)    ; Allocate space for 2 strings with total length of 255
         jsr     string_alloc_memory
-        bcs     out_of_memory
+        bcc     out_of_memory
         ldy     B
         lda     (read_ptr),y            ; Get first character
         iny                             ; Skip past it in case it's a double quote
@@ -96,8 +96,7 @@ read_string:
         eor     #$FF                    ; Invert bits to produce 255 - length
         sta     (DE),y                  ; Store it
         ldy     B                       ; Return read position in Y
-@done:
-        rts                             ; If we reached here via @finish, carry guaranteed to be clear by ADC
+        rts                             ; Carry guaranteed to be clear by ADC
 
 out_of_memory:
         raise   ERR_OUT_OF_MEMORY
@@ -116,7 +115,7 @@ string_alloc:
         inx                             ; Otherwise it's 1
 @skip_inx:
         jsr     string_alloc_memory     ; Allocate memory
-        bcs     out_of_memory
+        bcc     out_of_memory
         pla                             ; Get size we saved earlier
         ldy     #0
         sta     (string_ptr),y          ; Set the length of the allocated string
@@ -125,13 +124,15 @@ string_alloc:
 
 ; Allocates memory for a new string on the string heap. Called from string_alloc with the total amount of memory
 ; needed for the string, which is the string length plus STRING_EXTRA bytes of overhead.
+; Returns carry set if the allocation succeeded, or clear if it failed. This function does not itself raise an
+; exception because it calls itself in order to retry after calling compact.
 ; AX = the memory required for the new string
 ; BC SAFE (if compact not called), DE SAFE
 
 string_alloc_memory:
         stax    line_number             ; Borrow line_number to save requested size in case we have to retry
         jsr     @try
-        bcc     @success
+        bcs     @done
 
 @insufficient_memory:
         jsr     compact                 ; Try to compact the string heap
@@ -146,19 +147,14 @@ string_alloc_memory:
         adc     string_ptr+1
         tax                             ; Store high byte of proposed value in X
         cpx     free_ptr+1              ; Compare high byte vs. free_ptr
-        bcc     @error                  ; New string_ptr high byte < free_ptr; it's definitely an error
+        bcc     @done                   ; New string_ptr high byte < free_ptr; it's definitely an error
         bne     @string_ptr_ok          ; If it's greater then it's definitely okay
         cpy     free_ptr
-        bcc     @error                  ; Less than free_ptr is an error, but >= is okay
+        bcc     @done                   ; Less than free_ptr is an error, but >= is okay
 @string_ptr_ok:
         sty     string_ptr              ; Proposed string_ptr >= free_ptr; go update it
         stx     string_ptr+1
-        clc                             ; Signal success
-        rts
-
-@error:
-        sec                             ; Because math @error is reached from BCC so have to set carry
-@success:
+@done:
         rts
 
 ; Compacts the string space.
