@@ -178,3 +178,12 @@ byte(exception_handler_sp)
 
 comment The exception handler itself
 word(exception_handler, void*)
+
+comment PVM instruction pointer
+word(pvm_program_ptr, const char*)
+
+comment PVM arguments
+word(pvm_arg, const char*)
+
+comment PVM address argument
+word(pvm_address_arg, const char*)

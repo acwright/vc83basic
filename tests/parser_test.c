@@ -417,15 +417,39 @@ void test_parse_line(void) {
     ASSERT_NE(err, 0);
 }
 
+void call_new_parse_statement(const char* s, const char* expect_line_data, size_t expect_line_data_length, int line) {
+    size_t expect_buffer_pos;
+    fprintf(stderr, "  %s:%d: new_parse_statement(\"%s\")\n", __FILE__, line, s);
+    expect_buffer_pos = strlen(s);
+    strcpy(buffer, s);
+    buffer_pos = 0;
+    line_pos = offsetof(Line, data);
+    new_parse_statement();
+    ASSERT_EQ(err, 0);
+    ASSERT_EQ(buffer_pos, expect_buffer_pos);
+    ASSERT_MEMORY_EQ(line_buffer.data, expect_line_data, expect_line_data_length);
+    ASSERT_EQ(line_pos, offsetof(Line, data) + expect_line_data_length);
+}
+
+void test_new_parse_statement(void) {
+
+    const char line_data_1[] = { ST_RUN };
+
+    PRINT_TEST_NAME();
+
+    call_new_parse_statement("PRINT 1", line_data_1, sizeof line_data_1, __LINE__);
+}
+
 int main(void) {
     initialize_target();
-    test_parse_name();
-    test_parse_number();
-    test_parse_expression();
-    test_parse_argument_separator();
-    test_parse_argument_list();
-    test_parse_directive();
-    test_parse_statement();
-    test_parse_line();
+    // test_parse_name();
+    // test_parse_number();
+    // test_parse_expression();
+    // test_parse_argument_separator();
+    // test_parse_argument_list();
+    // test_parse_directive();
+    // test_parse_statement();
+    // test_parse_line();
+    test_new_parse_statement();
     return 0;
 }

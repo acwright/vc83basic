@@ -582,3 +582,240 @@ save_parser_state:
         ldphaa  DE
         ldax    BC
         rts
+
+
+
+new_parse_statement:
+        ldax    #pvm_program_start
+        jsr     parse_pvm
+        rts
+
+
+; Invokes parsing virtual machine (PVM) starting 
+
+parse_pvm:
+        stax    pvm_program_ptr
+@next_instruction:
+        ldy     #0
+        lda     (pvm_program_ptr),y     ; Load PVM instruction
+        sta     B                       ; Park in B
+
+; Look at the last three bits to figure out what arguments follow the instruction and load them.
+
+        and     #$03                    ; Mask off bottom two bits
+        beq     @address_argument       ; If no argument then go check if we need an address
+        cmp     #$11                    ; Check if it's expecting a string
+        beq     @string                 ; If so go do it, otherwise, A is the number of arguments
+        stx     C                       ; C is the number of arguments to parse and is either 1 or 2
+        stx     pvm_arg+1               ; If X is 1 then we very conveniently need pvm_arg+1 to also be 1
+        ldx     #0                      ; Reset X so we can use it to index pvm_arg
+@next_argument:
+        iny
+        lda     (pvm_program_ptr),y     ; Get argument
+        sta     pvm_arg,x               ; Save
+        inx
+        cpx     C
+        bne     @next_argument
+        beq     @address_argument       ; Unconditional
+
+@string:
+        iny                             ; Skip over the instruction and update pvm_program_ptr
+        jsr     rebase_pvm_program_ptr
+        mvaa    pvm_program_ptr, pvm_arg    ; So we can save it into pvm_arg
+        ldy     #$FF                    ; Now go looking for the character with bit 7 set that ends the string
+@string_next:
+        iny
+        lda     (pvm_program_ptr),y
+        bpl     @string_next     
+        iny                             ; Skip the last one character
+        bne     @match                  ; Unconditional since the string will never be 256 bytes long
+
+@address_argument:
+        lda     B
+        and     #$04                    ; If bit 2 is set then an address argument follows
+        iny
+        lda     (pvm_program_ptr),y
+        sta     pvm_address_arg
+        iny
+        lda     (pvm_program_ptr),y
+        sta     pvm_address_arg+1
+
+; The arguments are parsed and Y points to the next PVM instruction.
+
+@match:
+        jsr     rebase_pvm_program_ptr  ; Catch up pvm_program_ptr to where Y is pointing to free up Y
+        mvy     #0, C                   ; Now C is the match flag, default to false
+        ldx     buffer_pos              ; Definitely going to need this
+        lda     B                       ; Recover the instruction from B
+        bpl     @instruction            ; Not a matching instruction, so skip the matching logic
+        and     #$03                    ; Get address type again
+        beq     @instruction            ; Is a "match any" instruction, so don't need to do anything
+        cmp     #$03                    ; Is it "match string?"
+        beq     @match_string           ; Yep, go do it
+        lda     buffer,x                ; It's "match char" or "match range;" get character from the buffer
+        sec
+        sbc     pvm_arg                 ; Check if it's in range
+        bcc     @instruction
+        cmp     pvm_arg+1
+        bcs     @instruction
+        inc     C                       ; Increment the match flag, making it true
+        bne     @instruction            ; Unconditional
+
+@match_string:
+        lda     (pvm_arg),y             ; Load the next value from the string to match
+        bmi     @match_string_last      ; Handle the last character
+        cmp     buffer,x                ; Otherwise compare with character in buffer
+        bne     @instruction            ; No match
+        inx                             ; Move to the next character
+        iny
+        bne     @match_string           ; Unconditional
+
+@match_string_last:
+        and     #$7F                    ; Clear the high bit
+        cmp     buffer,x                ; Compare
+        bne     @instruction            ; No match
+        inc     C                       ; The whole string matched, so increment the match flag
+
+@instruction:
+        lda     B                       ; Reload instruction again
+        and     #$7F                    ; Clear high bit
+        lsr     A                       ; Shift right to leave the instruction number in bits 0-3
+        lsr     A
+        lsr     A
+        tay                             ; Instruction number into Y
+        ldax    pvm_instruction_vectors
+        jsr     invoke_indexed_vector   ; Invoke handler
+        jmp     @next_instruction       ; No exception so continue
+
+pvm_instruction_vectors:
+        .word   pvm_test-1
+        .word   pvm_match-1
+        .word   pvm_match_emit-1
+        .word   pvm_emm-1
+        .word   pvm_emi-1
+        .word   pvm_choice-1
+        .word   pvm_commit-1
+        .word   pvm_stcap-1
+        .word   pvm_emcap-1
+        .word   pvm_set7-1
+        .word   pvm_dkw-1
+        .word   pvm_jmp-1
+        .word   pvm_call-1
+        .word   pvm_ret-1
+        .word   pvm_fail-1
+
+pvm_test:
+        rts
+
+pvm_match:
+        rts
+
+pvm_match_emit:
+        rts
+
+pvm_emm:
+        rts
+
+pvm_emi:
+        rts
+
+pvm_choice:
+        rts
+
+pvm_commit:
+        rts
+
+pvm_stcap:
+        rts
+
+pvm_emcap:
+        rts
+
+pvm_set7:
+        rts
+
+pvm_dkw:
+        rts
+
+pvm_jmp:
+        rts
+
+pvm_call:
+        rts
+
+pvm_ret:
+        rts
+
+pvm_fail:
+        rts
+
+
+; PVM macros
+
+.macro TANY address
+        .byte $84,<address,>address
+.endmacro
+
+.macro MCH c
+        .byte $89,c
+.endmacro
+
+.macro MST s
+        .byte $8B,s
+.endmacro
+
+.macro RET
+        .byte $68
+.endmacro
+
+; PVM program
+
+pvm_program_start:
+        MST "PRINT"
+        MCH ' '
+        MCH '1'
+        RET
+
+; TANY	    1000 0100 aaaa
+; TCH	    1000 0101 nn aaaa
+; TRG	    1000 0110 bb ee aaaa
+; TST	    1000 0111 ccc aaaa
+; MANY	    1000 1000
+; MCH	    1000 1001 nn
+; MRG	    1000 1010 bb ee
+; MST	    1000 1011 ccc
+; MEMANY	1001 0000
+; MEMCH	    1001 0001 nn
+; MEMRG	    1001 0010 bb ee
+; MEMST	    1001 0011 ccc
+; EMM	    0001 1000
+; EMI	    0010 0001 nn
+; CHOICE	0010 1100 aaaa
+; COMMIT	0011 0100 aaaa
+; STCAP	    0011 1000
+; EMCAP	    0100 0001 nn
+; SET7	    0100 1000
+; DKW	    0101 0100 aaaa
+; JMP	    0101 1100 aaaa
+; CALL	    0110 0100 aaaa
+; RET	    0110 1000
+; FAIL	    0111 0000
+; ?         0111 1000
+
+
+; Rebases pvm_program_ptr by adding Y.
+; pvm_program_ptr = pointer to current parse instruction
+; Y = the offset to add to pvm_program_ptr
+; X SAFE, Y SAFE, BC SAFE, DE SAFE
+
+rebase_pvm_program_ptr:
+        tya                             ; Move offset into A and add to pvm_program_ptr
+        clc                             ; Not sure if carry is set or not so clear it now
+        adc     pvm_program_ptr                 ; Add to pvm_program_ptr
+        sta     pvm_program_ptr
+        bcc     @done
+        inc     pvm_program_ptr+1
+@done:
+        rts
+
+

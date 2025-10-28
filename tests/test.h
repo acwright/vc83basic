@@ -153,6 +153,7 @@ void parse_expression(void);
 void parse_name(void);
 void parse_number(void);
 void parse_argument_separator(void);
+void new_parse_statement(void);
 
 // program.s
 void initialize_target(void);
