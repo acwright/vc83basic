@@ -602,10 +602,23 @@ parse_pvm:
         sta     B                       ; Park in B
         iny                             ; Move past instruction
 
+; Check for an address argument.
+
+        and     #$04                    ; If bit 2 is set then an address argument follows
+        beq     @argument               ; No address argument, check for match argument
+        lda     (pvm_program_ptr),y
+        sta     pvm_address_arg
+        iny
+        lda     (pvm_program_ptr),y
+        sta     pvm_address_arg+1
+        iny
+
 ; Look at the last three bits to figure out what arguments follow the instruction and load them.
 
+@argument:
+        lda     B
         and     #$03                    ; Mask off bottom two bits
-        beq     @address_argument       ; If no argument then go check if we need an address
+        beq     @match                  ; If no argument then go on to match logic
         cmp     #$03                    ; Check if it's expecting a string
         beq     @string                 ; If so go do it, otherwise, A is the number of arguments
         sta     C                       ; C is the number of arguments to parse and is either 1 or 2
@@ -618,7 +631,7 @@ parse_pvm:
         inx
         cpx     C
         bne     @next_argument
-        beq     @address_argument       ; Unconditional
+        beq     @match                  ; Unconditional
 
 @string:
         jsr     rebase_pvm_program_ptr
@@ -629,17 +642,6 @@ parse_pvm:
         lda     (pvm_program_ptr),y
         bpl     @string_next     
         iny                             ; Skip the last one character and fall through to check address argument
-
-@address_argument:
-        lda     B
-        and     #$04                    ; If bit 2 is set then an address argument follows
-        beq     @match                  ; No address argument, carry on to match
-        lda     (pvm_program_ptr),y
-        sta     pvm_address_arg
-        iny
-        lda     (pvm_program_ptr),y
-        sta     pvm_address_arg+1
-        iny
 
 ; The arguments are parsed and Y points to the next PVM instruction.
 
@@ -838,25 +840,18 @@ ins_dkw:
     .endif
 .endmacro
 
-.macro TANY address
+.macro TEST address, m, n
+    .if (.match(m, *))
         .byte   $84, <address, >address
-.endmacro
-
-.macro TCH c, address
-        .byte   $85, c, <address, >address
-.endmacro
-
-.macro TRG c, n, address
-        .byte   $86, c, n, <address, >address
-.endmacro
-
-.macro TST s, address
+    .elseif (.match(m, ""))
         .byte   $87
-        encode_string s
         .byte   <address, >address
-
-.macro MATCH_ANY
-        .byte   $88
+        encode_string s
+    .elseif (.not .blank(n))
+        .byte   $86, <address, >address, c, n
+    .else
+        .byte   $85, <address, >address, c
+    .endif
 .endmacro
 
 .macro MATCH m, n
@@ -872,12 +867,10 @@ ins_dkw:
     .endif
 .endmacro
 
-.macro MEMANY
-        .byte   $90
-.endmacro
-
 .macro MATCH_EMIT m, n
-    .if (.match(m, ""))
+    .if (.match(m, *))
+        .byte   $90
+    .elseif (.match(m, ""))
         .byte   $93
         encode_string m
     .elseif (.not .blank(n))
