@@ -706,10 +706,10 @@ pvm_instruction_vectors:
         .word   ins_emit_byte-1
         .word   ins_choice-1
         .word   ins_commit-1
-        .word   ins_stcap-1
-        .word   ins_emcap-1
-        .word   ins_set7-1
-        .word   ins_dkw-1
+        .word   ins_begin_keyword-1
+        .word   ins_tokenize_keyword-1
+        .word   ins_call_keyword-1
+        .word   ins_compose-1
         .word   ins_jump-1
         .word   ins_call-1
         .word   ins_return-1
@@ -759,14 +759,6 @@ write_to_line_buffer:
         inc     line_pos
         rts
 
-ins_fail:
-        ldx     stack_pos               ; Check if stack is empty
-        cpx     #PRIMARY_STACK_SIZE
-        raieq   ERR_SYNTAX_ERROR        ; No CHOICE, so this FAIL fails the entire parse with syntax error
-        jsr     pop_parser_state
-        bcs     ins_fail                ; Parser state is from CALL; we should ignore
-        bcc     retore_pvm_program_ptr  ; Unconditional
-
 ins_choice:
         lda     #.sizeof(ParserState)
         jsr     stack_alloc             ; Allocate space for the savepoint
@@ -789,8 +781,20 @@ ins_commit:
 ; Fall through
 
 ins_jump:
-        mva     pvm_address_arg, pvm_program_ptr
+        mvaa    pvm_address_arg, pvm_program_ptr
         rts
+
+ins_fail:
+        ldx     stack_pos               ; Check if stack is empty
+        cpx     #PRIMARY_STACK_SIZE
+        raieq   ERR_SYNTAX_ERROR        ; No CHOICE, so this FAIL fails the entire parse with syntax error
+        jsr     pop_parser_state
+        bcs     ins_fail                ; Parser state is from CALL; we should ignore
+        lda     stack+ParserState::buffer_pos,x     ; Restore state from CHOICE
+        sta     buffer_pos
+        lda     stack+ParserState::line_pos,x
+        sta     line_pos
+        bcc     retore_pvm_program_ptr  ; Unconditional
 
 ins_call:
         lda     #.sizeof(ParserState)
@@ -820,7 +824,7 @@ return_from_call:
 ; Fall through
 
 ; Updates pvm_program_ptr from the ParserState saved on the stack.
-; X=value of stack_pos
+; X = value of stack_pos
 
 retore_pvm_program_ptr:
         lda     stack+ParserState::pvm_program_ptr,x    ; Return to the savepoint
@@ -831,7 +835,7 @@ retore_pvm_program_ptr:
 
 ; Pop the parser state from the stack and test line_pos vs. MAX_LINE_LENGTH:
 ; If this test returns with carry clear, then this parser state came from CHOICE, and if set, then from CALL.
-; X=value of stack_pos
+; X = value of stack_pos
 
 pop_parser_state:
         lda     #.sizeof(ParserState)   ; Pop the savepoint off the stack
@@ -840,16 +844,47 @@ pop_parser_state:
         cmp     #MAX_LINE_LENGTH        ; Return with carry clear (<MAX_LINE_LENGTH) or set (>=MAX_LINE_LENGTH)
         rts
 
-ins_stcap:
+ins_begin_keyword:
+        mva     line_pos, decode_name_ptr           ; Set decode_name_ptr to start of name in line_buffer
+        mvx     #>line_buffer, decode_name_ptr+1
         rts
 
-ins_emcap:
+ins_tokenize_keyword:
+        lda     #EOT
+        jsr     compose_with_last_byte
+        ldax    pvm_address_arg
+        jsr     find_name
+        bcs     ins_fail                ; Didn't find the name; treat as FAIL
+        ldx     decode_name_ptr
+        sta     line_buffer,x           ; Write the token to line_buffer
+        inx
+        stx     line_pos                ; Reset line_pos to the space after teh token
         rts
 
-ins_set7:
+ins_call_keyword:
         rts
 
-ins_dkw:
+ins_compose:
+        lda     pvm_arg
+compose_with_last_byte:
+        ldx     line_pos                ; Current line_pos
+        ora     line_buffer-1,x         ; Subtract one since we want last character
+        sta     line_buffer-1,x
+        rts
+
+; Rebases pvm_program_ptr by adding Y.
+; pvm_program_ptr = pointer to current parse instruction
+; Y = the offset to add to pvm_program_ptr
+; X SAFE, Y SAFE, BC SAFE, DE SAFE
+
+rebase_pvm_program_ptr:
+        tya                             ; Move offset into A and add to pvm_program_ptr
+        clc                             ; Not sure if carry is set or not so clear it now
+        adc     pvm_program_ptr                 ; Add to pvm_program_ptr
+        sta     pvm_program_ptr
+        bcc     @done
+        inc     pvm_program_ptr+1
+@done:
         rts
 
 ; PVM macros
@@ -878,7 +913,7 @@ ins_dkw:
     .elseif (.match(m, ""))
         .byte   $87
         .byte   <address, >address
-        encode_string s
+        encode_string m
     .elseif (.not .blank(n))
         .byte   $86, <address, >address, m, n
     .else
@@ -940,6 +975,50 @@ ins_dkw:
         .byte   $68
 .endmacro
 
+.macro BEGIN_KEYWORD
+        .byte   $38
+.endmacro
+
+.macro TOKENIZE_KEYWORD address
+        .byte   $44, <address, >address
+.endmacro
+
+.macro CALL_KEYWORD
+        .byte   $48
+.endmacro
+
+.macro COMPOSE b
+        .byte   $51, b
+.endmacro
+
+
+; TEST	            1000 0100 aaaa
+; TEST	            1000 0101 aaaa nn
+; TEST	            1000 0110 aaaa bb ee
+; TEST	            1000 0111 aaaa ccc
+; MATCH	            1000 1000
+; MATCH	            1000 1001 nn
+; MATCH	            1000 1010 bb ee
+; MATCH	            1000 1011 ccc
+; MATCH_EMIT	    1001 0000
+; MATCH_EMIT	    1001 0001 nn
+; MATCH_EMIT	    1001 0010 bb ee
+; MATCH_EMIT	    1001 0011 ccc
+; EMIT	            0001 1000
+; EMIT_BYTE	        0010 0001 nn
+; CHOICE	        0010 1100 aaaa
+; COMMIT	        0011 0100 aaaa
+; BEGIN_KEYWORD	    0011 1000
+; TOKENIZE_KEYWORD	0100 0100 aaaa
+; CALL_KEYWORD	    0100 1000
+; COMPOSE           0101 0001 nn
+; JUMP	            0101 1100 aaaa
+; CALL	            0110 0100 aaaa
+; RETURN	        0110 1000
+; FAIL	            0111 0000
+; WS etc.	        0111 1xxx
+
+
 ; PVM program
 
 pvm_start:
@@ -957,6 +1036,20 @@ pvm_whitespace:
         RETURN
 
 pvm_expression:
+        CALL pvm_primary_expression
+        CHOICE @done
+        CALL pvm_operator
+        COMMIT pvm_expression
+@done:
+        RETURN
+
+pvm_primary_expression:
+        CHOICE @string
+        MATCH_EMIT '('
+        CALL pvm_expression
+        MATCH_EMIT ')'
+        COMMIT @done
+@string:
         CHOICE @number
         CALL pvm_string
         COMMIT @done
@@ -1007,46 +1100,13 @@ pvm_variable:
 @done:
         RETURN
 
-; TANY	    1000 0100 aaaa
-; TCH	    1000 0101 nn aaaa
-; TRG	    1000 0110 bb ee aaaa
-; TST	    1000 0111 ccc aaaa
-; MANY	    1000 1000
-; MCH	    1000 1001 nn
-; MRG	    1000 1010 bb ee
-; MST	    1000 1011 ccc
-; MEMANY	1001 0000
-; MEMCH	    1001 0001 nn
-; MEMRG	    1001 0010 bb ee
-; MEMST	    1001 0011 ccc
-; EMIT	    0001 1000
-; EMCH	    0010 0001 nn
-; CHOICE	0010 1100 aaaa
-; COMMIT	0011 0100 aaaa
-; STCAP	    0011 1000
-; EMCAP	    0100 0001 nn
-; SET7	    0100 1000
-; DKW	    0101 0100 aaaa
-; JUMP	    0101 1100 aaaa
-; CALL	    0110 0100 aaaa
-; RETURN    0110 1000
-; FAIL	    0111 0000
-; ?         0111 1000
-
-
-; Rebases pvm_program_ptr by adding Y.
-; pvm_program_ptr = pointer to current parse instruction
-; Y = the offset to add to pvm_program_ptr
-; X SAFE, Y SAFE, BC SAFE, DE SAFE
-
-rebase_pvm_program_ptr:
-        tya                             ; Move offset into A and add to pvm_program_ptr
-        clc                             ; Not sure if carry is set or not so clear it now
-        adc     pvm_program_ptr                 ; Add to pvm_program_ptr
-        sta     pvm_program_ptr
-        bcc     @done
-        inc     pvm_program_ptr+1
-@done:
-        rts
-
-
+pvm_operator:
+        BEGIN_KEYWORD
+        MATCH_EMIT ' ', 32
+        CHOICE @end
+        MATCH_EMIT '<', 3
+        COMMIT @end
+@end:
+        TOKENIZE_KEYWORD operator_name_table
+        COMPOSE TOKEN_OP
+        RETURN        

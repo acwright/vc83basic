@@ -437,6 +437,8 @@ void test_new_parse_statement(void) {
     const char line_data_2[] = { ST_PRINT, '2', '5' };
     const char line_data_3[] = { ST_PRINT, '"', 'H', 'E', 'L', 'L', 'O', '"' };
     const char line_data_4[] = { ST_PRINT, 'I', 'D', 'X', '_', '2' };
+    const char line_data_5[] = { ST_PRINT, '1', TOKEN_OP | OP_ADD, '1', TOKEN_OP | OP_ADD, '1' };
+    const char line_data_6[] = { ST_PRINT, '1', TOKEN_OP | OP_ADD, '(', '1', TOKEN_OP | OP_ADD, '1', ')' };
 
     PRINT_TEST_NAME();
 
@@ -446,6 +448,8 @@ void test_new_parse_statement(void) {
     call_new_parse_statement("PRINT 25", line_data_2, sizeof line_data_2, __LINE__);
     call_new_parse_statement("PRINT \"HELLO\"", line_data_3, sizeof line_data_3, __LINE__);
     call_new_parse_statement("PRINT IDX_2", line_data_4, sizeof line_data_4, __LINE__);
+    call_new_parse_statement("PRINT 1+1+1", line_data_5, sizeof line_data_5, __LINE__);
+    call_new_parse_statement("PRINT 1+(1+1)", line_data_6, sizeof line_data_6, __LINE__);
 }
 
 int main(void) {
