@@ -708,7 +708,7 @@ pvm_instruction_vectors:
         .word   ins_commit-1
         .word   ins_begin_keyword-1
         .word   ins_tokenize_keyword-1
-        .word   ins_call_keyword-1
+        .word   ins_jump_keyword-1
         .word   ins_compose-1
         .word   ins_jump-1
         .word   ins_call-1
@@ -861,7 +861,8 @@ ins_tokenize_keyword:
         stx     line_pos                ; Reset line_pos to the space after teh token
         rts
 
-ins_call_keyword:
+ins_jump_keyword:
+        mvaa    name_ptr, pvm_program_ptr
         rts
 
 ins_compose:
@@ -892,6 +893,7 @@ rebase_pvm_program_ptr:
 ; Encodes string using .byte and sets bit 7 (EOT) on the last character.
 
 .macro encode_string s
+    .local length
     length = .strlen(s)
 
     .if (length > 0)
@@ -983,7 +985,7 @@ rebase_pvm_program_ptr:
         .byte   $44, <address, >address
 .endmacro
 
-.macro CALL_KEYWORD
+.macro JUMP_KEYWORD
         .byte   $48
 .endmacro
 
@@ -1010,7 +1012,7 @@ rebase_pvm_program_ptr:
 ; COMMIT	        0011 0100 aaaa
 ; BEGIN_KEYWORD	    0011 1000
 ; TOKENIZE_KEYWORD	0100 0100 aaaa
-; CALL_KEYWORD	    0100 1000
+; JUMP_KEYWORD	    0100 1000
 ; COMPOSE           0101 0001 nn
 ; JUMP	            0101 1100 aaaa
 ; CALL	            0110 0100 aaaa
@@ -1022,11 +1024,21 @@ rebase_pvm_program_ptr:
 ; PVM program
 
 pvm_start:
-        MATCH "PRINT"
-        EMIT_BYTE ST_PRINT
+        BEGIN_KEYWORD
+        CALL pvm_name
+        TOKENIZE_KEYWORD pvm_statement_table
         CALL pvm_whitespace
-        CALL pvm_expression
-        RETURN
+        JUMP_KEYWORD
+
+pvm_statement_table:
+        .byte   :+ - *
+        encode_string "END"
+:       .byte   :+ - *
+        encode_string "RUN"
+:       .byte   :+ - *
+        encode_string "PRINT"
+            JUMP pvm_expression
+:       .byte   0
 
 pvm_whitespace:
         CHOICE @done
@@ -1084,6 +1096,10 @@ pvm_string:
         RETURN
 
 pvm_variable:
+        CALL pvm_name
+        RETURN
+
+pvm_name:
         MATCH_EMIT 'A', 26
 @next:
         CHOICE @digit
