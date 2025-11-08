@@ -37,7 +37,7 @@ parse_line:
 @next_statement:
         mva     line_pos, statement_line_pos        ; Save start of statement position
         inc     line_pos                ; Begin tokenizing statement at next position
-        jsr     parse_statement         ; Leaves the parsed statement in line_buffer and sets/clears carry
+        jsr     new_parse_statement     ; Leaves the parsed statement in line_buffer and sets/clears carry
         lda     line_pos                ; Write position is next statement offset
         ldx     statement_line_pos      ; Store at start of statement
         sta     line_buffer,x
@@ -1097,6 +1097,7 @@ pvm_string:
 
 pvm_variable:
         CALL pvm_name
+        COMPOSE EOT
         RETURN
 
 pvm_name:
