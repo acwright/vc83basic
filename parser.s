@@ -1068,7 +1068,7 @@ pvm_statement_name_table:
             JUMP pvm_variable_list
 :
         name_table_entry "LIST"
-            RETURN
+            JUMP pvm_arg_2
 :
         name_table_entry "GOTO"
             JUMP pvm_number
@@ -1136,6 +1136,8 @@ keyword_name_table:
 :
         name_table_end
 
+; Complex statements
+
 pvm_on:
         CALL pvm_expression    
         CALL pvm_whitespace
@@ -1165,6 +1167,23 @@ pvm_if:
 @then:
         CALL pvm_keyword
         JUMP pvm_statement
+
+; Argument lists
+
+pvm_arg_2:
+        CHOICE @done
+        CALL pvm_expression
+        COMMIT @arg_2
+@arg_2:
+        CHOICE @done
+        CALL pvm_whitespace
+        MATCH_EMIT ','
+        CALL pvm_expression
+        COMMIT @done
+@done:
+        RETURN
+
+; Expressions
 
 pvm_expression:
         CALL pvm_primary_expression
@@ -1198,6 +1217,8 @@ pvm_primary_expression:
 @done:
         RETURN
 
+; Low-level rules
+
 pvm_number:
         CALL pvm_whitespace
         MATCH_RANGE_EMIT '0', 10
@@ -1215,7 +1236,7 @@ pvm_number_list:
         CALL pvm_whitespace
         MATCH_EMIT ','
         CALL pvm_number
-        JUMP @next
+        COMMIT @next
 @done:
         RETURN
 
@@ -1242,6 +1263,7 @@ pvm_variable_list:
         CALL pvm_variable
 @next:
         CHOICE @done
+        CALL pvm_whitespace
         MATCH_EMIT ','
         CALL pvm_variable
         COMMIT @next

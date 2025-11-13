@@ -433,27 +433,29 @@ void call_new_parse_statement(const char* s, const char* expect_line_data, size_
 
 void test_new_parse_statement(void) {
 
-    /* Number */
-    const char number_line_data_1[] = { ST_PRINT, '1' };
-    const char number_line_data_2[] = { ST_PRINT, '2', '5' };
-
-    /* String */
-    const char string_line_data_1[] = { ST_PRINT, '"', 'H', 'E', 'L', 'L', 'O', '"' };
-
-    /* Variable */
-    const char variable_line_data_1[] = { ST_PRINT, 'I', 'D', 'X', '_', '2' | EOT };
-
-    /* Simple expression */
-    const char expression_line_data_1[] = { ST_PRINT, '1', TOKEN_OP | OP_ADD, '1', TOKEN_OP | OP_ADD, '1' };
-    const char expression_line_data_2[] = { ST_PRINT, '1', TOKEN_OP | OP_ADD, '(', '1', TOKEN_OP | OP_ADD, '1', ')' };
-
-    /* LET */
+    const char simple_line_data_1[] = { ST_NEW_RUN };
+    const char number_line_data_1[] = { ST_NEW_PRINT, '1' };
+    const char number_line_data_2[] = { ST_NEW_PRINT, '2', '5' };
+    const char string_line_data_1[] = { ST_NEW_PRINT, '"', 'H', 'E', 'L', 'L', 'O', '"' };
+    const char variable_line_data_1[] = { ST_NEW_PRINT, 'I', 'D', 'X', '_', '2' | EOT };
+    const char expression_line_data_1[] = { ST_NEW_PRINT, '1', TOKEN_OP | OP_ADD, '1', TOKEN_OP | OP_ADD, '1' };
+    const char expression_line_data_2[] = { ST_NEW_PRINT, '1', TOKEN_OP | OP_ADD, '(', '1', TOKEN_OP | OP_ADD, '1', ')' };
     const char let_line_data_1[] = { ST_NEW_LET, 'X' | EOT, '=', '1', '0', '0' };
-
-    /* IF */
     const char if_line_data_1[] = { ST_NEW_IF_THEN, 'X' | EOT, TOKEN_OP | OP_EQ, '1', TOKEN_KW | KW_THEN, ST_GOTO, '1', '0' };
+    const char input_line_data_1[] = { ST_NEW_INPUT, 'A' | EOT };
+    const char input_line_data_2[] = { ST_NEW_INPUT, 'A' | EOT, ',', 'B' | EOT, ',', 'C' | EOT };
+    const char on_line_data_1[] = { ST_NEW_ON, '1', TOKEN_KW | KW_GOTO, '1', '0' };
+    const char on_line_data_2[] = { ST_NEW_ON, '1', TOKEN_KW | KW_GOSUB, '1', '0' };
+    const char on_line_data_3[] = { ST_NEW_ON, 'X' | EOT, TOKEN_KW | KW_GOSUB, '1', '0', ',', '2', '0', ',', '3', '0' };
+    const char next_line_data_1[] = { ST_NEW_NEXT, 'X' | EOT };
+    const char list_line_data_1[] = { ST_NEW_LIST };
+    const char list_line_data_2[] = { ST_NEW_LIST, '1', '0', '0' };
+    const char list_line_data_3[] = { ST_NEW_LIST, '1', '0', '0', ',', '5', '0', '0' };
 
     PRINT_TEST_NAME();
+
+    // Simple statement (covers all single-keyword statements)
+    call_new_parse_statement("RUN", simple_line_data_1, sizeof simple_line_data_1, __LINE__);
 
     // Number
     call_new_parse_statement("PRINT 1", number_line_data_1, sizeof number_line_data_1, __LINE__);
@@ -474,6 +476,23 @@ void test_new_parse_statement(void) {
 
     // IF
     call_new_parse_statement("IF X=1 THEN GOTO 10", if_line_data_1, sizeof if_line_data_1, __LINE__);
+
+    // INPUT (covers READ)
+    call_new_parse_statement("INPUT A", input_line_data_1, sizeof input_line_data_1, __LINE__);
+    call_new_parse_statement("INPUT A,B,C", input_line_data_2, sizeof input_line_data_2, __LINE__);
+
+    // ON
+    call_new_parse_statement("ON 1 GOTO 10", on_line_data_1, sizeof on_line_data_1, __LINE__);
+    call_new_parse_statement("ON 1 GOSUB 10", on_line_data_2, sizeof on_line_data_2, __LINE__);
+    call_new_parse_statement("ON X GOSUB 10,20,30", on_line_data_3, sizeof on_line_data_3, __LINE__);
+
+    // NEXT
+    call_new_parse_statement("NEXT X", next_line_data_1, sizeof next_line_data_1, __LINE__);
+
+    // LIST
+    call_new_parse_statement("LIST", list_line_data_1, sizeof list_line_data_1, __LINE__);
+    call_new_parse_statement("LIST 100", list_line_data_2, sizeof list_line_data_2, __LINE__);
+    call_new_parse_statement("LIST 100,500", list_line_data_3, sizeof list_line_data_3, __LINE__);
 }
 
 int main(void) {
