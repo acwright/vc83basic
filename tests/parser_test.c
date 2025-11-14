@@ -448,6 +448,8 @@ void test_new_parse_statement(void) {
     const char expression_line_data_1[] = { ST_NEW_PRINT, '1', TOKEN_OP | OP_ADD, '1', TOKEN_OP | OP_ADD, '1' };
     const char expression_line_data_2[] = { ST_NEW_PRINT, '1', TOKEN_OP | OP_ADD, '(', '1', TOKEN_OP | OP_ADD, '1', ')' };
     const char expression_line_data_3[] = { ST_NEW_PRINT, '"', 'H', 'E', 'L', 'L', 'O', '"', TOKEN_OP | OP_CONCAT, '"', ',', ' ', 'W', 'O', 'R', 'L', 'D', '"' };
+    const char for_line_data_1[] = { ST_NEW_FOR, 'X' | EOT, '=', '1', TOKEN_KW | KW_TO, '5' };
+    const char for_line_data_2[] = { ST_NEW_FOR, 'X' | EOT, '=', '1', TOKEN_KW | KW_TO, '2', '0', TOKEN_KW | KW_STEP, '2' };
     const char let_line_data_1[] = { ST_NEW_LET, 'X' | EOT, '=', '1', '0', '0' };
     const char if_line_data_1[] = { ST_NEW_IF_THEN, 'X' | EOT, TOKEN_OP | OP_EQ, '1', TOKEN_KW | KW_THEN, ST_GOTO, '1', '0' };
     const char input_line_data_1[] = { ST_NEW_INPUT, 'A' | EOT };
@@ -485,6 +487,10 @@ void test_new_parse_statement(void) {
     call_new_parse_statement("PRINT 1+1+1", expression_line_data_1, sizeof expression_line_data_1, __LINE__);
     call_new_parse_statement("PRINT 1+(1+1)", expression_line_data_2, sizeof expression_line_data_2, __LINE__);
     call_new_parse_statement("PRINT \"HELLO\" & \", WORLD\"", expression_line_data_3, sizeof expression_line_data_3, __LINE__);
+
+    // FOR
+    call_new_parse_statement("FOR X=1 TO 5", for_line_data_1, sizeof for_line_data_1, __LINE__);
+    call_new_parse_statement("FOR X=1 TO 20 STEP 2", for_line_data_2, sizeof for_line_data_2, __LINE__);
 
     // LET
     call_new_parse_statement("LET X=100", let_line_data_1, sizeof let_line_data_1, __LINE__);

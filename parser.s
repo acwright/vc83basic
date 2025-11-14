@@ -1157,6 +1157,12 @@ pvm_for:
         FAIL
 @to:
         CALL pvm_keyword
+        CALL pvm_expression
+        CALL pvm_whitespace
+        TEST "STEP", @step
+        RETURN
+@step:
+        CALL pvm_keyword
         JUMP pvm_expression
 
 pvm_if:
