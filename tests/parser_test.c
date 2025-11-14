@@ -445,6 +445,7 @@ void test_new_parse_statement(void) {
     const char variable_line_data_1[] = { ST_NEW_PRINT, 'I', 'D', 'X', '_', '2' | EOT };
     const char variable_line_data_2[] = { ST_NEW_PRINT, 'A', '$' | EOT };
     const char variable_line_data_3[] = { ST_NEW_PRINT, 'X' | EOT, '(', '5', ')' };
+    const char variable_line_data_4[] = { ST_NEW_PRINT, 'X', 'Y', 'Z', 'Z', 'Y', '$' | EOT, '(', '1', ',', '1', '0', ')' };
     const char expression_line_data_1[] = { ST_NEW_PRINT, '1', TOKEN_OP | OP_ADD, '1', TOKEN_OP | OP_ADD, '1' };
     const char expression_line_data_2[] = { ST_NEW_PRINT, '1', TOKEN_OP | OP_ADD, '(', '1', TOKEN_OP | OP_ADD, '1', ')' };
     const char expression_line_data_3[] = { ST_NEW_PRINT, '"', 'H', 'E', 'L', 'L', 'O', '"', TOKEN_OP | OP_CONCAT, '"', ',', ' ', 'W', 'O', 'R', 'L', 'D', '"' };
@@ -482,6 +483,7 @@ void test_new_parse_statement(void) {
     call_new_parse_statement("PRINT IDX_2", variable_line_data_1, sizeof variable_line_data_1, __LINE__);
     call_new_parse_statement("PRINT A$", variable_line_data_2, sizeof variable_line_data_2, __LINE__);
     call_new_parse_statement("PRINT X(5)", variable_line_data_3, sizeof variable_line_data_3, __LINE__);
+    call_new_parse_statement("PRINT XYZZY$(1,10)", variable_line_data_4, sizeof variable_line_data_4, __LINE__);
 
     // Expression
     call_new_parse_statement("PRINT 1+1+1", expression_line_data_1, sizeof expression_line_data_1, __LINE__);
