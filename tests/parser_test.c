@@ -417,21 +417,21 @@ void test_parse_line(void) {
     ASSERT_NE(err, 0);
 }
 
-void call_new_parse_statement(const char* s, const char* expect_line_data, size_t expect_line_data_length, int line) {
+void call_new_parse_line(const char* s, const char* expect_line_data, size_t expect_line_data_length, int line) {
     size_t expect_buffer_pos;
-    fprintf(stderr, "  %s:%d: new_parse_statement(\"%s\")\n", __FILE__, line, s);
+    fprintf(stderr, "  %s:%d: new_parse_line(\"%s\")\n", __FILE__, line, s);
     expect_buffer_pos = strlen(s);
     strcpy(buffer, s);
     buffer_pos = 0;
     line_pos = offsetof(Line, data);
-    new_parse_statement();
+    new_parse_line();
     ASSERT_EQ(err, 0);
     ASSERT_EQ(buffer_pos, expect_buffer_pos);
     ASSERT_MEMORY_EQ(line_buffer.data, expect_line_data, expect_line_data_length);
     ASSERT_EQ(line_pos, offsetof(Line, data) + expect_line_data_length);
 }
 
-void test_new_parse_statement(void) {
+void test_new_parse_line(void) {
 
     const char simple_line_data_1[] = { ST_NEW_RUN };
     const char number_line_data_1[] = { ST_NEW_PRINT, '1' };
@@ -464,64 +464,68 @@ void test_new_parse_statement(void) {
     const char list_line_data_1[] = { ST_NEW_LIST };
     const char list_line_data_2[] = { ST_NEW_LIST, '1', '0', '0' };
     const char list_line_data_3[] = { ST_NEW_LIST, '1', '0', '0', ',', '5', '0', '0' };
+    const char multi_line_data_1[] = { ST_NEW_LET, 'X' | EOT, '=', '1', '0', '0', ':', ST_NEW_PRINT, 'X' | EOT };
 
     PRINT_TEST_NAME();
 
     // Simple statement (covers all single-keyword statements)
-    call_new_parse_statement("RUN", simple_line_data_1, sizeof simple_line_data_1, __LINE__);
+    call_new_parse_line("RUN", simple_line_data_1, sizeof simple_line_data_1, __LINE__);
 
     // Number
-    call_new_parse_statement("PRINT 1", number_line_data_1, sizeof number_line_data_1, __LINE__);
-    call_new_parse_statement("PRINT 25", number_line_data_2, sizeof number_line_data_2, __LINE__);
-    call_new_parse_statement("PRINT 3.14159", number_line_data_3, sizeof number_line_data_3, __LINE__);
-    call_new_parse_statement("PRINT 10.", number_line_data_4, sizeof number_line_data_4, __LINE__);
-    call_new_parse_statement("PRINT .125", number_line_data_5, sizeof number_line_data_5, __LINE__);
+    call_new_parse_line("PRINT 1", number_line_data_1, sizeof number_line_data_1, __LINE__);
+    call_new_parse_line("PRINT 25", number_line_data_2, sizeof number_line_data_2, __LINE__);
+    call_new_parse_line("PRINT 3.14159", number_line_data_3, sizeof number_line_data_3, __LINE__);
+    call_new_parse_line("PRINT 10.", number_line_data_4, sizeof number_line_data_4, __LINE__);
+    call_new_parse_line("PRINT .125", number_line_data_5, sizeof number_line_data_5, __LINE__);
 
     // String
-    call_new_parse_statement("PRINT \"HELLO\"", string_line_data_1, sizeof string_line_data_1, __LINE__);
-    call_new_parse_statement("PRINT \"BUG OR \"\"FEATURE?\"\"\"", string_line_data_2, sizeof string_line_data_2, __LINE__);
+    call_new_parse_line("PRINT \"HELLO\"", string_line_data_1, sizeof string_line_data_1, __LINE__);
+    call_new_parse_line("PRINT \"BUG OR \"\"FEATURE?\"\"\"", string_line_data_2, sizeof string_line_data_2, __LINE__);
 
     // Variable
-    call_new_parse_statement("PRINT IDX_2", variable_line_data_1, sizeof variable_line_data_1, __LINE__);
-    call_new_parse_statement("PRINT A$", variable_line_data_2, sizeof variable_line_data_2, __LINE__);
-    call_new_parse_statement("PRINT X(5)", variable_line_data_3, sizeof variable_line_data_3, __LINE__);
-    call_new_parse_statement("PRINT XYZZY$(1,10)", variable_line_data_4, sizeof variable_line_data_4, __LINE__);
+    call_new_parse_line("PRINT IDX_2", variable_line_data_1, sizeof variable_line_data_1, __LINE__);
+    call_new_parse_line("PRINT A$", variable_line_data_2, sizeof variable_line_data_2, __LINE__);
+    call_new_parse_line("PRINT X(5)", variable_line_data_3, sizeof variable_line_data_3, __LINE__);
+    call_new_parse_line("PRINT XYZZY$(1,10)", variable_line_data_4, sizeof variable_line_data_4, __LINE__);
 
     // Function
-    call_new_parse_statement("PRINT LEN(\"HELLO\")", function_line_data_1, sizeof function_line_data_1, __LINE__);
-    call_new_parse_statement("PRINT MID$(\"HELLO\",2,3)", function_line_data_2, sizeof function_line_data_2, __LINE__);
+    call_new_parse_line("PRINT LEN(\"HELLO\")", function_line_data_1, sizeof function_line_data_1, __LINE__);
+    call_new_parse_line("PRINT MID$(\"HELLO\",2,3)", function_line_data_2, sizeof function_line_data_2, __LINE__);
 
     // Expression
-    call_new_parse_statement("PRINT 1+1+1", expression_line_data_1, sizeof expression_line_data_1, __LINE__);
-    call_new_parse_statement("PRINT 1+(1+1)", expression_line_data_2, sizeof expression_line_data_2, __LINE__);
-    call_new_parse_statement("PRINT \"HELLO\" & \", WORLD\"", expression_line_data_3, sizeof expression_line_data_3, __LINE__);
+    call_new_parse_line("PRINT 1+1+1", expression_line_data_1, sizeof expression_line_data_1, __LINE__);
+    call_new_parse_line("PRINT 1+(1+1)", expression_line_data_2, sizeof expression_line_data_2, __LINE__);
+    call_new_parse_line("PRINT \"HELLO\" & \", WORLD\"", expression_line_data_3, sizeof expression_line_data_3, __LINE__);
 
     // FOR
-    call_new_parse_statement("FOR X=1 TO 5", for_line_data_1, sizeof for_line_data_1, __LINE__);
-    call_new_parse_statement("FOR X=1 TO 20 STEP 2", for_line_data_2, sizeof for_line_data_2, __LINE__);
+    call_new_parse_line("FOR X=1 TO 5", for_line_data_1, sizeof for_line_data_1, __LINE__);
+    call_new_parse_line("FOR X=1 TO 20 STEP 2", for_line_data_2, sizeof for_line_data_2, __LINE__);
 
     // LET
-    call_new_parse_statement("LET X=100", let_line_data_1, sizeof let_line_data_1, __LINE__);
+    call_new_parse_line("LET X=100", let_line_data_1, sizeof let_line_data_1, __LINE__);
 
     // IF
-    call_new_parse_statement("IF X=1 THEN GOTO 10", if_line_data_1, sizeof if_line_data_1, __LINE__);
+    call_new_parse_line("IF X=1 THEN GOTO 10", if_line_data_1, sizeof if_line_data_1, __LINE__);
 
     // INPUT (covers READ)
-    call_new_parse_statement("INPUT A", input_line_data_1, sizeof input_line_data_1, __LINE__);
-    call_new_parse_statement("INPUT A,B,C", input_line_data_2, sizeof input_line_data_2, __LINE__);
+    call_new_parse_line("INPUT A", input_line_data_1, sizeof input_line_data_1, __LINE__);
+    call_new_parse_line("INPUT A,B,C", input_line_data_2, sizeof input_line_data_2, __LINE__);
 
     // ON
-    call_new_parse_statement("ON 1 GOTO 10", on_line_data_1, sizeof on_line_data_1, __LINE__);
-    call_new_parse_statement("ON 1 GOSUB 10", on_line_data_2, sizeof on_line_data_2, __LINE__);
-    call_new_parse_statement("ON X GOSUB 10,20,30", on_line_data_3, sizeof on_line_data_3, __LINE__);
+    call_new_parse_line("ON 1 GOTO 10", on_line_data_1, sizeof on_line_data_1, __LINE__);
+    call_new_parse_line("ON 1 GOSUB 10", on_line_data_2, sizeof on_line_data_2, __LINE__);
+    call_new_parse_line("ON X GOSUB 10,20,30", on_line_data_3, sizeof on_line_data_3, __LINE__);
 
     // NEXT
-    call_new_parse_statement("NEXT X", next_line_data_1, sizeof next_line_data_1, __LINE__);
+    call_new_parse_line("NEXT X", next_line_data_1, sizeof next_line_data_1, __LINE__);
 
     // LIST
-    call_new_parse_statement("LIST", list_line_data_1, sizeof list_line_data_1, __LINE__);
-    call_new_parse_statement("LIST 100", list_line_data_2, sizeof list_line_data_2, __LINE__);
-    call_new_parse_statement("LIST 100,500", list_line_data_3, sizeof list_line_data_3, __LINE__);
+    call_new_parse_line("LIST", list_line_data_1, sizeof list_line_data_1, __LINE__);
+    call_new_parse_line("LIST 100", list_line_data_2, sizeof list_line_data_2, __LINE__);
+    call_new_parse_line("LIST 100,500", list_line_data_3, sizeof list_line_data_3, __LINE__);
+
+    // Multiple statements
+    call_new_parse_line("LET X=100:PRINT X", multi_line_data_1, sizeof multi_line_data_1, __LINE__);
 }
 
 int main(void) {
@@ -534,6 +538,6 @@ int main(void) {
     // test_parse_directive();
     // test_parse_statement();
     // test_parse_line();
-    test_new_parse_statement();
+    test_new_parse_line();
     return 0;
 }

@@ -37,7 +37,7 @@ parse_line:
 @next_statement:
         mva     line_pos, statement_line_pos        ; Save start of statement position
         inc     line_pos                ; Begin tokenizing statement at next position
-        jsr     new_parse_statement     ; Leaves the parsed statement in line_buffer and sets/clears carry
+        jsr     parse_statement         ; Leaves the parsed statement in line_buffer and sets/clears carry
         lda     line_pos                ; Write position is next statement offset
         ldx     statement_line_pos      ; Store at start of statement
         sta     line_buffer,x
@@ -585,8 +585,8 @@ save_parser_state:
 
 
 
-new_parse_statement:
-        ldax    #pvm_statement
+new_parse_line:
+        ldax    #pvm_line
         jsr     parse_pvm
         rts
 
@@ -1003,6 +1003,14 @@ rebase_pvm_program_ptr:
 
 
 ; PVM program
+
+pvm_line:
+        CALL pvm_statement
+        TRY @done
+        MATCH ':'
+        COMMIT pvm_line
+@done:
+        RETURN
 
 pvm_statement:
         CALL pvm_whitespace

@@ -430,10 +430,10 @@ _parse_argument_separator:
         jsr     parse_argument_separator
         jmp     set_err
 
-_new_parse_statement:
-.export _new_parse_statement
+_new_parse_line:
+.export _new_parse_line
         startwrap
-        jmp     new_parse_statement
+        jmp     new_parse_line
 
 ; program.s
 

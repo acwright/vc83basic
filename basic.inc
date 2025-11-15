@@ -203,7 +203,7 @@ S1 = FPX+2
 .global parse_name
 .global parse_number
 .global parse_argument_separator
-.global new_parse_statement
+.global new_parse_line
 .global pvm_statement
 
 ; poke.s
