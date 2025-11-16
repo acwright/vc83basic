@@ -132,7 +132,7 @@ void ftan(void);
 // list.s
 void list_line(void);
 void list_statement(void);
-void list_directive(/* A */ char directive);
+void list_statements(void);
 
 // name.s
 char find_name(/* AX */ const char* name_table_ptr);

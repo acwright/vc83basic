@@ -1026,16 +1026,17 @@ pvm_line:
         MATCH ':'
         COMMIT pvm_line
 @done:
+        EMIT 0
         RETURN
 
 pvm_statement:
         CALL pvm_whitespace
         BEGIN_KEYWORD
         CALL pvm_name
-        TOKENIZE_KEYWORD pvm_statement_name_table
+        TOKENIZE_KEYWORD new_statement_name_table
         JUMP_KEYWORD
 
-pvm_statement_name_table:
+new_statement_name_table:
         name_table_entry "END"
             RETURN
 :
@@ -1069,10 +1070,31 @@ pvm_statement_name_table:
             RETURN
 :
         name_table_entry "ON"
-            JUMP pvm_on
+            CALL pvm_expression    
+            CALL pvm_whitespace
+            TEST "GO", @go
+            FAIL
+@go:
+            CALL pvm_clause
+            JUMP pvm_number_list
 :
         name_table_entry "FOR"
-            JUMP pvm_for
+            CALL pvm_variable
+            CALL pvm_whitespace
+            MATCH '='
+            CALL pvm_expression
+            CALL pvm_whitespace
+            TEST "TO", @to
+            FAIL
+@to:
+            CALL pvm_clause
+            CALL pvm_expression
+            CALL pvm_whitespace
+            TEST "STEP", @step
+            RETURN
+@step:
+            CALL pvm_clause
+            JUMP pvm_expression
 :
         name_table_entry "NEXT"
             JUMP pvm_variable
@@ -1084,7 +1106,13 @@ pvm_statement_name_table:
             RETURN
 :
         name_table_entry "IF"
-            JUMP pvm_if
+            CALL pvm_expression
+            CALL pvm_whitespace
+            TEST "THEN", @then
+            FAIL
+@then:
+            CALL pvm_clause
+            JUMP pvm_statement
 :
         name_table_entry "NEW"
             RETURN
@@ -1109,7 +1137,7 @@ pvm_statement_name_table:
 :
         name_table_end
 
-keyword_name_table:
+clause_name_table:
         name_table_entry "TO"
 :
         name_table_entry "STEP"
@@ -1121,44 +1149,6 @@ keyword_name_table:
         name_table_entry "THEN"
 :
         name_table_end
-
-; Complex statements
-
-pvm_on:
-        CALL pvm_expression    
-        CALL pvm_whitespace
-        TEST "GO", @go
-        FAIL
-@go:
-        CALL pvm_keyword
-        JUMP pvm_number_list
-
-pvm_for:
-        CALL pvm_variable
-        CALL pvm_whitespace
-        MATCH '='
-        CALL pvm_expression
-        CALL pvm_whitespace
-        TEST "TO", @to
-        FAIL
-@to:
-        CALL pvm_keyword
-        CALL pvm_expression
-        CALL pvm_whitespace
-        TEST "STEP", @step
-        RETURN
-@step:
-        CALL pvm_keyword
-        JUMP pvm_expression
-
-pvm_if:
-        CALL pvm_expression
-        CALL pvm_whitespace
-        TEST "THEN", @then
-        FAIL
-@then:
-        CALL pvm_keyword
-        JUMP pvm_statement
 
 ; Argument lists
 
@@ -1339,14 +1329,14 @@ pvm_operator:
         COMPOSE TOKEN_OP
         RETURN        
 
-; pvm_keyword does not discard whitespace.
+; pvm_clause does not discard whitespace.
 ; Callers test for the correct keyword before calling and should discard whitespace at that point.
 
-pvm_keyword:
+pvm_clause:
         BEGIN_KEYWORD
         CALL pvm_name
-        TOKENIZE_KEYWORD keyword_name_table
-        COMPOSE TOKEN_KW
+        TOKENIZE_KEYWORD clause_name_table
+        COMPOSE TOKEN_CLAUSE
         RETURN
 
 ; pvm_name does not discard whitespace.

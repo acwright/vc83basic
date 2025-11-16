@@ -66,6 +66,94 @@ list_line:
         sec
         rts
 
+
+; Outputs all of the statements on a line.
+
+list_statements:
+        jsr     decode_byte             ; Get statement token
+        tay                             ; Set up for list_tokenized_name
+        ldax    #new_statement_name_table
+@token:
+        debug $10
+        jsr     expand_tokenized_name
+        ldy     line_pos                ; Exit w/o adding whitespace if there's no more data on the line
+        lda     (line_ptr),y
+        beq     @done
+        jsr     add_whitespace
+@next:
+        jsr     decode_byte             ; Get the next byte; Y is line_pos
+        debug $00
+        beq     @done
+        and     #$7F                    ; Clear EOT
+        sec                             ; Prepare to look for tokens
+        sbc     #$04                    ; Unary operator
+        cmp     #4
+        bcs     @try_clause
+        tay
+        ldax    #unary_operator_name_table
+        bcc     @token
+@try_clause:
+        sbc     #$08 - $04              ; Clause
+        cmp     #8
+        bcs     @try_operator
+        tay
+        pha                             ; Remember the value to check for THEN later
+        ldax    #clause_name_table
+        jsr     expand_tokenized_name   ; Call directly in order to handle THEN
+        jsr     add_whitespace          ; Can just add because there's always something after a clause
+        pla
+        cmp     #CLAUSE_THEN            ; Was it then?
+        beq     list_statements         ; If so then start listing statements all over again
+        bne     @next                   ; Unconditional
+@try_operator:
+        sbc     #$10 - $08              ; Binary operator
+        cmp     #16
+        bcs     @try_function
+        tay
+        ldax    #operator_name_table
+        bcc     @token                  ; Unconditional
+@try_function:
+        sbc     #$60 - $10              ; Function
+        cmp     #32
+        bcs     @default
+        tay
+        ldax    #function_name_table
+        jsr     expand_tokenized_name   ; Call directly becuase we don't want to add whitespace after
+        jmp     @next
+@default:
+        sbc     #$A0                    ; Subtract to cycle the value A back around to its original value
+        jsr     append_buffer
+        bne     @next                   ; Unconditional because append_buffer does INC
+
+@done:
+        rts
+
+; Given a name table index obtained from a token, list the name from the name table.
+; AX = pointer to the start of the name table
+; Y = index number
+
+expand_tokenized_name:
+        jsr     get_name                ; Get the statement name
+        bcs     @done                   ; Shouldn't happen, but just in case
+        ldy     #0
+        lda     (name_ptr),y
+        debug $20
+        and     #$7F                    ; In case EOT is set
+        cmp     #'A'                    ; Only add whitespace before tokenized name if it starts with a letter
+        bcc     @next_name_byte
+        jsr     add_whitespace
+@next_name_byte:
+        lda     (name_ptr),y
+        debug $21
+        php                             ; Remember if EOT bit was set
+        and     #$7F                    ; Clear if it was
+        jsr     append_buffer
+        iny
+        plp
+        bpl     @next_name_byte
+@done:
+        rts
+
 ; Outputs a statement.
 
 list_statement:

@@ -174,7 +174,7 @@ S1 = FPX+2
 .global exec_list
 .global list_line
 .global list_statement
-.global list_directive
+.global list_statements
 
 ; main.s
 .global main
@@ -205,6 +205,8 @@ S1 = FPX+2
 .global parse_argument_separator
 .global new_parse_line
 .global pvm_statement
+.global new_statement_name_table
+.global clause_name_table
 
 ; poke.s
 .global exec_poke

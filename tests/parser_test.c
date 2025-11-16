@@ -433,38 +433,38 @@ void call_new_parse_line(const char* s, const char* expect_line_data, size_t exp
 
 void test_new_parse_line(void) {
 
-    const char simple_line_data_1[] = { ST_NEW_RUN };
-    const char number_line_data_1[] = { ST_NEW_PRINT, '1' };
-    const char number_line_data_2[] = { ST_NEW_PRINT, '2', '5' };
-    const char number_line_data_3[] = { ST_NEW_PRINT, '3', '.', '1', '4', '1', '5', '9' };
-    const char number_line_data_4[] = { ST_NEW_PRINT, '1', '0', '.' };
-    const char number_line_data_5[] = { ST_NEW_PRINT, '.', '1', '2', '5' };
-    const char string_line_data_1[] = { ST_NEW_PRINT, '"', 'H', 'E', 'L', 'L', 'O', '"' };
+    const char simple_line_data_1[] = { ST_NEW_RUN, 0 };
+    const char number_line_data_1[] = { ST_NEW_PRINT, '1', 0 };
+    const char number_line_data_2[] = { ST_NEW_PRINT, '2', '5', 0 };
+    const char number_line_data_3[] = { ST_NEW_PRINT, '3', '.', '1', '4', '1', '5', '9', 0 };
+    const char number_line_data_4[] = { ST_NEW_PRINT, '1', '0', '.', 0 };
+    const char number_line_data_5[] = { ST_NEW_PRINT, '.', '1', '2', '5', 0 };
+    const char string_line_data_1[] = { ST_NEW_PRINT, '"', 'H', 'E', 'L', 'L', 'O', '"', 0 };
     const char string_line_data_2[] = { ST_NEW_PRINT, '"', 'B', 'U', 'G', ' ', 'O', 'R', ' ', '"', '"', 
-        'F', 'E', 'A', 'T', 'U', 'R', 'E', '?', '"', '"', '"' };
-    const char variable_line_data_1[] = { ST_NEW_PRINT, 'I', 'D', 'X', '_', '2' | EOT };
-    const char variable_line_data_2[] = { ST_NEW_PRINT, 'A', '$' | EOT };
-    const char variable_line_data_3[] = { ST_NEW_PRINT, 'X' | EOT, '(', '5', ')' };
-    const char variable_line_data_4[] = { ST_NEW_PRINT, 'X', 'Y', 'Z', 'Z', 'Y', '$' | EOT, '(', '1', ',', '1', '0', ')' };
-    const char function_line_data_1[] = { ST_NEW_PRINT, TOKEN_FUNCTION | 0, '(', '"', 'H', 'E', 'L', 'L', 'O', '"', ')' };
-    const char function_line_data_2[] = { ST_NEW_PRINT, TOKEN_FUNCTION | 6, '(', '"', 'H', 'E', 'L', 'L', 'O', '"', ',', '2', ',', '3', ')' };
-    const char expression_line_data_1[] = { ST_NEW_PRINT, '1', TOKEN_OP | OP_ADD, '1', TOKEN_OP | OP_ADD, '1' };
-    const char expression_line_data_2[] = { ST_NEW_PRINT, '1', TOKEN_OP | OP_ADD, '(', '1', TOKEN_OP | OP_ADD, '1', ')' };
-    const char expression_line_data_3[] = { ST_NEW_PRINT, '"', 'H', 'E', 'L', 'L', 'O', '"', TOKEN_OP | OP_CONCAT, '"', ',', ' ', 'W', 'O', 'R', 'L', 'D', '"' };
-    const char for_line_data_1[] = { ST_NEW_FOR, 'X' | EOT, '=', '1', TOKEN_KW | KW_TO, '5' };
-    const char for_line_data_2[] = { ST_NEW_FOR, 'X' | EOT, '=', '1', TOKEN_KW | KW_TO, '2', '0', TOKEN_KW | KW_STEP, '2' };
-    const char let_line_data_1[] = { ST_NEW_LET, 'X' | EOT, '=', '1', '0', '0' };
-    const char if_line_data_1[] = { ST_NEW_IF_THEN, 'X' | EOT, TOKEN_OP | OP_EQ, '1', TOKEN_KW | KW_THEN, ST_GOTO, '1', '0' };
-    const char input_line_data_1[] = { ST_NEW_INPUT, 'A' | EOT };
-    const char input_line_data_2[] = { ST_NEW_INPUT, 'A' | EOT, ',', 'B' | EOT, ',', 'C' | EOT };
-    const char on_line_data_1[] = { ST_NEW_ON, '1', TOKEN_KW | KW_GOTO, '1', '0' };
-    const char on_line_data_2[] = { ST_NEW_ON, '1', TOKEN_KW | KW_GOSUB, '1', '0' };
-    const char on_line_data_3[] = { ST_NEW_ON, 'X' | EOT, TOKEN_KW | KW_GOSUB, '1', '0', ',', '2', '0', ',', '3', '0' };
-    const char next_line_data_1[] = { ST_NEW_NEXT, 'X' | EOT };
-    const char list_line_data_1[] = { ST_NEW_LIST };
-    const char list_line_data_2[] = { ST_NEW_LIST, '1', '0', '0' };
-    const char list_line_data_3[] = { ST_NEW_LIST, '1', '0', '0', ',', '5', '0', '0' };
-    const char multi_line_data_1[] = { ST_NEW_LET, 'X' | EOT, '=', '1', '0', '0', ':', ST_NEW_PRINT, 'X' | EOT };
+        'F', 'E', 'A', 'T', 'U', 'R', 'E', '?', '"', '"', '"', 0 };
+    const char variable_line_data_1[] = { ST_NEW_PRINT, 'I', 'D', 'X', '_', '2' | EOT, 0 };
+    const char variable_line_data_2[] = { ST_NEW_PRINT, 'A', '$' | EOT, 0 };
+    const char variable_line_data_3[] = { ST_NEW_PRINT, 'X' | EOT, '(', '5', ')', 0 };
+    const char variable_line_data_4[] = { ST_NEW_PRINT, 'X', 'Y', 'Z', 'Z', 'Y', '$' | EOT, '(', '1', ',', '1', '0', ')', 0 };
+    const char function_line_data_1[] = { ST_NEW_PRINT, TOKEN_FUNCTION | 0, '(', '"', 'H', 'E', 'L', 'L', 'O', '"', ')', 0 };
+    const char function_line_data_2[] = { ST_NEW_PRINT, TOKEN_FUNCTION | 6, '(', '"', 'H', 'E', 'L', 'L', 'O', '"', ',', '2', ',', '3', ')', 0 };
+    const char expression_line_data_1[] = { ST_NEW_PRINT, '1', TOKEN_OP | OP_ADD, '1', TOKEN_OP | OP_ADD, '1', 0 };
+    const char expression_line_data_2[] = { ST_NEW_PRINT, '1', TOKEN_OP | OP_ADD, '(', '1', TOKEN_OP | OP_ADD, '1', ')', 0 };
+    const char expression_line_data_3[] = { ST_NEW_PRINT, '"', 'H', 'E', 'L', 'L', 'O', '"', TOKEN_OP | OP_CONCAT, '"', ',', ' ', 'W', 'O', 'R', 'L', 'D', '"', 0 };
+    const char for_line_data_1[] = { ST_NEW_FOR, 'X' | EOT, '=', '1', TOKEN_CLAUSE | CLAUSE_TO, '5', 0 };
+    const char for_line_data_2[] = { ST_NEW_FOR, 'X' | EOT, '=', '1', TOKEN_CLAUSE | CLAUSE_TO, '2', '0', TOKEN_CLAUSE | CLAUSE_STEP, '2', 0 };
+    const char let_line_data_1[] = { ST_NEW_LET, 'X' | EOT, '=', '1', '0', '0', 0 };
+    const char if_line_data_1[] = { ST_NEW_IF_THEN, 'X' | EOT, TOKEN_OP | OP_EQ, '1', TOKEN_CLAUSE | CLAUSE_THEN, ST_GOTO, '1', '0', 0 };
+    const char input_line_data_1[] = { ST_NEW_INPUT, 'A' | EOT, 0 };
+    const char input_line_data_2[] = { ST_NEW_INPUT, 'A' | EOT, ',', 'B' | EOT, ',', 'C' | EOT, 0 };
+    const char on_line_data_1[] = { ST_NEW_ON, '1', TOKEN_CLAUSE | CLAUSE_GOTO, '1', '0', 0 };
+    const char on_line_data_2[] = { ST_NEW_ON, '1', TOKEN_CLAUSE | CLAUSE_GOSUB, '1', '0', 0 };
+    const char on_line_data_3[] = { ST_NEW_ON, 'X' | EOT, TOKEN_CLAUSE | CLAUSE_GOSUB, '1', '0', ',', '2', '0', ',', '3', '0', 0 };
+    const char next_line_data_1[] = { ST_NEW_NEXT, 'X' | EOT, 0 };
+    const char list_line_data_1[] = { ST_NEW_LIST, 0 };
+    const char list_line_data_2[] = { ST_NEW_LIST, '1', '0', '0', 0 };
+    const char list_line_data_3[] = { ST_NEW_LIST, '1', '0', '0', ',', '5', '0', '0', 0 };
+    const char multi_line_data_1[] = { ST_NEW_LET, 'X' | EOT, '=', '1', '0', '0', ':', ST_NEW_PRINT, 'X' | EOT, 0 };
 
     PRINT_TEST_NAME();
 
@@ -495,7 +495,7 @@ void test_new_parse_line(void) {
     // Expression
     call_new_parse_line("PRINT 1+1+1", expression_line_data_1, sizeof expression_line_data_1, __LINE__);
     call_new_parse_line("PRINT 1+(1+1)", expression_line_data_2, sizeof expression_line_data_2, __LINE__);
-    call_new_parse_line("PRINT \"HELLO\" & \", WORLD\"", expression_line_data_3, sizeof expression_line_data_3, __LINE__);
+    call_new_parse_line("PRINT \"HELLO\"&\", WORLD\"", expression_line_data_3, sizeof expression_line_data_3, __LINE__);
 
     // FOR
     call_new_parse_line("FOR X=1 TO 5", for_line_data_1, sizeof for_line_data_1, __LINE__);

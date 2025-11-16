@@ -17,7 +17,7 @@ def(NT_TEXT,            hex(16))
 comment Tokenized form constants
 
 def(TOKEN_UNARY_OP,     hex(04)) comment OR with OP_UNARY_*
-def(TOKEN_KW,           hex(08)) comment OR with KW_*
+def(TOKEN_CLAUSE,       hex(08)) comment OR with CLAUSE_*
 def(TOKEN_OP,           hex(10)) comment OR with OP_*
 def(TOKEN_FUNCTION,     hex(60)) comment OR with index of function
 
@@ -96,13 +96,13 @@ comment Binary operator tokens: combine with TOKEN_UNARY_OP
 def(UNARY_OP_MINUS,     0)
 def(UNARY_OP_NOT,       1)
 
-comment Non-statement keywords
+comment Non-statement clauses
 
-def(KW_TO,              0)
-def(KW_STEP,            1)
-def(KW_GOTO,            2)
-def(KW_GOSUB,           3)
-def(KW_THEN,            4)
+def(CLAUSE_TO,          0)
+def(CLAUSE_STEP,        1)
+def(CLAUSE_GOTO,        2)
+def(CLAUSE_GOSUB,       3)
+def(CLAUSE_THEN,        4)
 
 comment Expression decode handlers
 
