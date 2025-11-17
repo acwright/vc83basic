@@ -451,20 +451,20 @@ void test_new_parse_line(void) {
     const char expression_line_data_1[] = { ST_NEW_PRINT, '1', TOKEN_OP | OP_ADD, '1', TOKEN_OP | OP_ADD, '1', 0 };
     const char expression_line_data_2[] = { ST_NEW_PRINT, '1', TOKEN_OP | OP_ADD, '(', '1', TOKEN_OP | OP_ADD, '1', ')', 0 };
     const char expression_line_data_3[] = { ST_NEW_PRINT, '"', 'H', 'E', 'L', 'L', 'O', '"', TOKEN_OP | OP_CONCAT, '"', ',', ' ', 'W', 'O', 'R', 'L', 'D', '"', 0 };
-    const char for_line_data_1[] = { ST_NEW_FOR, 'X' | EOT, '=', '1', TOKEN_CLAUSE | CLAUSE_TO, '5', 0 };
-    const char for_line_data_2[] = { ST_NEW_FOR, 'X' | EOT, '=', '1', TOKEN_CLAUSE | CLAUSE_TO, '2', '0', TOKEN_CLAUSE | CLAUSE_STEP, '2', 0 };
+    const char for_line_data_1[] = { ST_NEW_FOR, 'X' | EOT, '=', '1', TOKEN_MISC | MISC_TO, '5', 0 };
+    const char for_line_data_2[] = { ST_NEW_FOR, 'X' | EOT, '=', '1', TOKEN_MISC | MISC_TO, '2', '0', TOKEN_MISC | MISC_STEP, '2', 0 };
     const char let_line_data_1[] = { ST_NEW_LET, 'X' | EOT, '=', '1', '0', '0', 0 };
-    const char if_line_data_1[] = { ST_NEW_IF_THEN, 'X' | EOT, TOKEN_OP | OP_EQ, '1', TOKEN_CLAUSE | CLAUSE_THEN, ST_GOTO, '1', '0', 0 };
+    const char if_line_data_1[] = { ST_NEW_IF_THEN, 'X' | EOT, TOKEN_OP | OP_EQ, '1', TOKEN_MISC | MISC_THEN, ST_GOTO, '1', '0', 0 };
     const char input_line_data_1[] = { ST_NEW_INPUT, 'A' | EOT, 0 };
     const char input_line_data_2[] = { ST_NEW_INPUT, 'A' | EOT, ',', 'B' | EOT, ',', 'C' | EOT, 0 };
-    const char on_line_data_1[] = { ST_NEW_ON, '1', TOKEN_CLAUSE | CLAUSE_GOTO, '1', '0', 0 };
-    const char on_line_data_2[] = { ST_NEW_ON, '1', TOKEN_CLAUSE | CLAUSE_GOSUB, '1', '0', 0 };
-    const char on_line_data_3[] = { ST_NEW_ON, 'X' | EOT, TOKEN_CLAUSE | CLAUSE_GOSUB, '1', '0', ',', '2', '0', ',', '3', '0', 0 };
+    const char on_line_data_1[] = { ST_NEW_ON, '1', TOKEN_MISC | MISC_GOTO, '1', '0', 0 };
+    const char on_line_data_2[] = { ST_NEW_ON, '1', TOKEN_MISC | MISC_GOSUB, '1', '0', 0 };
+    const char on_line_data_3[] = { ST_NEW_ON, 'X' | EOT, TOKEN_MISC | MISC_GOSUB, '1', '0', ',', '2', '0', ',', '3', '0', 0 };
     const char next_line_data_1[] = { ST_NEW_NEXT, 'X' | EOT, 0 };
     const char list_line_data_1[] = { ST_NEW_LIST, 0 };
     const char list_line_data_2[] = { ST_NEW_LIST, '1', '0', '0', 0 };
     const char list_line_data_3[] = { ST_NEW_LIST, '1', '0', '0', ',', '5', '0', '0', 0 };
-    const char multi_line_data_1[] = { ST_NEW_LET, 'X' | EOT, '=', '1', '0', '0', ':', ST_NEW_PRINT, 'X' | EOT, 0 };
+    const char multi_line_data_1[] = { ST_NEW_LET, 'X' | EOT, '=', '1', '0', '0', TOKEN_MISC | MISC_STATEMENT, ST_NEW_PRINT, 'X' | EOT, 0 };
 
     PRINT_TEST_NAME();
 

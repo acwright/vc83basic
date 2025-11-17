@@ -206,7 +206,7 @@ S1 = FPX+2
 .global new_parse_line
 .global pvm_statement
 .global new_statement_name_table
-.global clause_name_table
+.global extra_name_table
 
 ; poke.s
 .global exec_poke

@@ -1020,22 +1020,6 @@ rebase_pvm_program_ptr:
 
 ; PVM program
 
-pvm_line:
-        CALL pvm_statement
-        TRY @done
-        MATCH ':'
-        COMMIT pvm_line
-@done:
-        EMIT 0
-        RETURN
-
-pvm_statement:
-        CALL pvm_whitespace
-        BEGIN_KEYWORD
-        CALL pvm_name
-        TOKENIZE_KEYWORD new_statement_name_table
-        JUMP_KEYWORD
-
 new_statement_name_table:
         name_table_entry "END"
             RETURN
@@ -1075,7 +1059,7 @@ new_statement_name_table:
             TEST "GO", @go
             FAIL
 @go:
-            CALL pvm_clause
+            CALL pvm_misc
             JUMP pvm_number_list
 :
         name_table_entry "FOR"
@@ -1087,13 +1071,13 @@ new_statement_name_table:
             TEST "TO", @to
             FAIL
 @to:
-            CALL pvm_clause
+            CALL pvm_misc
             CALL pvm_expression
             CALL pvm_whitespace
             TEST "STEP", @step
             RETURN
 @step:
-            CALL pvm_clause
+            CALL pvm_misc
             JUMP pvm_expression
 :
         name_table_entry "NEXT"
@@ -1111,7 +1095,7 @@ new_statement_name_table:
             TEST "THEN", @then
             FAIL
 @then:
-            CALL pvm_clause
+            CALL pvm_misc
             JUMP pvm_statement
 :
         name_table_entry "NEW"
@@ -1137,18 +1121,38 @@ new_statement_name_table:
 :
         name_table_end
 
-clause_name_table:
-        name_table_entry "TO"
+extra_name_table:
+        name_table_entry ":"
 :
-        name_table_entry "STEP"
+        name_table_entry "THEN"
 :
         name_table_entry "GOTO"
 :
         name_table_entry "GOSUB"
 :
-        name_table_entry "THEN"
+        name_table_entry "TO"
+:
+        name_table_entry "STEP"
 :
         name_table_end
+
+pvm_line:
+        CALL pvm_statement
+        TRY @done
+        BEGIN_KEYWORD
+        MATCH ':'
+        CALL pvm_tokenize_misc
+        COMMIT pvm_line
+@done:
+        EMIT 0
+        RETURN
+
+pvm_statement:
+        CALL pvm_whitespace
+        BEGIN_KEYWORD
+        CALL pvm_name
+        TOKENIZE_KEYWORD new_statement_name_table
+        JUMP_KEYWORD
 
 ; Argument lists
 
@@ -1329,14 +1333,15 @@ pvm_operator:
         COMPOSE TOKEN_OP
         RETURN        
 
-; pvm_clause does not discard whitespace.
+; pvm_misc does not discard whitespace.
 ; Callers test for the correct keyword before calling and should discard whitespace at that point.
 
-pvm_clause:
+pvm_misc:
         BEGIN_KEYWORD
         CALL pvm_name
-        TOKENIZE_KEYWORD clause_name_table
-        COMPOSE TOKEN_CLAUSE
+pvm_tokenize_misc:
+        TOKENIZE_KEYWORD extra_name_table
+        COMPOSE TOKEN_MISC
         RETURN
 
 ; pvm_name does not discard whitespace.
