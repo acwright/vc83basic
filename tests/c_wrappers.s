@@ -330,10 +330,6 @@ _ftan:
 
 ; list.s
 
-_list_statement:
-.export _list_statement
-        jmp     list_statement
-
 _list_statements:
 .export _list_statements
         jsr     list_statements
