@@ -655,8 +655,7 @@ parse_pvm:
         lda     B                       ; Recover the instruction from B
         cmp     #$10                    ; If "less than" the discard function, it's TEST or MATCH
         bcs     @instruction            ; Not TEST or MATCH, so skip the matching logic
-        mvx     line_pos, E             ; Remember buffer_pos and line_pos in DE
-        mvx     buffer_pos, D
+        mvx     buffer_pos, D           ; Remember buffer_pos in D
         and     #$03                    ; Get address type again
         cmp     #$03                    ; Is it "match string?"
         beq     @match_string           ; Yep, go do it
@@ -733,10 +732,6 @@ ins_match:
         bne     @write_next
         rts
 
-ins_discard:
-        mva     E, line_pos             ; Move line_pos back to where it was before
-        rts
-
 ins_emit:
         lda     pvm_arg
 
@@ -771,8 +766,13 @@ ins_commit:
         ldx     stack_pos
         jsr     pop_parser_state
         raics   ERR_INTERNAL_ERROR      ; Parser state was from CALL
+        rts
 
-; Fall through
+ins_discard:
+        jsr     ins_commit              ; Do all the COMMIT stuff
+        lda     stack+ParserState::line_pos,x
+        sta     line_pos                ; And also restore line_pos
+        rts
 
 ins_jump:
         mvaa    pvm_address_arg, pvm_program_ptr
@@ -957,8 +957,8 @@ rebase_pvm_program_ptr:
         .byte   $2C, <address, >address
 .endmacro
 
-.macro COMMIT address
-        .byte   $34, <address, >address
+.macro COMMIT
+        .byte   $30
 .endmacro
 
 .macro JUMP address
@@ -1006,7 +1006,7 @@ rebase_pvm_program_ptr:
 ; EMIT   	        0001 1001 nn
 ; (unused)	        0010 0xxx
 ; TRY     	        0010 1100 aaaa
-; COMMIT	        0011 0100 aaaa
+; COMMIT	        0011 0000
 ; BEGIN_KEYWORD	    0011 1000
 ; TOKENIZE_KEYWORD	0100 0100 aaaa
 ; JUMP_KEYWORD	    0100 1000
@@ -1026,7 +1026,8 @@ pvm_line:
         BEGIN_KEYWORD
         MATCH ':'
         CALL pvm_tokenize_misc
-        COMMIT pvm_line
+        COMMIT
+        JUMP pvm_line
 @done:
         EMIT 0
         RETURN
@@ -1043,8 +1044,7 @@ pvm_statement:
 pvm_optional_arg_2:
         TRY @done
         CALL pvm_expression
-        COMMIT @arg_2
-@arg_2:
+        COMMIT
         TRY @done
         CALL pvm_whitespace
         MATCH ','
@@ -1061,7 +1061,8 @@ pvm_arg_list:
         CALL pvm_whitespace
         MATCH ','
         CALL pvm_expression
-        COMMIT @next
+        COMMIT
+        JUMP @next
 @done:
         RETURN
 
@@ -1071,7 +1072,8 @@ pvm_expression:
         CALL pvm_primary_expression
         TRY @done
         CALL pvm_operator
-        COMMIT pvm_expression
+        COMMIT
+        JUMP pvm_expression
 @done:
         RETURN
 
@@ -1101,7 +1103,7 @@ pvm_primary_expression:
         CALL pvm_name
         TRY @tokenize_function
         MATCH '$'
-        COMMIT @tokenize_function
+        COMMIT
 @tokenize_function:
         TOKENIZE_KEYWORD function_name_table
         COMPOSE TOKEN_FUNCTION
@@ -1121,11 +1123,11 @@ pvm_number:
         CALL pvm_digits
         TRY @optional_e
         MATCH '.'
-        COMMIT @digits_after_decimal
+        COMMIT
 @digits_after_decimal:
         TRY @optional_e
         CALL pvm_digits
-        COMMIT @optional_e
+        COMMIT
 @optional_e:
         TRY @done
         MATCH 'E'
@@ -1135,7 +1137,8 @@ pvm_number:
         MATCH *
         TRY @optional_e
         CALL pvm_digits
-        COMMIT @optional_e
+        COMMIT
+        JUMP @optional_e
 @done:
         RETURN
 
@@ -1147,7 +1150,8 @@ pvm_digits:
 @next:
         TRY @done
         MATCH_RANGE '0', 10
-        COMMIT @next
+        COMMIT
+        JUMP @next
 @done:
         RETURN
 
@@ -1158,7 +1162,8 @@ pvm_number_list:
         CALL pvm_whitespace
         MATCH ','
         CALL pvm_number
-        COMMIT @next
+        COMMIT
+        JUMP @next
 @done:
         RETURN
 
@@ -1180,7 +1185,7 @@ pvm_variable:
         CALL pvm_name
         TRY @eot
         MATCH '$'
-        COMMIT @eot
+        COMMIT
 @eot:
         COMPOSE EOT
         TEST '(', @array
@@ -1198,7 +1203,8 @@ pvm_variable_list:
         CALL pvm_whitespace
         MATCH ','
         CALL pvm_variable
-        COMMIT @next
+        COMMIT
+        JUMP @next
 @done:
         RETURN
 
@@ -1208,7 +1214,7 @@ pvm_operator:
         MATCH_RANGE ' ', 32
         TRY @end
         MATCH_RANGE '<', 3
-        COMMIT @end
+        COMMIT
 @end:
         TOKENIZE_KEYWORD operator_name_table
         COMPOSE TOKEN_OP
@@ -1231,7 +1237,8 @@ pvm_text:
         CALL pvm_whitespace
         TRY @done
         MATCH *
-        COMMIT pvm_text
+        COMMIT
+        JUMP pvm_text
 @done:
         RETURN
         
@@ -1243,15 +1250,18 @@ pvm_name:
 @next:
         TRY @digit
         MATCH_RANGE 'A', 26
-        COMMIT @next
+        COMMIT
+        JUMP @next
 @digit:
         TRY @underscore
         MATCH_RANGE '0', 10
-        COMMIT @next
+        COMMIT
+        JUMP @next
 @underscore:
         TRY @done
         MATCH '_'
-        COMMIT @next        
+        COMMIT
+        JUMP @next        
 @done:
         RETURN
 
@@ -1259,7 +1269,7 @@ pvm_whitespace:
         TRY @done
         MATCH ' '
         DISCARD
-        COMMIT pvm_whitespace
+        JUMP pvm_whitespace
 @done:
         RETURN
 
