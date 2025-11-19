@@ -44,6 +44,7 @@ void test_list_statements(void) {
     const char list_line_data_1[] = { ST_NEW_LIST, 0 };
     const char list_line_data_2[] = { ST_NEW_LIST, '1', '0', '0', 0 };
     const char list_line_data_3[] = { ST_NEW_LIST, '1', '0', '0', ',', '5', '0', '0', 0 };
+    const char data_line_data_1[] = { ST_NEW_DATA, 'H', 'E', 'L', 'L', 'O', ',', '\"', 'X', ',', 'Y', '\"', ',', '5', 0 };
     const char multi_line_data_1[] = { ST_NEW_LET, 'X' | EOT, '=', '1', '0', '0', TOKEN_MISC | MISC_STATEMENT, ST_NEW_PRINT, 'X' | EOT, 0 };
 
     PRINT_TEST_NAME();
@@ -80,6 +81,7 @@ void test_list_statements(void) {
     call_list_statements(list_line_data_1, sizeof list_line_data_1, "LIST", __LINE__);
     call_list_statements(list_line_data_2, sizeof list_line_data_2, "LIST 100", __LINE__);
     call_list_statements(list_line_data_3, sizeof list_line_data_3, "LIST 100,500", __LINE__);
+    call_list_statements(data_line_data_1, sizeof data_line_data_1, "DATA HELLO,\"X,Y\",5", __LINE__);
     call_list_statements(multi_line_data_1, sizeof multi_line_data_1, "LET X=100:PRINT X", __LINE__);
 }
 

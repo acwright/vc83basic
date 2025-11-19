@@ -623,20 +623,19 @@ parse_pvm:
 @arguments:
         lda     B
         and     #$03                    ; Mask off bottom two bits
-        beq     @match                  ; If no argument then go on to match logic
         cmp     #$03                    ; Check if it's expecting a string
         beq     @string                 ; If so go do it, otherwise, A is the number of arguments
-        sta     C                       ; C is the number of arguments to parse and is either 1 or 2
-        sta     pvm_arg+1               ; If number of arguments is 1 this will leave pvm_arg+1 set to 1
-        ldx     #0                      ; Reset X so we can use it to index pvm_arg
+        mvx     #1, pvm_arg             ; Default args are 1, 254
+        mvx     #254, pvm_arg+1
+        tax                             ; X is now number of arguments to read
 @next_argument:
+        beq     @match                  ; No arguments
+        mva     pvm_arg, pvm_arg+1      ; Move previous arg over
         lda     (pvm_program_ptr),y     ; Get argument
-        sta     pvm_arg,x               ; Save
+        sta     pvm_arg                 ; Replace first arg
         iny
-        inx
-        cpx     C
-        bne     @next_argument
-        beq     @match                  ; Unconditional
+        dex
+        jmp     @next_argument
 
 @string:
         jsr     rebase_pvm_program_ptr
@@ -659,7 +658,6 @@ parse_pvm:
         mvx     line_pos, E             ; Remember buffer_pos and line_pos in DE
         mvx     buffer_pos, D
         and     #$03                    ; Get address type again
-        beq     @match_any              ; Is a "match any" instruction, so don't need to match anything
         cmp     #$03                    ; Is it "match string?"
         beq     @match_string           ; Yep, go do it
         lda     buffer,x                ; It's "match char" or "match range;" get character from the buffer
@@ -815,7 +813,7 @@ ins_return:
 
 return_from_call:
         jsr     pop_parser_state
-        raicc   ERR_INTERNAL_ERROR      ; Parser state was from TRY
+        bcc     ins_return              ; State was from TRY: ignore it which will implicitly COMMIT 
 
 ; Fall through
 
@@ -927,7 +925,8 @@ rebase_pvm_program_ptr:
 .endmacro
 
 .macro TEST_RANGE m, n, address
-    .byte   $06, <address, >address, m, n
+    ; Note reverse order
+    .byte   $06, <address, >address, n, m
 .endmacro
 
 .macro MATCH m
@@ -942,7 +941,8 @@ rebase_pvm_program_ptr:
 .endmacro
 
 .macro MATCH_RANGE m, n
-    .byte   $0A, m, n
+    ; Note reverse order
+    .byte   $0A, n, m
 .endmacro
 
 .macro DISCARD
@@ -1020,122 +1020,6 @@ rebase_pvm_program_ptr:
 
 ; PVM program
 
-new_statement_name_table:
-        name_table_entry "END"
-            RETURN
-:
-        name_table_entry "RUN"
-            RETURN
-:
-        name_table_entry "PRINT"
-            JUMP pvm_expression
-:
-        name_table_entry "LET"
-            CALL pvm_variable
-            MATCH '='
-            JUMP pvm_expression
-:
-        name_table_entry "INPUT"
-            JUMP pvm_variable_list
-:
-        name_table_entry "LIST"
-            JUMP pvm_optional_arg_2
-:
-        name_table_entry "GOTO"
-            JUMP pvm_number
-:
-        name_table_entry "GOSUB"
-            JUMP pvm_number
-:
-        name_table_entry "RETURN"
-            RETURN
-:
-        name_table_entry "POP"
-            RETURN
-:
-        name_table_entry "ON"
-            CALL pvm_expression    
-            CALL pvm_whitespace
-            TEST "GO", @go
-            FAIL
-@go:
-            CALL pvm_misc
-            JUMP pvm_number_list
-:
-        name_table_entry "FOR"
-            CALL pvm_variable
-            CALL pvm_whitespace
-            MATCH '='
-            CALL pvm_expression
-            CALL pvm_whitespace
-            TEST "TO", @to
-            FAIL
-@to:
-            CALL pvm_misc
-            CALL pvm_expression
-            CALL pvm_whitespace
-            TEST "STEP", @step
-            RETURN
-@step:
-            CALL pvm_misc
-            JUMP pvm_expression
-:
-        name_table_entry "NEXT"
-            JUMP pvm_variable
-:
-        name_table_entry "STOP"
-            RETURN
-:
-        name_table_entry "CONT"
-            RETURN
-:
-        name_table_entry "IF"
-            CALL pvm_expression
-            CALL pvm_whitespace
-            TEST "THEN", @then
-            FAIL
-@then:
-            CALL pvm_misc
-            JUMP pvm_statement
-:
-        name_table_entry "NEW"
-            RETURN
-:
-        name_table_entry "CLR"
-            RETURN
-:
-        name_table_entry "DIM"
-            JUMP pvm_variable
-:
-        name_table_entry "REM"
-:
-        name_table_entry "DATA"
-:
-        name_table_entry "READ"
-            JUMP pvm_variable_list
-:
-        name_table_entry "RESTORE"
-            JUMP pvm_number
-:
-        name_table_entry "POKE"
-:
-        name_table_end
-
-extra_name_table:
-        name_table_entry ":"
-:
-        name_table_entry "THEN"
-:
-        name_table_entry "GOTO"
-:
-        name_table_entry "GOSUB"
-:
-        name_table_entry "TO"
-:
-        name_table_entry "STEP"
-:
-        name_table_end
-
 pvm_line:
         CALL pvm_statement
         TRY @done
@@ -1165,7 +1049,6 @@ pvm_optional_arg_2:
         CALL pvm_whitespace
         MATCH ','
         CALL pvm_expression
-        COMMIT @done
 @done:
         RETURN
 
@@ -1202,15 +1085,15 @@ pvm_primary_expression:
         CALL pvm_expression
         CALL pvm_whitespace
         MATCH ')'
-        COMMIT @done
+        RETURN
 @string:
         TRY @number
         CALL pvm_string
-        COMMIT @done
+        RETURN
 @number:
         TRY @function
         CALL pvm_number
-        COMMIT @done
+        RETURN
 @function:
         TRY @variable
         CALL pvm_whitespace
@@ -1226,11 +1109,9 @@ pvm_primary_expression:
         CALL pvm_arg_list
         CALL pvm_whitespace
         MATCH ')'
-        COMMIT @done
-@variable:
-        CALL pvm_variable
-@done:
         RETURN
+@variable:
+        JUMP pvm_variable
 
 ; Low-level rules
 
@@ -1249,7 +1130,7 @@ pvm_number:
         TRY @done
         MATCH 'E'
         CALL pvm_digits
-        COMMIT @done
+        RETURN
 @initial_decimal:
         MATCH *
         TRY @optional_e
@@ -1344,6 +1225,16 @@ pvm_tokenize_misc:
         COMPOSE TOKEN_MISC
         RETURN
 
+; Captures all text to EOL.
+
+pvm_text:
+        CALL pvm_whitespace
+        TRY @done
+        MATCH *
+        COMMIT pvm_text
+@done:
+        RETURN
+        
 ; pvm_name does not discard whitespace.
 ; Its only job is to capture an alphanumeric "name."
 
@@ -1372,3 +1263,120 @@ pvm_whitespace:
 @done:
         RETURN
 
+new_statement_name_table:
+        name_table_entry "END"
+            RETURN
+:
+        name_table_entry "RUN"
+            RETURN
+:
+        name_table_entry "PRINT"
+            JUMP pvm_expression
+:
+        name_table_entry "LET"
+            CALL pvm_variable
+            MATCH '='
+            JUMP pvm_expression
+:
+        name_table_entry "INPUT"
+            JUMP pvm_variable_list
+:
+        name_table_entry "LIST"
+            JUMP pvm_optional_arg_2
+:
+        name_table_entry "GOTO"
+            JUMP pvm_number
+:
+        name_table_entry "GOSUB"
+            JUMP pvm_number
+:
+        name_table_entry "RETURN"
+            RETURN
+:
+        name_table_entry "POP"
+            RETURN
+:
+        name_table_entry "ON"
+            CALL pvm_expression    
+            CALL pvm_whitespace
+            TEST "GO", @go
+            FAIL
+@go:
+            CALL pvm_misc
+            JUMP pvm_number_list
+:
+        name_table_entry "FOR"
+            CALL pvm_variable
+            CALL pvm_whitespace
+            MATCH '='
+            CALL pvm_expression
+            CALL pvm_whitespace
+            TEST "TO", @to
+            FAIL
+@to:
+            CALL pvm_misc
+            CALL pvm_expression
+            CALL pvm_whitespace
+            TEST "STEP", @step
+            RETURN
+@step:
+            CALL pvm_misc
+            JUMP pvm_expression
+:
+        name_table_entry "NEXT"
+            JUMP pvm_variable
+:
+        name_table_entry "STOP"
+            RETURN
+:
+        name_table_entry "CONT"
+            RETURN
+:
+        name_table_entry "IF"
+            CALL pvm_expression
+            CALL pvm_whitespace
+            TEST "THEN", @then
+            FAIL
+@then:
+            CALL pvm_misc
+            JUMP pvm_statement
+:
+        name_table_entry "NEW"
+            RETURN
+:
+        name_table_entry "CLR"
+            RETURN
+:
+        name_table_entry "DIM"
+            JUMP pvm_variable
+:
+        name_table_entry "REM"
+            JUMP pvm_text
+:
+        name_table_entry "DATA"
+            JUMP pvm_text
+:
+        name_table_entry "READ"
+            JUMP pvm_variable_list
+:
+        name_table_entry "RESTORE"
+            JUMP pvm_number
+:
+        name_table_entry "POKE"
+:
+        name_table_end
+
+extra_name_table:
+        name_table_entry ":"
+:
+        name_table_entry "THEN"
+:
+        name_table_entry "GOTO"
+:
+        name_table_entry "GOSUB"
+:
+        name_table_entry "TO"
+:
+        name_table_entry "STEP"
+:
+        name_table_end
