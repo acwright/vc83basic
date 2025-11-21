@@ -12,6 +12,7 @@
 ; on the stack and restore it after so we can resume execution after the LIST statement.
 
 exec_list:
+        debug $A0
         ldphaa  next_line_ptr
         ldpha   next_line_pos
         jsr     reset_next_line_ptr

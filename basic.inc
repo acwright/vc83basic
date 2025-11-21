@@ -94,10 +94,6 @@ S1 = FPX+2
 .global decode_byte
 .global peek_decode_byte
 
-; encode.s
-.global encode_zero
-.global encode_byte
-
 ; expression.s
 .global evaluate_expression
 .global evaluate_argument_list
@@ -193,16 +189,8 @@ S1 = FPX+2
 
 ; parser.s
 .global parse_line
-.global parse_statement
-.global parse_directive
-.global parse_variable
-.global parse_argument_list
-.global parse_expression
-.global parse_name
-.global parse_number
-.global parse_argument_separator
-.global new_parse_line
-.global pvm_statement
+.global parse_statements
+.global pvm_statements
 .global new_statement_name_table
 .global extra_name_table
 

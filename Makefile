@@ -6,7 +6,6 @@ COMMON_SOURCES = \
 	control.s \
 	decode.s \
     dim.s \
-	encode.s \
 	expression.s \
 	fp.s \
 	functions.s \

@@ -82,9 +82,6 @@ void decode_string(void);
 void decode_name(void);
 char decode_byte(void);
 
-// encode.s
-void encode_byte(/* A */ char value);
-
 // expression.s
 void evaluate_expression(void);
 signed char evaluate_argument_list(signed char expected_arguments);
@@ -94,10 +91,6 @@ void push_string(void);
 const String* pop_string(void);
 char stack_alloc(/* A */ char size);
 void stack_free(/* A */ char size);
-
-// encode.s
-void encode_number(void);
-void encode_byte(/* A */ char value);
 
 // fp.s
 void load_fp0(/* AY */ const Float* value);

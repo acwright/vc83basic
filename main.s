@@ -30,6 +30,7 @@ main:
 ; Exception handler: control reaches here following "raise" or JMP to on_raise.
 
         sta     program_state           ; Whatever comes back from exception handler is new state
+        debug $30
         tay                             ; Prepare to look up the program_state message
         bmi     @dispatch               ; Program is running; do the next thing
         ldax    #error_message_table
@@ -66,8 +67,8 @@ main:
 @get_command:
         jsr     readline
         jsr     parse_line
-        bcs     @error
         lda     line_buffer+Line::number+1  ; Get high byte of line number
+        debug $10
         bmi     @immediate_mode         ; If line number is negative then we're in immediate mode
         jsr     reset_program           ; Clear program line pointers
         jsr     insert_or_update_line   ; Update the program
@@ -75,6 +76,7 @@ main:
 
 @immediate_mode:
         lda     line_buffer+Line::next_line_offset  ; See if there is any data in the buffer
+        debug $20
         cmp     #.sizeof(Line)          ; Does the "next line" start at the beginning of *this* line?
         beq     @get_command            ; Yes, just ignore input
         ldx     #>line_buffer           ; High byte of the address for the the null line
@@ -100,6 +102,7 @@ main:
         mva     next_line_pos, line_pos
         jsr     decode_byte             ; The next byte is the next statement offset
         sta     next_line_pos           ; By default the "next line" is the next statement on this line
+        debug $40
         jsr     dispatch_statement
         jmp     @dispatch               ; Keep on truckin
 
@@ -111,6 +114,7 @@ main:
 dispatch_statement:
         jsr     reset_stack_pointers    ; Make sure stack pointers are reset in case there was an exception earlier
         jsr     decode_byte             ; Get statement number
+        debug $50
         tay
         ldax    #statement_exec_vectors
         jmp     invoke_indexed_vector

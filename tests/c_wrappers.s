@@ -93,12 +93,6 @@ _decode_byte:
 .export _decode_byte
         jmp     decode_byte
 
-; encode.s
-
-_encode_byte:
-.export _encode_byte
-        jmp     encode_byte
-
 ; expression.s
 
 _evaluate_expression:
