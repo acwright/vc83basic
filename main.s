@@ -104,7 +104,7 @@ main:
         sta     next_line_pos           ; By default the "next line" is the next statement on this line
         debug $40
         jsr     dispatch_statement
-        jmp     @dispatch               ; Keep on truckin
+        jmp     @dispatch               ; Keep on truckin'
 
 @error:
         raise   ERR_INTERNAL_ERROR
