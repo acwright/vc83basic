@@ -132,6 +132,24 @@ def(ERR_SYNTAX_ERROR,               hex(14))
 def(ERR_IMMEDIATE_MODE_STOP,        hex(15))
 def(PS_RUNNING,                     hex(80))
 
+comment Parse virtual machine (PVM) constants and instruction codes
+
+def(PVM_MATCH_BASE,                 hex(20))
+def(PVM_MATCH_RANGE_BASE,           hex(60))
+def(PVM_JUMP,                       hex(10))
+def(PVM_TRY,                        hex(11))
+def(PVM_ACCEPT,                     hex(12))
+def(PVM_DISCARD,                    hex(13))
+def(PVM_FAIL,                       hex(14))
+def(PVM_CALL,                       hex(15))
+def(PVM_RETURN,                     hex(16))
+def(PVM_BEGIN,                      hex(17))
+def(PVM_TOKENIZE,                   hex(18))
+def(PVM_DISPATCH,                   hex(19))
+def(PVM_COMPOSE,                    hex(1A))
+def(PVM_MATCH_ANY,                  hex(1B))
+def(PVM_TEST_ANY,                   hex(1C))
+
 comment Other constants
 
 def(EOT, hex(80))

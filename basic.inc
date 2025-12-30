@@ -40,12 +40,6 @@
     type .res 1
 .endstruct
 
-.struct ParserState 
-    buffer_pos .res 1
-    line_pos .res 1                 ; MAX_LINE_LENGTH means this is a CALL return point, otherwise a TRY savepoint
-    pvm_program_ptr .res 2
-.endstruct
-
 ; Zero Page
 
 .include "zeropage.inc"
