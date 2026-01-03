@@ -59,15 +59,18 @@ skip_whitespace:
 parse_pvm:
         stax    pvm_program_ptr
         jsr     run_pvm
+        debug $F0
         raics   ERR_SYNTAX_ERROR        ; If returning with carry set, raise syntax error
         lda     B
         cmp     #PVM_RETURN             ; Make sure we exited via RETURN
+        debug $F1
         raine   ERR_INTERNAL_ERROR
         rts
 
 dispatch_pvm_instruction:
-        and     #$0F                    ; Just the instruction index
+        and     #$7F                    ; Just the instruction index
         tay                             ; Transfer into Y
+        debug $10
         ldax    #pvm_instruction_vectors
         jsr     invoke_indexed_vector
 
@@ -82,43 +85,45 @@ dispatch_pvm_instruction:
 run_pvm:
         ldy     #0
         lda     (pvm_program_ptr),y     ; Load PVM instruction
+        debug $00
         sta     B                       ; Park instruction in B
         iny
-        jsr     rebase_pvm_program_ptr  ; Avoid rebasing individual single-byte instructions
+        jsr     rebase_pvm_program_ptr  ; Advance pvm_program_ptr past instruction
 
 ; Handle the instruction
 
-        lda     B                        
+        lda     B                       
         bmi     dispatch_pvm_instruction    ; Instructions $80-FF are dispatched
+        beq     @match_any
 
 ; MATCH
 
+@match:
         ldx     buffer_pos              ; Prepare to load the next character from the input
         cmp     #PVM_MATCH_RANGE_BASE   ; Check if it's a range match starting at $60
         bcc     @match_single
         and     #$1F                    ; The value remaining in A is the size of the range to match
         sta     C                       ; Store it in C
         lda     buffer,x
-        beq     ins_fail                ; If we read NUL then fail immediately
         sbc     (pvm_program_ptr),y     ; Subtract away the starting character
+        debug $01
         iny
-        bcc     ins_fail                ; Out of range: too low
+        bcc     fail_from_run_pvm       ; Out of range: too low
         cmp     C                       ; Check the range
-        bcs     ins_fail                ; Out of range: too high
+        debug $02
+        bcs     fail_from_run_pvm       ; Out of range: too high
         bcc     @matched                ; Unconditional
 @match_single:
         cmp     buffer,x
-        bne     ins_fail
+        bne     fail_from_run_pvm
 @matched:
+        jsr     rebase_pvm_program_ptr  ; Advance past character byte (present if Y=1)
+@match_any:
         lda     buffer,x                ; Load and move past the matched character
+        beq     fail_from_run_pvm       ; Reading NUL always fails no matter what
         inc     buffer_pos
         jsr     write_to_line_buffer    ; Write it to the output
-        bne     run_pvm                 ; Unconditional
-
-ins_match_any:
-        lda     buffer,x                ; Check next character
-        beq     ins_fail                ; If it's NUL then treat as FAIL
-        inc     buffer_pos
+        jmp     run_pvm
 
 ; JUMP: read address, replace pvm_program_ptr
 
@@ -137,11 +142,12 @@ ins_try:
         ldpha   line_pos
         ldpha   buffer_pos              ; Save input and output positions
         ldx     #0                      ; High byte of savepoint handler offset
+        ldy     #0                      ; Index of offset
         lda     (pvm_program_ptr),y     ; Low byte
+        debug $20
         bpl     @positive               ; If positive, leave X = 0
         dex                             ; Otherwise X = -1
 @positive:
-        iny                             ; Advance past offset
         clc
         adc     pvm_program_ptr         ; Add to pvm_program_ptr
         pha
@@ -149,7 +155,9 @@ ins_try:
         adc     pvm_program_ptr+1
         pha
         ldpha   #0                      ; Can't be program pointer high byte, so signals this is a TRY handler
+        iny                             ; Advance past offset
         jsr     rebase_pvm_program_ptr  ; Prepare to invoke parse_pvm at next instruction address
+        debug $21
         jsr     run_pvm                 ; Go do it
         pla                             ; Discard TRY handler signal byte
         bcs     @error                  ; TRY exited with FAIL
@@ -189,6 +197,7 @@ ins_return:
 ins_fail:
         pla                             ; Pop return address of ins_fail off the stack
         pla
+fail_from_run_pvm:
         sec                             ; Carry set means failure
         rts                             ; Return to caller of pvm_parse
 
@@ -230,45 +239,46 @@ ins_tokenize:
         sta     line_buffer,x           ; Write the token to line_buffer
         inx
         stx     line_pos                ; Reset line_pos to the space after the token
-        ldy     #2                      ; Skip over name table address
-        jmp     rebase_pvm_program_ptr
+        ldy     #2
+        jmp     rebase_pvm_program_ptr  ; Skip over the name table address
 
 ; DISPATCH: CALL the instruction following the end of the matched name in the name table
 
 ins_dispatch:
         ldphaa  pvm_program_ptr         ; Save return address
         ldax    name_ptr                ; CALL to name_ptr
-        jmp     do_call
+        bne     do_call                 ; Unconditional because high byte of name_ptr can't be 0
 
 ; COMPOSE: OR the next byte value into the last byte written to the output
 
 ins_compose:
         lda     (pvm_program_ptr),y     ; Get the address of the name table
-        iny
 compose_with_last_byte:
         ldx     line_pos                ; Current line_pos
         ora     line_buffer-1,x         ; Subtract one since we want last character
         sta     line_buffer-1,x
-        jmp     rebase_pvm_program_ptr
+        iny
+        jsr     rebase_pvm_program_ptr  ; Advance past byte
 
 ; Fall through
 
 ; Write a single byte to line_buffer, checking for the maximum line length.
-; X SAFE, BC SAFE, DE SAFE
+; Y SAFE, BC SAFE, DE SAFE
 
 write_to_line_buffer:
-        ldy     line_pos                ; Write at line_pos
-        cpy     #MAX_LINE_LENGTH
+        ldx     line_pos                ; Write at line_pos
+        cpx     #MAX_LINE_LENGTH
         raieq   ERR_LINE_TOO_LONG
-        sta     line_buffer,y
+        sta     line_buffer,x
         inc     line_pos
         rts
 
 ; Retrieves the address from the instruction stream and returns in AX.
-; Y must point to the address relative to pvm_program_ptr.
-; Returns with incremented by 2.
+; pvm_program_ptr must point to the address.
+; Returns with Y=2.
 
 read_address:
+        ldy     #0
         lda     (pvm_program_ptr),y     ; Low byte of next instruction address
         pha                             ; Don't update pvm_program_ptr yet
         iny
@@ -304,7 +314,6 @@ pvm_instruction_vectors:
         .word   ins_tokenize-1
         .word   ins_dispatch-1
         .word   ins_compose-1
-        .word   ins_match_any-1
 
 ; PVM macros
 
@@ -338,7 +347,7 @@ pvm_instruction_vectors:
 
 .macro MATCH m
     .if (.match(m, *))
-        .byte   $8B
+        .byte   $00
     .elseif (.match(m, ""))
         .byte   m
     .else
@@ -406,7 +415,7 @@ pvm_statements:
 ;         BEGIN_KEYWORD
 ;         MATCH ':'
 ;         CALL pvm_tokenize_misc
-;         COMMIT
+;         ACCEPT
 ;         JUMP pvm_statements
 ; @done:
 ;         EMIT 0
@@ -424,7 +433,7 @@ pvm_statements:
 ; pvm_optional_arg_2:
 ;         TRY @done
 ;         CALL pvm_expression
-;         COMMIT
+;         ACCEPT
 ;         TRY @done
 ;         CALL pvm_whitespace
 ;         MATCH ','
@@ -441,7 +450,7 @@ pvm_statements:
 ;         CALL pvm_whitespace
 ;         MATCH ','
 ;         CALL pvm_expression
-;         COMMIT
+;         ACCEPT
 ;         JUMP @next
 ; @done:
 ;         RETURN
@@ -449,42 +458,41 @@ pvm_statements:
 ; Expressions
 
 pvm_expression:
-        MATCH '1'
-;         CALL pvm_primary_expression
-;         TRY @done
-;         CALL pvm_operator
-;         COMMIT
-;         JUMP pvm_expression
-; @done:
+        CALL pvm_primary_expression
+        ; TRY @done
+        ; CALL pvm_operator
+        ; ACCEPT
+        ; JUMP pvm_expression
+@done:
         RETURN
 
-; ; pvm_primary_expression does not discard whitespace.
-; ; The component that can be a primary expression discard whitespace.
+; pvm_primary_expression does not discard whitespace.
+; The component that can be a primary expression discard whitespace.
 
-; pvm_primary_expression:
-;         TRY @string
+pvm_primary_expression:
+;         TRY @not_parens
 ;         CALL pvm_whitespace
 ;         MATCH '('
 ;         CALL pvm_expression
 ;         CALL pvm_whitespace
 ;         MATCH ')'
 ;         RETURN
-; @string:
-;         TRY @number
-;         CALL pvm_string
-;         RETURN
-; @number:
-;         TRY @function
-;         CALL pvm_number
-;         RETURN
-; @function:
-;         TRY @variable
+; @not_parens:
+        TRY @not_string
+        CALL pvm_string
+        RETURN
+@not_string:
+        TRY @not_number
+        CALL pvm_number
+        RETURN
+@not_number:
+;         TRY @not_function
 ;         CALL pvm_whitespace
 ;         BEGIN_KEYWORD
 ;         CALL pvm_name
 ;         TRY @tokenize_function
 ;         MATCH '$'
-;         COMMIT
+;         ACCEPT
 ; @tokenize_function:
 ;         TOKENIZE_KEYWORD function_name_table
 ;         COMPOSE TOKEN_FUNCTION
@@ -493,48 +501,52 @@ pvm_expression:
 ;         CALL pvm_whitespace
 ;         MATCH ')'
 ;         RETURN
-; @variable:
-;         JUMP pvm_variable
+; @not_function:
+        JUMP pvm_variable
 
-; ; Low-level rules
+; Low-level rules
 
-; pvm_number:
-;         CALL pvm_whitespace
-;         TEST '.', @initial_decimal
-;         CALL pvm_digits
-;         TRY @optional_e
-;         MATCH '.'
-;         COMMIT
-; @digits_after_decimal:
-;         TRY @optional_e
-;         CALL pvm_digits
-;         COMMIT
-; @optional_e:
-;         TRY @done
-;         MATCH 'E'
-;         CALL pvm_digits
-;         RETURN
-; @initial_decimal:
-;         MATCH *
-;         TRY @optional_e
-;         CALL pvm_digits
-;         COMMIT
-;         JUMP @optional_e
-; @done:
-;         RETURN
+pvm_number:
+        CALL pvm_whitespace
+        TRY @no_minus
+        MATCH '-'
+        ACCEPT
+@no_minus:
+        TRY @no_initial_decimal
+        MATCH '.'
+        ACCEPT
+        JUMP @maybe_more_digits
+@no_initial_decimal:
+        CALL pvm_digits
+        TRY @e
+        MATCH '.'
+        ACCEPT
+@maybe_more_digits:
+        TRY @e
+        CALL pvm_digits
+@e:
+        TRY @no_e
+        MATCH 'E'
+        TRY @no_e_minus
+        MATCH '-'
+        ACCEPT
+@no_e_minus:
+        CALL pvm_digits
+@no_e:
+        RETURN
 
-; ; pvm_digits does not remove whitespace.
-; ; It is only used from pvm_number.
+; pvm_digits does not remove whitespace.
+; It is only used from pvm_number.
 
-; pvm_digits:
-;         MATCH_RANGE '0', 10
-; @next:
-;         TRY @done
-;         MATCH_RANGE '0', 10
-;         COMMIT
-;         JUMP @next
-; @done:
-;         RETURN
+pvm_digits:
+        MATCH_RANGE '0', '9'
+@next:
+        TRY @done
+        MATCH_RANGE '0', '9'
+        ACCEPT
+        JUMP @next
+@done:
+        RETURN
 
 ; pvm_number_list:
 ;         CALL pvm_number
@@ -543,30 +555,34 @@ pvm_expression:
 ;         CALL pvm_whitespace
 ;         MATCH ','
 ;         CALL pvm_number
-;         COMMIT
+;         ACCEPT
 ;         JUMP @next
 ; @done:
 ;         RETURN
 
-; pvm_string:
-;         CALL pvm_whitespace
-;         MATCH '"'
-; @next:
-;         TEST '"', @first_quote
-; @second_quote:
-;         MATCH *
-;         JUMP @next
-; @first_quote:
-;         MATCH *
-;         TEST '"', @second_quote
-;         RETURN
+pvm_string:
+        CALL pvm_whitespace
+        MATCH '"'
+@next:
+        TRY @not_quote
+        MATCH '"'
+        TRY @done
+        MATCH '"'
+        ACCEPT
+        ACCEPT
+        JUMP @next
+@not_quote:
+        MATCH *
+        JUMP @next
+@done:
+        RETURN
 
-; pvm_variable:
-;         CALL pvm_whitespace
-;         CALL pvm_name
+pvm_variable:
+        CALL pvm_whitespace
+        CALL pvm_name
 ;         TRY @eot
 ;         MATCH '$'
-;         COMMIT
+;         ACCEPT
 ; @eot:
 ;         COMPOSE EOT
 ;         TEST '(', @array
@@ -575,7 +591,7 @@ pvm_expression:
 ;         MATCH *
 ;         CALL pvm_arg_list
 ;         MATCH ')'
-;         RETURN
+        RETURN
 
 ; pvm_variable_list:
 ;         CALL pvm_variable
@@ -584,7 +600,7 @@ pvm_expression:
 ;         CALL pvm_whitespace
 ;         MATCH ','
 ;         CALL pvm_variable
-;         COMMIT
+;         ACCEPT
 ;         JUMP @next
 ; @done:
 ;         RETURN
@@ -595,7 +611,7 @@ pvm_expression:
 ;         MATCH_RANGE ' ', 32
 ;         TRY @end
 ;         MATCH_RANGE '<', 3
-;         COMMIT
+;         ACCEPT
 ; @end:
 ;         TOKENIZE_KEYWORD operator_name_table
 ;         COMPOSE TOKEN_OP
@@ -618,33 +634,33 @@ pvm_expression:
 ;         CALL pvm_whitespace
 ;         TRY @done
 ;         MATCH *
-;         COMMIT
+;         ACCEPT
 ;         JUMP pvm_text
 ; @done:
 ;         RETURN
         
-; ; pvm_name does not discard whitespace.
-; ; Its only job is to capture an alphanumeric "name."
+; pvm_name does not discard whitespace.
+; Its only job is to capture an alphanumeric "name."
 
-; pvm_name:
-;         MATCH_RANGE 'A', 26
-; @next:
-;         TRY @digit
-;         MATCH_RANGE 'A', 26
-;         COMMIT
-;         JUMP @next
-; @digit:
-;         TRY @underscore
-;         MATCH_RANGE '0', 10
-;         COMMIT
-;         JUMP @next
-; @underscore:
-;         TRY @done
-;         MATCH '_'
-;         COMMIT
-;         JUMP @next        
-; @done:
-;         RETURN
+pvm_name:
+        MATCH_RANGE 'A', 'Z'
+@next:
+        TRY @not_alpha
+        MATCH_RANGE 'A', 'Z'
+        ACCEPT
+        JUMP @next
+@not_alpha:
+        TRY @not_digit
+        MATCH_RANGE '0', '9'
+        ACCEPT
+        JUMP @next
+@not_digit:
+        TRY @done
+        MATCH '_'
+        ACCEPT
+        JUMP @next        
+@done:
+        RETURN
 
 pvm_whitespace:
         TRY @done

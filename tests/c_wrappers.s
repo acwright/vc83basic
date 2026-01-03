@@ -37,7 +37,10 @@ _err: .res 1
 
 .export _pvm_statements = pvm_statements;
 .export _pvm_expression = pvm_expression;
-
+.export _pvm_number = pvm_number
+.export _pvm_string = pvm_string
+.export _pvm_name = pvm_name
+.export _pvm_whitespace = pvm_whitespace
 .code
 
 ; Sets the err variable to 1 if carry is set, 0 otherwise.

@@ -186,6 +186,10 @@ S1 = FPX+2
 .global parse_pvm
 .global pvm_statements
 .global pvm_expression
+.global pvm_number
+.global pvm_string
+.global pvm_name
+.global pvm_whitespace
 .global statement_name_table
 .global extra_name_table
 .global operator_name_table

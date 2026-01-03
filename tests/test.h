@@ -72,6 +72,10 @@ extern Line line_buffer;
 
 extern const char pvm_statements[];
 extern const char pvm_expression[];
+extern const char pvm_number[];
+extern const char pvm_string[];
+extern const char pvm_name[];
+extern const char pvm_whitespace[];
 
 // Prototypes for C wrapper functions
 

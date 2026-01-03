@@ -1,27 +1,109 @@
 #include "test.h"
 
-void call_parse_pvm(const char* s, const char* start, const char* expect_line_data, size_t expect_line_data_length, int line) {
-    size_t expect_buffer_pos;
-    fprintf(stderr, "  %s:%d: parse_statements(\"%s\")\n", __FILE__, line, s);
-    expect_buffer_pos = strlen(s);
+void call_parse_pvm_expect_buffer_pos(const char* s, const char* start, const char* expect_line_data,
+    size_t expect_line_data_length, size_t expect_buffer_pos, int line) {
+    fprintf(stderr, "  %s:%d: parse_pvm(\"%s\")\n", __FILE__, line, s);
     strcpy(buffer, s);
     buffer_pos = 0;
     line_pos = offsetof(Line, data);
     parse_pvm(start);
     ASSERT_EQ(err, 0);
     ASSERT_EQ(buffer_pos, expect_buffer_pos);
-    ASSERT_MEMORY_EQ(line_buffer.data, expect_line_data, expect_line_data_length);
+    if (expect_line_data) {
+        ASSERT_MEMORY_EQ(line_buffer.data, expect_line_data, expect_line_data_length);
+    }
     ASSERT_EQ(line_pos, offsetof(Line, data) + expect_line_data_length);
+}
+
+void call_parse_pvm(const char* s, const char* start, const char* expect_line_data,
+    size_t expect_line_data_length, int line) {
+    call_parse_pvm_expect_buffer_pos(s, start, expect_line_data, expect_line_data_length, strlen(s), line);
+}
+
+void test_pvm_whitespace(void) {
+
+    PRINT_TEST_NAME();
+
+    call_parse_pvm(" ", pvm_whitespace, NULL, 0, __LINE__);
+    call_parse_pvm("   ", pvm_whitespace, NULL, 0, __LINE__);
+    call_parse_pvm_expect_buffer_pos("   X", pvm_whitespace, NULL, 0, 3, __LINE__);
+}
+
+void test_pvm_number(void) {
+
+    const char line_data_1[] = { '1' };
+    const char line_data_2[] = { '9', '1' };
+    const char line_data_3[] = { '-', '1', '0', '0' };
+    const char line_data_4[] = { '3', '.', '1', '4', '1', '5', '9' };
+    const char line_data_5[] = { '3', '.' };
+    const char line_data_6[] = { '9', '8', '.', '6' };
+    const char line_data_7[] = { '.', '3', '5', '0' };
+    const char line_data_8[] = { '-', '.', '5' };
+    const char line_data_9[] = { '1', '0', 'E', '5' };
+    const char line_data_10[] = { '1', '0', '.', 'E', '5' };
+    const char line_data_11[] = { '.', '1', '0', 'E', '5' };
+    const char line_data_12[] = { '1', '0', 'E', '-', '5' };
+
+    PRINT_TEST_NAME();
+
+    call_parse_pvm("1", pvm_number, line_data_1, sizeof line_data_1, __LINE__);
+    call_parse_pvm("91", pvm_number, line_data_2, sizeof line_data_2, __LINE__);
+    call_parse_pvm_expect_buffer_pos("91X", pvm_number, line_data_2, sizeof line_data_2, 2, __LINE__);
+    call_parse_pvm("  91", pvm_number, line_data_2, sizeof line_data_2, __LINE__);
+    call_parse_pvm("-100", pvm_number, line_data_3, sizeof line_data_3, __LINE__);
+    call_parse_pvm("  -100", pvm_number, line_data_3, sizeof line_data_3, __LINE__);
+    call_parse_pvm("3.14159", pvm_number, line_data_4, sizeof line_data_4, __LINE__);
+    call_parse_pvm("3.", pvm_number, line_data_5, sizeof line_data_5, __LINE__);
+    call_parse_pvm("98.6", pvm_number, line_data_6, sizeof line_data_6, __LINE__);
+    call_parse_pvm(".350", pvm_number, line_data_7, sizeof line_data_7, __LINE__);
+    call_parse_pvm("-.5", pvm_number, line_data_8, sizeof line_data_8, __LINE__);
+    call_parse_pvm("10E5", pvm_number, line_data_9, sizeof line_data_9, __LINE__);
+    call_parse_pvm("10.E5", pvm_number, line_data_10, sizeof line_data_10, __LINE__);
+    call_parse_pvm(".10E5", pvm_number, line_data_11, sizeof line_data_11, __LINE__);
+    call_parse_pvm("10E-5", pvm_number, line_data_12, sizeof line_data_12, __LINE__);
+}
+
+void test_pvm_string(void) {
+
+    const char line_data_1[] = { '"', 'H', 'E', 'L', 'L', 'O', '"' };
+    const char line_data_2[] = { '"', '"' };
+    const char line_data_3[] = { '"', 'I', 'N', 'T', 'E', 'R', 'N', 'A', 'L', ' ', '"', '"', 'Q', 'U', 'O', 'T', 'E', 'S', '"', '"', '"' };
+
+    PRINT_TEST_NAME();
+
+    call_parse_pvm("\"HELLO\"", pvm_string, line_data_1, sizeof line_data_1, __LINE__);
+    call_parse_pvm("\"\"", pvm_string, line_data_2, sizeof line_data_2, __LINE__);
+    call_parse_pvm("  \"\"", pvm_string, line_data_2, sizeof line_data_2, __LINE__);
+    call_parse_pvm("\"INTERNAL \"\"QUOTES\"\"\"", pvm_string, line_data_3, sizeof line_data_3, __LINE__);
+}
+
+void test_pvm_name(void) {
+
+    const char line_data_1[] = { 'X' };
+    const char line_data_2[] = { 'X', '1', '0' };
+    const char line_data_3[] = { 'X', '_', '1', '0' };
+    const char line_data_4[] = { 'X', '_', '1', '0', 'X' };
+    const char line_data_5[] = { 'X', '9', 'A', 'P' };
+
+    PRINT_TEST_NAME();
+
+    call_parse_pvm("X", pvm_name, line_data_1, sizeof line_data_1, __LINE__);
+    call_parse_pvm_expect_buffer_pos("X(", pvm_name, line_data_1, sizeof line_data_1, 1, __LINE__);
+    call_parse_pvm("X10", pvm_name, line_data_2, sizeof line_data_2, __LINE__);
+    call_parse_pvm("X_10", pvm_name, line_data_3, sizeof line_data_3, __LINE__);
+    call_parse_pvm("X_10X", pvm_name, line_data_4, sizeof line_data_4, __LINE__);
+    call_parse_pvm("X9AP", pvm_name, line_data_5, sizeof line_data_5, __LINE__);
 }
 
 void test_pvm_expression(void) {
 
     const char line_data_1[] = { '1' };
+    const char line_data_2[] = { '9', '1' };
 
     PRINT_TEST_NAME();
 
-    // Simple statement (covers all single-keyword statements)
     call_parse_pvm("1", pvm_expression, line_data_1, sizeof line_data_1, __LINE__);
+    call_parse_pvm("91", pvm_expression, line_data_2, sizeof line_data_2, __LINE__);
 
 
 }
@@ -40,7 +122,6 @@ void test_pvm_statements(void) {
     const char variable_line_data_1[] = { ST_PRINT, 'I', 'D', 'X', '_', '2' | EOT, 0 };
     const char variable_line_data_2[] = { ST_PRINT, 'A', '$' | EOT, 0 };
     const char variable_line_data_3[] = { ST_PRINT, 'X' | EOT, '(', '5', ')', 0 };
-    const char variable_line_data_4[] = { ST_PRINT, 'X', 'Y', 'Z', 'Z', 'Y', '$' | EOT, '(', '1', ',', '1', '0', ')', 0 };
     const char function_line_data_1[] = { ST_PRINT, TOKEN_FUNCTION | 0, '(', '"', 'H', 'E', 'L', 'L', 'O', '"', ')', 0 };
     const char function_line_data_2[] = { ST_PRINT, TOKEN_FUNCTION | 6, '(', '"', 'H', 'E', 'L', 'L', 'O', '"', ',', '2', ',', '3', ')', 0 };
     const char expression_line_data_1[] = { ST_PRINT, '1', TOKEN_OP | OP_ADD, '1', TOKEN_OP | OP_ADD, '1', 0 };
@@ -129,6 +210,10 @@ void test_pvm_statements(void) {
 
 int main(void) {
     initialize_target();
+    test_pvm_whitespace();
+    test_pvm_number();
+    test_pvm_string();
+    test_pvm_name();
     test_pvm_expression();
     test_pvm_statements();
     return 0;
