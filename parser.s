@@ -59,18 +59,15 @@ skip_whitespace:
 parse_pvm:
         stax    pvm_program_ptr
         jsr     run_pvm
-        debug $F0
         raics   ERR_SYNTAX_ERROR        ; If returning with carry set, raise syntax error
         lda     B
         cmp     #PVM_RETURN             ; Make sure we exited via RETURN
-        debug $F1
         raine   ERR_INTERNAL_ERROR
         rts
 
 dispatch_pvm_instruction:
         and     #$7F                    ; Just the instruction index
         tay                             ; Transfer into Y
-        debug $10
         ldax    #pvm_instruction_vectors
         jsr     invoke_indexed_vector
 
@@ -106,11 +103,9 @@ run_pvm:
         sta     C                       ; Store it in C
         lda     buffer,x
         sbc     (pvm_program_ptr),y     ; Subtract away the starting character
-        debug $01
         iny
         bcc     fail_from_run_pvm       ; Out of range: too low
         cmp     C                       ; Check the range
-        debug $02
         bcs     fail_from_run_pvm       ; Out of range: too high
         bcc     @matched                ; Unconditional
 @match_single:
@@ -144,7 +139,6 @@ ins_try:
         ldx     #0                      ; High byte of savepoint handler offset
         ldy     #0                      ; Index of offset
         lda     (pvm_program_ptr),y     ; Low byte
-        debug $20
         bpl     @positive               ; If positive, leave X = 0
         dex                             ; Otherwise X = -1
 @positive:
@@ -157,7 +151,6 @@ ins_try:
         ldpha   #0                      ; Can't be program pointer high byte, so signals this is a TRY handler
         iny                             ; Advance past offset
         jsr     rebase_pvm_program_ptr  ; Prepare to invoke parse_pvm at next instruction address
-        debug $21
         jsr     run_pvm                 ; Go do it
         pla                             ; Discard TRY handler signal byte
         bcs     @error                  ; TRY exited with FAIL
@@ -252,15 +245,17 @@ ins_dispatch:
 ; COMPOSE: OR the next byte value into the last byte written to the output
 
 ins_compose:
+        ldy     #0
         lda     (pvm_program_ptr),y     ; Get the address of the name table
+        jsr     compose_with_last_byte
+        iny
+        jmp     rebase_pvm_program_ptr  ; Advance past byte
+        
 compose_with_last_byte:
         ldx     line_pos                ; Current line_pos
         ora     line_buffer-1,x         ; Subtract one since we want last character
         sta     line_buffer-1,x
-        iny
-        jsr     rebase_pvm_program_ptr  ; Advance past byte
-
-; Fall through
+        rts
 
 ; Write a single byte to line_buffer, checking for the maximum line length.
 ; Y SAFE, BC SAFE, DE SAFE
@@ -459,15 +454,16 @@ pvm_statements:
 
 pvm_expression:
         CALL pvm_primary_expression
-        ; TRY @done
-        ; CALL pvm_operator
-        ; ACCEPT
+        TRY @done
+        CALL pvm_operator
+        ACCEPT
+        CALL pvm_primary_expression
         ; JUMP pvm_expression
 @done:
         RETURN
 
-; pvm_primary_expression does not discard whitespace.
-; The component that can be a primary expression discard whitespace.
+; pvm_primary_expression does not discard whitespace at the top level.
+; Each primary expression alternative discards whitespace.
 
 pvm_primary_expression:
 ;         TRY @not_parens
@@ -605,17 +601,16 @@ pvm_variable:
 ; @done:
 ;         RETURN
 
-; pvm_operator:
-;         CALL pvm_whitespace
-;         BEGIN_KEYWORD
-;         MATCH_RANGE ' ', 32
-;         TRY @end
-;         MATCH_RANGE '<', 3
-;         ACCEPT
-; @end:
-;         TOKENIZE_KEYWORD operator_name_table
-;         COMPOSE TOKEN_OP
-;         RETURN        
+pvm_operator:
+        CALL pvm_whitespace
+        BEGIN
+        MATCH_RANGE '&', '?'
+        TRY @end
+        MATCH_RANGE '<', '>'
+@end:
+        TOKENIZE operator_name_table
+        COMPOSE TOKEN_OP
+        RETURN        
 
 ; ; pvm_misc does not discard whitespace.
 ; ; Callers test for the correct keyword before calling and should discard whitespace at that point.

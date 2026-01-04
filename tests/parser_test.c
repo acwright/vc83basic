@@ -97,13 +97,11 @@ void test_pvm_name(void) {
 
 void test_pvm_expression(void) {
 
-    const char line_data_1[] = { '1' };
-    const char line_data_2[] = { '9', '1' };
+    const char line_data_1[] = { '1', TOKEN_OP | OP_ADD, '1' };
 
     PRINT_TEST_NAME();
 
-    call_parse_pvm("1", pvm_expression, line_data_1, sizeof line_data_1, __LINE__);
-    call_parse_pvm("91", pvm_expression, line_data_2, sizeof line_data_2, __LINE__);
+    call_parse_pvm("1+1", pvm_expression, line_data_1, sizeof line_data_1, __LINE__);
 
 
 }
