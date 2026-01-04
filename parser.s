@@ -436,19 +436,17 @@ pvm_statements:
 ; @done:
 ;         RETURN
 
-; ; pvm_arg_list is list of 1-N expressions (but not 0).
+; pvm_arg_list is list of 1-N expressions (but not 0).
 
-; pvm_arg_list:
-;         CALL pvm_expression
-; @next:
-;         TRY @done
-;         CALL pvm_whitespace
-;         MATCH ','
-;         CALL pvm_expression
-;         ACCEPT
-;         JUMP @next
-; @done:
-;         RETURN
+pvm_arg_list:
+        CALL pvm_expression
+        TRY @done
+        CALL pvm_whitespace
+        MATCH ','
+        ACCEPT
+        JUMP pvm_arg_list
+@done:
+        RETURN
 
 ; Expressions
 
@@ -457,8 +455,7 @@ pvm_expression:
         TRY @done
         CALL pvm_operator
         ACCEPT
-        CALL pvm_primary_expression
-        ; JUMP pvm_expression
+        JUMP pvm_expression
 @done:
         RETURN
 
@@ -487,22 +484,23 @@ pvm_primary_expression:
         CALL pvm_primary_expression
         RETURN
 @not_unary_operator:
-;         TRY @not_function
-;         CALL pvm_whitespace
-;         BEGIN_KEYWORD
-;         CALL pvm_name
-;         TRY @tokenize_function
-;         MATCH '$'
-;         ACCEPT
-; @tokenize_function:
-;         TOKENIZE_KEYWORD function_name_table
-;         COMPOSE TOKEN_FUNCTION
-;         MATCH '('
-;         CALL pvm_arg_list
-;         CALL pvm_whitespace
-;         MATCH ')'
-;         RETURN
-; @not_function:
+        TRY @not_function
+        CALL pvm_whitespace
+        BEGIN
+        CALL pvm_name
+        TRY @tokenize_function
+        MATCH '$'
+        ACCEPT
+@tokenize_function:
+        TOKENIZE function_name_table
+        COMPOSE TOKEN_FUNCTION
+        MATCH '('
+        ACCEPT
+        CALL pvm_arg_list
+        CALL pvm_whitespace
+        MATCH ')'
+        RETURN
+@not_function:
         JUMP pvm_variable
 
 ; Low-level rules
@@ -581,17 +579,17 @@ pvm_string:
 pvm_variable:
         CALL pvm_whitespace
         CALL pvm_name
-;         TRY @eot
-;         MATCH '$'
-;         ACCEPT
-; @eot:
-;         COMPOSE EOT
-;         TEST '(', @array
-;         RETURN
-; @array:
-;         MATCH *
-;         CALL pvm_arg_list
-;         MATCH ')'
+        TRY @not_string
+        MATCH '$'
+        ACCEPT
+@not_string:
+        COMPOSE EOT
+        TRY @not_array
+        MATCH '('
+        ACCEPT
+        CALL pvm_arg_list
+        MATCH ')'
+@not_array:
         RETURN
 
 ; pvm_variable_list:
