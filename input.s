@@ -29,7 +29,7 @@ exec_input:
         clc                             ; Clear carry in case we're done            
         beq     @done                   ; It was 0, nothing more to read
         ldy     buffer_pos              ; Prepare to skip past the argument separator, if present
-        jsr     find_printable_character    ; We read something from this line so need a ',' to continue
+        jsr     skip_whitespace         ; We read something from this line so need a ',' to continue
         cmp     #','                    ; Was it the separator?
         bne     exec_input              ; Nope, just issue a new prompt
         iny                             ; Skip separator        

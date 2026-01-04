@@ -142,19 +142,19 @@ invoke_indexed_vector_2:
 ; Reads a comma beween arguments. Also recognizes 0 as end of input.
 ; read_ptr = the read address
 ; Y = the starting position
-; Returns carry clear if everything was okay or carry set if we found something other than a comma or 0.
+; Returns carry clear if we found a separator, or carry set if we didn't. If we didn't, then the Z flag indicates
+; whether we found a 0 or something else.
 
 read_argument_separator:
-        jsr     find_printable_character
-        clc                             ; Set carry in case next check is okay
+        jsr     skip_whitespace
+        sec                             ; Set carry in case it's 0
         beq     @done                   ; Read 0; just exit
         cmp     #','                    ; If it wasn't 0 then it better be ','
         sec                             ; Set carry in case it's not ','
         bne     @done                   ; And it's not
-        clc                             ; Clear carry to return success
         iny                             ; Skip past the commma
+        clc                             ; Clear carry to return success
 @done:
-        sty     data_line_pos           ; Update data_line_pos to next read position
         rts
 
 ; Reads forward and finds the next non-whitespace character, which might be 0.
@@ -163,13 +163,13 @@ read_argument_separator:
 ; Returns the next non-whitespace character in A and the position of that character in Y. If Z is set on return,
 ; it means the character read was 0.
 
-continue_find_printable_character:
+continue_skip_whitespace:
         iny
-find_printable_character:
+skip_whitespace:
         lda     (read_ptr),y
         beq     @done
         cmp     #' '
-        beq     continue_find_printable_character
+        beq     continue_skip_whitespace
 @done:
         rts
 

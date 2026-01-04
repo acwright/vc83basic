@@ -112,7 +112,7 @@ S1 = FPX+2
 .global round
 .global truncate
 .global fp_to_string
-.global string_to_fp
+.global string_to_fp, string_to_fp_2
 .global char_to_digit
 .global adjust_exponent
 .global normalize
@@ -190,7 +190,6 @@ S1 = FPX+2
 .global pvm_number
 .global pvm_string
 .global pvm_name
-.global pvm_whitespace
 .global statement_name_table
 .global misc_name_table
 .global operator_name_table
@@ -235,7 +234,7 @@ S1 = FPX+2
 
 ; string.s
 .global load_s0, load_s1
-.global read_string
+.global read_string, read_string_2
 .global string_alloc
 .global compact
 
@@ -251,7 +250,7 @@ S1 = FPX+2
 .global clear_memory, set_memory
 .global invoke_indexed_vector, invoke_indexed_vector_2
 .global read_argument_separator
-.global find_printable_character
+.global skip_whitespace
 .global line_number_to_string
 .global install_exception_handler
 .global on_raise

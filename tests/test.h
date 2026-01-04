@@ -76,7 +76,6 @@ extern const char pvm_expression[];
 extern const char pvm_number[];
 extern const char pvm_string[];
 extern const char pvm_name[];
-extern const char pvm_whitespace[];
 
 // Prototypes for C wrapper functions
 
@@ -167,6 +166,8 @@ void copy(/* AX */ size_t size);
 void reverse_copy(/* AX */ size_t size);
 void clear_memory(/* AX */ void* ptr, /* Y */ char size);
 int invoke_indexed_vector(/* AX */ void* vectors, /* Y */ char index);
+void read_argument_separator(char pos);
+void skip_whitespace(char pos);
 
 #define HEXDUMP(data, length) hexdump(#data, (char*)(data), (length))
 

@@ -49,6 +49,7 @@ exec_read:
         bcs     @done                   ; Failed to read a number
         jsr     read_argument_separator
         bcs     @done                   ; Read non-separator after value
+        sty     data_line_pos           ; Update data_line_pos to next read position
         jsr     push_fp0                ; Push FP0 onto the value stack
 
 @assign:
@@ -71,6 +72,7 @@ exec_read:
         bcs     @done
         jsr     read_argument_separator
         bcs     @done                   ; Read non-separator after value
+        sty     data_line_pos           ; Update data_line_pos to next read position
         jsr     push_string             ; Push result string onto the stack
         jmp     @assign
 

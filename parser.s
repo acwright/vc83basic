@@ -21,9 +21,12 @@ parse_line:
 
 ; Invokes parsing virtual machine (PVM).
 ; AX = address of first PVM instruction
+; buffer_pos = where to read from buffer
+; line_pos = where to write to line_buffer
 
 parse_pvm:
         stax    pvm_program_ptr
+        mvax    #buffer, read_ptr       ; Set up read_ptr so parsing primitives in util module work
         jsr     run_pvm
         raics   ERR_SYNTAX_ERROR        ; If returning with carry set, raise syntax error
         lda     B
@@ -179,9 +182,8 @@ ins_call:
 ; INT: parse and encode a 16-bit integer.
 
 ins_int:
-        ldax    #buffer                 ; Read line number from buffer
         ldy     buffer_pos
-        jsr     string_to_fp            ; Parse line number
+        jsr     string_to_fp_2          ; Parse line number
         bcs     ins_fail                ; If no number then just fail
         sty     buffer_pos              ; Update buffer_pos
         jsr     truncate_fp_to_int      ; Truncate number to integer
@@ -249,6 +251,27 @@ compose_with_last_byte:
         sta     line_buffer-1,x
         rts
 
+; WS: skip over whitespace
+
+ins_ws:
+        ldy     buffer_pos
+        jsr     skip_whitespace
+        sty     buffer_pos
+        rts
+
+; SEP: skip over argument separator ','
+
+ins_argsep:
+        ldy     buffer_pos
+        jsr     read_argument_separator
+        bcc     @found
+        jmp     ins_fail                ; Too far to branch, but saves JSR to write_line_buffer
+@found:
+        sty     buffer_pos
+        lda     #','
+
+; Fall through
+
 ; Write a single byte to line_buffer, checking for the maximum line length.
 ; X SAFE, BC SAFE, DE SAFE
 
@@ -304,6 +327,8 @@ pvm_instruction_vectors:
         .word   ins_compose-1
         .word   ins_int-1
         .word   ins_eol-1
+        .word   ins_ws-1
+        .word   ins_argsep-1
 
 ; PVM macros
 
@@ -407,15 +432,23 @@ pvm_instruction_vectors:
         .byte   $8D
 .endmacro
 
+.macro WS
+        .byte   $8E
+.endmacro
+
+.macro ARGSEP
+        .byte   $8F
+.endmacro
+
 ; PVM program
 
 pvm_line:
-        CALL pvm_whitespace
+        WS
         TRY @immediate
         INT
         ACCEPT
 @first_statement:
-        CALL pvm_whitespace
+        WS
         TRY @statement
         EOL
 @done:
@@ -423,7 +456,7 @@ pvm_line:
 @statement:
         CALL pvm_statement
         TRY @done
-        CALL pvm_whitespace
+        WS
         BEGIN
         MATCH ':'
         TOKENIZE misc_name_table
@@ -436,7 +469,7 @@ pvm_line:
         JUMP @first_statement
 
 pvm_statement:
-        CALL pvm_whitespace
+        WS
         BEGIN
         CALL pvm_name
         TOKENIZE statement_name_table
@@ -446,8 +479,7 @@ pvm_statement:
 
 pvm_arg_2:
         CALL pvm_expression
-        CALL pvm_whitespace
-        MATCH ','
+        ARGSEP
         JUMP pvm_expression
 
 pvm_optional_arg_2:
@@ -455,8 +487,8 @@ pvm_optional_arg_2:
         CALL pvm_expression
         ACCEPT
         TRY @done
-        CALL pvm_whitespace
-        MATCH ','
+        ARGSEP
+        ACCEPT
         CALL pvm_expression
 @done:
         RETURN
@@ -466,8 +498,7 @@ pvm_optional_arg_2:
 pvm_arg_list:
         CALL pvm_expression
         TRY @done
-        CALL pvm_whitespace
-        MATCH ','
+        ARGSEP
         ACCEPT
         JUMP pvm_arg_list
 @done:
@@ -489,10 +520,10 @@ pvm_expression:
 
 pvm_primary_expression:
         TRY @not_parens
-        CALL pvm_whitespace
+        WS
         MATCH '('
         CALL pvm_expression
-        CALL pvm_whitespace
+        WS
         MATCH ')'
         RETURN
 @not_parens:
@@ -510,7 +541,7 @@ pvm_primary_expression:
         RETURN
 @not_unary_operator:
         TRY @not_function
-        CALL pvm_whitespace
+        WS
         BEGIN
         CALL pvm_name
         TRY @tokenize_function
@@ -522,7 +553,7 @@ pvm_primary_expression:
         ACCEPT                          ; Recognized the function name so arg list is now mandatory
         MATCH '('
         CALL pvm_arg_list
-        CALL pvm_whitespace
+        WS
         MATCH ')'
         RETURN
 @not_function:
@@ -531,7 +562,7 @@ pvm_primary_expression:
 ; Low-level rules
 
 pvm_number:
-        CALL pvm_whitespace
+        WS
         TRY @no_minus
         MATCH '-'
         ACCEPT
@@ -577,15 +608,14 @@ pvm_digits:
 pvm_number_list:
         CALL pvm_number
         TRY @done
-        CALL pvm_whitespace
-        MATCH ','
+        ARGSEP
         ACCEPT
         JUMP pvm_number_list
 @done:
         RETURN
 
 pvm_string:
-        CALL pvm_whitespace
+        WS
         MATCH '"'
 @next:
         TRY @not_quote
@@ -602,7 +632,7 @@ pvm_string:
         RETURN
 
 pvm_variable:
-        CALL pvm_whitespace
+        WS
         CALL pvm_name
         TRY @not_string
         MATCH '$'
@@ -622,15 +652,14 @@ pvm_variable:
 pvm_variable_list:
         CALL pvm_variable
         TRY @done
-        CALL pvm_whitespace
-        MATCH ','
+        ARGSEP
         ACCEPT
         JUMP pvm_variable_list
 @done:
         RETURN
 
 pvm_operator:
-        CALL pvm_whitespace
+        WS
         BEGIN
         TRY @not_name
         CALL pvm_name
@@ -645,7 +674,7 @@ pvm_operator:
         RETURN        
 
 pvm_unary_operator:
-        CALL pvm_whitespace
+        WS
         BEGIN
         TRY @not_name
         CALL pvm_name
@@ -661,7 +690,7 @@ pvm_unary_operator:
 ; Captures all text to EOL.
 
 pvm_text:
-        CALL pvm_whitespace
+        WS
         TRY @done
         MATCH *
         ACCEPT
@@ -692,14 +721,6 @@ pvm_name:
 @done:
         RETURN
 
-pvm_whitespace:
-        TRY @done
-        MATCH ' '
-        DISCARD
-        JUMP pvm_whitespace
-@done:
-        RETURN
-
 statement_name_table:
         name_table_entry "END"
             RETURN
@@ -725,7 +746,7 @@ statement_name_table:
             RETURN
 :       name_table_entry "ON"
             CALL pvm_expression    
-            CALL pvm_whitespace
+            WS
             BEGIN
             MATCH "GO"
             CALL pvm_name
@@ -734,16 +755,16 @@ statement_name_table:
             JUMP pvm_number_list
 :       name_table_entry "FOR"
             CALL pvm_variable
-            CALL pvm_whitespace
+            WS
             MATCH '='
             CALL pvm_expression
-            CALL pvm_whitespace
+            WS
             BEGIN
             MATCH "TO"
             TOKENIZE misc_name_table
             COMPOSE TOKEN_MISC
             CALL pvm_expression
-            CALL pvm_whitespace
+            WS
             TRY @no_step
             BEGIN
             MATCH "STEP"
@@ -761,7 +782,7 @@ statement_name_table:
             RETURN
 :       name_table_entry "IF"
             CALL pvm_expression
-            CALL pvm_whitespace
+            WS
             BEGIN
             MATCH "THEN"
             TOKENIZE misc_name_table

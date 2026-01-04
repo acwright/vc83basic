@@ -676,7 +676,8 @@ output_y_zeros:
 
 string_to_fp:
         stax    read_ptr                ; Store read_ptr
-        jsr     find_printable_character    ; Skip any whitespace        
+string_to_fp_2:
+        jsr     skip_whitespace         ; Skip any whitespace        
         sty     E                       ; Save starting position in E
         jsr     clear_fp0               ; Reset to zero (including sign)
         sta     FPX                     ; Also clear FPX in order to detect overflows

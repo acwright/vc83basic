@@ -130,11 +130,49 @@ void test_invoke_indexed_vector(void) {
     ASSERT_EQ(result, 31415);
 }
 
+void test_skip_whitespace(void) {
+
+    const char data[] = { 'X', ' ', ' ', '1', '0', '0' };
+
+    PRINT_TEST_NAME();
+
+    read_ptr = data;
+
+    skip_whitespace(0);
+    ASSERT_EQ(Y, 0);
+
+    skip_whitespace(1);
+    ASSERT_EQ(Y, 3);
+}
+
+void test_read_argument_separator(void) {
+
+    const char data[] = { 'X', ',', '1', ' ', ',', ' ', 'Y' };
+
+    PRINT_TEST_NAME();
+
+    read_ptr = data;
+
+    read_argument_separator(0);
+    ASSERT_NE(err, 0);
+    ASSERT_EQ(Y, 0);
+
+    read_argument_separator(1);
+    ASSERT_EQ(err, 0);
+    ASSERT_EQ(Y, 2);
+
+    read_argument_separator(3);
+    ASSERT_EQ(err, 0);
+    ASSERT_EQ(Y, 5);
+}
+
 int main(void) {
     initialize_target();
     test_clear_memory();
     test_copy();
     test_reverse_copy();
     test_invoke_indexed_vector();
+    test_skip_whitespace();
+    test_read_argument_separator();
     return 0;
 }

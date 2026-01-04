@@ -41,7 +41,6 @@ _err: .res 1
 .export _pvm_number = pvm_number
 .export _pvm_string = pvm_string
 .export _pvm_name = pvm_name
-.export _pvm_whitespace = pvm_whitespace
 .code
 
 ; Sets the err variable to 1 if carry is set, 0 otherwise.
@@ -495,3 +494,17 @@ _invoke_indexed_vector:
         jsr     popax                   ; Address of vector array
         ldy     B      
         jmp     invoke_indexed_vector
+
+_read_argument_separator:
+.export _read_argument_separator
+        tay
+        jsr     read_argument_separator
+        sty     _Y
+        jmp     set_err
+
+_skip_whitespace:
+.export _skip_whitespace
+        tay
+        jsr     skip_whitespace
+        sty     _Y
+        jmp     set_err
