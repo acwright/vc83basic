@@ -134,6 +134,7 @@ def(PS_RUNNING,                     hex(80))
 
 comment Parse virtual machine (PVM) constants and instruction codes
 
+def(PVM_MATCH_ANY,                  hex(00))
 def(PVM_MATCH_BASE,                 hex(20))
 def(PVM_MATCH_RANGE_BASE,           hex(60))
 def(PVM_JUMP,                       hex(80))
@@ -147,8 +148,7 @@ def(PVM_BEGIN,                      hex(87))
 def(PVM_TOKENIZE,                   hex(88))
 def(PVM_DISPATCH,                   hex(89))
 def(PVM_COMPOSE,                    hex(8A))
-def(PVM_MATCH_ANY,                  hex(8B))
-def(PVM_TEST_ANY,                   hex(8C))
+def(PVM_INT,                        hex(8B))
 
 comment Other constants
 

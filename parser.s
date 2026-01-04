@@ -12,45 +12,11 @@
 ; Returns normally if buffer was a valid program line, or raises an exception.
 
 parse_line:
-        mva     #0, buffer_pos              ; Initialize the read pointer
-        mva     #.sizeof(Line), line_pos    ; Initialize write pointer
-        jsr     skip_whitespace
-        ldax    #buffer                 ; Read line number from buffer
-        ldy     buffer_pos
-        jsr     string_to_fp            ; Parse line number
-        sty     buffer_pos              ; Initialize buffer_pos to wherever the number ended
-        bcs     @no_line_number         ; Line number was provided so store it
-        jsr     truncate_fp_to_int      ; Truncate line number to integer
-        bcc     @store_line_number
-@no_line_number:
-        lda     #$FF                    ; Otherwise store -1 ($FFFF) instead
-        tax
-@store_line_number:
-        stax    line_buffer+Line::number
-        jsr     skip_whitespace         ; Detect a blank line; returns non-blank character in A, may be zero
-        tax                             ; Transfer into X to check if it's zero
-        beq     @blank_line
+        mva     #0, buffer_pos          ; Initialize the read pointer
+        mva     #Line::number, line_pos ; Initialize write pointer
         ldax    #pvm_line
         jsr     parse_pvm
-@blank_line:
         mva     line_pos, line_buffer+Line::next_line_offset    ; Write position is next line offset
-        ldx     buffer_pos
-        lda     buffer,x                ; Verify the line ends with 0 as expected
-        raine   ERR_SYNTAX_ERROR        ; Nope, fail
-        rts
-
-; Skip past any whitespace in the buffer. Returns the next character in A.
-; The final value of buffer_pos is also left in X.
-; buffer_pos = the read position (modified)
-; Y SAFE, BC SAFE, DE SAFE
-
-loop_skip_whitespace:
-        inc     buffer_pos
-skip_whitespace:
-        ldx     buffer_pos              ; Use X to index buffer
-        lda     buffer,x        
-        cmp     #' '        
-        beq     loop_skip_whitespace       
         rts
 
 ; Invokes parsing virtual machine (PVM).
@@ -210,6 +176,27 @@ ins_call:
         raine   ERR_INTERNAL_ERROR      ; Throw exception if ACCEPT or DISCARD without TRY
         rts
 
+; INT: parse and encode a 16-bit integer.
+
+ins_int:
+        ldax    #buffer                 ; Read line number from buffer
+        ldy     buffer_pos
+        jsr     string_to_fp            ; Parse line number
+        bcs     ins_fail                ; If no number then just fail
+        sty     buffer_pos              ; Update buffer_pos
+        jsr     truncate_fp_to_int      ; Truncate number to integer
+        jsr     write_to_line_buffer    ; Write out the low byte
+        txa                             ; and the high byte
+        jmp     write_to_line_buffer
+
+; EOL: fail if we're not at EOL
+
+ins_eol:
+        ldx     buffer_pos
+        lda     buffer,x
+        bne     ins_fail
+        rts
+
 ; BEGIN: mark the beginning of a keyword
 
 ins_begin:
@@ -238,6 +225,15 @@ ins_dispatch:
         mvax    name_ptr, pvm_program_ptr   ; JUMP to name_ptr
         rts
 
+; EMIT: just output one byte
+
+ins_emit:
+        ldy     #0
+        lda     (pvm_program_ptr),y     ; Get the value to output
+        jsr     write_to_line_buffer
+        ldy     #1
+        jmp     rebase_pvm_program_ptr
+
 ; COMPOSE: OR the next byte value into the last byte written to the output
 
 ins_compose:
@@ -254,13 +250,13 @@ compose_with_last_byte:
         rts
 
 ; Write a single byte to line_buffer, checking for the maximum line length.
-; Y SAFE, BC SAFE, DE SAFE
+; X SAFE, BC SAFE, DE SAFE
 
 write_to_line_buffer:
-        ldx     line_pos                ; Write at line_pos
-        cpx     #MAX_LINE_LENGTH
+        ldy     line_pos                ; Write at line_pos
+        cpy     #MAX_LINE_LENGTH
         raieq   ERR_LINE_TOO_LONG
-        sta     line_buffer,x
+        sta     line_buffer,y
         inc     line_pos
         rts
 
@@ -304,7 +300,10 @@ pvm_instruction_vectors:
         .word   ins_begin-1
         .word   ins_tokenize-1
         .word   ins_dispatch-1
+        .word   ins_emit-1
         .word   ins_compose-1
+        .word   ins_int-1
+        .word   ins_eol-1
 
 ; PVM macros
 
@@ -392,14 +391,36 @@ pvm_instruction_vectors:
         .byte   $89
 .endmacro
 
-.macro COMPOSE b
+.macro EMIT b
         .byte   $8A, b
+.endmacro
+
+.macro COMPOSE b
+        .byte   $8B, b
+.endmacro
+
+.macro INT
+        .byte   $8C
+.endmacro
+
+.macro EOL
+        .byte   $8D
 .endmacro
 
 ; PVM program
 
 pvm_line:
         CALL pvm_whitespace
+        TRY @immediate
+        INT
+        ACCEPT
+@first_statement:
+        CALL pvm_whitespace
+        TRY @statement
+        EOL
+@done:
+        RETURN
+@statement:
         CALL pvm_statement
         TRY @done
         CALL pvm_whitespace
@@ -408,9 +429,11 @@ pvm_line:
         TOKENIZE misc_name_table
         COMPOSE TOKEN_MISC
         ACCEPT
-        JUMP pvm_line
-@done:
-        RETURN
+        JUMP @statement
+@immediate:
+        EMIT $FF                        ; Write -1 as line number
+        EMIT $FF
+        JUMP @first_statement
 
 pvm_statement:
         CALL pvm_whitespace

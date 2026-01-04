@@ -208,15 +208,27 @@ void test_pvm_statement(void) {
     call_parse_pvm("DATA HELLO,\"X,Y\",5", pvm_statement, data_line_data_1, sizeof data_line_data_1, __LINE__);
 }
 
-void test_pvm_line(void) {
+void call_parse_line(const char* s, const Line* expect_line, int line) {
+    fprintf(stderr, "  %s:%d: parse_line(\"%s\")\n", __FILE__, line, s);
+    strcpy(buffer, s);
+    parse_line();
+    ASSERT_EQ(err, 0);
+    ASSERT_EQ(buffer_pos, strlen(s));
+    ASSERT_MEMORY_EQ(&line_buffer, expect_line, expect_line->next_line_offset);
+    ASSERT_EQ(line_pos, expect_line->next_line_offset);
+}
 
-    const char line_data_1[] = { ST_LET, 'X' | EOT, '=', '1', '0', '0' };
-    const char line_data_2[] = { ST_LET, 'X' | EOT, '=', '1', '0', '0', TOKEN_MISC | MISC_STATEMENT, ST_PRINT, 'X' | EOT };
+void test_parse_line(void) {
+
+    const Line line_1 = { 9, -1, { ST_LET, 'X' | EOT, '=', '1', '0', '0' } };
+    const Line line_2 = { 12, -1, { ST_LET, 'X' | EOT, '=', '1', '0', '0', TOKEN_MISC | MISC_STATEMENT, ST_PRINT, 'X' | EOT } };
+    const Line line_3 = { 5, 10, { ST_PRINT, '1' } };
 
     PRINT_TEST_NAME();
 
-    call_parse_pvm("LET X=100", pvm_line, line_data_1, sizeof line_data_1, __LINE__);
-    call_parse_pvm("LET X=100:PRINT X", pvm_line, line_data_2, sizeof line_data_2, __LINE__);
+    call_parse_line("LET X=100", &line_1, __LINE__);
+    call_parse_line("LET X=100:PRINT X", &line_2, __LINE__);
+    call_parse_line("10 PRINT 1", &line_3, __LINE__);
 }
 
 int main(void) {
@@ -227,6 +239,6 @@ int main(void) {
     test_pvm_name();
     test_pvm_expression();
     test_pvm_statement();
-    test_pvm_line();
+    test_parse_line();
     return 0;
 }
