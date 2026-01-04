@@ -68,7 +68,7 @@ list_statements:
         bcs     @try_operator
         tay
         pha                             ; Remember the value to check for STATEMENT and THEN later
-        ldax    #extra_name_table
+        ldax    #misc_name_table
         jsr     expand_tokenized_name   ; Call directly in order to handle STATEMENT and THEN
         jsr     add_whitespace          ; Can just add because there's always something after a misc token
         pla

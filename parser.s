@@ -30,7 +30,7 @@ parse_line:
         jsr     skip_whitespace         ; Detect a blank line; returns non-blank character in A, may be zero
         tax                             ; Transfer into X to check if it's zero
         beq     @blank_line
-        ldax    #pvm_statements
+        ldax    #pvm_line
         jsr     parse_pvm
 @blank_line:
         mva     line_pos, line_buffer+Line::next_line_offset    ; Write position is next line offset
@@ -80,6 +80,7 @@ dispatch_pvm_instruction:
 ; and that instruction in B.
 
 run_pvm:
+        ldx     buffer_pos              ; Prepare to load the next character from the input
         ldy     #0
         lda     (pvm_program_ptr),y     ; Load PVM instruction
         debug $00
@@ -96,7 +97,6 @@ run_pvm:
 ; MATCH
 
 @match:
-        ldx     buffer_pos              ; Prepare to load the next character from the input
         cmp     #PVM_MATCH_RANGE_BASE   ; Check if it's a range match starting at $60
         bcc     @match_single
         and     #$1F                    ; The value remaining in A is the size of the range to match
@@ -398,19 +398,19 @@ pvm_instruction_vectors:
 
 ; PVM program
 
-pvm_statements:
-;         CALL pvm_whitespace
-;         TEST 0, @done
-;         CALL pvm_statement
-;         TRY @done
-;         BEGIN_KEYWORD
-;         MATCH ':'
-;         CALL pvm_tokenize_misc
-;         ACCEPT
-;         JUMP pvm_statements
-; @done:
-;         EMIT 0
-;         RETURN
+pvm_line:
+        CALL pvm_whitespace
+        CALL pvm_statement
+        TRY @done
+        CALL pvm_whitespace
+        BEGIN
+        MATCH ':'
+        TOKENIZE misc_name_table
+        COMPOSE TOKEN_MISC
+        ACCEPT
+        JUMP pvm_line
+@done:
+        RETURN
 
 pvm_statement:
         CALL pvm_whitespace
@@ -419,20 +419,26 @@ pvm_statement:
         TOKENIZE statement_name_table
         DISPATCH
 
-; ; Argument lists
+; Argument lists
 
-; pvm_optional_arg_2:
-;         TRY @done
-;         CALL pvm_expression
-;         ACCEPT
-;         TRY @done
-;         CALL pvm_whitespace
-;         MATCH ','
-;         CALL pvm_expression
-; @done:
-;         RETURN
+pvm_arg_2:
+        CALL pvm_expression
+        CALL pvm_whitespace
+        MATCH ','
+        JUMP pvm_expression
 
-; pvm_arg_list is list of 1-N expressions (but not 0).
+pvm_optional_arg_2:
+        TRY @done
+        CALL pvm_expression
+        ACCEPT
+        TRY @done
+        CALL pvm_whitespace
+        MATCH ','
+        CALL pvm_expression
+@done:
+        RETURN
+
+; pvm_arg_list is list of 1-N (but not 0) expressions.
 
 pvm_arg_list:
         CALL pvm_expression
@@ -543,17 +549,17 @@ pvm_digits:
 @done:
         RETURN
 
-; pvm_number_list:
-;         CALL pvm_number
-; @next:
-;         TRY @done
-;         CALL pvm_whitespace
-;         MATCH ','
-;         CALL pvm_number
-;         ACCEPT
-;         JUMP @next
-; @done:
-;         RETURN
+; pvm_number_list is list of 1-N (but not 0) numbers.
+
+pvm_number_list:
+        CALL pvm_number
+        TRY @done
+        CALL pvm_whitespace
+        MATCH ','
+        ACCEPT
+        JUMP pvm_number_list
+@done:
+        RETURN
 
 pvm_string:
         CALL pvm_whitespace
@@ -588,17 +594,17 @@ pvm_variable:
 @not_array:
         RETURN
 
-; pvm_variable_list:
-;         CALL pvm_variable
-; @next:
-;         TRY @done
-;         CALL pvm_whitespace
-;         MATCH ','
-;         CALL pvm_variable
-;         ACCEPT
-;         JUMP @next
-; @done:
-;         RETURN
+; pvm_variable_list is list of 1-N (but not 0) variables.
+
+pvm_variable_list:
+        CALL pvm_variable
+        TRY @done
+        CALL pvm_whitespace
+        MATCH ','
+        ACCEPT
+        JUMP pvm_variable_list
+@done:
+        RETURN
 
 pvm_operator:
         CALL pvm_whitespace
@@ -629,27 +635,16 @@ pvm_unary_operator:
         COMPOSE TOKEN_UNARY_OP
         RETURN        
 
-; ; pvm_misc does not discard whitespace.
-; ; Callers test for the correct keyword before calling and should discard whitespace at that point.
+; Captures all text to EOL.
 
-; pvm_misc:
-;         BEGIN_KEYWORD
-;         CALL pvm_name
-; pvm_tokenize_misc:
-;         TOKENIZE_KEYWORD extra_name_table
-;         COMPOSE TOKEN_MISC
-;         RETURN
-
-; ; Captures all text to EOL.
-
-; pvm_text:
-;         CALL pvm_whitespace
-;         TRY @done
-;         MATCH *
-;         ACCEPT
-;         JUMP pvm_text
-; @done:
-;         RETURN
+pvm_text:
+        CALL pvm_whitespace
+        TRY @done
+        MATCH *
+        ACCEPT
+        JUMP pvm_text
+@done:
+        RETURN
         
 ; pvm_name does not discard whitespace.
 ; Its only job is to capture an alphanumeric "name."
@@ -689,79 +684,85 @@ statement_name_table:
             RETURN
 :       name_table_entry "PRINT"
             JUMP pvm_expression
-; :       name_table_entry "LET"
-;             CALL pvm_variable
-;             MATCH '='
-;             JUMP pvm_expression
-; :       name_table_entry "INPUT"
-;             JUMP pvm_variable_list
-; :       name_table_entry "LIST"
-;             JUMP pvm_optional_arg_2
-; :       name_table_entry "GOTO"
-;             JUMP pvm_number
-; :       name_table_entry "GOSUB"
-;             JUMP pvm_number
-; :       name_table_entry "RETURN"
-;             RETURN
-; :       name_table_entry "POP"
-;             RETURN
-; :       name_table_entry "ON"
-;             CALL pvm_expression    
-;             CALL pvm_whitespace
-;             TEST "GO", @go
-;             FAIL
-; @go:
-;             CALL pvm_misc
-;             JUMP pvm_number_list
-; :       name_table_entry "FOR"
-;             CALL pvm_variable
-;             CALL pvm_whitespace
-;             MATCH '='
-;             CALL pvm_expression
-;             CALL pvm_whitespace
-;             TEST "TO", @to
-;             FAIL
-; @to:
-;             CALL pvm_misc
-;             CALL pvm_expression
-;             CALL pvm_whitespace
-;             TEST "STEP", @step
-;             RETURN
-; @step:
-;             CALL pvm_misc
-;             JUMP pvm_expression
-; :       name_table_entry "NEXT"
-;             JUMP pvm_variable
-; :       name_table_entry "STOP"
-;             RETURN
-; :       name_table_entry "CONT"
-;             RETURN
-; :       name_table_entry "IF"
-;             CALL pvm_expression
-;             CALL pvm_whitespace
-;             TEST "THEN", @then
-;             FAIL
-; @then:
-;             CALL pvm_misc
-;             JUMP pvm_statement
-; :       name_table_entry "NEW"
-;             RETURN
-; :       name_table_entry "CLR"
-;             RETURN
-; :       name_table_entry "DIM"
-;             JUMP pvm_variable
-; :       name_table_entry "REM"
-;             JUMP pvm_text
-; :       name_table_entry "DATA"
-;             JUMP pvm_text
-; :       name_table_entry "READ"
-;             JUMP pvm_variable_list
-; :       name_table_entry "RESTORE"
-;             JUMP pvm_number
-; :       name_table_entry "POKE"
+:       name_table_entry "LET"
+            CALL pvm_variable
+            MATCH '='
+            JUMP pvm_expression
+:       name_table_entry "INPUT"
+            JUMP pvm_variable_list
+:       name_table_entry "LIST"
+            JUMP pvm_optional_arg_2
+:       name_table_entry "GOTO"
+            JUMP pvm_number
+:       name_table_entry "GOSUB"
+            JUMP pvm_number
+:       name_table_entry "RETURN"
+            RETURN
+:       name_table_entry "POP"
+            RETURN
+:       name_table_entry "ON"
+            CALL pvm_expression    
+            CALL pvm_whitespace
+            BEGIN
+            MATCH "GO"
+            CALL pvm_name
+            TOKENIZE misc_name_table
+            COMPOSE TOKEN_MISC
+            JUMP pvm_number_list
+:       name_table_entry "FOR"
+            CALL pvm_variable
+            CALL pvm_whitespace
+            MATCH '='
+            CALL pvm_expression
+            CALL pvm_whitespace
+            BEGIN
+            MATCH "TO"
+            TOKENIZE misc_name_table
+            COMPOSE TOKEN_MISC
+            CALL pvm_expression
+            CALL pvm_whitespace
+            TRY @no_step
+            BEGIN
+            MATCH "STEP"
+            ACCEPT
+            TOKENIZE misc_name_table
+            COMPOSE TOKEN_MISC
+            JUMP pvm_expression
+@no_step:
+            RETURN
+:       name_table_entry "NEXT"
+            JUMP pvm_variable
+:       name_table_entry "STOP"
+            RETURN
+:       name_table_entry "CONT"
+            RETURN
+:       name_table_entry "IF"
+            CALL pvm_expression
+            CALL pvm_whitespace
+            BEGIN
+            MATCH "THEN"
+            TOKENIZE misc_name_table
+            COMPOSE TOKEN_MISC
+            JUMP pvm_statement
+:       name_table_entry "NEW"
+            RETURN
+:       name_table_entry "CLR"
+            RETURN
+:       name_table_entry "DIM"
+            JUMP pvm_variable
+:       name_table_entry "REM"
+            JUMP pvm_text
+:       name_table_entry "DATA"
+            JUMP pvm_text
+:       name_table_entry "READ"
+            JUMP pvm_variable_list
+:       name_table_entry "RESTORE"
+            JUMP pvm_number
+:       name_table_entry "POKE"
+            JUMP pvm_arg_2
 :       name_table_end
 
-extra_name_table:
+misc_name_table:
         name_table_entry ":"
 :       name_table_entry "THEN"
 :       name_table_entry "GOTO"

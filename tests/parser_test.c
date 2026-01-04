@@ -152,88 +152,71 @@ void test_pvm_expression(void) {
 
 void test_pvm_statement(void) {
 
-    const char line_data_1[] = { ST_END };
-    const char line_data_2[] = { ST_PRINT, '1' };
-    const char variable_line_data_1[] = { ST_PRINT, 'I', 'D', 'X', '_', '2' | EOT, 0 };
-    const char variable_line_data_2[] = { ST_PRINT, 'A', '$' | EOT, 0 };
-    const char variable_line_data_3[] = { ST_PRINT, 'X' | EOT, '(', '5', ')', 0 };
-    const char function_line_data_1[] = { ST_PRINT, TOKEN_FUNCTION | 0, '(', '"', 'H', 'E', 'L', 'L', 'O', '"', ')', 0 };
-    const char function_line_data_2[] = { ST_PRINT, TOKEN_FUNCTION | 6, '(', '"', 'H', 'E', 'L', 'L', 'O', '"', ',', '2', ',', '3', ')', 0 };
-    const char expression_line_data_1[] = { ST_PRINT, '1', TOKEN_OP | OP_ADD, '1', TOKEN_OP | OP_ADD, '1', 0 };
-    const char expression_line_data_2[] = { ST_PRINT, '1', TOKEN_OP | OP_ADD, '(', '1', TOKEN_OP | OP_ADD, '1', ')', 0 };
-    const char expression_line_data_3[] = { ST_PRINT, '"', 'H', 'E', 'L', 'L', 'O', '"', TOKEN_OP | OP_CONCAT, '"', ',', ' ', 'W', 'O', 'R', 'L', 'D', '"', 0 };
-    const char for_line_data_1[] = { ST_FOR, 'X' | EOT, '=', '1', TOKEN_MISC | MISC_TO, '5', 0 };
-    const char for_line_data_2[] = { ST_FOR, 'X' | EOT, '=', '1', TOKEN_MISC | MISC_TO, '2', '0', TOKEN_MISC | MISC_STEP, '2', 0 };
-    const char let_line_data_1[] = { ST_LET, 'X' | EOT, '=', '1', '0', '0', 0 };
-    const char if_line_data_1[] = { ST_IF_THEN, 'X' | EOT, TOKEN_OP | OP_EQ, '1', TOKEN_MISC | MISC_THEN, ST_GOTO, '1', '0', 0 };
-    const char input_line_data_1[] = { ST_INPUT, 'A' | EOT, 0 };
-    const char input_line_data_2[] = { ST_INPUT, 'A' | EOT, ',', 'B' | EOT, ',', 'C' | EOT, 0 };
-    const char on_line_data_1[] = { ST_ON, '1', TOKEN_MISC | MISC_GOTO, '1', '0', 0 };
-    const char on_line_data_2[] = { ST_ON, '1', TOKEN_MISC | MISC_GOSUB, '1', '0', 0 };
-    const char on_line_data_3[] = { ST_ON, 'X' | EOT, TOKEN_MISC | MISC_GOSUB, '1', '0', ',', '2', '0', ',', '3', '0', 0 };
-    const char next_line_data_1[] = { ST_NEXT, 'X' | EOT, 0 };
-    const char list_line_data_1[] = { ST_LIST, 0 };
-    const char list_line_data_2[] = { ST_LIST, '1', '0', '0', 0 };
-    const char list_line_data_3[] = { ST_LIST, '1', '0', '0', ',', '5', '0', '0', 0 };
-    const char data_line_data_1[] = { ST_DATA, 'H', 'E', 'L', 'L', 'O', ',', '\"', 'X', ',', 'Y', '\"', ',', '5', 0 };
-    const char multi_line_data_1[] = { ST_LET, 'X' | EOT, '=', '1', '0', '0', TOKEN_MISC | MISC_STATEMENT, ST_PRINT, 'X' | EOT, 0 };
+    const char simple_line_data_1[] = { ST_END };
+    const char print_line_data_1[] = { ST_PRINT, '1' };
+    const char for_line_data_1[] = { ST_FOR, 'X' | EOT, '=', '1', TOKEN_MISC | MISC_TO, '5' };
+    const char for_line_data_2[] = { ST_FOR, 'X' | EOT, '=', '1', TOKEN_MISC | MISC_TO, '2', '0', TOKEN_MISC | MISC_STEP, '2' };
+    const char let_line_data_1[] = { ST_LET, 'X' | EOT, '=', '1', '0', '0' };
+    const char if_line_data_1[] = { ST_IF_THEN, 'X' | EOT, TOKEN_OP | OP_EQ, '1', TOKEN_MISC | MISC_THEN, ST_GOTO, '1', '0',};
+    const char input_line_data_1[] = { ST_INPUT, 'A' | EOT };
+    const char input_line_data_2[] = { ST_INPUT, 'A' | EOT, ',', 'B' | EOT, ',', 'C' | EOT };
+    const char on_line_data_1[] = { ST_ON, '1', TOKEN_MISC | MISC_GOTO, '1', '0' };
+    const char on_line_data_2[] = { ST_ON, '1', TOKEN_MISC | MISC_GOSUB, '1', '0' };
+    const char on_line_data_3[] = { ST_ON, 'X' | EOT, TOKEN_MISC | MISC_GOSUB, '1', '0', ',', '2', '0', ',', '3', '0' };
+    const char next_line_data_1[] = { ST_NEXT, 'X' | EOT };
+    const char list_line_data_1[] = { ST_LIST };
+    const char list_line_data_2[] = { ST_LIST, '1', '0', '0' };
+    const char list_line_data_3[] = { ST_LIST, '1', '0', '0', ',', '5', '0', '0' };
+    const char data_line_data_1[] = { ST_DATA, 'H', 'E', 'L', 'L', 'O', ',', '\"', 'X', ',', 'Y', '\"', ',', '5' };
 
     PRINT_TEST_NAME();
 
-    call_parse_pvm("END", pvm_statement, line_data_1, sizeof line_data_1, __LINE__);
-    call_parse_pvm("PRINT 1", pvm_statement, line_data_2, sizeof line_data_2, __LINE__);
+    // Simple statemnets
+    call_parse_pvm("END", pvm_statement, simple_line_data_1, sizeof simple_line_data_1, __LINE__);
 
-    // // String
-    // call_parse_pvm("PRINT \"HELLO\"", string_line_data_1, sizeof string_line_data_1, __LINE__);
-    // call_parse_pvm("PRINT \"BUG OR \"\"FEATURE?\"\"\"", string_line_data_2, sizeof string_line_data_2, __LINE__);
+    // PRINT
+    call_parse_pvm("PRINT 1", pvm_statement, print_line_data_1, sizeof print_line_data_1, __LINE__);
 
-    // // Variable
-    // call_parse_pvm("PRINT IDX_2", variable_line_data_1, sizeof variable_line_data_1, __LINE__);
-    // call_parse_pvm("PRINT A$", variable_line_data_2, sizeof variable_line_data_2, __LINE__);
-    // call_parse_pvm("PRINT X(5)", variable_line_data_3, sizeof variable_line_data_3, __LINE__);
-    // call_parse_pvm("PRINT XYZZY$(1,10)", variable_line_data_4, sizeof variable_line_data_4, __LINE__);
+    // FOR
+    call_parse_pvm("FOR X=1 TO 5", pvm_statement, for_line_data_1, sizeof for_line_data_1, __LINE__);
+    call_parse_pvm("FOR X=1 TO 20 STEP 2", pvm_statement, for_line_data_2, sizeof for_line_data_2, __LINE__);
 
-    // // Function
-    // call_parse_pvm("PRINT LEN(\"HELLO\")", function_line_data_1, sizeof function_line_data_1, __LINE__);
-    // call_parse_pvm("PRINT MID$(\"HELLO\",2,3)", function_line_data_2, sizeof function_line_data_2, __LINE__);
+    // LET
+    call_parse_pvm("LET X=100", pvm_statement, let_line_data_1, sizeof let_line_data_1, __LINE__);
 
-    // // Expression
-    // call_parse_pvm("PRINT 1+1+1", expression_line_data_1, sizeof expression_line_data_1, __LINE__);
-    // call_parse_pvm("PRINT 1+(1+1)", expression_line_data_2, sizeof expression_line_data_2, __LINE__);
-    // call_parse_pvm("PRINT \"HELLO\"&\", WORLD\"", expression_line_data_3, sizeof expression_line_data_3, __LINE__);
+    // IF
+    call_parse_pvm("IF X=1 THEN GOTO 10", pvm_statement, if_line_data_1, sizeof if_line_data_1, __LINE__);
 
-    // // FOR
-    // call_parse_pvm("FOR X=1 TO 5", for_line_data_1, sizeof for_line_data_1, __LINE__);
-    // call_parse_pvm("FOR X=1 TO 20 STEP 2", for_line_data_2, sizeof for_line_data_2, __LINE__);
+    // INPUT (covers READ)
+    call_parse_pvm("INPUT A", pvm_statement, input_line_data_1, sizeof input_line_data_1, __LINE__);
+    call_parse_pvm("INPUT A,B,C", pvm_statement, input_line_data_2, sizeof input_line_data_2, __LINE__);
 
-    // // LET
-    // call_parse_pvm("LET X=100", let_line_data_1, sizeof let_line_data_1, __LINE__);
+    // ON
+    call_parse_pvm("ON 1 GOTO 10", pvm_statement, on_line_data_1, sizeof on_line_data_1, __LINE__);
+    call_parse_pvm("ON 1 GOSUB 10", pvm_statement, on_line_data_2, sizeof on_line_data_2, __LINE__);
+    call_parse_pvm("ON X GOSUB 10,20,30", pvm_statement, on_line_data_3, sizeof on_line_data_3, __LINE__);
 
-    // // IF
-    // call_parse_pvm("IF X=1 THEN GOTO 10", if_line_data_1, sizeof if_line_data_1, __LINE__);
+    // NEXT
+    call_parse_pvm("NEXT X", pvm_statement, next_line_data_1, sizeof next_line_data_1, __LINE__);
 
-    // // INPUT (covers READ)
-    // call_parse_pvm("INPUT A", input_line_data_1, sizeof input_line_data_1, __LINE__);
-    // call_parse_pvm("INPUT A,B,C", input_line_data_2, sizeof input_line_data_2, __LINE__);
+    // LIST
+    call_parse_pvm("LIST", pvm_statement, list_line_data_1, sizeof list_line_data_1, __LINE__);
+    call_parse_pvm("LIST 100", pvm_statement, list_line_data_2, sizeof list_line_data_2, __LINE__);
+    call_parse_pvm("LIST 100,500", pvm_statement, list_line_data_3, sizeof list_line_data_3, __LINE__);
 
-    // // ON
-    // call_parse_pvm("ON 1 GOTO 10", on_line_data_1, sizeof on_line_data_1, __LINE__);
-    // call_parse_pvm("ON 1 GOSUB 10", on_line_data_2, sizeof on_line_data_2, __LINE__);
-    // call_parse_pvm("ON X GOSUB 10,20,30", on_line_data_3, sizeof on_line_data_3, __LINE__);
+    // DATA
+    call_parse_pvm("DATA HELLO,\"X,Y\",5", pvm_statement, data_line_data_1, sizeof data_line_data_1, __LINE__);
+}
 
-    // // NEXT
-    // call_parse_pvm("NEXT X", next_line_data_1, sizeof next_line_data_1, __LINE__);
+void test_pvm_line(void) {
 
-    // // LIST
-    // call_parse_pvm("LIST", list_line_data_1, sizeof list_line_data_1, __LINE__);
-    // call_parse_pvm("LIST 100", list_line_data_2, sizeof list_line_data_2, __LINE__);
-    // call_parse_pvm("LIST 100,500", list_line_data_3, sizeof list_line_data_3, __LINE__);
+    const char line_data_1[] = { ST_LET, 'X' | EOT, '=', '1', '0', '0' };
+    const char line_data_2[] = { ST_LET, 'X' | EOT, '=', '1', '0', '0', TOKEN_MISC | MISC_STATEMENT, ST_PRINT, 'X' | EOT };
 
-    // // DATA
-    // call_parse_pvm("DATA HELLO,\"X,Y\",5", data_line_data_1, sizeof data_line_data_1, __LINE__);
+    PRINT_TEST_NAME();
 
-    // // Multiple statements
-    // call_parse_pvm("LET X=100:PRINT X", multi_line_data_1, sizeof multi_line_data_1, __LINE__);
+    call_parse_pvm("LET X=100", pvm_line, line_data_1, sizeof line_data_1, __LINE__);
+    call_parse_pvm("LET X=100:PRINT X", pvm_line, line_data_2, sizeof line_data_2, __LINE__);
 }
 
 int main(void) {
@@ -244,5 +227,6 @@ int main(void) {
     test_pvm_name();
     test_pvm_expression();
     test_pvm_statement();
+    test_pvm_line();
     return 0;
 }
