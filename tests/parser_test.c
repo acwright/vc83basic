@@ -109,6 +109,9 @@ void test_pvm_expression(void) {
     const char line_data_unary_operator_1[] = { '1', TOKEN_OP | OP_ADD, TOKEN_UNARY_OP | UNARY_OP_MINUS, 'A' };
     const char line_data_unary_operator_2[] = { TOKEN_UNARY_OP | UNARY_OP_NOT, '1' };
 
+    const char parens_line_data_1[] = { '1', TOKEN_OP | OP_ADD, '(', '1', TOKEN_OP | OP_ADD, '1', ')' };
+    const char parens_line_data_2[] = { 'X', TOKEN_OP | OP_AND, '(', 'Y', TOKEN_OP | OP_OR, TOKEN_UNARY_OP | UNARY_OP_NOT, 'X', ')' };
+
     PRINT_TEST_NAME();
 
     // Constants
@@ -129,6 +132,9 @@ void test_pvm_expression(void) {
     call_parse_pvm("1+-A", pvm_expression, line_data_unary_operator_1, sizeof line_data_unary_operator_1, __LINE__);
     call_parse_pvm("NOT 1", pvm_expression, line_data_unary_operator_2, sizeof line_data_unary_operator_2, __LINE__);
 
+    // Parentheses
+    call_parse_pvm("1+(1+1)", pvm_expression, parens_line_data_1, sizeof parens_line_data_1, __LINE__);
+    call_parse_pvm("X AND (Y OR NOT Z)", pvm_expression, parens_line_data_2, sizeof parens_line_data_2, __LINE__);
 }
 
 void test_pvm_statements(void) {

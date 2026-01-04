@@ -466,14 +466,14 @@ pvm_expression:
 ; Each primary expression alternative discards whitespace.
 
 pvm_primary_expression:
-;         TRY @not_parens
-;         CALL pvm_whitespace
-;         MATCH '('
-;         CALL pvm_expression
-;         CALL pvm_whitespace
-;         MATCH ')'
-;         RETURN
-; @not_parens:
+        TRY @not_parens
+        CALL pvm_whitespace
+        MATCH '('
+        CALL pvm_expression
+        CALL pvm_whitespace
+        MATCH ')'
+        RETURN
+@not_parens:
         TRY @not_string
         CALL pvm_string
         RETURN
