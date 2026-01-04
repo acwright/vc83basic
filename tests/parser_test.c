@@ -97,12 +97,37 @@ void test_pvm_name(void) {
 
 void test_pvm_expression(void) {
 
-    const char line_data_1[] = { '1', TOKEN_OP | OP_ADD, '1' };
+    const char line_data_constant_1[] = { '1' };
+
+    const char line_data_variable_1[] = { 'X' };
+
+    const char line_data_operator_1[] = { '1', TOKEN_OP | OP_ADD, '1' };
+    const char line_data_operator_2[] = { '1', TOKEN_OP | OP_DIV, '2' };
+    const char line_data_operator_3[] = { '"', 'A', '"', TOKEN_OP | OP_CONCAT, '"', 'B', '"' };
+    const char line_data_operator_4[] = { 'X', TOKEN_OP | OP_AND, 'Y' };
+
+    const char line_data_unary_operator_1[] = { '1', TOKEN_OP | OP_ADD, TOKEN_UNARY_OP | UNARY_OP_MINUS, 'A' };
+    const char line_data_unary_operator_2[] = { TOKEN_UNARY_OP | UNARY_OP_NOT, '1' };
 
     PRINT_TEST_NAME();
 
-    call_parse_pvm("1+1", pvm_expression, line_data_1, sizeof line_data_1, __LINE__);
+    // Constants
+    call_parse_pvm("1", pvm_expression, line_data_constant_1, sizeof line_data_constant_1, __LINE__);
 
+    // Variables
+    call_parse_pvm("X", pvm_expression, line_data_variable_1, sizeof line_data_variable_1, __LINE__);
+
+    // Operators
+    call_parse_pvm("1+1", pvm_expression, line_data_operator_1, sizeof line_data_operator_1, __LINE__);
+    call_parse_pvm("  1+1", pvm_expression, line_data_operator_1, sizeof line_data_operator_1, __LINE__);
+    call_parse_pvm("  1  +  1", pvm_expression, line_data_operator_1, sizeof line_data_operator_1, __LINE__);
+    call_parse_pvm("1/2", pvm_expression, line_data_operator_2, sizeof line_data_operator_2, __LINE__);
+    call_parse_pvm("\"A\" & \"B\"", pvm_expression, line_data_operator_3, sizeof line_data_operator_3, __LINE__);
+    call_parse_pvm("X AND Y", pvm_expression, line_data_operator_4, sizeof line_data_operator_4, __LINE__);
+
+    // Unary operators
+    call_parse_pvm("1+-A", pvm_expression, line_data_unary_operator_1, sizeof line_data_unary_operator_1, __LINE__);
+    call_parse_pvm("NOT 1", pvm_expression, line_data_unary_operator_2, sizeof line_data_unary_operator_2, __LINE__);
 
 }
 

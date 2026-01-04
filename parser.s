@@ -482,6 +482,11 @@ pvm_primary_expression:
         CALL pvm_number
         RETURN
 @not_number:
+        TRY @not_unary_operator
+        CALL pvm_unary_operator
+        CALL pvm_primary_expression
+        RETURN
+@not_unary_operator:
 ;         TRY @not_function
 ;         CALL pvm_whitespace
 ;         BEGIN_KEYWORD
@@ -604,12 +609,30 @@ pvm_variable:
 pvm_operator:
         CALL pvm_whitespace
         BEGIN
+        TRY @not_name
+        CALL pvm_name
+        JUMP @end
+@not_name:
         MATCH_RANGE '&', '?'
         TRY @end
         MATCH_RANGE '<', '>'
 @end:
         TOKENIZE operator_name_table
         COMPOSE TOKEN_OP
+        RETURN        
+
+pvm_unary_operator:
+        CALL pvm_whitespace
+        BEGIN
+        TRY @not_name
+        CALL pvm_name
+        JUMP @end
+@not_name:
+        BEGIN
+        MATCH '-'
+@end:
+        TOKENIZE unary_operator_name_table
+        COMPOSE TOKEN_UNARY_OP
         RETURN        
 
 ; ; pvm_misc does not discard whitespace.
