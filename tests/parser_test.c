@@ -163,7 +163,7 @@ void test_pvm_statement(void) {
 
     PRINT_TEST_NAME();
 
-    // Simple statemnets
+    // Simple statement
     call_parse_pvm("END", pvm_statement, simple_line_data_1, sizeof simple_line_data_1, __LINE__);
 
     // PRINT
