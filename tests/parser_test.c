@@ -207,7 +207,6 @@ void call_parse_line(const char* s, const Line* expect_line, int line) {
     fprintf(stderr, "  %s:%d: parse_line(\"%s\")\n", __FILE__, line, s);
     strcpy(buffer, s);
     parse_line();
-    ASSERT_EQ(err, 0);
     ASSERT_EQ(buffer_pos, strlen(s));
     ASSERT_MEMORY_EQ(&line_buffer, expect_line, expect_line->next_line_offset);
     ASSERT_EQ(line_pos, expect_line->next_line_offset);

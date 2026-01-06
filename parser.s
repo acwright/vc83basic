@@ -52,7 +52,6 @@ run_pvm:
         ldx     buffer_pos              ; Prepare to load the next character from the input
         ldy     #0
         lda     (pvm_program_ptr),y     ; Load PVM instruction
-        debug $00
         sta     B                       ; Park instruction in B
         iny
         jsr     rebase_pvm_program_ptr  ; Advance pvm_program_ptr past instruction
@@ -105,20 +104,9 @@ ins_jump:
 ins_try:
         ldpha   line_pos
         ldpha   buffer_pos              ; Save input and output positions
-        ldx     #0                      ; High byte of savepoint handler offset
-        ldy     #0                      ; Index of offset
-        lda     (pvm_program_ptr),y     ; Low byte
-        bpl     @positive               ; If positive, leave X = 0
-        dex                             ; Otherwise X = -1
-@positive:
-        clc
-        adc     pvm_program_ptr         ; Add to pvm_program_ptr
-        pha
-        txa
-        adc     pvm_program_ptr+1
-        pha
+        jsr     calculate_address
+        phax
         ldpha   #0                      ; Can't be program pointer high byte, so signals this is a TRY handler
-        iny                             ; Advance past offset
         jsr     rebase_pvm_program_ptr  ; Prepare to invoke parse_pvm at next instruction address
         jsr     run_pvm                 ; Go do it
         pla                             ; Discard TRY handler signal byte
@@ -130,11 +118,9 @@ ins_try:
         ldx     B                       ; Handle non-FAIL instructions
         cpx     #PVM_RETURN             ; RETURN: keep returning until we reach a CALL or exit the parser
         beq     ins_return
-        cpx     #PVM_ACCEPT             ; ACCEPT: throw away line_pos
-        beq     @done
-        sta     line_pos                ; DISCARD: restore line_pos from A, throwing away the output
-@done:
-        rts                             ; Just return; run_pvm leaves pvm_program_ptr pointing to next instruction
+        jsr     calculate_address
+        stax    pvm_program_ptr
+        rts
 
 @error:
         plstaa  pvm_program_ptr         ; Resume at savepoint
@@ -143,11 +129,9 @@ ins_try:
         rts
 
 ; ACCEPT: accept input and pop savepoint
-; DISCARD: like ACCEPT, but throws away the output
 ; RETURN: resume at the instruction following last call (implies ACCEPT if TRY is open)
 
 ins_accept:
-ins_discard:
 ins_return:
         pla                             ; Discard own return address
         pla
@@ -176,7 +160,7 @@ ins_call:
         bcs     ins_fail                ; CALL exited with FAIL; propagate failure
         lda     B                       ; If success, make sure we got here from RETURN
         cmp     #PVM_RETURN
-        raine   ERR_INTERNAL_ERROR      ; Throw exception if ACCEPT or DISCARD without TRY
+        raine   ERR_INTERNAL_ERROR      ; Throw exception if ACCEPT without TRY
         rts
 
 ; INT: parse and encode a 16-bit integer.
@@ -298,6 +282,23 @@ read_address:
         pla
         rts
 
+calculate_address:
+        ldx     #0                      ; High byte of address offset
+        ldy     #0                      ; Index of offset
+        lda     (pvm_program_ptr),y     ; Low byte
+        bpl     @positive               ; If positive, leave X = 0
+        dex                             ; Otherwise X = -1
+@positive:
+        clc
+        adc     pvm_program_ptr         ; Add to pvm_program_ptr
+        pha
+        txa
+        adc     pvm_program_ptr+1
+        tax
+        pla
+        iny
+        rts
+
 ; Rebases pvm_program_ptr by adding Y.
 ; Exits with Y=0.
 
@@ -316,7 +317,6 @@ pvm_instruction_vectors:
         .word   ins_jump-1
         .word   ins_try-1
         .word   ins_accept-1
-        .word   ins_discard-1
         .word   ins_fail-1
         .word   ins_call-1
         .word   ins_return-1
@@ -384,60 +384,57 @@ pvm_instruction_vectors:
         .byte   $81, <(address - *)
 .endmacro
 
-.macro ACCEPT
-        .byte   $82
-.endmacro
-
-.macro DISCARD
-        .byte   $83
+.macro ACCEPT address
+        .assert (address - *) >= -128 .and (address - *) <= 127, error, "Address offset out of range"
+        .byte   $82, <(address - *)
 .endmacro
 
 .macro FAIL
-        .byte   $84
+        .byte   $83
 .endmacro
 
 .macro CALL address
-        .byte   $85, <address, >address
+        .byte   $84, <address, >address
 .endmacro
 
 .macro RETURN
-        .byte   $86
+        .byte   $85
 .endmacro
 
 .macro BEGIN
-        .byte   $87
+        .byte   $86
 .endmacro
 
 .macro TOKENIZE address
-        .byte   $88, <address, >address
+        .byte   $87, <address, >address
 .endmacro
 
 .macro DISPATCH
-        .byte   $89
+        .byte   $88
 .endmacro
 
 .macro EMIT b
-        .byte   $8A, b
+        .byte   $89, b
 .endmacro
 
 .macro COMPOSE b
-        .byte   $8B, b
+        .byte   $8A, b
 .endmacro
 
 .macro INT
-        .byte   $8C
+        .byte   $8B
 .endmacro
 
 .macro EOL
-        .byte   $8D
+        .byte   $8C
 .endmacro
 
 .macro WS
-        .byte   $8E
+        .byte   $8D
 .endmacro
 
 .macro ARGSEP
-        .byte   $8F
+        .byte   $8E
 .endmacro
 
 ; PVM program
@@ -446,7 +443,7 @@ pvm_line:
         WS
         TRY @immediate
         INT
-        ACCEPT
+        ACCEPT @first_statement
 @first_statement:
         WS
         TRY @statement
@@ -461,8 +458,7 @@ pvm_line:
         MATCH ':'
         TOKENIZE misc_name_table
         COMPOSE TOKEN_MISC
-        ACCEPT
-        JUMP @statement
+        ACCEPT @statement
 @immediate:
         EMIT $FF                        ; Write -1 as line number
         EMIT $FF
@@ -485,10 +481,8 @@ pvm_arg_2:
 pvm_optional_arg_2:
         TRY @done
         CALL pvm_expression
-        ACCEPT
         TRY @done
         ARGSEP
-        ACCEPT
         CALL pvm_expression
 @done:
         RETURN
@@ -499,8 +493,7 @@ pvm_arg_list:
         CALL pvm_expression
         TRY @done
         ARGSEP
-        ACCEPT
-        JUMP pvm_arg_list
+        ACCEPT pvm_arg_list
 @done:
         RETURN
 
@@ -521,8 +514,7 @@ pvm_expression:
 @tokenize_operator:
         TOKENIZE operator_name_table
         COMPOSE TOKEN_OP
-        ACCEPT
-        JUMP pvm_expression
+        ACCEPT pvm_expression
 @done:
         RETURN
 
@@ -530,23 +522,23 @@ pvm_expression:
 ; Each primary expression alternative discards whitespace.
 
 pvm_primary_expression:
-        TRY @not_parens
+        TRY @string
         WS
         MATCH '('
         CALL pvm_expression
         WS
         MATCH ')'
         RETURN
-@not_parens:
-        TRY @not_string
+@string:
+        TRY @number
         CALL pvm_string
         RETURN
-@not_string:
-        TRY @not_number
+@number:
+        TRY @unary_operator
         CALL pvm_number
         RETURN
-@not_number:
-        TRY @not_unary_operator
+@unary_operator:
+        TRY @function
         WS
         BEGIN
         TRY @not_unary_operator_name
@@ -559,55 +551,56 @@ pvm_primary_expression:
         TOKENIZE unary_operator_name_table
         COMPOSE TOKEN_UNARY_OP
         JUMP pvm_primary_expression
-@not_unary_operator:
-        TRY @not_function
+@function:
+        TRY @variable
         WS
         BEGIN
         CALL pvm_name
         TRY @tokenize_function
         MATCH '$'
-        ACCEPT
+        ACCEPT @tokenize_function
 @tokenize_function:
         TOKENIZE function_name_table
         COMPOSE TOKEN_FUNCTION
-        ACCEPT                          ; Recognized the function name so arg list is now mandatory
+        ACCEPT @function_paren          ; Recognized the function name so arg list is now mandatory
+@function_paren:
         MATCH '('
         CALL pvm_arg_list
         WS
         MATCH ')'
         RETURN
-@not_function:
+@variable:
         JUMP pvm_variable
 
 ; Low-level rules
 
 pvm_number:
         WS
-        TRY @no_minus
+        TRY @initial_decimal
         MATCH '-'
-        ACCEPT
-@no_minus:
-        TRY @no_initial_decimal
+        ACCEPT @initial_decimal
+@initial_decimal:
+        TRY @digits
         MATCH '.'
-        ACCEPT
-        JUMP @maybe_more_digits
-@no_initial_decimal:
+        ACCEPT @maybe_more_digits
+@digits:
         CALL pvm_digits
         TRY @e
         MATCH '.'
-        ACCEPT
+        ACCEPT @maybe_more_digits
 @maybe_more_digits:
         TRY @e
         CALL pvm_digits
+        ACCEPT @e
 @e:
-        TRY @no_e
+        TRY @done
         MATCH 'E'
-        TRY @no_e_minus
+        TRY @e_digits
         MATCH '-'
-        ACCEPT
-@no_e_minus:
+        ACCEPT @e_digits
+@e_digits:
         CALL pvm_digits
-@no_e:
+@done:
         RETURN
 
 ; pvm_digits does not remove whitespace.
@@ -618,8 +611,7 @@ pvm_digits:
 @next:
         TRY @done
         MATCH_RANGE '0', '9'
-        ACCEPT
-        JUMP @next
+        ACCEPT @next
 @done:
         RETURN
 
@@ -629,8 +621,7 @@ pvm_number_list:
         CALL pvm_number
         TRY @done
         ARGSEP
-        ACCEPT
-        JUMP pvm_number_list
+        ACCEPT pvm_number_list
 @done:
         RETURN
 
@@ -642,9 +633,9 @@ pvm_string:
         MATCH '"'
         TRY @done
         MATCH '"'
-        ACCEPT
-        ACCEPT
-        JUMP @next
+        ACCEPT @again
+@again:
+        ACCEPT @next
 @not_quote:
         MATCH *
         JUMP @next
@@ -654,17 +645,18 @@ pvm_string:
 pvm_variable:
         WS
         CALL pvm_name
-        TRY @not_string
+        TRY @array_paren
         MATCH '$'
-        ACCEPT
-@not_string:
+        ACCEPT @array_paren
+@array_paren:
         COMPOSE EOT
-        TRY @not_array
+        TRY @done
         MATCH '('
-        ACCEPT                          ; Saw the ')' so now must read the arg list
+        ACCEPT @args                    ; Saw the ')' so now must read the arg list
+@args:
         CALL pvm_arg_list
         MATCH ')'
-@not_array:
+@done:
         RETURN
 
 ; pvm_variable_list is list of 1-N (but not 0) variables.
@@ -673,8 +665,7 @@ pvm_variable_list:
         CALL pvm_variable
         TRY @done
         ARGSEP
-        ACCEPT
-        JUMP pvm_variable_list
+        ACCEPT pvm_variable_list
 @done:
         RETURN
 
@@ -684,8 +675,7 @@ pvm_text:
         WS
         TRY @done
         MATCH *
-        ACCEPT
-        JUMP pvm_text
+        ACCEPT pvm_text
 @done:
         RETURN
         
@@ -695,20 +685,17 @@ pvm_text:
 pvm_name:
         MATCH_RANGE 'A', 'Z'
 @next:
-        TRY @not_alpha
+        TRY @digit
         MATCH_RANGE 'A', 'Z'
-        ACCEPT
-        JUMP @next
-@not_alpha:
-        TRY @not_digit
+        ACCEPT @next
+@digit:
+        TRY @underscore
         MATCH_RANGE '0', '9'
-        ACCEPT
-        JUMP @next
-@not_digit:
+        ACCEPT @next
+@underscore:
         TRY @done
         MATCH '_'
-        ACCEPT
-        JUMP @next        
+        ACCEPT @next
 @done:
         RETURN
 
@@ -756,14 +743,15 @@ statement_name_table:
             COMPOSE TOKEN_MISC
             CALL pvm_expression
             WS
-            TRY @no_step
+            TRY @for_done
             BEGIN
             MATCH "STEP"
-            ACCEPT
+            ACCEPT @tokenize_step
+@tokenize_step:
             TOKENIZE misc_name_table
             COMPOSE TOKEN_MISC
             JUMP pvm_expression
-@no_step:
+@for_done:
             RETURN
 :       name_table_entry "NEXT"
             JUMP pvm_variable
