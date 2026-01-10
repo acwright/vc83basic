@@ -34,8 +34,8 @@ parse_pvm:
         raine   ERR_INTERNAL_ERROR
         rts
 
-dispatch_pvm_instruction:
-        and     #$7F                    ; Just the instruction index
+invoke_pvm_instruction:
+        and     #$1F                    ; Just the instruction index
         tay                             ; Transfer into Y
         ldax    #pvm_instruction_vectors
         jsr     invoke_indexed_vector
@@ -54,38 +54,79 @@ run_pvm:
         lda     (pvm_program_ptr),y     ; Load PVM instruction
         sta     B                       ; Park instruction in B
         iny
-        jsr     rebase_pvm_program_ptr  ; Advance pvm_program_ptr past instruction
+        jsr     rebase_pvm_program_ptr  ; Skip past the instruction byte
+        lda     B                       ; Recover instruction from B
 
 ; Handle the instruction
 
-        lda     B                       
-        bmi     dispatch_pvm_instruction    ; Instructions $80-FF are dispatched
-        beq     @match_any
+        beq     @matched                ; Match any shortcut
+        cmp     #PVM_ACCEPT_BASE        ; Check for TRY or ACCEPT
+        bcs     @accept
+        cmp     #PVM_TRY_BASE
+        bcs     @try
+        cmp     #PVM_INVOKE_BASE
+        bcs     invoke_pvm_instruction  ; Instructions $80-FF are dispatched
 
 ; MATCH
 
-@match:
-        cmp     #PVM_MATCH_RANGE_BASE   ; Check if it's a range match starting at $60
-        bcc     @match_single
+        cmp     #PVM_MATCH_BASE         ; Check if it's a range match ($01-1F) or single character match ($20-5F)
+        bcs     @match_single
         and     #$1F                    ; The value remaining in A is the size of the range to match
         sta     C                       ; Store it in C
         lda     buffer,x
+        sec
         sbc     (pvm_program_ptr),y     ; Subtract away the starting character
         iny
-        bcc     fail_from_run_pvm       ; Out of range: too low
+        bcc     @fail                   ; Out of range: too low
         cmp     C                       ; Check the range
-        bcs     fail_from_run_pvm       ; Out of range: too high
+        bcs     @fail                   ; Out of range: too high
         bcc     @matched                ; Unconditional
 @match_single:
         cmp     buffer,x
-        bne     fail_from_run_pvm
+        bne     @fail
 @matched:
-        jsr     rebase_pvm_program_ptr  ; Advance past character byte (present if Y=1)
-@match_any:
+        jsr     rebase_pvm_program_ptr  ; Advance past match instruction (Y=1 or 2)
         lda     buffer,x                ; Load and move past the matched character
-        beq     fail_from_run_pvm       ; Reading NUL always fails no matter what
+        beq     @fail                   ; Reading NUL always fails no matter what
         inc     buffer_pos
         jsr     write_to_line_buffer    ; Write it to the output
+        jmp     run_pvm
+
+; TRY: set a savepoint
+
+@try:
+        ldpha   line_pos
+        ldpha   buffer_pos              ; Save input and output positions
+        jsr     calculate_address
+        phax
+        jsr     run_pvm                 ; Go do it
+        bcs     @jump_to_savepoint      ; TRY exited with FAIL
+        pla                             ; Discard the parser state
+        pla
+        pla                             ; Discard buffer_pos
+        pla                             ; Leave line_pos in A
+        ldx     B                       ; Handle non-FAIL instructions
+        cpx     #PVM_RETURN             ; TRY exited with RETURN: keep returning until we find a CALL
+        beq     @propagate_return
+        jsr     calculate_address       ; TRY exited with ACCEPT: jump to offset
+        stax    pvm_program_ptr
+        jmp     run_pvm
+
+; ACCEPT: accept input and pop savepoint
+
+@accept:
+@propagate_return:
+        clc                             ; Return success
+        rts
+
+@fail:
+        sec                             ; Carry set means failure
+        rts
+
+@jump_to_savepoint:
+        plstaa  pvm_program_ptr         ; Resume at savepoint
+        plsta   buffer_pos
+        plsta   line_pos
         jmp     run_pvm
 
 ; JUMP: read address, replace pvm_program_ptr
@@ -99,39 +140,8 @@ ins_jump:
 ; Returning from the instruction handler always continues execution at the next instruction. Instruction handlers can
 ; pop their own return address in order to cause a return from run_pvm.
 
-; TRY: set a savepoint
-
-ins_try:
-        ldpha   line_pos
-        ldpha   buffer_pos              ; Save input and output positions
-        jsr     calculate_address
-        phax
-        ldpha   #0                      ; Can't be program pointer high byte, so signals this is a TRY handler
-        jsr     rebase_pvm_program_ptr  ; Prepare to invoke parse_pvm at next instruction address
-        jsr     run_pvm                 ; Go do it
-        pla                             ; Discard TRY handler signal byte
-        bcs     @error                  ; TRY exited with FAIL
-        pla                             ; Discard the parser state
-        pla
-        pla                             ; Discard buffer_pos
-        pla                             ; Leave line_pos in A
-        ldx     B                       ; Handle non-FAIL instructions
-        cpx     #PVM_RETURN             ; RETURN: keep returning until we reach a CALL or exit the parser
-        beq     ins_return
-        jsr     calculate_address
-        stax    pvm_program_ptr
-        rts
-
-@error:
-        plstaa  pvm_program_ptr         ; Resume at savepoint
-        plsta   buffer_pos
-        plsta   line_pos
-        rts
-
-; ACCEPT: accept input and pop savepoint
 ; RETURN: resume at the instruction following last call (implies ACCEPT if TRY is open)
 
-ins_accept:
 ins_return:
         pla                             ; Discard own return address
         pla
@@ -143,7 +153,6 @@ ins_return:
 ins_fail:
         pla                             ; Pop return address of ins_fail off the stack
         pla
-fail_from_run_pvm:
         sec                             ; Carry set means failure
         rts                             ; Return to caller of pvm_parse
 
@@ -284,10 +293,12 @@ read_address:
 
 calculate_address:
         ldx     #0                      ; High byte of address offset
-        ldy     #0                      ; Index of offset
-        lda     (pvm_program_ptr),y     ; Low byte
-        bpl     @positive               ; If positive, leave X = 0
-        dex                             ; Otherwise X = -1
+        lda     B                       ; Load the instruction, with includes a 6-bit offset field
+        and     #$3F                    ; Ignore top two bits
+        cmp     #$20                    ; Test bit 5, which is the sign bit of the offset field
+        bcc     @positive               ; Was positive so just leave it
+        ora     #$C0                    ; Sign extend to bits 6 and 7
+        dex                             ; And to high byte
 @positive:
         clc
         adc     pvm_program_ptr         ; Add to pvm_program_ptr
@@ -296,7 +307,6 @@ calculate_address:
         adc     pvm_program_ptr+1
         tax
         pla
-        iny
         rts
 
 ; Rebases pvm_program_ptr by adding Y.
@@ -315,8 +325,6 @@ rebase_pvm_program_ptr:
 
 pvm_instruction_vectors:
         .word   ins_jump-1
-        .word   ins_try-1
-        .word   ins_accept-1
         .word   ins_fail-1
         .word   ins_call-1
         .word   ins_return-1
@@ -362,7 +370,7 @@ pvm_instruction_vectors:
 
 .macro MATCH m
     .if (.match(m, *))
-        .byte   $00
+        .byte   PVM_MATCH_RANGE_BASE
     .elseif (.match(m, ""))
         .byte   m
     .else
@@ -371,70 +379,72 @@ pvm_instruction_vectors:
 .endmacro
 
 .macro MATCH_RANGE start, end
-        .assert (end - start + 1) < $20, error, "Match range must be <32 characters"
-        .byte   $60 + (end - start + 1), start
+        .assert (end - start + 1) >= 1 .and (end - start + 1) <= 31, error, "Match range must be 1-31 characters"
+        .byte   PVM_MATCH_RANGE_BASE + (end - start + 1), start
 .endmacro
 
 .macro JUMP address
-        .byte   $80, <address, >address
-.endmacro
-
-.macro TRY address
-        .assert (address - *) >= -128 .and (address - *) <= 127, error, "Address offset out of range"
-        .byte   $81, <(address - *)
-.endmacro
-
-.macro ACCEPT address
-        .assert (address - *) >= -128 .and (address - *) <= 127, error, "Address offset out of range"
-        .byte   $82, <(address - *)
+        .byte   PVM_JUMP, <address, >address
 .endmacro
 
 .macro FAIL
-        .byte   $83
+        .byte   PVM_FAIL
 .endmacro
 
 .macro CALL address
-        .byte   $84, <address, >address
+        .byte   PVM_CALL, <address, >address
 .endmacro
 
 .macro RETURN
-        .byte   $85
+        .byte   PVM_RETURN
 .endmacro
 
 .macro BEGIN
-        .byte   $86
+        .byte   PVM_BEGIN
 .endmacro
 
 .macro TOKENIZE address
-        .byte   $87, <address, >address
+        .byte   PVM_TOKENIZE, <address, >address
 .endmacro
 
 .macro DISPATCH
-        .byte   $88
+        .byte   PVM_DISPATCH
 .endmacro
 
 .macro EMIT b
-        .byte   $89, b
+        .byte   PVM_EMIT, b
 .endmacro
 
 .macro COMPOSE b
-        .byte   $8A, b
+        .byte   PVM_COMPOSE, b
 .endmacro
 
 .macro INT
-        .byte   $8B
+        .byte   PVM_INT
 .endmacro
 
 .macro EOL
-        .byte   $8C
+        .byte   PVM_EOL
 .endmacro
 
 .macro WS
-        .byte   $8D
+        .byte   PVM_WS
 .endmacro
 
 .macro ARGSEP
-        .byte   $8E
+        .byte   PVM_ARGSEP
+.endmacro
+
+; Use (* + 1) because we add offset to address after skipping the instruction byte. 
+
+.macro TRY address
+        .assert (address - (* + 1)) >= -32 .and (address - *) <= 31, error, "Address offset out of range"
+        .byte   PVM_TRY_BASE + (<(address - (* + 1)) & $3F)
+.endmacro
+
+.macro ACCEPT address
+        .assert (address - (* + 1)) >= -32 .and (address - *) <= 31, error, "Address offset out of range"
+        .byte   PVM_ACCEPT_BASE + (<(address - (* + 1)) & $3F)
 .endmacro
 
 ; PVM program
