@@ -90,7 +90,6 @@ main:
 @dispatch:
         ldy     #Line::next_line_offset ; Load the offset of the next line
         lda     (next_line_ptr),y
-        debug $F0
         raieq   PS_READY                ; If next line offset is 0 then end
         mvax    next_line_ptr, line_ptr ; Move to next statement
         mva     next_line_pos, line_pos
