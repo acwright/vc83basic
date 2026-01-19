@@ -57,11 +57,11 @@ basic_$1: $$(TARGET_$1_OBJECTS) $$(TARGET_$1_COMMON_OBJECTS)
 
 # Builds a target-specific object from a common source
 $1/%.o: %.s constants.inc zeropage.inc basic.inc
-	ca65 -t $1 $$(ASMFLAGS) -o $$@ $$<
+	ca65 -g -t $1 $$(ASMFLAGS) -o $$@ $$<
 
 # Builds a target-specific object from a target-specific source
 $1/%.o: $1/%.s constants.inc zeropage.inc basic.inc
-	ca65 -t $1 $$(ASMFLAGS) -o $$@ $$<
+	ca65 -g -t $1 $$(ASMFLAGS) -o $$@ $$<
 
 -include $$(TARGET_$1_SOURCES:.s=.d)
 
