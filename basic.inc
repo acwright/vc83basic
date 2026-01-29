@@ -162,6 +162,7 @@ S1 = FPX+2
 
 ; list.s
 .global exec_list
+.global list_line
 .global list_statement
 
 ; main.s

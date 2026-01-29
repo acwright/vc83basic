@@ -128,6 +128,7 @@ void fsin(void);
 void ftan(void);
 
 // list.s
+void list_line(void);
 void list_statement(void);
 
 // name.s

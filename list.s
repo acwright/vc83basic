@@ -17,12 +17,7 @@ exec_list:
         jsr     reset_next_line_ptr
 @next_line:
         mvaa    next_line_ptr, line_ptr
-        mvy     #0, buffer_pos          ; Initialize write position in buffer (also set Y to next_line_offset)
-        lda     (line_ptr),y            ; Next line offset into A
-        beq     @done                   ; If it's the null statement then we're at the end of the program
-        jsr     line_number_to_string
-        mva     #.sizeof(Line), line_pos
-        jsr     list_statement
+        jsr     list_line
         ldax    #buffer
         ldy     buffer_pos              ; buffer_pos will be the amount of data written to the buffer
         jsr     write
@@ -35,11 +30,35 @@ exec_list:
         plstaa  next_line_ptr
         rts
 
+; Outputs a line with a line number and all statements separated by ':'.
+; line_ptr = the line to write
+
+list_line:
+        mvy     #0, buffer_pos          ; Initialize write position in buffer (also set Y to next_line_offset)
+        lda     (line_ptr),y            ; Next line offset into A
+        beq     @done                   ; If it's the null statement then we're at the end of the program
+        jsr     line_number_to_string
+        mva     #.sizeof(Line), line_pos
+@next:
+        jsr     list_statement
+        ldy     #0
+        lda     line_pos                ; Current position
+        cmp     (line_ptr),y            ; At next line offset?
+        bcs     @done                   ; Yep
+        lda     #':'                    ; Else write ':' and next statement
+        jsr     append_buffer
+        jmp     @next
+
+@done:
+        rts
+
 ; Outputs a statement.
 
 .assert CLAUSE_THEN = 0, error
 
 list_statement:
+        inc     line_pos                ; Skip past the next statement offset; we don't use it
+@then:
         jsr     decode_byte             ; Get statement token
         tay                             ; Set up for list_tokenized_name
         ldax    #statement_name_table
@@ -70,7 +89,7 @@ list_statement:
         jsr     expand_tokenized_name
         jsr     add_whitespace          ; Can just add because there's always something after a clause token
         pla
-        beq     list_statement          ; If it was 0 (THEN), restart statement
+        beq     @then                   ; If it was 0 (THEN), restart statement
         bne     @next                   ; Unconditional
 @try_operator:
         sbc     #$10 - $08              ; Binary operator

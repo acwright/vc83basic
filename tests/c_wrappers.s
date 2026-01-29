@@ -329,8 +329,11 @@ _ftan:
 
 _list_statement:
 .export _list_statement
-        jsr     list_statement
-        jmp     set_err
+        jmp     list_statement
+
+_list_line:
+.export _list_line
+        jmp     list_line
 
 ; name.s
 
