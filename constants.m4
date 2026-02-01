@@ -133,13 +133,24 @@ def(PS_RUNNING,                     hex(80))
 
 comment Parse virtual machine (PVM) constants and instruction codes
 
-def(PVM_MATCH_RANGE_BASE,           hex(00))
-def(PVM_MATCH_BASE,                 hex(20))
-def(PVM_INVOKE_BASE,                hex(60))
-def(PVM_JUMP,                       hex(60))
-def(PVM_FAIL,                       hex(61))
-def(PVM_CALL,                       hex(62))
-def(PVM_RETURN,                     hex(63))
+def(PVM_FAIL,                       hex(00))
+def(PVM_RETURN,                     hex(01))
+def(PVM_FAR_CALL,                   hex(02))
+def(PVM_FAR_JUMP,                   hex(03))
+def(PVM_WS,                         hex(04))
+def(PVM_MATCH_RANGE,                hex(05))
+def(PVM_MATCH_ANY  ,                hex(06))
+
+
+def(PVM_MATCH,                      hex(20))
+def(PVM_TRY,                        hex(60))
+def(PVM_CALL,                       hex(80))
+def(PVM_JUMP,                       hex(C0))
+
+
+
+
+
 def(PVM_BEGIN,                      hex(64))
 def(PVM_TOKENIZE,                   hex(65))
 def(PVM_DISPATCH,                   hex(66))
@@ -147,12 +158,9 @@ def(PVM_EMIT,                       hex(67))
 def(PVM_COMPOSE,                    hex(68))
 def(PVM_INT,                        hex(69))
 def(PVM_EOL,                        hex(6A))
-def(PVM_WS,                         hex(6B))
 def(PVM_ARGSEP,                     hex(6C))
 def(PVM_LINK,                       hex(6D))
 def(PVM_DISCARD,                    hex(6E))
-def(PVM_TRY_BASE,                   hex(80))
-def(PVM_ACCEPT_BASE,                hex(C0))
 
 comment Other constants
 

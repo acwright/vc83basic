@@ -107,7 +107,7 @@ unary_op ::= _ ('-' | 'NOT')
 
 repeated_number ::= number (_ ',' number)*
 
-number ::= _ sign? digit+ ('.' digit*)? ('E' sign? digit+)
+number ::= _ sign? (digit+ ('.' digit*)) | ('.' digit*)) ('E' sign? digit+)
 
 repeated_var ::= var (_ ',' var)*
 
