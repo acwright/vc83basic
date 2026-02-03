@@ -174,26 +174,30 @@ jump:
 
 ins_match_range:
         ldy     #0                      ; Reload Y with 0
+@next_range:
         lda     (pvm_program_ptr),y     ; Length
-        bne     @test
+        beq     ins_fail                ; We're out of match ranges: fail
         iny
-        jsr     rebase_pvm_program_ptr
-        jmp     next_pvm
-
-@test:
         sta     C                       ; Store the range
         ldx     buffer_pos              ; Buffer position
         lda     buffer,x                ; Get character
         sec
-        iny
         sbc     (pvm_program_ptr),y     ; Compare to first character
-        bcc     ins_fail                ; No match: character was too low
-        cmp     C                       ; Compare with C
-        bcs     ins_fail
         iny
-        jsr     rebase_pvm_program_ptr  ; Add 2 to pvm_program_ptr
+        bcc     @next_range             ; No match: character was too low
+        cmp     C                       ; Compare with C
+        bcs     @next_range             ; No match: character was too high
+@find_zero:
+        lda     (pvm_program_ptr),y     ; Find the end of the match range
+        beq     @done
+        iny
+        iny
+        bne     @find_zero
+@done:
+        iny
+        jsr     rebase_pvm_program_ptr  ; Update pvm_program_ptr
         jsr     write_current_to_line_buffer
-        jmp     ins_match_range         ; Keep matching
+        jmp     next_pvm                ; Keep matching
 
 ins_match_any:
         ldx     buffer_pos
@@ -786,25 +790,17 @@ pvm_string:
 ; @done:
 ;         RETURN
         
-; ; pvm_name does not discard whitespace.
-; ; Its only job is to capture an alphanumeric "name."
+; pvm_name does not discard whitespace.
+; Its only job is to capture an alphanumeric "name."
 
 pvm_name:
-;         MATCH_RANGE 'A', 'Z'
-; @next:
-;         TRY @digit
-;         MATCH_RANGE 'A', 'Z'
-;         ACCEPT @next
-; @digit:
-;         TRY @underscore
-;         MATCH_RANGE '0', '9'
-;         ACCEPT @next
-; @underscore:
-;         TRY @done
-;         MATCH '_'
-;         ACCEPT @next
-; @done:
-;         RETURN
+        MATCH_RANGE {'A', 'Z'}
+@next:
+        TRY @done
+        MATCH_RANGE {'A', 'Z'}, {'0', '9'}, {'_', '_'}
+        JUMP @next
+@done:
+        RETURN
 
 statement_name_table:
         name_table_entry "END"
