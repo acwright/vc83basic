@@ -49,9 +49,9 @@ void test_pvm_number(void) {
     call_parse_pvm(".350", pvm_number, line_data_7, sizeof line_data_7, __LINE__);
     call_parse_pvm("-.5", pvm_number, line_data_8, sizeof line_data_8, __LINE__);
     call_parse_pvm("10E5", pvm_number, line_data_9, sizeof line_data_9, __LINE__);
-    // call_parse_pvm("10.E5", pvm_number, line_data_10, sizeof line_data_10, __LINE__);
-    // call_parse_pvm(".10E5", pvm_number, line_data_11, sizeof line_data_11, __LINE__);
-    // call_parse_pvm("10E-5", pvm_number, line_data_12, sizeof line_data_12, __LINE__);
+    call_parse_pvm("10.E5", pvm_number, line_data_10, sizeof line_data_10, __LINE__);
+    call_parse_pvm(".10E5", pvm_number, line_data_11, sizeof line_data_11, __LINE__);
+    call_parse_pvm("10E-5", pvm_number, line_data_12, sizeof line_data_12, __LINE__);
 }
 
 void test_pvm_string(void) {
