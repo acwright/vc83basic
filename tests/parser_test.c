@@ -39,16 +39,16 @@ void test_pvm_number(void) {
 
     call_parse_pvm("1", pvm_number, line_data_1, sizeof line_data_1, __LINE__);
     call_parse_pvm("91", pvm_number, line_data_2, sizeof line_data_2, __LINE__);
-    // call_parse_pvm_expect_buffer_pos("91X", pvm_number, line_data_2, sizeof line_data_2, 2, __LINE__);
-    // call_parse_pvm("  91", pvm_number, line_data_2, sizeof line_data_2, __LINE__);
-    // call_parse_pvm("-100", pvm_number, line_data_3, sizeof line_data_3, __LINE__);
-    // call_parse_pvm("  -100", pvm_number, line_data_3, sizeof line_data_3, __LINE__);
-    // call_parse_pvm("3.14159", pvm_number, line_data_4, sizeof line_data_4, __LINE__);
-    // call_parse_pvm("3.", pvm_number, line_data_5, sizeof line_data_5, __LINE__);
-    // call_parse_pvm("98.6", pvm_number, line_data_6, sizeof line_data_6, __LINE__);
-    // call_parse_pvm(".350", pvm_number, line_data_7, sizeof line_data_7, __LINE__);
-    // call_parse_pvm("-.5", pvm_number, line_data_8, sizeof line_data_8, __LINE__);
-    // call_parse_pvm("10E5", pvm_number, line_data_9, sizeof line_data_9, __LINE__);
+    call_parse_pvm_expect_buffer_pos("91X", pvm_number, line_data_2, sizeof line_data_2, 2, __LINE__);
+    call_parse_pvm("  91", pvm_number, line_data_2, sizeof line_data_2, __LINE__);
+    call_parse_pvm("-100", pvm_number, line_data_3, sizeof line_data_3, __LINE__);
+    call_parse_pvm("  -100", pvm_number, line_data_3, sizeof line_data_3, __LINE__);
+    call_parse_pvm("3.14159", pvm_number, line_data_4, sizeof line_data_4, __LINE__);
+    call_parse_pvm("3.", pvm_number, line_data_5, sizeof line_data_5, __LINE__);
+    call_parse_pvm("98.6", pvm_number, line_data_6, sizeof line_data_6, __LINE__);
+    call_parse_pvm(".350", pvm_number, line_data_7, sizeof line_data_7, __LINE__);
+    call_parse_pvm("-.5", pvm_number, line_data_8, sizeof line_data_8, __LINE__);
+    call_parse_pvm("10E5", pvm_number, line_data_9, sizeof line_data_9, __LINE__);
     // call_parse_pvm("10.E5", pvm_number, line_data_10, sizeof line_data_10, __LINE__);
     // call_parse_pvm(".10E5", pvm_number, line_data_11, sizeof line_data_11, __LINE__);
     // call_parse_pvm("10E-5", pvm_number, line_data_12, sizeof line_data_12, __LINE__);

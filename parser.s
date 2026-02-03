@@ -431,28 +431,27 @@ rebase_pvm_program_ptr:
     .endif
 .endmacro
 
-.macro MATCH_RANGE_PAIRS start1, end1, start2, end2, start3, end3, start4, end4, start5, end5, start6, end6
-    ; 1. Check if the first argument is blank. If it is, we are done with the list: exit.
-    .ifblank start1
+.macro MATCH_RANGE_bytes start, end
+        .byte (end - start) + 1, start
+.endmacro
+
+.macro MATCH_RANGE_args r1, r2, r3, r4
+    ; Check if the first argument is blank. If it is, we are done with the list: exit.
+    .ifblank r1
         .byte 0
         .exitmacro
     .endif
 
-    ; 2. Check for an incomplete pair.
-    .ifblank end1
-        .error "Missing finish value for pair"
-    .endif
+    ; Output the current pair.
+    MATCH_RANGE_bytes r1
 
-    ; 3. Output the current pair.
-    .byte (end1 - start1) + 1, start1
-
-    ; 4. Recursively call the macro with the remaining arguments.
-    MATCH_RANGE_PAIRS start2, end2, start3, end3, start4, end4, start5, end5, start6, end6
+    ; Recursively call the macro with the remaining arguments.
+    MATCH_RANGE_args {r2}, {r3}, {r4}
 .endmacro
 
-.macro MATCH_RANGE start1, end1, start2, end2, start3, end3, start4, end4, start5, end5, start6, end6
+.macro MATCH_RANGE r1, r2, r3, r4
         .byte PVM_MATCH_RANGE
-        MATCH_RANGE_PAIRS start1, end1, start2, end2, start3, end3, start4, end4, start5, end5, start6, end6
+        MATCH_RANGE_args {r1}, {r2}, {r3}, {r4}
 .endmacro
 
 ; Use (* + 1) because we add offset to address after skipping the instruction byte. 
@@ -681,33 +680,42 @@ pvm_expression:
 ; number ::= _ sign? (digit+ ('.' digit*)?) | ('.' digit*)) ('E' sign? digit+)
 pvm_number:
         WS
-        CALL pvm_opt_sign
+        CALL pvm_number_opt_sign
         CALL pvm_number_body
+        CALL pvm_number_opt_e
         RETURN
 
-pvm_opt_sign:
+pvm_number_opt_sign:
         TRY @done
         MATCH '-'
 @done:
         RETURN
 
 pvm_number_body:
-        TRY pvm_decimal_opt_digits
+        TRY pvm_number_decimal_digits
         CALL pvm_digits
         TRY @done
-        CALL pvm_decimal_opt_digits
+        CALL pvm_number_decimal_digits
 @done:
         RETURN
 
-pvm_decimal_opt_digits:
+pvm_number_decimal_digits:
         MATCH '.'
         JUMP pvm_opt_digits
+
+pvm_number_opt_e:
+        TRY @done
+        MATCH 'E'
+        CALL pvm_number_opt_sign
+        CALL pvm_digits
+@done:
+        RETURN
 
 ; pvm_digits does not remove whitespace.
 ; It is only used from pvm_number.
 
 pvm_digits:
-        MATCH_RANGE '0', '9'
+        MATCH_RANGE {'0', '9'}
 pvm_opt_digits:
         TRY @done
         JUMP pvm_digits
