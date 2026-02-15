@@ -4,16 +4,6 @@ ifdef(`__C__',
 
 comment Generated from __file__
 
-comment Name table definitions 
-
-def(NT_VAR,             hex(10))
-def(NT_RPT_VAR,         hex(11))
-def(NT_NUMBER,          hex(12))
-def(NT_RPT_NUMBER,      hex(13))
-def(NT_STATEMENT,       hex(14))
-def(NT_PRINT_EXP,       hex(15))
-def(NT_TEXT,            hex(16))
-
 comment Tokenized form constants
 
 def(TOKEN_UNARY_OP,     hex(04)) comment OR with OP_UNARY_*
@@ -142,23 +132,11 @@ def(PVM_COMPOSE,                    hex(05))
 def(PVM_ARGSEP,                     hex(06))
 def(PVM_TOKENIZE,                   hex(07))
 def(PVM_DISPATCH,                   hex(08))
-
-
 def(PVM_MATCH,                      hex(20))
 def(PVM_CALL,                       hex(60))
 def(PVM_JUMP,                       hex(70))
 def(PVM_TRY,                        hex(80))
 def(PVM_ACCEPT,                     hex(C0))
-
-
-
-
-
-def(PVM_EMIT,                       hex(67))
-def(PVM_INT,                        hex(69))
-def(PVM_EOL,                        hex(6A))
-def(PVM_LINK,                       hex(6D))
-def(PVM_DISCARD,                    hex(6E))
 
 comment Other constants
 
