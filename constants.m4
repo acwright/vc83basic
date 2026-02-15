@@ -154,7 +154,6 @@ def(PVM_ACCEPT,                     hex(C0))
 
 
 
-def(PVM_BEGIN,                      hex(64))
 def(PVM_EMIT,                       hex(67))
 def(PVM_INT,                        hex(69))
 def(PVM_EOL,                        hex(6A))

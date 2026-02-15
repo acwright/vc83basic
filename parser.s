@@ -12,11 +12,58 @@
 ; Returns normally if buffer was a valid program line, or raises an exception.
 
 parse_line:
-        mva     #0, buffer_pos          ; Initialize the read pointer
-        sta     line_pos                ; Initialize write pointer
-        ldax    #pvm_line
+        mva     #0, buffer_pos              ; Initialize the read pointer
+        mva     #.sizeof(Line), line_pos    ; Initialize write pointer
+        mvax    #buffer, read_ptr       ; Set up read_ptr so parsing primitives work
+        ldy     buffer_pos
+        jsr     skip_whitespace
+        jsr     string_to_fp_2          ; Parse line number
+        sty     buffer_pos              ; Initialize buffer_pos to wherever the number ended
+        bcs     @no_line_number         ; Line number was provided so store it
+        jsr     truncate_fp_to_int      ; Truncate line number to integer
+        bcc     @store_line_number
+@no_line_number:
+        lda     #$FF                    ; Otherwise store -1 ($FFFF) instead
+        tax
+@store_line_number:
+        stax    line_buffer+Line::number
+        ldy     buffer_pos
+        jsr     skip_whitespace         ; Detect a blank line; returns non-blank character in A, may be zero
+        beq     @finish_line            ; Was zero
 
-; Fall through
+; Parse one statement. The statement must be found because the line is not blank and this is either the first
+; statement or we just parsed a ':'.
+
+@next_statement:
+        mva     line_pos, statement_line_pos        ; Save start of statement position
+        inc     line_pos                ; Begin tokenizing statement at next position
+        ldax    #pvm_statement
+        jsr     parse_pvm
+        lda     #0                      ; Store 0 at end of statement
+        ldx     line_pos
+        sta     line_buffer,x
+        inc     line_pos
+        lda     line_pos                ; Write position is next statement offset
+        ldx     statement_line_pos      ; Store at start of statement
+        sta     line_buffer,x
+        ldy     buffer_pos              ; Look for statement separator
+        jsr     skip_whitespace
+        beq     @finish_line            ; Reached end of line
+        iny                             ; Move past whatever other character it was and update buffer_pos
+        sty     buffer_pos
+        cmp     #':'                    ; If not EOL it has to be ':'
+        beq     @next_statement         ; It was ':'
+        bne     syntax_error            ; It wasn't
+
+@finish_line:
+        mva     line_pos, line_buffer+Line::next_line_offset    ; Write position is next line offset
+        ldx     buffer_pos
+        lda     buffer,x                ; Verify the line ends with 0 as expected
+        bne     syntax_error            ; Nope, fail
+        rts
+
+syntax_error:
+        raise   ERR_SYNTAX_ERROR
 
 ; Invokes parsing virtual machine (PVM).
 ; AX = address of first PVM opcode
@@ -27,7 +74,7 @@ parse_pvm:
         stax    pvm_program_ptr
         mvax    #buffer, read_ptr       ; Set up read_ptr so parsing primitives in util module work
         jsr     run_pvm
-        raics   ERR_SYNTAX_ERROR        ; If returning with carry set, raise syntax error
+        bcs     syntax_error
         rts
 
 ; Resume processing opcodes.
@@ -71,7 +118,6 @@ update_savepoint:
 next_pvm:
         ldy     #0
         lda     (pvm_program_ptr),y     ; Load PVM opcode
-        debug $00
         sta     B                       ; Park opcode in B
         iny
         jsr     rebase_pvm_program_ptr  ; Skip past the opcode byte
@@ -260,13 +306,6 @@ compose_with_last_byte:
 ;         ldx     buffer_pos
 ;         lda     buffer,x
 ;         bne     op_fail
-;         rts
-
-; ; MARK: set the mark for a subsequent TOKENIZE or LINK
-
-; op_begin:
-;         mva     line_pos, decode_name_ptr           ; Set decode_name_ptr to start of name in line_buffer
-;         mvx     #>line_buffer, decode_name_ptr+1
 ;         rts
 
 ; ; EMIT: just output one byte
@@ -531,10 +570,6 @@ rebase_pvm_program_ptr:
 
 
 
-; .macro BEGIN
-;         .byte   PVM_BEGIN
-; .endmacro
-
 ; .macro EMIT b
 ;         .byte   PVM_EMIT, b
 ; .endmacro
@@ -556,36 +591,6 @@ rebase_pvm_program_ptr:
 ; .endmacro
 
 ; PVM program
-
-pvm_line:
-;         LINK
-;         WS
-;         TRY @immediate
-;         INT
-;         ACCEPT @first_statement
-; @first_statement:
-;         WS
-;         TRY @statement
-;         EOL
-; @done:
-;         RETURN
-; @statement:
-;         CALL pvm_line_statement
-;         TRY @done
-;         WS
-;         MATCH ':'
-;         DISCARD
-;         ACCEPT @statement
-; @immediate:
-;         EMIT $FF                        ; Write -1 as line number
-;         EMIT $FF
-;         JUMP @first_statement
-
-; pvm_line_statement:
-;         LINK
-;         CALL pvm_statement
-;         EMIT 0
-;         RETURN
 
 pvm_statement:
         WS
@@ -915,7 +920,7 @@ pvm_clause:
         RETURN
 
 clause_name_table:
-:       name_table_entry "THEN"
+        name_table_entry "THEN"
 :       name_table_entry "GOTO"
 :       name_table_entry "GOSUB"
 :       name_table_entry "TO"
