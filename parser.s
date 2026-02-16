@@ -612,6 +612,16 @@ pvm_primary_expression:
         CALL pvm_function
         RETURN
 
+; pvm_var_list is list of 1-N (but not 0) variables.
+
+pvm_var_list:
+        CALL pvm_var
+        TRY @done
+        ARGSEP
+        ACCEPT pvm_var_list
+@done:
+        RETURN
+
 ; var ::= _ name '$'? ('(' arg_list _ ')')?
 
 pvm_var:
@@ -621,16 +631,6 @@ pvm_var:
         COMPOSE EOT
         TRY @done
         CALL pvm_paren_arg_list
-@done:
-        RETURN
-
-; pvm_var_list is list of 1-N (but not 0) variables.
-
-pvm_var_list:
-        CALL pvm_var
-        TRY @done
-        ARGSEP
-        ACCEPT pvm_var_list
 @done:
         RETURN
 
@@ -668,6 +668,22 @@ pvm_opt_type:
         RETURN
 
 ; Low-level rules
+
+; pvm_number_list is list of 1-N (but not 0) numbers.
+
+pvm_number_list:
+        CALL pvm_number
+        TRY @done
+        ARGSEP
+        ACCEPT pvm_number_list
+@done:
+        RETURN
+
+pvm_opt_number:
+        TRY @done
+        CALL pvm_number
+@done:
+        RETURN
 
 ; number ::= _ opt_sign ((digits decimal_digits?) | decimal_digits) ('E' opt_sign digits)
 ; decimal_digits ::= ('.' opt_digits)
@@ -708,16 +724,6 @@ pvm_digits:
         MATCH_RANGE {'0', '9'}
         ACCEPT pvm_opt_digits
 pvm_digits_done:
-        RETURN
-
-; pvm_number_list is list of 1-N (but not 0) numbers.
-
-pvm_number_list:
-        CALL pvm_number
-        TRY @done
-        ARGSEP
-        ACCEPT pvm_number_list
-@done:
         RETURN
 
 ; string ::= _ '"' ('""' | [^"])* '"' 
@@ -827,7 +833,7 @@ statement_name_table:
 :       name_table_entry "READ"
             JUMP pvm_var_list
 :       name_table_entry "RESTORE"
-            JUMP pvm_number
+            JUMP pvm_opt_number
 :       name_table_entry "POKE"
             JUMP pvm_arg_2
 :       name_table_end
