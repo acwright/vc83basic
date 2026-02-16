@@ -525,15 +525,6 @@ pvm_arg_2:
         ARGSEP
         JUMP pvm_expression
 
-pvm_opt_arg_2:
-        TRY @done                       ; First arg is optional
-        CALL pvm_expression
-        TRY @done                       ; Second arg is optional
-        ARGSEP
-        CALL pvm_expression
-@done:
-        RETURN
-
 ; pvm_arg_list is list of 1-N (but not 0) expressions.
 
 pvm_arg_list:
@@ -679,10 +670,18 @@ pvm_number_list:
 @done:
         RETURN
 
-pvm_opt_number:
-        TRY @done
+pvm_opt_number_2:
+        TRY pvm_opt_number_done         ; First arg is optional
         CALL pvm_number
-@done:
+        TRY pvm_opt_number_done         ; Second arg is optional
+        ARGSEP
+        CALL pvm_number
+        RETURN
+
+pvm_opt_number:
+        TRY pvm_opt_number_done
+        CALL pvm_number
+pvm_opt_number_done:
         RETURN
 
 ; number ::= _ opt_sign ((digits decimal_digits?) | decimal_digits) ('E' opt_sign digits)
@@ -781,7 +780,7 @@ statement_name_table:
 :       name_table_entry "INPUT"
             JUMP pvm_var_list
 :       name_table_entry "LIST"
-            JUMP pvm_opt_arg_2
+            JUMP pvm_opt_number_2
 :       name_table_entry "GOTO"
             JUMP pvm_number
 :       name_table_entry "GOSUB"
