@@ -863,7 +863,6 @@ normalize:
         ldx     B                       ; Check round
         bne     @check_e_is_zero        ; Round is not zero so we can still find a 1 bit somewhere
         stx     FP0e                    ; Set exponent to 0
-        clc                             ; Signal success
         rts
 
 @check_e_is_zero:
