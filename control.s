@@ -107,8 +107,18 @@ exec_for:
         adc     #Control::end_value     ; Add the offset of the end value; carry is clear
         ldy     #>stack                 ; Stack page
         jsr     store_fp0               ; Store FP0 there
+        ldy     line_pos                ; Check for STEP
+        lda     (line_ptr),y
+        cmp     #TOKEN_CLAUSE | CLAUSE_STEP
+        bne     @no_step
+        inc     line_pos
+        jsr     evaluate_expression
+        jsr     pop_fp0
+        jmp     @store_step
+@no_step:
         lday    #fp_one
         jsr     load_fp0
+@store_step:
         lda     stack_pos               ; Stack pointer again
         clc
         adc     #Control::step_value    ; Add the offset of the step value
@@ -150,8 +160,14 @@ exec_next:
         adc     #Control::end_value     ; Calculate address of end value (carry will be clear)
         ldy     #>stack
         jsr     fcmp                    ; Compare the current value (still in FP0) with the end value
-        bcc     @return_to_for          ; Current value < end value so continue
-        bne     exec_pop_2              ; If not equal then value > end value so stop; else continue
+        beq     @return_to_for          ; Current == end so continue
+        ldx     stack_pos               ; Check sign of step
+        lda     stack+Control::step_value+3,x
+        bmi     @negative_step
+        bcs     exec_pop_2              ; Positive step: current > end so stop
+        bcc     @return_to_for          ; Positive step: current < end so continue
+@negative_step:
+        bcc     exec_pop_2              ; Negative step: current < end so stop
 @return_to_for:
         ldx     stack_pos               ; Get stack pointer once again
         lda     stack+Control::next_line_ptr,x
