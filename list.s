@@ -67,7 +67,10 @@ list_statement:
         jsr     expand_tokenized_name
         ldy     line_pos                ; Exit w/o adding whitespace if there's no more data on the line
         lda     (line_ptr),y
-        beq     @done
+        bne     @not_empty
+        inc     line_pos
+        rts
+@not_empty:
         jsr     add_whitespace
 @next:
         jsr     decode_byte             ; Get the next byte; Y is line_pos

@@ -97,6 +97,7 @@ void test_list_line(void) {
 
     const Line multi_line_1 = { 11, 10, { 11, ST_LET, 'X' | EOT, '=', '1', '0', '0', 0 } };
     const Line multi_line_2 = { 15, 10, { 11, ST_LET, 'X' | EOT, '=', '1', '0', '0', 0, 15, ST_PRINT, 'X' | EOT, 0 } };
+    const Line multi_line_3 = { 10, 10, { 7, ST_PRINT, '1', 0, 10, ST_END, 0 } };
 
     PRINT_TEST_NAME();
 
@@ -104,6 +105,7 @@ void test_list_line(void) {
 
     call_list_line(&multi_line_1, "10 LET X=100", __LINE__);
     call_list_line(&multi_line_2, "10 LET X=100:PRINT X", __LINE__);
+    call_list_line(&multi_line_3, "10 PRINT 1:END", __LINE__);
 }
 
 int main(void) {
