@@ -40,16 +40,12 @@ exec_read:
 
         jsr     decode_name             ; Read the variable name
         jsr     find_or_add_variable
-        bcs     @done
         lda     decode_name_type        ; Is it a number or a string?
         bne     @string                 ; It's a string
         ldax    data_line_ptr           ; Point to data line
         ldy     data_line_pos
         jsr     string_to_fp            ; Parse the number
-        bcs     @done                   ; Failed to read a number
-        jsr     read_argument_separator
-        bcs     @done                   ; Read non-separator after value
-        sty     data_line_pos           ; Update data_line_pos to next read position
+        jsr     @post_read
         jsr     push_fp0                ; Push FP0 onto the value stack
 
 @assign:
@@ -69,12 +65,19 @@ exec_read:
         ldax    data_line_ptr           ; Point to data line
         ldy     data_line_pos
         jsr     read_string
-        bcs     @done
-        jsr     read_argument_separator
-        bcs     @done                   ; Read non-separator after value
-        sty     data_line_pos           ; Update data_line_pos to next read position
+        jsr     @post_read
         jsr     push_string             ; Push result string onto the stack
         jmp     @assign
+
+@post_read:
+        bcs     @format_error           ; If we got here with carry set then number or string read failed
+        jsr     read_argument_separator
+        sty     data_line_pos           ; Update data_line_pos to next read position
+        bcc     @done                   ; Read separator
+        beq     @done                   ; No separator, but did find EOL
+
+@format_error:
+        raise   ERR_FORMAT_ERROR
 
 ; RESTORE statement:
 
