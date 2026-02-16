@@ -73,10 +73,6 @@ set_err:
 
 ; decode.s
 
-_decode_expression:
-.export _decode_expression
-        jmp     decode_expression
-
 _decode_number:
 .export _decode_number
         jmp     decode_number

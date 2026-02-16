@@ -81,7 +81,6 @@ S1 = FPX+2
 .global exec_dim
 
 ; decode.s
-.global decode_expression
 .global decode_number
 .global decode_string
 .global decode_name

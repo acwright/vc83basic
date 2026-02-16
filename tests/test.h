@@ -81,7 +81,6 @@ extern const char pvm_name[];
 // Prototypes for C wrapper functions
 
 // decode.s
-void decode_expression(/* AX */ void** vector_table_ptr);
 void decode_number(void);
 void decode_string(void);
 void decode_name(void);

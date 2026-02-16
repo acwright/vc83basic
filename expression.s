@@ -8,77 +8,6 @@
 .assert Value::number_value = 0, error
 .assert Value::string_value_ptr = 0, error
 
-evaluate_vectors:
-        .word   evaluate_unary_operator-1   ; XH_UNARY_OP
-        .word   evaluate_operator-1         ; XH_OP
-        .word   evaluate_number-1           ; XH_NUMBER
-        .word   evaluate_string-1           ; XH_STRING
-        .word   evaluate_variable-1         ; XH_VAR
-        .word   evaluate_function-1         ; XH_FUNCTION
-        .word   evaluate_paren-1            ; XH_PAREN
-
-; Fall through
-
-; Evaluate a full expression.
-; Evaluating an expression often involves evaluating names, and decoding names affects decode_name_ptr and related
-; values. Sometimes the caller is using them (for example, they might identify the variable that LET is setting), so
-; we save them on the stack and restore them before returning.
-
-evaluate_expression:
-        phzp    DECODE_NAME_STATE, DECODE_NAME_STATE_SIZE   ; Remember the decoded name
-        lda     #PR_OPEN_PAREN          ; Push the open paren, which will never be removed by process_operators
-        jsr     push_operator
-        ldax    #evaluate_vectors
-        jsr     decode_expression
-        lda     #PR_CLOSE_PAREN         ; Process any operators not yet processed (except open paren)
-        jsr     process_operators
-        inc     op_stack_pos            ; Pop the open paren (even if evaluation failed)
-        plzp    DECODE_NAME_STATE, DECODE_NAME_STATE_SIZE   ; Recover the decoded name
-        rts
-
-; Evaluate a number of arguments. The argument list will either end in a 0 (as in a series of arguments for a
-; statement) or in a close paren (as in a DIM statement, array reference, or function call).
-; A = the number of arguments expected
-; Returns the number of arguments that were expected but not found; will be negative if too many argument found.
-
-evaluate_argument_list:
-        pha                             ; Save the number of arguments expected on the stack
-@next:
-        ldy     line_pos                ; Peek at next byte in token stream
-        lda     (line_ptr),y
-        beq     @done                   ; Was 0
-        cmp     #')'
-        beq     @done                   ; Was ')'
-        cmp     #','                    ; If it's a comma then just skip it
-        bne     @no_comma
-        inc     line_pos                ; Skip the comma
-@no_comma:
-        jsr     evaluate_expression     ; Read the next expression
-        tsx                             ; Get ready to access stack
-        dec     $101,x                  ; Decrement the number of arguments
-        jmp     @next                   ; Continue on
-
-@done:
-        inc     line_pos                ; Skip over the terminating byte
-        pla                             ; Return number of arguments read
-        rts
-
-evaluate_variable:
-        jsr     decode_name
-evaluate_decoded_variable:
-        jsr     find_or_add_variable
-        jsr     stack_alloc_value
-        tay                             ; Stack position into Y to set type
-        lda     decode_name_type        ; Set type of value on stack
-        sta     stack+Value::type,y
-        tax                             ; Move the type into X
-        tya                             ; Use as low byte of copy address
-        ldy     type_size_table,x       ; Replace Y with the size of the type
-        ldx     #>stack                 ; Stack page
-        stax    dst_ptr                 ; Copy to stack
-        ldax    name_ptr                ; Copy from variable data
-        jmp     copy_y_from
-
 function_vectors:
         .word   fun_len-1
         .word   fun_str_s-1
@@ -115,9 +44,92 @@ evaluate_function:
         ldax    #function_vectors
         jmp     invoke_indexed_vector
 
+evaluate_paren:
+        inc     line_pos                ; Consume the '('
+        lda     #PR_OPEN_PAREN          ; Push the open paren, which will never be removed by process_operators
+        jsr     push_operator
+        jsr     evaluate_expression     ; Evaluate the subexpression; may fail
+        inc     op_stack_pos            ; Pop the open paren (even if evaluate_expression failed)
+        inc     line_pos                ; Consume the ')'
+        rts
+
 evaluate_number:
         jsr     decode_number           ; Returns number in FP0
         jmp     push_fp0                ; Push number
+
+evaluate_string:
+        jsr     decode_string           ; Sets string_ptr
+        jmp     push_string
+
+; Evaluate a full expression.
+; Evaluating an expression often involves evaluating names, and decoding names affects decode_name_ptr and related
+; values. Sometimes the caller is using them (for example, they might identify the variable that LET is setting), so
+; we save them on the stack and restore them before returning.
+
+evaluate_expression:
+        phzp    DECODE_NAME_STATE, DECODE_NAME_STATE_SIZE   ; Remember the decoded name
+        lda     #PR_OPEN_PAREN          ; Push the open paren, which will never be removed by process_operators
+        jsr     push_operator
+
+@next:
+        jsr     @dispatch               ; JSR to dispatcher so we can just RTS from handlers
+        jmp     @next
+
+@dispatch:
+        ldy     line_pos                ; Peek at next byte in token stream
+        lda     (line_ptr),y
+        and     #$7F                    ; Clear high bit if set
+        sec                             ; Set carry for subtracts to follow
+        sbc     #TOKEN_UNARY_OP
+        cmp     #4
+        bcc     evaluate_unary_operator
+        sbc     #(TOKEN_OP - TOKEN_UNARY_OP)
+        cmp     #16
+        bcc     evaluate_operator
+        sbc     #('0' - TOKEN_OP)
+        cmp     #<('.' - '0')
+        beq     evaluate_number
+        cmp     #<('-' - '0')
+        beq     evaluate_number
+        cmp     #10
+        bcc     evaluate_number
+        sbc     #('A' - '0')
+        cmp     #<('"'- 'A')
+        beq     evaluate_string
+        cmp     #26                     ; Is it one of 26 letters starting with 'A'?
+        bcc     evaluate_variable
+        sbc     #<('`' - 'A')
+        cmp     #32
+        bcc     evaluate_function
+        cmp     #<('(' - '`')
+        beq     evaluate_paren
+
+; None of the above; probably end of line or ')' or ',' or ';' so just return.
+; Pop the @dispatch address off the stack so we return from evaluate_expression not @dispatch.
+
+        pla
+        pla
+        lda     #PR_CLOSE_PAREN         ; Process any operators not yet processed (except open paren)
+        jsr     process_operators
+        inc     op_stack_pos            ; Pop the open paren (even if evaluation failed)
+        plzp    DECODE_NAME_STATE, DECODE_NAME_STATE_SIZE   ; Recover the decoded name
+        rts
+
+evaluate_variable:
+        jsr     decode_name
+evaluate_decoded_variable:
+        jsr     find_or_add_variable
+        jsr     stack_alloc_value
+        tay                             ; Stack position into Y to set type
+        lda     decode_name_type        ; Set type of value on stack
+        sta     stack+Value::type,y
+        tax                             ; Move the type into X
+        tya                             ; Use as low byte of copy address
+        ldy     type_size_table,x       ; Replace Y with the size of the type
+        ldx     #>stack                 ; Stack page
+        stax    dst_ptr                 ; Copy to stack
+        ldax    name_ptr                ; Copy from variable data
+        jmp     copy_y_from
 
 evaluate_operator:
         jsr     decode_byte             ; Return the operator in A
@@ -141,18 +153,32 @@ evaluate_unary_operator:
         ora     #PR_UNARY_OP            ; Unary ops have highest precedence and are right-assoc so don't do anything
         jmp     push_operator           ; Except push the operator onto the stack
 
-evaluate_paren:
-        inc     line_pos                ; Consume the '('
-        lda     #PR_OPEN_PAREN          ; Push the open paren, which will never be removed by process_operators
-        jsr     push_operator
-        jsr     evaluate_expression     ; Evaluate the subexpression; may fail
-        inc     op_stack_pos            ; Pop the open paren (even if evaluate_expression failed)
-        inc     line_pos                ; Consume the ')'
-        rts
+; Evaluate a number of arguments. The argument list will either end in a 0 (as in a series of arguments for a
+; statement) or in a close paren (as in a DIM statement, array reference, or function call).
+; A = the number of arguments expected
+; Returns the number of arguments that were expected but not found; will be negative if too many argument found.
 
-evaluate_string:
-        jsr     decode_string           ; Sets string_ptr
-        jmp     push_string
+evaluate_argument_list:
+        pha                             ; Save the number of arguments expected on the stack
+@next:
+        ldy     line_pos                ; Peek at next byte in token stream
+        lda     (line_ptr),y
+        beq     @done                   ; Was 0
+        cmp     #')'
+        beq     @done                   ; Was ')'
+        cmp     #','                    ; If it's a comma then just skip it
+        bne     @no_comma
+        inc     line_pos                ; Skip the comma
+@no_comma:
+        jsr     evaluate_expression     ; Read the next expression
+        tsx                             ; Get ready to access stack
+        dec     $101,x                  ; Decrement the number of arguments
+        jmp     @next                   ; Continue on
+
+@done:
+        inc     line_pos                ; Skip over the terminating byte
+        pla                             ; Return number of arguments read
+        rts
 
 push_operator:
         ldx     op_stack_pos
