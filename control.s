@@ -11,45 +11,31 @@
 
 exec_goto:
         jsr     get_line_number         ; Go get the line number
-exec_goto_line_number:
         jmp     get_line                ; Find the line; either next_line_ptr is set or raises exception
-
-; ON...GOTO statement:
-
-exec_on_goto:
-        ldax    #exec_goto_line_number  ; Handler address
-        jmp     exec_on
 
 ; GOSUB statement:
 
 exec_gosub:
-        jsr     get_line_number         ; GOSUB line number
-exec_gosub_line_number:
-        phax                            ; Save line number
         jsr     push_next_line_ptr      ; Save return address
         lda     #0                      ; Set variable field to an invalid pointer
         sta     stack+Control::variable_name_ptr+1,x
-        plax                            ; Recover line number
+        jsr     get_line_number         ; GOSUB line number
         jmp     get_line                ; Find the line; either next_line_ptr is set or raises exception
 
-; ON...GOSUB statement:
+; ON...GOTO/GOSUB statement:
 
-exec_on_gosub:
-        ldax    #exec_gosub_line_number ; Handler address
-
-; Fall through
-
-exec_on:
-        stax    on_handler              ; Store the handler address
+exec_on_goto_gosub:
         jsr     evaluate_expression     ; Evaluate the "ON" expression
-        inc     line_pos                ; Skip past the terminator
+        jsr     decode_byte             ; Next byte tells us if it's GOTO or GOSUB
+        cmp     TOKEN_CLAUSE | CLAUSE_GOTO  ; If Z flag then we're GOTO, else GOSUB
+        php                             ; Remember what we learned
         jsr     pop_int_fp0             ; FP0 -> integer in AX
-        sta     on_value
+        sta     B
         sec                             ; Set carry in case this next check fails
         txa                             ; Check the high byte
         bne     @out_of_range           ; If high byte is set then value is out of range (either <0 or >255)
 @loop:
-        dec     on_value                ; Decrease value sought by 1
+        dec     B                       ; Decrease value sought by 1
         bmi     @zero                   ; If it went negative then it was originally 0
         beq     @found                  ; It was found
         ldy     line_pos                ; Otherwise advance to the next ','
@@ -63,10 +49,12 @@ exec_on:
         beq     @loop                   ; Unconditional
 
 @found:
-        jsr     get_line_number         ; Get the next line number into AX
-        jmp     (on_handler)            ; Jump to whatever handler was passed in
+        plp                             ; Recover the flags from the GOSUB check
+        beq     exec_goto
+        bne     exec_gosub              ; Unconditional    
 
 @zero:
+        plp                             ; Discard the flags we didn't use
         rts
 
 @out_of_range:

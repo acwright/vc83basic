@@ -148,9 +148,6 @@ byte(min_precedence)
 comment The number we're dispatching in an ON...GOTO/GOSUB statement
 byte(on_value)
 
-comment The handler vector for ON...GOTO/GOSUB
-word(on_handler, void*)
-
 comment Where to resume execution after STOP
 word(resume_line_ptr, Line*)
 

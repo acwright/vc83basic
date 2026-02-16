@@ -68,9 +68,8 @@ S1 = FPX+2
 
 ; control.s
 .global exec_goto
-.global exec_on_goto
 .global exec_gosub
-.global exec_on_gosub
+.global exec_on_goto_gosub
 .global exec_return
 .global exec_for
 .global exec_next

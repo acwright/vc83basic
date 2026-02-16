@@ -126,8 +126,7 @@ statement_exec_vectors:
         .word   exec_gosub-1
         .word   exec_return-1
         .word   exec_pop-1
-        .word   exec_on_goto-1
-        ; .word   exec_on_gosub-1
+        .word   exec_on_goto_gosub-1
         .word   exec_for-1
         .word   exec_next-1
         .word   exec_stop-1
