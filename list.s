@@ -16,6 +16,17 @@ exec_list:
         ldphaa  next_line_ptr
         ldpha   next_line_pos
         jsr     reset_next_line_ptr
+        ldy     line_pos                ; Look to see if there are arguments
+        lda     (line_ptr),y
+        beq     @next_line              ; Nothing after LIST, just go
+        jsr     get_line_number         ; Go get it
+        jsr     find_line               ; Stores the line number in line_number
+        ldy     line_pos                ; Anything else?
+        lda     (line_ptr),y
+        beq     @next_line              ; Nope: the value in line_number becomes the terminating line number
+        inc     line_pos                ; There's another arg, so skip over the ','
+        jsr     get_line_number         ; Save the ending line number in line_number
+        stax    line_number
 @next_line:
         mvaa    next_line_ptr, line_ptr
         jsr     list_line
@@ -25,7 +36,14 @@ exec_list:
         jsr     write
         jsr     newline
         jsr     advance_next_line_ptr
-        jmp     @next_line
+        ldy     #Line::number+1         ; Check for the ending line number
+        lda     (line_ptr),y
+        cmp     line_number+1
+        bcc     @next_line              ; High byte is less
+        dey                             ; Check low byte
+        lda     (line_ptr),y
+        cmp     line_number
+        bcc     @next_line              ; Less
 
 @done:
         plsta   next_line_pos
