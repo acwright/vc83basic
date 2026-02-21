@@ -8,7 +8,8 @@
 ; sim65 vectors
 .import exit
 
-
+; Must export startup so the linker can find it.
+.export startup
 
 .segment "STARTUP"
 
@@ -17,7 +18,7 @@ startup:
         ldx     #$FF
         txs                             ; Initialize the stack to $FF
         mvax    #(__MAIN_START__ + __MAIN_SIZE__ + __STACKSIZE__), c_sp
-        jsr     _main        
+        jsr     main        
         jmp     exit                    ; Return 0 from sim65
 
 .code
