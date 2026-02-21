@@ -1461,3 +1461,51 @@ ftan:
         jsr     fsin                    ; Calculate sine
         lday    #ftan_cos_x             ; Divide by the cosine value
         jmp     fdiv
+
+fp_atn_coefficients:
+        .byte $15, $D6, $D7, $84, 120   ; -0.00405405
+        .byte $1E, $4D, $16, $33, 122   ; 0.02186122
+        .byte $07, $B2, $01, $E5, 123   ; -0.05590982
+        .byte $2E, $27, $78, $45, 124   ; 0.09642058
+        .byte $86, $66, $6C, $8E, 125   ; -0.13908539
+        .byte $0C, $A5, $40, $4C, 125   ; 0.19946535
+        .byte $DE, $1B, $A6, $AA, 126   ; -0.33329856
+        .byte $6C, $F4, $FF, $7F, 127   ; 0.99999931
+
+; Calculates the arctangent of the value in FP0.
+; Strategy:
+;     atan(-x) = -atan(x)
+;     atan(x) = pi/2 - atan(1/x) for x > 1
+;     Polynomial approximation for 0 <= x <= 1
+
+fatn_sign = stack + 10
+fatn_swap = stack + 11
+
+fatn:
+        lda     FP0e
+        beq     @done                   ; If 0, return 0
+        mva     FP0s, fatn_sign         ; Save original sign
+        mva     #0, FP0s                ; x = |x|
+        lday    #fp_one
+        jsr     fcmp
+        mva     #0, fatn_swap           ; Default no swap
+        bcc     @no_swap
+        inc     fatn_swap               ; Mark swap
+        jsr     copy_fp0_fp1            ; FP1 = x
+        lday    #fp_one
+        jsr     load_fp0                ; FP0 = 1
+        jsr     fdiv_fp1                ; FP0 = 1 / x
+@no_swap:
+        ldax    #fp_atn_coefficients
+        ldy     #8
+        jsr     fpoly_odd
+        lda     fatn_swap
+        beq     @no_unswap
+        lday    #fp_pi
+        jsr     load_fp1                ; FP1 = pi
+        dec     FP1e                    ; FP1 = pi/2
+        jsr     fsub_2                  ; result = FP1 - FP0 = pi/2 - atan(1/x)
+@no_unswap:
+        mva     fatn_sign, FP0s         ; Restore original sign
+@done:
+        rts

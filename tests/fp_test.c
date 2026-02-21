@@ -809,6 +809,24 @@ const FunctionTestCase fcos_test_cases[] = {
 
 TEST_FUNCTION(fcos);
 
+const FunctionTestCase ftan_test_cases[] = {
+    { { 0x00000000, 0 }, { 0x00000000, 0 } }, // tan(0) = 0.0
+    { { 0x490FDAA2, 127 }, { 0x000074E7, 128 } }, // tan(pi/4) = 1.0
+    { { 0x00000000, 128 }, { 0x475C2E49, 128 } }, // tan(1.0) = 1.5574077246549022
+};
+
+TEST_FUNCTION(ftan);
+
+const FunctionTestCase fatn_test_cases[] = {
+    { { 0x00000000, 0 }, { 0x00000000, 0 } }, // atan(0) = 0.0
+    { { 0x00000000, 128 }, { 0x490FBC60, 127 } }, // atan(1) = 0.7853981633974483
+    { { 0x00000000, 127 }, { 0x6D633782, 126 } }, // atan(0.5) = 0.4636476090008061
+    { { 0x00000000, 129 }, { 0x0DB701A2, 128 } }, // atan(2) = 1.1071487177940904
+    { { 0x80000000, 128 }, { 0xC90FBC60, 127 } }, // atan(-1) = -0.7853981633974483
+};
+
+TEST_FUNCTION(fatn);
+
 int make_checksum(void) {
     int sum = 0;
     const char* p = (const char*)0x500;
@@ -845,5 +863,7 @@ int main(void) {
     test_fexp();
     test_fsin();
     test_fcos();
+    test_ftan();
+    test_fatn();
     return 0;
 }

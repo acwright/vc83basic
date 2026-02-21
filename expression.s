@@ -26,6 +26,7 @@ function_vectors:
         .word   fun_sin-1
         .word   fun_cos-1
         .word   fun_tan-1
+        .word   fun_atn-1
         .word   fun_abs-1
         .word   fun_sgn-1
         .word   fun_sqr-1

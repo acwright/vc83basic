@@ -318,6 +318,11 @@ _ftan:
         startwrap
         jmp     ftan
 
+_fatn:
+.export _fatn
+        startwrap
+        jmp     fatn
+
 ; list.s
 
 _list_statement:

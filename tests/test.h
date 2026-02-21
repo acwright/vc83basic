@@ -125,6 +125,7 @@ void fexp(void);
 void fcos(void);
 void fsin(void);
 void ftan(void);
+void fatn(void);
 
 // list.s
 void list_line(void);

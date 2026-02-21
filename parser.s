@@ -908,6 +908,7 @@ function_name_table:
 :       name_table_entry "SIN"
 :       name_table_entry "COS"
 :       name_table_entry "TAN"
+:       name_table_entry "ATN"
 :       name_table_entry "ABS"
 :       name_table_entry "SGN"
 :       name_table_entry "SQR"

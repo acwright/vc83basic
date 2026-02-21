@@ -19,6 +19,7 @@ function_arity_table:
         .byte   1   ; SIN
         .byte   1   ; COS
         .byte   1   ; TAN
+        .byte   1   ; ATN
         .byte   1   ; ABS
         .byte   1   ; SGN
         .byte   1   ; SQR

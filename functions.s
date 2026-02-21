@@ -239,3 +239,8 @@ fun_tan:
         jsr     ftan
         jmp     push_fp0
 
+fun_atn:
+        jsr     pop_fp0
+        jsr     fatn
+        jmp     push_fp0
+

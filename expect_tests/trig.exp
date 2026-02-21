@@ -1,0 +1,25 @@
+source [file join [file dirname [info script]] common.expinc]
+spawn_basic
+
+# SIN
+
+test "PRINT SIN(0)\n" "0\n"
+test "PRINT SIN(1)\n" "0.841470985\n"
+
+# COS
+
+test "PRINT COS(0)\n" "0.999999945\n"
+test "PRINT COS(1)\n" "0.540270075\n"
+
+# TAN
+
+test "PRINT TAN(0)\n" "0\n"
+test "PRINT TAN(1)\n" "1.557500635\n"
+
+# ATN
+
+test "PRINT ATN(0)\n" "0\n"
+test "PRINT ATN(1)\n" "0.78539636\n"
+test "PRINT ATN(0.5)\n" "0.463647589\n"
+test "PRINT ATN(2)\n" "1.107147412\n"
+test "PRINT ATN(-1)\n" "-0.78539636\n"
