@@ -1,3 +1,9 @@
+/*
+ * SPDX-FileCopyrightText: 2022-2026 Willis Blackburn
+ *
+ * SPDX-License-Identifier: MIT
+ */
+
 #include "test.h"
 
 void call_list_statement(const char* line_data, size_t line_data_length, const char* expect_buffer, int line) {
