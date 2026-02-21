@@ -79,24 +79,29 @@ load_fp:
 ; AY = destination address
 ; DE SAFE
 
+store_fp1:
+        ldx     #FP1
+        bne     store_fp
 store_fp0:
+        ldx     #FP0
+store_fp:
         stay    BC                      ; FP value address into BC
         ldy     #4
-        lda     FP0e                    ; Exponent
+        lda     UnpackedFloat::e,x      ; Exponent
         sta     (BC),y
         dey
-        lda     FP0t+3                  ; High byte of significand
+        lda     UnpackedFloat::t+3,x    ; High byte of significand
         and     #$7F                    ; Set MSB to 0
-        ora     FP0s                    ; Replace with the sign bit
+        ora     UnpackedFloat::s,x      ; Replace with the sign bit
         sta     (BC),y                  ; Save
         dey
-        lda     FP0t+2
+        lda     UnpackedFloat::t+2,x
         sta     (BC),y
         dey
-        lda     FP0t+1
+        lda     UnpackedFloat::t+1,x
         sta     (BC),y
         dey
-        lda     FP0t
+        lda     UnpackedFloat::t,x
         sta     (BC),y
         rts
 
@@ -1410,13 +1415,15 @@ fsin_x = stack + .sizeof(Float) * 2
 ftan_x = stack + .sizeof(Float) * 3
 ftan_cos_x = stack + .sizeof(Float) * 4
 
+; These coefficients are the Minimax (Chebyshev) polynomial fit for sine evaluated over [-pi/2, pi/2].
+; They replace the traditional Taylor series coefficients (1/3!, 1/5!, etc.) to minimize the maximum error 
+; across the entire quarter-circle range. For example, C3 is -0.166666566 instead of -0.166666666 (-1/6).
 fp_sin_coefficients:
-        .byte $40, $2B, $32, $D7, 102   ; 1/11!  - x^11 / 11!
-        .byte $2B, $1D, $EF, $38, 109   ; 1/9!   + x^9 / 9!
-        .byte $D0, $00, $0D, $D0, 115   ; 1/7!   - x^7 / 7!
-        .byte $89, $88, $88, $08, 121   ; 1/5!   + x^5 / 5!
-        .byte $AB, $AA, $AA, $AA, 125   ; 1/3!   - x^3 / 3!
-        .byte $00, $00, $00, $00, 128   ; 1      + x
+        .byte $00, $8F, $D1, $2E, 109   ; C9:  0.000002605
+        .byte $00, $16, $B2, $CF, 115   ; C7: -0.000198074
+        .byte $00, $02, $88, $08, 121   ; C5:  0.008333208
+        .byte $00, $A4, $AA, $AA, 125   ; C3: -0.166666566
+        .byte $00, $00, $00, $00, 128   ; C1:  1.000000000
 
 ; Calcuates the cosine of the value in FP0.
 ; This is just the sine of FP0 value plus pi/2.
@@ -1447,8 +1454,40 @@ fsin:
         lday    #fsin_x                 ; Go get the original argument
         jsr     load_fp0                ; Load it into FP0
         jsr     fsub_2                  ; Subtract giving the remainder of x/2pi
-        ldax    #fp_sin_coefficients    ; Apply Taylor series
-        ldy     #6
+
+        lda     FP0s                    ; Save sign of remainder
+        pha
+        mva     #0, FP0s                ; Take absolute value
+        
+        lday    #fp_pi                  ; Load pi/2 into FP1
+        jsr     load_fp1
+        dec     FP1e
+        lday    #fpoly_x                ; Temporarily store pi/2 in fpoly_x (safe here, it gets clobbered later anyway)
+        jsr     store_fp1
+        
+        lday    #fpoly_x                ; Point ay to pi/2
+        jsr     fcmp                    ; Compare |remainder| with pi/2
+        bcc     @no_fold                ; If |remainder| < pi/2, don't fold
+
+@fold:
+        pla
+        sta     FP0s                    ; Restore original sign
+
+        inc     FP1e                    ; FP1 is now pi
+        lda     FP0s
+        sta     FP1s                    ; FP1 is now sign(x') * pi
+
+        jsr     fneg                    ; FP0 = -remainder
+        jsr     fadd_2                  ; FP0 = sign(x') * pi - remainder
+        jmp     @apply_poly
+
+@no_fold:
+        pla
+        sta     FP0s                    ; Restore original sign
+
+@apply_poly:
+        ldax    #fp_sin_coefficients    ; Apply Chebyshev series
+        ldy     #5                      ; Loop count for 5 Chebyshev coefficients
         jmp     fpoly_odd
 
 ; Calculates the tangent of the value in FP0 as sin/cos.
