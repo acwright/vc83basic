@@ -31,8 +31,8 @@ MAXDIGITS = 10
 
 fp_one:         .byte $00, $00, $00, $00, 128
 fp_ten:         .byte $00, $00, $00, $20, 131
-fp_string_max:  .byte $00, $00, $00, $00, 160       ; 2^32     (4,294,967,296  )
-fp_string_min:  .byte $CC, $CC, $CC, $4C, 156       ; 2^32/10  (  429,496,729.6)
+fp_string_max:  .byte $00, $28, $6B, $6E, 157       ; 10^9     (1,000,000,000)
+fp_string_min:  .byte $00, $20, $BC, $3E, 154       ; 10^8     (100,000,000)
 fp_log_2:       .byte $F8, $17, $72, $31, 127
 fp_sqrt_2:      .byte $33, $F3, $04, $35, 128
 fp_pi:          .byte $81, $CF, $0F, $49, 129
@@ -509,8 +509,8 @@ fp_to_string:
         bpl     @whole                  ; Branch to @whole for the E >= 0 cases
         eor     #$FF                    ; It's easier to deal with E if it's positive so negate it giving (-E - 1)
         adc     #1                      ; Add 1 to complete negation
-        cmp     #11                     ; Check if more than 10 digits
-        bcs     @scientific             ; More than 10 digits; print in scientific notation
+        cmp     #10                     ; Check if more than 9 digits
+        bcs     @scientific             ; More than 9 digits; print in scientific notation
         sta     E                       ; E = -E
         lda     D                       ; Calculate D - E
         sec
@@ -552,8 +552,8 @@ fp_to_string:
 
 @whole:
         adc     D                       ; Add in D
-        cmp     #11                     ; Check if more than 10 digits
-        bcs     @scientific             ; More than 10 digits; print in scientific notation
+        cmp     #10                     ; Check if more than 9 digits
+        bcs     @scientific             ; More than 9 digits; print in scientific notation
         ldy     D                       ; Output D digits
         jsr     output_y_digits
         ldy     E                       ; Followed by E zeros

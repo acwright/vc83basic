@@ -567,9 +567,9 @@ void test_fp_to_string(void) {
     // 0.0314159
     call_fp_to_string(0x00ADF571, 123, "0.0314159", __LINE__);
     // 2,147,483,647
-    call_fp_to_string(0x7FFFFFFE, 158, "2147483647", __LINE__);
+    call_fp_to_string(0x7FFFFFFE, 158, "2.14748364E9", __LINE__);
     // -2,147,483,648
-    call_fp_to_string(0x80000000, 159, "-2147483648", __LINE__);
+    call_fp_to_string(0x80000000, 159, "-2.14748364E9", __LINE__);
     // 2^36
     call_fp_to_string(0x00000000, 164, "6.87194767E10", __LINE__);
     // 2^-120
@@ -578,10 +578,12 @@ void test_fp_to_string(void) {
     call_fp_to_string(0x03333333, 128, "1.025", __LINE__);
 
     // Exponent edge cases
-    // +/- 1E9 should print without E
-    // +/- 1E10 should print in scientific
-    call_fp_to_string(0x6E6B2800, 157, "1000000000", __LINE__);
-    call_fp_to_string(0xEE6B2800, 157, "-1000000000", __LINE__);
+    // +/- 1E8 should print without E
+    // +/- 1E9 should print in scientific
+    call_fp_to_string(0x6E6B27FC, 157, "999999999", __LINE__);
+    call_fp_to_string(0xEE6B27FC, 157, "-999999999", __LINE__);
+    call_fp_to_string(0x3EBC2000, 154, "100000000", __LINE__);
+    call_fp_to_string(0xBEBC2000, 154, "-100000000", __LINE__);
     call_fp_to_string(0x1502F900, 161, "1E10", __LINE__);
     call_fp_to_string(0x9502F900, 161, "-1E10", __LINE__);
 }
