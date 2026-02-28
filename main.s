@@ -5,7 +5,7 @@
 ready_message: .byte "READY"
 ready_message_length = * - ready_message
 
-error_message: .byte "ERROR: "
+error_message: .byte "ERR: "
 error_message_length = * - error_message
 
 error_message_2: .byte " AT "
