@@ -11,10 +11,11 @@ BRKVEC      := $03F0    ; Break vector
 SOFTEV      := $03F2    ; Vector for warm start
 PWREDUP     := $03F4    ; This must be = EOR #$A5 of SOFTEV+1
 
+SETTXT      := $FB39
+SETGR       := $FB40
 HOME        := $FC58
 KEYIN       := $FD1B
 GETLN       := $FD6A
 GETLNNOPMPT := $FD6F
 CROUT       := $FD8E
 COUT        := $FDED
-

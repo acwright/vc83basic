@@ -530,13 +530,20 @@ rebase_pvm_program_ptr:
 
 pvm_statement:
         WS
-        TRY @impl_let                   ; Sets savepoint and start of keyword
+        TRY @extension                  ; Sets savepoint and start of keyword
         CALL pvm_name
         TOKENIZE statement_name_table
         DISPATCH                        ; Note: performs JUMP
 
+@extension:
+        TRY @impl_let                   ; Look for an extension statement
+        CALL pvm_name
+        TOKENIZE ex_statement_name_table
+        COMPOSE TOKEN_EXTENSION
+        DISPATCH
+
 @impl_let:
-        EMIT ST_IMPL_LET
+        EMIT ST_IMPL_LET                ; Try implied LET
 
 pvm_let:
         CALL pvm_var

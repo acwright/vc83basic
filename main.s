@@ -114,10 +114,19 @@ main:
 
 ; Decodes and executes one statement from the token stream.
 
+.assert TOKEN_EXTENSION = $80, error
+
 exec_statement:
         jsr     decode_byte             ; Get statement number
+        bmi     @extension              ; It's an extension
         tay
         ldax    #statement_exec_vectors
+        jmp     invoke_indexed_vector
+
+@extension:
+        and     #$7F
+        tay
+        ldax    #ex_statement_exec_vectors
         jmp     invoke_indexed_vector
 
 statement_exec_vectors:

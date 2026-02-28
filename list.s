@@ -83,8 +83,14 @@ list_statement:
         inc     line_pos                ; Skip past the next statement offset; we don't use it
 @then:
         jsr     decode_byte             ; Get statement token
+        bmi     @extension              ; It's an extension
         tay                             ; Set up for list_tokenized_name
         ldax    #statement_name_table
+        bne     @token                  ; Unconditional
+@extension:
+        and     #$7F
+        tay
+        ldax    #ex_statement_name_table
 @token:
         jsr     expand_tokenized_name
         ldy     line_pos                ; Exit w/o adding whitespace if there's no more data on the line

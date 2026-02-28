@@ -169,6 +169,7 @@ void test_pvm_statement(void) {
     const char data_line_data_1[] = { ST_DATA, 'H', 'E', 'L', 'L', 'O', ',', '\"', 'X', ',', 'Y', '\"', ',', '5' };
     const char poke_line_data_1[] = { ST_POKE, '7', '1', '0', ',', '0' };
     const char dim_line_data_1[] = { ST_DIM, 'A' | EOT, '(', '5', ')'  };
+    const char extension_line_data_1[] = { TOKEN_EXTENSION | 0 };
 
     PRINT_TEST_NAME();
 
@@ -215,6 +216,9 @@ void test_pvm_statement(void) {
 
     // DIM
     call_parse_pvm("DIM A(5)", pvm_statement, dim_line_data_1, sizeof dim_line_data_1, __LINE__);
+
+    // BYE (extension statement)
+    call_parse_pvm("BYE", pvm_statement, extension_line_data_1, sizeof extension_line_data_1, __LINE__);
 }
 
 void call_parse_line(const char* s, const Line* expect_line, int line) {
