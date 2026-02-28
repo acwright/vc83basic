@@ -78,9 +78,6 @@ word(himem_ptr, void*)
 comment The line number sought by find_line
 word(line_number)
 
-comment NAME_STATE is the set of zero page values that parse_statement restores after parsing a directive
-block(NAME_STATE, 5)
-
 comment Pointer to current name table entry
 word(name_ptr, char*)
 
@@ -90,18 +87,11 @@ word(next_name_ptr, const char*)
 comment Index of name in name table
 byte(name_index)
 
-endblock(NAME_STATE)
-
-comment PARSER_STATE is the set of zero page values we restore when a parse fails
-block(PARSER_STATE, 2)
-
 comment Read/write position in buffer
 byte(buffer_pos)
 
 comment Read/write position in line
 byte(line_pos)
-
-endblock(PARSER_STATE)
 
 comment The next value of line_pos (analogous to next_line_ptr)
 byte(next_line_pos)
