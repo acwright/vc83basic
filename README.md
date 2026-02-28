@@ -108,14 +108,6 @@ Located in the `tests/` directory (e.g., `fp_test.c`). These tests are written i
 ### Expect Tests
 Located in `expect_tests/`. These are integration tests that use the `expect` tool to feed BASIC commands into `sim65 basic_sim6502` and verify the output. This ensures the interpreter behaves correctly from a user's perspective.
 
-## Extending BASIC to a New Platform
-
-To add support for a new hardware platform:
-1.  **Linker Config**: Create an `ld65` configuration file (e.g., `myplatform/myplatform.cfg`).
-2.  **Initialization**: Implement platform-specific startup and I/O (`readline`, `write`, `putch`) in its own directory.
-3.  **Master Assembly File**: Create a `basic_{target}.s` file that `.include`s `basic.inc` and all your platform-specific assembly files.
-4.  **Makefile**: Add the new target to the `TARGETS` list in the `Makefile` and define the build rules.
-
 ## VC83 BASIC vs. Microsoft BASIC
 
 VC83 BASIC has a few improvements over Microsoft BASIC:
@@ -128,9 +120,18 @@ like it should be an unfixable problem.
 
 ## What's missing?
 
-My goal was to fit the BASIC core into 8K. But in order to get there, I had to remove all platform-specific features
-from the core, such as I/O functions and graphics and sound statements. So the BASIC interpreter that will be actually
+My goal was to fit the BASIC core into 8K. But in order to get there, I had to remove platform-specific features
+such as I/O and graphics and sound statements from the core. So the BASIC interpreter that will be actually
 run on real hardware will probably be 10K, 12K, or even 16K.
+
+## Extending BASIC to a New Platform
+
+To add support for a new hardware platform:
+1.  **Linker Config**: Create an `ld65` configuration file (e.g., `{platform}/{platform}.cfg`).
+2.  **Initialization**: Implement platform-specific startup and mandatory I/O (`readline`, `write`, `putch`) in its own directory.
+3.  **Master Assembly File**: Create a `basic_{platform}.s` file that `.include`s `basic.inc` and all your platform-specific assembly files.
+4.  **Makefile**: Add the new target to the `TARGETS` list in the `Makefile` and define the build rules.
+5.  **Extensions (optional)**: You can implement platform-specific extensions. See `apple2_extension.s` for an example.
 
 VC83 BASIC does not include DEF FN or ON ERROR statements. Let me know if these are important.
 
@@ -148,4 +149,3 @@ Contributions are welcome! Please keep the following in mind:
 *   **Pull Requests**: Pull requests are welcome, but we can't guarantee that we'll merge them.
 *   **Discussion**: To improve the chance of your contribution being accepted, please reach out or open an issue to discuss your proposed changes before starting work.
 *   **Forking**: You're welcome to fork the project and use it with or without changes in your own projects, subject to the terms of the [MIT License](LICENSES/MIT.txt).
-
