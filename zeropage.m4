@@ -144,9 +144,6 @@ byte(good_stack_pos)
 comment Minimum operator precedence used in process_operators
 byte(min_precedence)
 
-comment The number we're dispatching in an ON...GOTO/GOSUB statement
-byte(on_value)
-
 comment Where to resume execution after STOP
 word(resume_line_ptr, Line*)
 

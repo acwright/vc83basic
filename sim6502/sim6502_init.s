@@ -18,9 +18,6 @@ initialize_target:
         sta     $FFFE                   ; BRK vector low byte
         lda     #>debug_handler
         sta     $FFFF                   ; BRK vector high byte
-        ldax    #fp_pi                  ; Initialize the random number generator with pi
-        jsr     load_fp0
-        jsr     initialize_rnd_value
         rts
 
 ; Buffers

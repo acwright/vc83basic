@@ -179,6 +179,9 @@ initialize:
         ldax    #free_message
         ldy     #free_length
         jsr     write
-        jmp     newline
+        jsr     newline
+        ldax    #fp_pi                  ; Initialize the random number generator with pi
+        jsr     load_fp0
+        jmp     initialize_rnd_value
 
 .code
