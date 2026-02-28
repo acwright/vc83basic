@@ -6,6 +6,8 @@ SPDX-License-Identifier: MIT
 
 # VC83 BASIC for 6502
 
+![VC83 BASIC running on an Apple II](VC83_on_Apple_II_small.jpg)
+
 A floating-point BASIC interpreter for the 6502 microprocessor, targeting the Apple II and the `sim65` simulator.
 
 ## Necessary Tools
