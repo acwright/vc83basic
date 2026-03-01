@@ -37,7 +37,8 @@ void test_list_statement(void) {
     const char function_line_data_2[] = { 0, ST_PRINT, TOKEN_FUNCTION | 6, '(', '"', 'H', 'E', 'L', 'L', 'O', '"', ',', '2', ',', '3', ')', 0 };
     const char expression_line_data_1[] = { 0, ST_PRINT, '1', TOKEN_OP | OP_ADD, '1', TOKEN_OP | OP_ADD, '1', 0 };
     const char expression_line_data_2[] = { 0, ST_PRINT, '1', TOKEN_OP | OP_ADD, '(', '1', TOKEN_OP | OP_ADD, '1', ')', 0 };
-    const char expression_line_data_3[] = { 0, ST_PRINT, '"', 'H', 'E', 'L', 'L', 'O', '"', TOKEN_OP | OP_CONCAT, '"', ',', ' ', 'W', 'O', 'R', 'L', 'D', '"', 0 };
+    const char expression_line_data_3[] = { 0, ST_PRINT, '3', '1', '4', '.', '1', '5', TOKEN_OP | OP_DIV, '1', '0', TOKEN_OP | OP_POW, '2', TOKEN_OP | OP_MUL, 'X', 0 };
+    const char expression_line_data_4[] = { 0, ST_PRINT, '"', 'H', 'E', 'L', 'L', 'O', '"', TOKEN_OP | OP_CONCAT, '"', ',', ' ', 'W', 'O', 'R', 'L', 'D', '"', 0 };
     const char for_line_data_1[] = { 0, ST_FOR, 'X' | EOT, '=', '1', TOKEN_CLAUSE | CLAUSE_TO, '5', 0 };
     const char for_line_data_2[] = { 0, ST_FOR, 'X' | EOT, '=', '1', TOKEN_CLAUSE | CLAUSE_TO, '2', '0', TOKEN_CLAUSE | CLAUSE_STEP, '2', 0 };
     const char let_line_data_1[] = { 0, ST_LET, 'X' | EOT, '=', '1', '0', '0', 0 };
@@ -75,7 +76,8 @@ void test_list_statement(void) {
     call_list_statement(function_line_data_2, sizeof function_line_data_2, "PRINT MID$(\"HELLO\",2,3)", __LINE__);
     call_list_statement(expression_line_data_1, sizeof expression_line_data_1, "PRINT 1+1+1", __LINE__);
     call_list_statement(expression_line_data_2, sizeof expression_line_data_2, "PRINT 1+(1+1)", __LINE__);
-    call_list_statement(expression_line_data_3, sizeof expression_line_data_3, "PRINT \"HELLO\"&\", WORLD\"", __LINE__);
+    call_list_statement(expression_line_data_3, sizeof expression_line_data_3, "PRINT 314.15/10^2*X", __LINE__);
+    call_list_statement(expression_line_data_4, sizeof expression_line_data_4, "PRINT \"HELLO\"&\", WORLD\"", __LINE__);
     call_list_statement(for_line_data_1, sizeof for_line_data_1, "FOR X=1 TO 5", __LINE__);
     call_list_statement(for_line_data_2, sizeof for_line_data_2, "FOR X=1 TO 20 STEP 2", __LINE__);
     call_list_statement(let_line_data_1, sizeof let_line_data_1, "LET X=100", __LINE__);
