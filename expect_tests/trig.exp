@@ -10,15 +10,27 @@ spawn_basic
 test "PRINT SIN(0)\n" "0\n"
 test "PRINT SIN(1)\n" "0.841470985\n"
 
+# TODO: SIN() expects 1 argument.
+# test "PRINT SIN()\n" "ERR: ARITY?\n"
+# test "PRINT SIN(1, 2)\n" "ERR: ARITY?\n"
+
 # COS
 
 test "PRINT COS(0)\n" "1\n"
 test "PRINT COS(1)\n" "0.540301189\n"
 
+# TODO: COS() expects 1 argument.
+# test "PRINT COS()\n" "ERR: ARITY?\n"
+# test "PRINT COS(1, 2)\n" "ERR: ARITY?\n"
+
 # TAN
 
 test "PRINT TAN(0)\n" "0\n"
 test "PRINT TAN(1)\n" "1.55741094\n"
+
+# TODO: TAN() expects 1 argument.
+# test "PRINT TAN()\n" "ERR: ARITY?\n"
+# test "PRINT TAN(1, 2)\n" "ERR: ARITY?\n"
 
 # ATN
 
@@ -28,17 +40,33 @@ test "PRINT ATN(0.5)\n" "0.463647589\n"
 test "PRINT ATN(2)\n" "1.10714741\n"
 test "PRINT ATN(-1)\n" "-0.78539864\n"
 
+# TODO: ATN() expects 1 argument.
+# test "PRINT ATN()\n" "ERR: ARITY?\n"
+# test "PRINT ATN(1, 2)\n" "ERR: ARITY?\n"
+
 # LOG
 
 test "PRINT LOG(1)\n" "0\n"
 test "PRINT LOG(2.71828183)\n" "1\n"
+
+# TODO: LOG() expects 1 argument.
+# test "PRINT LOG()\n" "ERR: ARITY?\n"
+# test "PRINT LOG(1, 2)\n" "ERR: ARITY?\n"
 
 # EXP
 
 test "PRINT EXP(0)\n" "1\n"
 test "PRINT EXP(1)\n" "2.71828182\n"
 
+# TODO: EXP() expects 1 argument.
+# test "PRINT EXP()\n" "ERR: ARITY?\n"
+# test "PRINT EXP(1, 2)\n" "ERR: ARITY?\n"
+
 # SQR
 
 test "PRINT SQR(4)\n" "2\n"
 test "PRINT SQR(2)\n" "1.41421355\n"
+
+# TODO: SQR() expects 1 argument.
+# test "PRINT SQR()\n" "ERR: ARITY?\n"
+# test "PRINT SQR(1, 2)\n" "ERR: ARITY?\n"

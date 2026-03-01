@@ -152,6 +152,20 @@ PRINT INT(3.9), INT(-3.1), INT(-3.9)
 3               -3              -3
 }
 
+# TODO: INT() expects 1 argument.
+# test {
+# PRINT INT()
+# } {
+# ERR: ARITY?
+# }
+
+# TODO: INT(1, 2) expects 1 argument.
+# test {
+# PRINT INT(1, 2)
+# } {
+# ERR: ARITY?
+# }
+
 test {
 PRINT ROUND(3.4), ROUND(3.5), ROUND(-3.4), ROUND(-3.5)
 } {
@@ -164,11 +178,39 @@ PRINT ABS(3.14), ABS(-3.14), ABS(0)
 3.14            3.14            0
 }
 
+# TODO: ABS() expects 1 argument.
+# test {
+# PRINT ABS()
+# } {
+# ERR: ARITY?
+# }
+
+# TODO: ABS(1, 2) expects 1 argument.
+# test {
+# PRINT ABS(1, 2)
+# } {
+# ERR: ARITY?
+# }
+
 test {
 PRINT SGN(5), SGN(-5), SGN(0)
 } {
 1               -1              0
 }
+
+# TODO: SGN() expects 1 argument.
+# test {
+# PRINT SGN()
+# } {
+# ERR: ARITY?
+# }
+
+# TODO: SGN(1, 2) expects 1 argument.
+# test {
+# PRINT SGN(1, 2)
+# } {
+# ERR: ARITY?
+# }
 
 # FRE
 # TODO: FRE(0) returns negative value in sim65 due to 16-bit signed integer limits.
