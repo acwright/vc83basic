@@ -1,0 +1,16 @@
+SPDX-License-Identifier: LicenseRef-Official-Branding
+SPDX-FileCopyrightText: 2022-2026 Willis Blackburn
+
+OFFICIAL BRANDING & TRADEMARK LICENSE
+
+1. PERMITTED USE: You may use the project name and logos to distribute 
+   unmodified copies of this software as provided in this repository.
+   
+2. RESTRICTIONS ON MODIFIED VERSIONS: If you modify the source code, 
+   create a fork, or produce any derivative work, you MUST:
+   a) Remove all original logos and branding.
+   b) Rename the software to a name that is not confusingly similar 
+      to the original.
+
+3. NO ENDORSEMENT: Use of the branding does not imply endorsement 
+   by the original authors.

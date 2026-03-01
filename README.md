@@ -11,7 +11,7 @@ SPDX-License-Identifier: MIT
 A floating-point BASIC interpreter for the 6502 microprocessor, targeting the Apple II and the `sim65` simulator,
 with the capability of being extended to other platforms.
 
-## Necessary Tools
+## Tools
 
 To build and test the project, you need the following tools in your `PATH`:
 
@@ -35,7 +35,7 @@ The project uses `.m4` files to ensure consistency across Assembly, C, and inclu
 
 ## How to Run
 
-### sim65 (Simulator)
+### sim6502 (Simulator)
 The simulation version can be run directly from the command line:
 ```bash
 sim65 basic_sim6502
@@ -69,19 +69,21 @@ The interpreter manages memory using several zero-page pointers:
 
 ## General Structure of the Interpreter
 
-### Parser and Virtual Machine
+### Parser Virtual Machine
 The parser converts user input into a tokenized program. It is controlled by a **Parser Virtual Machine (PVM)** that uses a domain-specific language (DSL) defined in `parser.s`.
 *   **Objective**: Detect syntax errors up-front and replace keywords with 1-byte tokens for efficient execution.
 *   **Type checking**: Notably, the parser does *not* perform type checking; this is handled at runtime.
 *   **LIST command**: Handles the reverse process, expanding tokens back into human-readable code.
 
-### Execution
-The interpreter uses two stacks for expression evaluation:
-1.  **Value stack**: Holds intermediate numerical and string values.
+### Execution and Flow Control
+The interpreter uses two stacks for expression evaluation and flow control:
+1.  **Primary stack**: Holds intermediate numerical and string values, as well as the
+control structure used for `GOSUB` AND `FOR`. The `POP` command removes one control structure from this stack.
 2.  **Operator stack**: Holds pending operators to respect precedence.
-Most statements and functions are implemented by pushing values onto the stack and popping them to perform operations.
 
-## Floating Point System
+Most statements and functions are implemented by pushing values onto the primary stack and popping them to perform operations.
+
+## Floating Point Support
 
 VC83 BASIC uses a custom 5-byte floating-point format documented in `fp.s`:
 *   **Format**: `sttttttt tttttttt tttttttt tttttttt eeeeeeee`
@@ -93,6 +95,11 @@ VC83 BASIC uses a custom 5-byte floating-point format documented in `fp.s`:
     *   **Unary functions** (e.g., `SIN`, `LOG`, `NEG`) always operate on `FP0`.
     *   **Binary functions** (e.g., `FADD`, `FMUL`) operate on `FP0` and an "argument" value. The address of the argument is passed in `AX` and loaded into `FP1` before the operation.
 
+While VC83 BASIC uses the same number of bits to represent a floating point value as Microsoft BASIC, note that
+the implied digit is 1, vs. 0 in Microsoft BASIC.
+
+The floating point system does not support subnormal values (it underflows instead), NaN, or infinity.
+
 ## Strings
 
 Strings in VC83 BASIC are stored with the following structure:
@@ -101,7 +108,7 @@ Strings in VC83 BASIC are stored with the following structure:
 *   **Allocation**: The interpreter creates new strings by moving `string_ptr` down and writing the new string at the new `string_ptr` location. Thus, `string_ptr` always points to the most recently created string.
 *   **Garbage collection**: When `string_ptr` reaches `free_ptr`, the interpreter triggers a garbage collector.
     *   The collector moves all still-referenced strings to the top of the string space (towards `himem_ptr`).
-    *   During collection, the two extra bytes following each string are used to store a forwarding address to facilitate the move.
+    *   During collection, the two extra bytes following each string are used to store a forwarding address.
 
 ## Testing
 
@@ -127,6 +134,8 @@ My goal was to fit the BASIC core into 8K. But in order to get there, I had to r
 such as I/O and graphics and sound statements from the core. So the BASIC interpreter that will be actually
 run on real hardware will probably be 10K, 12K, or even 16K.
 
+VC83 BASIC does not support for DEF FN or ON ERROR. Let me know if these are important.
+
 ## Extending BASIC to a New Platform
 
 To add support for a new hardware platform:
@@ -136,19 +145,15 @@ To add support for a new hardware platform:
 4.  **Makefile**: Add the new target to the `TARGETS` list in the `Makefile` and define the build rules.
 5.  **Extensions (optional)**: You can implement platform-specific extensions. See `apple2_extension.s` for an example.
 
-VC83 BASIC does not include DEF FN or ON ERROR statements. Let me know if these are important.
-
 ## License
 
-VC83 BASIC is available to you under the terms of the [MIT License](LICENSES/MIT.txt). This generally means you can
-use it for whatever, provided that the copyright notice and license terms are "included in all copies or substantial
-portions of the Software."
+VC83 BASIC is available to you under the terms of the [MIT License](LICENSES/MIT.txt). You're welcome to use it with or without changes in your own projects, provided you adhere to the license terms. 
+
+The VC83 name itself and logo are restricted. [You can share the official version](LICENSES/LicenseRef-Official-Branding.txt), but forks must be rebranded.
 
 ## Contributing
 
 Contributions are welcome! Please keep the following in mind:
 
 *   **Licensing**: By contributing code to this project, you agree to license your contribution under the [MIT License](LICENSES/MIT.txt).
-*   **Pull requests**: Pull requests are welcome, but we can't guarantee that we'll merge them.
-*   **Discussion**: To improve the chance of your contribution being accepted, please reach out or open an issue to discuss your proposed changes before starting work.
-*   **Forking**: You're welcome to fork the project and use it with or without changes in your own projects, subject to the terms of the [MIT License](LICENSES/MIT.txt).
+*   **Pull requests**: Pull requests are welcome, but we can't guarantee that we'll merge them. To improve the chance of your contribution being accepted, please reach out or open an issue to discuss your proposed changes before starting work.
