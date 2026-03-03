@@ -481,7 +481,6 @@ typedef struct ComparisonTestCase {
 } ComparisonTestCase;
 
 const ComparisonTestCase comparison_test_cases[] = {
-    // TODO: fix! Exponent for subnormal cases should be 1.
     // 0 <=> 0
     { { 0x00000000,   0 }, { 0x00000000,   0 },  0 },
     // 1 <=> 0

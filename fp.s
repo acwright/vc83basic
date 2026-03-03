@@ -15,8 +15,7 @@
 ;
 ; In this module:
 ; Both B and C are used by the normalize function. B holds the rounding byte. C holds the high byte of the exponent.
-; B and C is also used in fdiv to accumulate quotient bits and to track the exponent adjustment introduced by
-; normalizing a subnormal divisor.
+; B and C are also used in fdiv to accumulate quotient bits.
 ; D and E are used by the string conversion functions.
 
 BIAS = 128
@@ -130,7 +129,7 @@ copy_fp0_fp1:
         ldx     #FP1t
 
 ; Copies the significand of FP0 to another register.
-; X = either #FP1t, #FPX
+; X = either #FP1, #FP1t, #FPX
 
 copy_significand_fp0_fp:
         lda     FP0t
@@ -1044,7 +1043,6 @@ fpoly_2:
         jmp     @next
         
 @done:
-        clc                             ; Signal success (last operation was load_fp0 which does not clear carry)
         rts
 
 ; Variation of fpoly that only includes coefficients of odd powers.

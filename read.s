@@ -83,14 +83,11 @@ exec_read:
 ; RESTORE statement:
 
 exec_restore:
-        jsr     reset_data
-
-; Fall through
+        jmp     reset_data
 
 ; REM and DATA statements:
 ; Do nothing when encountering these two statements.
 
 exec_rem:
 exec_data:
-        clc
         rts
