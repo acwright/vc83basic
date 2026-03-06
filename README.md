@@ -42,16 +42,23 @@ sim65 basic_sim6502
 ```
 
 ### Apple II
-The file `basic_apple2` is an Apple II executable. To run it:
-1.  Create an Apple II disk image (DOS 3.3).
-2.  Add the `basic_apple2` file to the disk image. You can use tools like [AppleCommander](https://applecommander.github.io/):
+The file `basic_apple2` is an [AppleSingle](https://nulib.com/library/AppleSingle_AppleDouble.pdf)-format executable. To run it:
+1.  Create an Apple II disk image (DOS 3.3). You can use a tool like [AppleCommander](https://applecommander.github.io/):
     ```bash
-    # Create a New DOS 3.3 disk image
-    java -jar ac.jar -dos140 disk.dsk
-    # Add the binary as a BIN file
-    java -jar ac.jar -p disk.dsk basic bin < basic_apple2
+    java -jar ac.jar -dos140 basic.dsk
     ```
-3.  Boot the disk in an emulator or on real hardware and run it using `BRUN BASIC`.
+2.  Add the `basic_apple2` file to the disk image. Use `-as` because this is an AppleSerial file.
+    ```bash
+    java -jar ac.jar -as basic.dsk basic < basic_apple2
+    ```
+3.  Boot a DOS 3.3 disk in an emulator, insert the BASIC disk, and run it using `BRUN BASIC` (or `BRUN BASIC,D2` if you put `basic.dsk` in the second drive.) If you don't have an
+emulator, try the one at [apple2ts.com](https://apple2ts.com).
+
+Instead of creating a new disk image, you can duplicate an existing DOS 3.3 disk image (search around for "blank DOS 3.3 boot disk" or something like that), then
+you can boot and run BASIC from the same disk.
+
+To run on actual hardware, you need to put `basic.dsk` onto an actual physical disk, or on a disk emulator like
+a [Floppy Emu](https://www.bigmessowires.com/floppy-emu/).
 
 ## Memory Map
 
