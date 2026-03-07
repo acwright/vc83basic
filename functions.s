@@ -260,9 +260,12 @@ fun_sgn:
 
 fun_sqr:
         jsr     pop_fp0
+        lda     FP0e                    ; Check for 0
+        beq     @done
         jsr     flog                    ; Take logarithm
         dec     FP0e                    ; Decrement exponent to divide by 2
         jsr     fexp                    ; Raise again
+@done:
         jmp     push_fp0
 
 fun_str_s:

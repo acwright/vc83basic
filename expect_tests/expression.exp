@@ -89,3 +89,12 @@ test "PRINT 1+(2*3)\n" "7\n"
 test "PRINT (1+2)*3\n" "9\n"
 test "PRINT (3*2+1)*3\n" "21\n"
 test "PRINT (3*(2+1))*3\n" "27\n"
+
+# Exceptions
+
+test {
+PRINT 1/0
+RUN
+} {
+ERR: DIV/0
+}

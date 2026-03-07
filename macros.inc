@@ -234,3 +234,19 @@
         raise   error
 :
 .endmacro
+
+; Raises an error if the N flag is set.
+
+.macro raimi error
+        bpl     :+
+        raise   error
+:
+.endmacro
+
+; Raises an error if the N flag is clear.
+
+.macro raipl error
+        bmi     :+
+        raise   error
+:
+.endmacro

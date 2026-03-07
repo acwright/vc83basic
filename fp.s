@@ -1406,7 +1406,10 @@ fp_log_coefficients:
 flog:
         lday    #flog_x                 ; Store the original argument
         jsr     store_fp0
+        lda     FP0s                    ; Check the sign
+        bmi     @out_of_range           ; Fail if input is negative
         lda     FP0e                    ; Load the exponent into A
+        beq     @out_of_range           ; Fail if input is 0
         ldx     #0                      ; High byte of exponent is 0
         sec
         sbc     #BIAS                   ; Remove the bias
@@ -1445,6 +1448,9 @@ flog:
         jsr     load_fp1                ; Load log(2) info FP1
         dec     FP1e                    ; Synthesize log(sqrt(2)) as log(2)/2
         jmp     fadd_2
+
+@out_of_range:
+        raise   ERR_OUT_OF_RANGE
 
 fexp_x = fp_scratch + .sizeof(Float) * 2
 fexp_k = fp_scratch + .sizeof(Float) * 3
