@@ -83,7 +83,22 @@ exec_read:
 ; RESTORE statement:
 
 exec_restore:
+        ldy     line_pos
+        lda     (line_ptr),y            ; Peek next byte
+        bne     @has_line_number
         jmp     reset_data
+
+@has_line_number:
+        ldphaa  next_line_ptr           ; get_line will clobber these
+        ldpha   next_line_pos
+        jsr     get_line_number
+        jsr     get_line
+        ldax    next_line_ptr
+        jsr     reset_data_2
+        plsta   next_line_pos
+        plstaa  next_line_ptr
+
+@no_line_number:
 
 ; REM and DATA statements:
 ; Do nothing when encountering these two statements.

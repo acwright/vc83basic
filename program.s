@@ -53,7 +53,9 @@ reset_program:
 ; These point into the program, so we have to invalidate them whenever the program changes.
 
 reset_data:
-        mvax    program_ptr, data_line_ptr          ; Begin reading DATA at start of program
+        ldax    program_ptr                         ; Begin reading DATA at start of program
+reset_data_2:
+        stax    data_line_ptr
         mva     #.sizeof(Line) + 2, data_line_pos   ; Skip 1 for DATA, 1 for next statement offset
         rts
 

@@ -80,19 +80,19 @@ RUN
 1               2               3
 }
 
-# RESTORE with line number (not currently supported by interpreter)
-# test {
-# 10 DATA 1,2,3,4
-# 20 DATA 5,6,7,8
-# 30 READ A,B
-# 40 RESTORE 20
-# 50 READ C,D
-# 60 PRINT A,B,C,D
-# RUN
-# } {
-# 1               2               5               6
-# }
-# TODO: RESTORE line_number is accepted by parser but ignored by exec_restore.
+# RESTORE with line number
+
+test {
+10 DATA 1,2,3,4
+20 DATA 5,6,7,8
+30 READ A,B
+40 RESTORE 20
+50 READ C,D
+60 PRINT A,B,C,D
+RUN
+} {
+1               2               5               6
+}
 
 # RUN performs RESTORE
 
