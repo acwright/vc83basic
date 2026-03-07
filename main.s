@@ -20,8 +20,6 @@ error_message_2_length = * - error_message_2
 main:
         jsr     initialize              ; initialize is in ONCE segment and will be clobbered after it returns
         jsr     initialize_program
-        tsx                             ; Remember the stack pointer so we can return to main later
-        stx     exception_handler_sp
         lda     #PS_READY               ; Will be passed through install_exception_handler
         jsr     install_exception_handler
 
