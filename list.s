@@ -158,10 +158,10 @@ expand_tokenized_name:
         lda     (name_ptr),y
         and     #<~EOT                  ; In case EOT is set
         beq     @done                   ; If first character is just EOT the output nothing
-        cmp     #'A'                    ; Only add whitespace before tokenized name if it starts with a letter
-        bcc     @next_name_byte
-        cmp     #'^'                    ; ^ is always a pain because it's not grouped with other symbols
-        beq     @next_name_byte
+        sec
+        sbc     #'?'                    ; Skip whitespace if character outside the range '?'-'Z'
+        cmp     #28
+        bcs     @next_name_byte
         jsr     add_whitespace
 @next_name_byte:
         lda     (name_ptr),y

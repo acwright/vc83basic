@@ -19,11 +19,11 @@ def(TOKEN_EX_STATEMENT, hex(80)) comment OR with index of extension statement
 
 comment Statement tokens
 
-def(ST_IMPL_LET,        0)
-def(ST_LET,             1)
+def(ST_LET,             0)
+def(ST_IMPL_LET,        1)
 def(ST_RUN,             2)
 def(ST_PRINT,           3)
-def(ST_INPUT,           4)
+def(ST_ALT_PRINT,       4)
 def(ST_LIST,            5)
 def(ST_GOTO,            6)
 def(ST_GOSUB,           7)
@@ -44,6 +44,7 @@ def(ST_READ,           21)
 def(ST_RESTORE,        22)
 def(ST_POKE,           23)
 def(ST_END,            24)
+def(ST_INPUT,          25)
 
 comment Binary operator tokens: combine with TOKEN_OP
 

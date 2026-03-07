@@ -30,3 +30,25 @@ PRINT "PI=";PI
 } {
 PI=3.14159
 }
+
+# Conatenation
+
+test {
+PRINT 1,200,30000
+} {
+1               200             30000
+}
+
+test {
+PRINT 1;200;30000
+} {
+120030000
+}
+
+# Alternate '?' syntax
+
+test {
+?0
+} {
+0
+}

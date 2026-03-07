@@ -42,6 +42,8 @@ void test_list_statement(void) {
     const char expression_line_data_2[] = { 0, ST_PRINT, '1', TOKEN_OP | OP_ADD, '(', '1', TOKEN_OP | OP_ADD, '1', ')', 0 };
     const char expression_line_data_3[] = { 0, ST_PRINT, '3', '1', '4', '.', '1', '5', TOKEN_OP | OP_DIV, '1', '0', TOKEN_OP | OP_POW, '2', TOKEN_OP | OP_MUL, 'X', 0 };
     const char expression_line_data_4[] = { 0, ST_PRINT, '"', 'H', 'E', 'L', 'L', 'O', '"', TOKEN_OP | OP_CONCAT, '"', ',', ' ', 'W', 'O', 'R', 'L', 'D', '"', 0 };
+    const char print_line_data_1[] = { 0, ST_PRINT, 'X' | EOT, ',', 'Y' | EOT, ';', 'Z' | EOT, 0 };
+    const char print_line_data_2[] = { 0, ST_ALT_PRINT, 'X' | EOT, ',', 'Y' | EOT, ';', 'Z' | EOT, 0 };
     const char for_line_data_1[] = { 0, ST_FOR, 'X' | EOT, '=', '1', TOKEN_CLAUSE | CLAUSE_TO, '5', 0 };
     const char for_line_data_2[] = { 0, ST_FOR, 'X' | EOT, '=', '1', TOKEN_CLAUSE | CLAUSE_TO, '2', '0', TOKEN_CLAUSE | CLAUSE_STEP, '2', 0 };
     const char let_line_data_1[] = { 0, ST_LET, 'X' | EOT, '=', '1', '0', '0', 0 };
@@ -82,6 +84,8 @@ void test_list_statement(void) {
     call_list_statement(expression_line_data_2, sizeof expression_line_data_2, "PRINT 1+(1+1)", __LINE__);
     call_list_statement(expression_line_data_3, sizeof expression_line_data_3, "PRINT 314.15/10^2*X", __LINE__);
     call_list_statement(expression_line_data_4, sizeof expression_line_data_4, "PRINT \"HELLO\"&\", WORLD\"", __LINE__);
+    call_list_statement(print_line_data_1, sizeof print_line_data_1, "PRINT X,Y;Z", __LINE__);
+    call_list_statement(print_line_data_2, sizeof print_line_data_2, "?X,Y;Z", __LINE__);
     call_list_statement(for_line_data_1, sizeof for_line_data_1, "FOR X=1 TO 5", __LINE__);
     call_list_statement(for_line_data_2, sizeof for_line_data_2, "FOR X=1 TO 20 STEP 2", __LINE__);
     call_list_statement(let_line_data_1, sizeof let_line_data_1, "LET X=100", __LINE__);
@@ -111,17 +115,21 @@ void call_list_line(const Line* test_line, const char* expect_buffer, int line) 
 
 void test_list_line(void) {
 
+    const Line print_line_1 = { 11, 10, { 9, ST_PRINT, 'X' | EOT, ',', 'Y' | EOT, ';', 'Z' | EOT, 0 } };
+    const Line print_line_2 = { 11, 10, { 9, ST_ALT_PRINT, 'X' | EOT, ',', 'Y' | EOT, ';', 'Z' | EOT, 0 } };
     const Line multi_line_1 = { 11, 10, { 11, ST_LET, 'X' | EOT, '=', '1', '0', '0', 0 } };
-    const Line multi_line_2 = { 15, 10, { 11, ST_LET, 'X' | EOT, '=', '1', '0', '0', 0, 15, ST_PRINT, 'X' | EOT, 0 } };
-    const Line multi_line_3 = { 10, 10, { 7, ST_PRINT, '1', 0, 10, ST_END, 0 } };
+    const Line multi_line_2 = { 15, 1000, { 11, ST_LET, 'X' | EOT, '=', '1', '0', '0', 0, 15, ST_PRINT, 'X' | EOT, 0 } };
+    const Line multi_line_3 = { 10, 32767, { 7, ST_PRINT, '1', 0, 10, ST_END, 0 } };
 
     PRINT_TEST_NAME();
 
     initialize_program();
 
+    call_list_line(&print_line_1, "10 PRINT X,Y;Z", __LINE__);
+    call_list_line(&print_line_2, "10 ?X,Y;Z", __LINE__);
     call_list_line(&multi_line_1, "10 LET X=100", __LINE__);
-    call_list_line(&multi_line_2, "10 LET X=100:PRINT X", __LINE__);
-    call_list_line(&multi_line_3, "10 PRINT 1:END", __LINE__);
+    call_list_line(&multi_line_2, "1000 LET X=100:PRINT X", __LINE__);
+    call_list_line(&multi_line_3, "32767 PRINT 1:END", __LINE__);
 }
 
 int main(void) {

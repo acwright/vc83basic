@@ -531,7 +531,7 @@ rebase_pvm_program_ptr:
 pvm_statement:
         WS
         TRY @extension                  ; Sets savepoint and start of keyword
-        CALL pvm_name
+        CALL pvm_statement_name
         TOKENIZE statement_name_table
         DISPATCH                        ; Note: performs JUMP
 
@@ -549,6 +549,8 @@ pvm_let:
         CALL pvm_var
         WS
         MATCH '='
+
+; Fall through
 
 ; Expressions
 
@@ -785,6 +787,11 @@ pvm_text:
 @done:
         RETURN
         
+pvm_statement_name:
+        TRY pvm_name
+        MATCH '?'                       ; A statement name can be '?', normal names aren't
+        RETURN
+
 ; pvm_name does not discard whitespace.
 ; Its only job is to capture an alphanumeric "name."
 
@@ -798,15 +805,15 @@ pvm_name:
         RETURN
 
 statement_name_table:
-        name_table_entry ""             ; Implied LET: won't ever match
-:       name_table_entry "LET"
+        name_table_entry "LET"
             JUMP pvm_let
+:       name_table_entry ""             ; Implied LET: won't ever match
 :       name_table_entry "RUN"
             RETURN
 :       name_table_entry "PRINT"
             JUMP pvm_print_expression
-:       name_table_entry "INPUT"
-            JUMP pvm_var_list
+:       name_table_entry "?"
+            JUMP pvm_print_expression
 :       name_table_entry "LIST"
             JUMP pvm_opt_number_2
 :       name_table_entry "GOTO"
@@ -865,6 +872,8 @@ statement_name_table:
             JUMP pvm_arg_2
 :       name_table_entry "END"
             RETURN
+:       name_table_entry "INPUT"
+            JUMP pvm_var_list
 :       name_table_end
 
 pvm_then:
