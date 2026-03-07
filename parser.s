@@ -869,6 +869,12 @@ statement_name_table:
 :       name_table_entry "END"
             RETURN
 :       name_table_entry "INPUT"
+            TRY @vars
+            CALL pvm_string
+            WS
+            MATCH ';'
+            ACCEPT @vars
+@vars:
             JUMP pvm_var_list
 :       name_table_entry "IF"
             CALL pvm_expression

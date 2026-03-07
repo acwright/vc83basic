@@ -7,8 +7,20 @@
 .assert TYPE_NUMBER = $00, error
 
 exec_input:
+        ldy     line_pos
+        lda     (line_ptr),y            ; Peek next byte
+        cmp     #'"'                    ; Is it a string?
+        bne     @default_prompt
+        jsr     decode_string
+        lday    string_ptr
+        jsr     print_string
+        inc     line_pos                ; Skip the ';'
+        bne     @get_input
+
+@default_prompt:
         lda     #'?'                    ; Prepare to print '?' prompt
         jsr     putch
+@get_input:
         jsr     readline
         mva     #0, buffer_pos          ; Reset the read position
 @next_var:

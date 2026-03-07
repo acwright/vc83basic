@@ -113,3 +113,18 @@ PRINT A$;B$;C$
 } {
 HELLO WORLD WITH "QUOTES"
 }
+
+# Custom prompt
+
+send_echo {
+INPUT "ENTER NAME: ";NAME$
+}
+expect -ex "ENTER NAME: "
+send_echo {
+WILLIS
+}
+test {
+PRINT "YOUR NAME IS ";NAME$
+} {
+YOUR NAME IS WILLIS
+}
