@@ -57,7 +57,7 @@ void test_list_statement(void) {
     const char list_line_data_2[] = { 0, ST_LIST, '1', '0', '0', 0 };
     const char list_line_data_3[] = { 0, ST_LIST, '1', '0', '0', ',', '5', '0', '0', 0 };
     const char data_line_data_1[] = { 0, ST_DATA, 'H', 'E', 'L', 'L', 'O', ',', '\"', 'X', ',', 'Y', '\"', ',', '5', 0 };
-    const char extension_line_data_1[] = { 0, TOKEN_EXTENSION | 0, 0 };
+    const char extension_line_data_1[] = { 0, TOKEN_EX_STATEMENT | 0, 0 };
 
     PRINT_TEST_NAME();
 

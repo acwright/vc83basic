@@ -539,7 +539,7 @@ pvm_statement:
         TRY @impl_let                   ; Look for an extension statement
         CALL pvm_name
         TOKENIZE ex_statement_name_table
-        COMPOSE TOKEN_EXTENSION
+        COMPOSE TOKEN_EX_STATEMENT
         DISPATCH
 
 @impl_let:

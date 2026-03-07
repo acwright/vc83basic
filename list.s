@@ -58,7 +58,6 @@ exec_list:
 
 list_line:
         mvy     #0, buffer_pos          ; Initialize write position in buffer (also set Y to next_line_offset)
-        sty     string_flag             ; Make sure we're not in string mode
         lda     (line_ptr),y            ; Next line offset into A
         beq     @done                   ; If it's the null statement then we're at the end of the program
         jsr     line_number_to_string
@@ -79,6 +78,7 @@ list_line:
 ; Outputs a statement.
 
 .assert CLAUSE_THEN = 0, error
+.assert TOKEN_EX_STATEMENT = $80, error
 
 list_statement:
         inc     line_pos                ; Skip past the next statement offset; we don't use it
@@ -89,7 +89,7 @@ list_statement:
         ldax    #statement_name_table
         bne     @token                  ; Unconditional
 @extension:
-        and     #$7F
+        and     #<~TOKEN_EX_STATEMENT
         tay
         ldax    #ex_statement_name_table
 @token:
@@ -104,25 +104,15 @@ list_statement:
 @next:
         jsr     decode_byte             ; Get the next byte; Y is line_pos
         beq     @done
-        and     #$7F                    ; Clear EOT
-        cmp     #'"'                    ; If it's double quote then just output
-        bne     @check_string_flag
-        lda     string_flag
-        eor     #$80                    ; Toggle bit 7
-        sta     string_flag
-        lda     #'"'                    ; Reload the quote
-@check_string_flag:
-        ldx     string_flag
-        bmi     @output
         sec                             ; Prepare to look for tokens
-        sbc     #$04                    ; Unary operator
+        sbc     #TOKEN_UNARY_OP         ; Unary operator
         cmp     #4
         bcs     @try_clause
         tay
         ldax    #unary_operator_name_table
         bcc     @token
 @try_clause:
-        sbc     #$08 - $04              ; Clause
+        sbc     #TOKEN_CLAUSE - TOKEN_UNARY_OP  ; Clause
         cmp     #8
         bcs     @try_operator
         tay
@@ -134,14 +124,14 @@ list_statement:
         beq     @then                   ; If it was 0 (THEN), restart statement
         bne     @next                   ; Unconditional
 @try_operator:
-        sbc     #$10 - $08              ; Binary operator
+        sbc     #TOKEN_OP - TOKEN_CLAUSE        ; Binary operator
         cmp     #16
         bcs     @try_function
         tay
         ldax    #operator_name_table
         bcc     @token                  ; Unconditional
 @try_function:
-        sbc     #$60 - $10              ; Function
+        sbc     #TOKEN_FUNCTION - TOKEN_OP      ; Function
         cmp     #32
         bcs     @default
         tay
@@ -149,8 +139,8 @@ list_statement:
         jsr     expand_tokenized_name   ; Call directly becuase we don't want to add whitespace after
         jmp     @next
 @default:
-        sbc     #$A0                    ; Subtract to cycle the value A back around to its original value
-@output:
+        sbc     #TOKEN_FUNCTION         ; Subtract to cycle the value A back around to its original value
+        and     #<~EOT                  ; Clear EOT if it's set
         jsr     append_buffer
         bne     @next                   ; Unconditional because append_buffer does INC
 
@@ -166,7 +156,7 @@ expand_tokenized_name:
         bcs     @done                   ; Shouldn't happen, but just in case
         ldy     #0
         lda     (name_ptr),y
-        and     #$7F                    ; In case EOT is set
+        and     #<~EOT                  ; In case EOT is set
         beq     @done                   ; If first character is just EOT the output nothing
         cmp     #'A'                    ; Only add whitespace before tokenized name if it starts with a letter
         bcc     @next_name_byte
@@ -176,7 +166,7 @@ expand_tokenized_name:
 @next_name_byte:
         lda     (name_ptr),y
         php                             ; Remember if EOT bit was set
-        and     #$7F                    ; Clear if it was
+        and     #<~EOT                  ; Clear if it was
         jsr     append_buffer
         iny
         plp

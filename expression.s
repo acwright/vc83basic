@@ -45,6 +45,9 @@ evaluate_string:
 ; values. Sometimes the caller is using them (for example, they might identify the variable that LET is setting), so
 ; we save them on the stack and restore them before returning.
 
+.assert TOKEN_FUNCTION >= $80, error
+.assert TOKEN_EX_FUNCTION >= $80, error
+
 evaluate_expression:
         phzp    DECODE_NAME_STATE, DECODE_NAME_STATE_SIZE   ; Remember the decoded name
         lda     #PR_OPEN_PAREN          ; Push the open paren, which will never be removed by process_operators
@@ -57,31 +60,32 @@ evaluate_expression:
 @dispatch:
         ldy     line_pos                ; Peek at next byte in token stream
         lda     (line_ptr),y
-        and     #$7F                    ; Clear high bit if set
-        sec                             ; Set carry for subtracts to follow
-        sbc     #TOKEN_UNARY_OP
-        cmp     #4
-        bcc     evaluate_unary_operator
-        sbc     #(TOKEN_OP - TOKEN_UNARY_OP)
-        cmp     #16
-        bcc     evaluate_operator
-        sbc     #('0' - TOKEN_OP)
+        sec                             ; Prepare for subtract-o-rama
+        bpl     @high_bit_clear         ; The high bit is clear so don't check for anything that requires it
+        and     #$7F                    ; We know the high bit is set, so we can clear it now
+        cmp     #32                     ; Check for function
+        bcc     evaluate_function
+@high_bit_clear:
+        sbc     #'A'
+        cmp     #<('(' - 'A')           ; Start of subexpression
+        beq     evaluate_paren
+        cmp     #<('"' - 'A')           ; Check if it's a string
+        beq     evaluate_string
+        cmp     #26                     ; Is it one of 26 letters starting with 'A'?
+        bcc     evaluate_variable
+        sbc     #<('0' - 'A')           ; Check for number: digits, '.', or '-'
         cmp     #<('.' - '0')
         beq     evaluate_number
         cmp     #<('-' - '0')
         beq     evaluate_number
         cmp     #10
         bcc     evaluate_number
-        sbc     #('A' - '0')
-        cmp     #<('"'- 'A')
-        beq     evaluate_string
-        cmp     #26                     ; Is it one of 26 letters starting with 'A'?
-        bcc     evaluate_variable
-        sbc     #<('`' - 'A')
-        cmp     #32
-        bcc     evaluate_function
-        cmp     #<('(' - '`')
-        beq     evaluate_paren
+        sbc     #<(TOKEN_UNARY_OP - '0')
+        cmp     #4
+        bcc     evaluate_unary_operator
+        sbc     #<(TOKEN_OP - TOKEN_UNARY_OP)
+        cmp     #16
+        bcc     evaluate_operator
 
 ; None of the above; probably end of line or ')' or ',' or ';' so just return.
 ; Pop the @dispatch address off the stack so we return from evaluate_expression not @dispatch.

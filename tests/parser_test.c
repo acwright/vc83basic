@@ -171,7 +171,7 @@ void test_pvm_statement(void) {
     const char data_line_data_1[] = { ST_DATA, 'H', 'E', 'L', 'L', 'O', ',', '\"', 'X', ',', 'Y', '\"', ',', '5' };
     const char poke_line_data_1[] = { ST_POKE, '7', '1', '0', ',', '0' };
     const char dim_line_data_1[] = { ST_DIM, 'A' | EOT, '(', '5', ')'  };
-    const char extension_line_data_1[] = { TOKEN_EXTENSION | 0 };
+    const char extension_line_data_1[] = { TOKEN_EX_STATEMENT | 0 };
 
     PRINT_TEST_NAME();
 

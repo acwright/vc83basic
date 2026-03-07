@@ -13,8 +13,9 @@ comment Tokenized form constants
 def(TOKEN_UNARY_OP,     hex(04)) comment OR with OP_UNARY_*
 def(TOKEN_CLAUSE,       hex(08)) comment OR with CLAUSE_*
 def(TOKEN_OP,           hex(10)) comment OR with OP_*
-def(TOKEN_FUNCTION,     hex(60)) comment OR with index of function
-def(TOKEN_EXTENSION,    hex(80)) comment added to statement and function tokens to flag an extension
+def(TOKEN_FUNCTION,     hex(80)) comment OR with index of function
+def(TOKEN_EX_FUNCTION,  hex(A0)) comment OR with index of extension function
+def(TOKEN_EX_STATEMENT, hex(80)) comment OR with index of extension statement
 
 comment Statement tokens
 
