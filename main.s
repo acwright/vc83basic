@@ -37,6 +37,9 @@ main:
         jsr     newline
 
 @get_command:
+        ldax    #line_buffer            ; Reset next_line_ptr to line_buffer
+        jsr     reset_next_line_ptr_2
+        stax    line_ptr                ; Reset line_ptr too, so line number reported correctly on error
         jsr     readline
         jsr     parse_line
         lda     line_buffer+Line::number+1  ; Get high byte of line number
@@ -51,8 +54,6 @@ main:
         beq     @get_command            ; Yes, just ignore input
         ldx     #>line_buffer           ; High byte of the address for the the null line
         jsr     append_null_line
-        ldax    #line_buffer            ; Reset next_line_ptr to line_buffer
-        jsr     reset_next_line_ptr_2
         raise   PS_RUNNING
 
 ; Program is running; set line_ptr and line_pos to next statement and execute it.
