@@ -161,6 +161,9 @@ void test_pvm_statement(void) {
     const char let_line_data_1[] = { ST_LET, 'X' | EOT, '=', '1', '0', '0' };
     const char let_line_data_2[] = { ST_IMPL_LET, 'X' | EOT, '=', '1', '0', '0' };
     const char if_line_data_1[] = { ST_IF_THEN, 'X' | EOT, TOKEN_OP | OP_EQ, '1', TOKEN_CLAUSE | CLAUSE_THEN, ST_GOTO, '1', '0',};
+    const char if_line_data_2[] = { ST_IF_THEN, 'X' | EOT, TOKEN_OP | OP_EQ, '1', TOKEN_CLAUSE | CLAUSE_THEN, ST_IMPL_GOTO, '1', '0',};
+    const char if_line_data_3[] = { ST_IF_THEN, 'X' | EOT, TOKEN_OP | OP_EQ, '1', TOKEN_CLAUSE | CLAUSE_THEN, ST_LET, 'X' | EOT, '=', 'X' | EOT, TOKEN_OP | OP_ADD, '1' };
+    const char if_line_data_4[] = { ST_IF_THEN, 'X' | EOT, TOKEN_OP | OP_EQ, '1', TOKEN_CLAUSE | CLAUSE_THEN, ST_IMPL_LET, 'X' | EOT, '=', 'X' | EOT, TOKEN_OP | OP_ADD, '1' };
     const char input_line_data_1[] = { ST_INPUT, 'A' | EOT };
     const char input_line_data_2[] = { ST_INPUT, 'A' | EOT, ',', 'B' | EOT, ',', 'C' | EOT };
     const char on_line_data_1[] = { ST_ON, '1', TOKEN_CLAUSE | CLAUSE_GOTO, '1', '0' };
@@ -198,6 +201,9 @@ void test_pvm_statement(void) {
 
     // IF
     call_parse_pvm("IF X=1 THEN GOTO 10", pvm_statement, if_line_data_1, sizeof if_line_data_1, __LINE__);
+    call_parse_pvm("IF X=1 THEN 10", pvm_statement, if_line_data_2, sizeof if_line_data_2, __LINE__);
+    call_parse_pvm("IF X=1 THEN LET X=X+1", pvm_statement, if_line_data_3, sizeof if_line_data_3, __LINE__);
+    call_parse_pvm("IF X=1 THEN X=X+1", pvm_statement, if_line_data_4, sizeof if_line_data_4, __LINE__);
 
     // INPUT (covers READ)
     call_parse_pvm("INPUT A", pvm_statement, input_line_data_1, sizeof input_line_data_1, __LINE__);

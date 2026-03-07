@@ -818,6 +818,7 @@ statement_name_table:
             JUMP pvm_opt_number_2
 :       name_table_entry "GOTO"
             JUMP pvm_number
+:       name_table_entry ""             ; Implied GOTO: won't ever match
 :       name_table_entry "GOSUB"
             JUMP pvm_number
 :       name_table_entry "RETURN"
@@ -849,11 +850,6 @@ statement_name_table:
             RETURN
 :       name_table_entry "CONT"
             RETURN
-:       name_table_entry "IF"
-            CALL pvm_expression
-            WS
-            CALL pvm_then
-            JUMP pvm_statement
 :       name_table_entry "NEW"
             RETURN
 :       name_table_entry "CLR"
@@ -874,6 +870,16 @@ statement_name_table:
             RETURN
 :       name_table_entry "INPUT"
             JUMP pvm_var_list
+:       name_table_entry "IF"
+            CALL pvm_expression
+            WS
+            CALL pvm_then
+            TRY @then_statement
+            EMIT ST_IMPL_GOTO
+            CALL pvm_number
+            RETURN
+@then_statement:
+            JUMP pvm_statement
 :       name_table_end
 
 pvm_then:

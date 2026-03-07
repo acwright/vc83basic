@@ -49,6 +49,9 @@ void test_list_statement(void) {
     const char let_line_data_1[] = { 0, ST_LET, 'X' | EOT, '=', '1', '0', '0', 0 };
     const char let_line_data_2[] = { 0, ST_IMPL_LET, 'X' | EOT, '=', '1', '0', '0', 0 };
     const char if_line_data_1[] = { 0, ST_IF_THEN, 'X' | EOT, TOKEN_OP | OP_EQ, '1', TOKEN_CLAUSE | CLAUSE_THEN, ST_GOTO, '1', '0', 0 };
+    const char if_line_data_2[] = { 0, ST_IF_THEN, 'X' | EOT, TOKEN_OP | OP_EQ, '1', TOKEN_CLAUSE | CLAUSE_THEN, ST_IMPL_GOTO, '1', '0', 0 };
+    const char if_line_data_3[] = { 0, ST_IF_THEN, 'X' | EOT, TOKEN_OP | OP_EQ, '1', TOKEN_CLAUSE | CLAUSE_THEN, ST_LET, 'X' | EOT, '=', 'X' | EOT, TOKEN_OP | OP_ADD, '1', 0 };
+    const char if_line_data_4[] = { 0, ST_IF_THEN, 'X' | EOT, TOKEN_OP | OP_EQ, '1', TOKEN_CLAUSE | CLAUSE_THEN, ST_IMPL_LET, 'X' | EOT, '=', 'X' | EOT, TOKEN_OP | OP_ADD, '1', 0 };
     const char input_line_data_1[] = { 0, ST_INPUT, 'A' | EOT, 0 };
     const char input_line_data_2[] = { 0, ST_INPUT, 'A' | EOT, ',', 'B' | EOT, ',', 'C' | EOT, 0 };
     const char on_line_data_1[] = { 0, ST_ON, '1', TOKEN_CLAUSE | CLAUSE_GOTO, '1', '0', 0 };
@@ -91,6 +94,9 @@ void test_list_statement(void) {
     call_list_statement(let_line_data_1, sizeof let_line_data_1, "LET X=100", __LINE__);
     call_list_statement(let_line_data_2, sizeof let_line_data_2, "X=100", __LINE__);
     call_list_statement(if_line_data_1, sizeof if_line_data_1, "IF X=1 THEN GOTO 10", __LINE__);
+    call_list_statement(if_line_data_2, sizeof if_line_data_2, "IF X=1 THEN 10", __LINE__);
+    call_list_statement(if_line_data_3, sizeof if_line_data_3, "IF X=1 THEN LET X=X+1", __LINE__);
+    call_list_statement(if_line_data_4, sizeof if_line_data_4, "IF X=1 THEN X=X+1", __LINE__);
     call_list_statement(input_line_data_1, sizeof input_line_data_1, "INPUT A", __LINE__);
     call_list_statement(input_line_data_2, sizeof input_line_data_2, "INPUT A,B,C", __LINE__);
     call_list_statement(on_line_data_1, sizeof on_line_data_1, "ON 1 GOTO 10", __LINE__);

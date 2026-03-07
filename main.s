@@ -135,6 +135,7 @@ statement_exec_vectors:
         .word   exec_print-1
         .word   exec_list-1
         .word   exec_goto-1
+        .word   exec_goto-1
         .word   exec_gosub-1
         .word   exec_return-1
         .word   exec_pop-1
@@ -143,7 +144,6 @@ statement_exec_vectors:
         .word   exec_next-1
         .word   exec_stop-1
         .word   exec_cont-1
-        .word   exec_if-1
         .word   exec_new-1
         .word   exec_clr-1
         .word   exec_dim-1
@@ -154,6 +154,7 @@ statement_exec_vectors:
         .word   exec_poke-1
         .word   exec_end-1
         .word   exec_input-1
+        .word   exec_if-1
 
 .segment "ONCE"
 
