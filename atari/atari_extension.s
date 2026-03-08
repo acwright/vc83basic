@@ -11,7 +11,7 @@ ex_statement_vectors:
         .word   exec_dos-1
 
 exec_dos:
-        jmp     ($A)
+        jmp     (DOSVEC)
 
 ex_function_name_table:
         name_table_end
