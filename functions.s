@@ -270,15 +270,17 @@ fun_sqr:
 
 fun_str_s:
         jsr     pop_fp0
-        mva     #1, buffer_pos          ; Write at buffer position 1
+        mva     #0, buffer_pos          ; Write at buffer position 0
         jsr     fp_to_string
-        ldy     buffer_pos              ; Save the length byte at offset 0
-        dey                             ; Don't include the length byte
-        sty     buffer
-        tya
-        jsr     string_alloc            ; Allocate space for the string
-        ldy     buffer_pos              ; Already includes the length byte
-        mvax    string_ptr, dst_ptr     ; Set up copy destination
+        lda     buffer_pos              ; The string length
+        jsr     string_alloc            ; Guaranteed to succeed
+        sta     dst_ptr                 ; New space is destination for the copy
+        inc     dst_ptr                 ; Move past length byte
+        bne     @skip_iny
+        iny
+@skip_iny:
+        sty     dst_ptr+1
+        ldy     buffer_pos              ; Length
         ldax    #buffer                 ; Source
         jsr     copy_y_from
         jmp     push_string
