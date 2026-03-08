@@ -33,7 +33,7 @@ basic_atari.o: basic_atari.s basic.inc constants.inc zeropage.s version.inc
 	cl65 -t atari -c $(ASMFLAGS) -o $@ $<
 
 basic_atari: basic_atari.o
-	cl65 -t atari -C atari/atari-asm-xex.cfg $(LDFLAGS) -o $@ $<
+	cl65 -t atari -C atari/atari.cfg $(LDFLAGS) -o $@ $<
 
 # Rule for version.inc
 version.inc: .git/HEAD .git/index
