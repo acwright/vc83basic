@@ -118,13 +118,6 @@ find_line:
 @not_found:        
         rts     
 
-; get_line is the same as find_line, except raises an exception if the line was not found.
-
-get_line:
-        jsr     find_line
-        raics   ERR_LINE_NOT_FOUND
-        rts
-
 ; Advances next_line_ptr to the next line.
 ; next_line_ptr = current next line (updated)
 ; X SAFE, BC SAFE, DE SAFE

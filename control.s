@@ -8,20 +8,23 @@
 ; We use type to distinguish between Value and Control on the stack, so make sure they're at the same offset.
 .assert Control::type = Value::type, error
 
-; GOTO statement:
-
-exec_goto:
-        jsr     get_line_number         ; Go get the line number
-        jmp     get_line                ; Find the line; either next_line_ptr is set or raises exception
-
 ; GOSUB statement:
 
 exec_gosub:
         jsr     push_next_line_ptr      ; Save return address
         lda     #0                      ; Set variable field to an invalid pointer
         sta     stack+Control::variable_name_ptr+1,x
-        jsr     get_line_number         ; GOSUB line number
-        jmp     get_line                ; Find the line; either next_line_ptr is set or raises exception
+
+; Fall through
+
+; GOTO statement:
+; Also used by exec_gosub and exec_restore as a general function for reading a line number and finding that line.
+
+exec_goto:
+        jsr     get_line_number         ; Go get the line number
+        jsr     find_line
+        raics   ERR_LINE_NOT_FOUND
+        rts
 
 ; ON...GOTO/GOSUB statement:
 
