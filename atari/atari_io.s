@@ -1,4 +1,4 @@
-; SPDX-FileCopyrightText: 2022-2026 Willis Blackburn
+; SPDX-FileCopyrightText: 2026 Willis Blackburn and Daniel Serpell
 ;
 ; SPDX-License-Identifier: MIT
 
