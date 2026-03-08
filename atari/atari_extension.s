@@ -7,9 +7,15 @@ ex_statement_name_table:
             RETURN
 :       name_table_end
 
-ex_statement_exec_vectors:
+ex_statement_vectors:
         .word   exec_dos-1
 
 exec_dos:
         jmp     ($A)
 
+ex_function_name_table:
+        name_table_end
+
+ex_function_arity_table:
+
+ex_function_vectors:

@@ -119,16 +119,16 @@ exec_statement:
         jsr     decode_byte             ; Get statement number
         bmi     @extension              ; It's an extension
         tay
-        ldax    #statement_exec_vectors
+        ldax    #statement_vectors
         jmp     invoke_indexed_vector
 
 @extension:
-        and     #$7F
+        and     #<~TOKEN_EXTENSION
         tay
-        ldax    #ex_statement_exec_vectors
+        ldax    #ex_statement_vectors
         jmp     invoke_indexed_vector
 
-statement_exec_vectors:
+statement_vectors:
         .word   exec_let-1
         .word   exec_let-1
         .word   exec_run-1

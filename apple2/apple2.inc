@@ -12,6 +12,7 @@ SOFTEV      := $03F2    ; Vector for warm start
 PWREDUP     := $03F4    ; This must be = EOR #$A5 of SOFTEV+1
 
 SETTXT      := $FB39
+PREAD       := $FB1E
 SETGR       := $FB40
 HOME        := $FC58
 KEYIN       := $FD1B

@@ -84,11 +84,11 @@ list_statement:
         inc     line_pos                ; Skip past the next statement offset; we don't use it
 @then:
         jsr     decode_byte             ; Get statement token
-        bmi     @extension              ; It's an extension
+        bmi     @ex_statement           ; It's an extension
         tay                             ; Set up for list_tokenized_name
         ldax    #statement_name_table
         bne     @token                  ; Unconditional
-@extension:
+@ex_statement:
         and     #<~TOKEN_EXTENSION
         tay
         ldax    #ex_statement_name_table
@@ -108,8 +108,15 @@ list_statement:
         cmp     #TOKEN_FUNCTION         ; Is it the function token?
         bne     @try_unary_operator
         jsr     decode_byte             ; Get the function number
+        bmi     @ex_function            ; It's an extension function
         tay
         ldax    #function_name_table
+        jsr     expand_tokenized_name   ; Call directly becuase we don't want to add whitespace after
+        jmp     @next
+@ex_function:
+        and     #$7F
+        tay
+        ldax    #ex_function_name_table
         jsr     expand_tokenized_name   ; Call directly becuase we don't want to add whitespace after
         jmp     @next
 @try_unary_operator:

@@ -9,6 +9,8 @@
 .assert Value::number_value = 0, error
 .assert Value::string_value_ptr = 0, error
 
+.assert TOKEN_EXTENSION = $80, error
+
 evaluate_function:
         inc     line_pos                ; Skip over the function token
         jsr     decode_byte             ; Return the function number in A
@@ -19,8 +21,14 @@ evaluate_function:
         jsr     evaluate_argument_list
         inc     line_pos                ; Skip ')'
         pla                             ; Recover the function number
+        bmi     @extension
         tay
         ldax    #function_vectors
+        jmp     invoke_indexed_vector
+@extension:
+        and     #<~TOKEN_EXTENSION
+        tay
+        ldax    #ex_function_vectors
         jmp     invoke_indexed_vector
 
 evaluate_paren:

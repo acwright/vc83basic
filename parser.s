@@ -684,9 +684,17 @@ pvm_function:
         RETURN
 
 pvm_function_call:
+        TRY @extension
         CALL pvm_name
         CALL pvm_opt_type
         TOKENIZE function_name_table
+        ACCEPT @args
+@extension:
+        CALL pvm_name
+        CALL pvm_opt_type
+        TOKENIZE ex_function_name_table
+        COMPOSE TOKEN_EXTENSION
+@args:
         CALL pvm_paren_arg_list
         RETURN
 

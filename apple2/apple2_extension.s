@@ -9,7 +9,7 @@ ex_statement_name_table:
             RETURN
 :       name_table_end
 
-ex_statement_exec_vectors:
+ex_statement_vectors:
         .word   exec_gr-1
         .word   exec_text-1
 
@@ -20,3 +20,20 @@ exec_gr:
 exec_text:
         jsr     SETTXT
         rts
+
+ex_function_name_table:
+        name_table_entry "PDL"
+:       name_table_end
+
+ex_function_arity_table:
+        .byte   1                       ; PDL
+
+ex_function_vectors:
+        .word   fun_pdl-1
+
+fun_pdl:
+        jsr     pop_int_fp0
+        jsr     PREAD                   ; Returns result in Y
+        tya
+        ldx     #0
+        jmp     push_int_fp0

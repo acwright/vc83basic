@@ -2,6 +2,32 @@
 ;
 ; SPDX-License-Identifier: MIT
 
+function_arity_table:
+        .byte   1                       ; LEN
+        .byte   1                       ; STR$
+        .byte   1                       ; CHR$
+        .byte   1                       ; ASC
+        .byte   2                       ; LEFT$
+        .byte   2                       ; RIGHT$
+        .byte   3                       ; MID$
+        .byte   1                       ; VAL
+        .byte   0                       ; FRE
+        .byte   1                       ; PEEK
+        .byte   1                       ; ADR
+        .byte   2                       ; USR
+        .byte   1                       ; INT
+        .byte   1                       ; ROUND
+        .byte   1                       ; LOG
+        .byte   1                       ; EXP
+        .byte   1                       ; SIN
+        .byte   1                       ; COS
+        .byte   1                       ; TAN
+        .byte   1                       ; ATN
+        .byte   1                       ; ABS
+        .byte   1                       ; SGN
+        .byte   1                       ; SQR
+        .byte   1                       ; RND
+
 function_vectors:
         .word   fun_len-1
         .word   fun_str_s-1
@@ -27,32 +53,6 @@ function_vectors:
         .word   fun_sgn-1
         .word   fun_sqr-1
         .word   fun_rnd-1
-
-function_arity_table:
-        .byte   1   ; LEN
-        .byte   1   ; STR$
-        .byte   1   ; CHR$
-        .byte   1   ; ASC
-        .byte   2   ; LEFT$
-        .byte   2   ; RIGHT$
-        .byte   3   ; MID$
-        .byte   1   ; VAL
-        .byte   0   ; FRE
-        .byte   1   ; PEEK
-        .byte   1   ; ADR
-        .byte   2   ; USR
-        .byte   1   ; INT
-        .byte   1   ; ROUND
-        .byte   1   ; LOG
-        .byte   1   ; EXP
-        .byte   1   ; SIN
-        .byte   1   ; COS
-        .byte   1   ; TAN
-        .byte   1   ; ATN
-        .byte   1   ; ABS
-        .byte   1   ; SGN
-        .byte   1   ; SQR
-        .byte   1   ; RND
 
 fun_abs:
         jsr     pop_fp0

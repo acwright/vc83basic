@@ -97,25 +97,21 @@ void test_pvm_name(void) {
 void test_pvm_expression(void) {
 
     const char constant_line_data_1[] = { '1' };
-
     const char variable_line_data_1[] = { 'X' | EOT };
     const char variable_line_data_2[] = { 'S', '$' | EOT };
     const char variable_line_data_3[] = { 'X' | EOT, '(', '5', ')' };
     const char variable_line_data_4[] = { 'S', '$' | EOT, '(', '1', ',', '2', '5', ')'  };
-
     const char operator_line_data_1[] = { '1', TOKEN_OP | OP_ADD, '1' };
     const char operator_line_data_2[] = { '1', TOKEN_OP | OP_ADD, '1', TOKEN_OP | OP_DIV, '2' };
     const char operator_line_data_3[] = { '"', 'A', '"', TOKEN_OP | OP_CONCAT, '"', 'B', '"' };
     const char operator_line_data_4[] = { 'X' | EOT, TOKEN_OP | OP_AND, 'Y' | EOT };
-
     const char unary_operator_line_data_1[] = { '1', TOKEN_OP | OP_ADD, TOKEN_UNARY_OP | UNARY_OP_MINUS, 'A' | EOT };
     const char unary_operator_line_data_2[] = { TOKEN_UNARY_OP | UNARY_OP_NOT, '1' };
-
     const char parens_line_data_1[] = { '1', TOKEN_OP | OP_ADD, '(', '1', TOKEN_OP | OP_ADD, '1', ')' };
     const char parens_line_data_2[] = { 'X' | EOT, TOKEN_OP | OP_AND, '(', 'Y' | EOT, TOKEN_OP | OP_OR, TOKEN_UNARY_OP | UNARY_OP_NOT, 'Z' | EOT, ')' };
-
     const char function_line_data_1[] = { TOKEN_FUNCTION, 0, '(', '"', 'H', 'E', 'L', 'L', 'O', '"', ')' };
     const char function_line_data_2[] = { TOKEN_FUNCTION, 6, '(', '"', 'H', 'E', 'L', 'L', 'O', '"', ',', '2', ',', '3', ')' };
+    const char function_line_data_3[] = { TOKEN_FUNCTION, TOKEN_EXTENSION | 0, '(', '0', ')' };
 
     PRINT_TEST_NAME();
 
@@ -147,6 +143,7 @@ void test_pvm_expression(void) {
     // Function
     call_parse_pvm("LEN(\"HELLO\")", pvm_expression, function_line_data_1, sizeof function_line_data_1, __LINE__);
     call_parse_pvm("MID$(\"HELLO\",2,3)", pvm_expression, function_line_data_2, sizeof function_line_data_2, __LINE__);
+    call_parse_pvm("VER(0)", pvm_expression, function_line_data_3, sizeof function_line_data_3, __LINE__);
 }
 
 void test_pvm_statement(void) {
