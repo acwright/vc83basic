@@ -84,7 +84,7 @@ void test_list_statement(void) {
     call_list_statement(variable_line_data_4, sizeof variable_line_data_4, "PRINT XYZZY$(1,10)", __LINE__);
     call_list_statement(function_line_data_1, sizeof function_line_data_1, "PRINT LEN(\"HELLO\")", __LINE__);
     call_list_statement(function_line_data_2, sizeof function_line_data_2, "PRINT MID$(\"HELLO\",2,3)", __LINE__);
-    call_list_statement(function_line_data_3, sizeof function_line_data_3, "PRINT VER(0)", __LINE__);
+    call_list_statement(function_line_data_3, sizeof function_line_data_3, "PRINT VER$(0)", __LINE__);
     call_list_statement(expression_line_data_1, sizeof expression_line_data_1, "PRINT 1+1+1", __LINE__);
     call_list_statement(expression_line_data_2, sizeof expression_line_data_2, "PRINT 1+(1+1)", __LINE__);
     call_list_statement(expression_line_data_3, sizeof expression_line_data_3, "PRINT 314.15/10^2*X", __LINE__);

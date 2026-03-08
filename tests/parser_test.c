@@ -143,7 +143,7 @@ void test_pvm_expression(void) {
     // Function
     call_parse_pvm("LEN(\"HELLO\")", pvm_expression, function_line_data_1, sizeof function_line_data_1, __LINE__);
     call_parse_pvm("MID$(\"HELLO\",2,3)", pvm_expression, function_line_data_2, sizeof function_line_data_2, __LINE__);
-    call_parse_pvm("VER(0)", pvm_expression, function_line_data_3, sizeof function_line_data_3, __LINE__);
+    call_parse_pvm("VER$(0)", pvm_expression, function_line_data_3, sizeof function_line_data_3, __LINE__);
 }
 
 void test_pvm_statement(void) {
