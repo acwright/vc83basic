@@ -163,10 +163,12 @@ statement_exec_vectors:
 ; program data. Free memory is a constant; subtract 5 in order to account for null line (3 bytes) and end byte
 ; for variable and array name tables.
 
-start_message: .byte "VC83 BASIC <> "
+start_message:  .byte "VC83 BASIC "
+.include "version.inc"
+                .byte " <> "
 start_length = * - start_message
 
-free_message: .byte " BYTES FREE"
+free_message:   .byte " BYTES FREE"
 free_length = * - free_message
 
 initialize:
