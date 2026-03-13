@@ -56,34 +56,26 @@ zeropage.h: zeropage.m4
 # Unit tests
 test: $(addprefix run_,$(TESTS))
 
-define create-test
-run_$1: tests/$1
-	sim65 tests/$1
+run_%: tests/%
+	sim65 $<
 
-tests/$1: tests/$1.o basic_tests.o
-	cl65 -t $(TEST_TARGET) -C $(TEST_TARGET)/$(TEST_TARGET).cfg $(LDFLAGS) -o $$@ $$^
-
-clean::
-	rm -f tests/$1
-endef
-
-$(foreach TEST,$(TESTS),$(eval $(call create-test,$(TEST))))
-
-basic_tests.o: basic_tests.s basic.s constants.inc zeropage.s version.inc
-	cl65 -t $(TEST_TARGET) -C $(TEST_TARGET)/$(TEST_TARGET).cfg -c $(ASMFLAGS) -o $@ $<
+tests/%: tests/%.o basic_tests.o
+	cl65 -t $(TEST_TARGET) -C $(TEST_TARGET)/$(TEST_TARGET).cfg $(LDFLAGS) -o $@ $^
 
 tests/%.o: tests/%.c constants.h zeropage.h tests/test.h
 	cl65 -t $(TEST_TARGET) -C $(TEST_TARGET)/$(TEST_TARGET).cfg -c $(CFLAGS) -o $@ $<
 
+basic_tests.o: basic_tests.s basic.s constants.inc zeropage.s version.inc
+	cl65 -t $(TEST_TARGET) -C $(TEST_TARGET)/$(TEST_TARGET).cfg -c $(ASMFLAGS) -o $@ $<
+
+clean::
+	rm -f $(addprefix tests/,$(TESTS))
+
 # Integration tests
 expect_test: basic_sim6502 $(addprefix run_expect_test_,$(EXPECT_TESTS))
 
-define create-expect-test
-run_expect_test_$1:
-	expect expect_tests/$1.exp
-endef
-
-$(foreach TEST,$(EXPECT_TESTS),$(eval $(call create-expect-test,$(TEST))))
+run_expect_test_%:
+	expect expect_tests/$*.exp
 
 .PHONY: all test expect_test clean
 
