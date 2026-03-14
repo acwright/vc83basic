@@ -12,6 +12,13 @@ ASMFLAGS = --create-dep $(@:.o=.d)
 CFLAGS = --create-dep $(@:.o=.d)
 LDFLAGS = -m $@.map
 
+# Define DEBUG=1 to build with debug symbols
+ifeq ($(DEBUG),1)
+ASMFLAGS += -g
+CFLAGS += -g
+LDFLAGS += -Wl --dbgfile,$@.dbg
+endif
+
 all: $(addprefix basic_,$(TARGETS))
 
 # Goal: basic_sim6502
@@ -81,7 +88,7 @@ run_expect_test_%:
 .SECONDARY:
 
 clean::
-	rm -f $(addprefix basic_,$(TARGETS)) basic_tests.o constants.inc constants.h zeropage.s zeropage.h version.inc *.o *.d *.map tests/*.o tests/*.d tests/*.map tests/*.dbg
+	rm -f $(addprefix basic_,$(TARGETS)) basic_tests.o constants.inc constants.h zeropage.s zeropage.h version.inc *.o *.d *.map *.dbg tests/*.o tests/*.d tests/*.map tests/*.dbg
 
 -include $(addsuffix .d,$(addprefix basic_,$(TARGETS)))
 -include $(addsuffix .d,$(addprefix tests/,$(TESTS)))
