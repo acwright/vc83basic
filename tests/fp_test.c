@@ -338,17 +338,21 @@ typedef struct OperationTestCase {
     Float result;
 } OperationTestCase;
 
-void test_operation(const char* f_name, void (*f)(const Float*), const OperationTestCase* test_cases, size_t count) {
+void test_operation(const char* f_name, void (*f)(const Float*), const OperationTestCase* test_cases,
+    size_t count, long reps) {
     const OperationTestCase* test_case;
     int i;
+    long j;
     Float result;
 
     for (i = 0; i < count; i++) {
         test_case = test_cases + i;
         fprintf(stderr, "  %s:%d %s(t=%08LX e=%02X, t=%08LX e=%02X)\n", __FILE__, __LINE__, f_name,
             test_case->arg0.t, test_case->arg0.e, test_case->arg1.t, test_case->arg1.e);
-        load_fp0(&test_case->arg0);
-        f(&test_case->arg1);
+        for (j = 0; j < reps; j++) {
+            load_fp0(&test_case->arg0);
+            f(&test_case->arg1);
+        }
         ASSERT_EQ(err, 0);
         store_fp0(&result);
         ASSERT_FLOAT_EQ(result, test_case->result);
@@ -356,9 +360,9 @@ void test_operation(const char* f_name, void (*f)(const Float*), const Operation
 }
 
 #define TEST_OPERATION(f) \
-    void test_##f(void) { \
+    void test_##f(long reps) { \
         PRINT_TEST_NAME(); \
-        test_operation(#f, f, f##_test_cases, sizeof f##_test_cases / sizeof *f##_test_cases); \
+        test_operation(#f, f, f##_test_cases, sizeof f##_test_cases / sizeof *f##_test_cases, reps); \
     }
 
 const OperationTestCase fadd_test_cases[] = {
@@ -769,17 +773,20 @@ typedef struct FunctionTestCase {
     Float result;
 } FunctionTestCase;
 
-void test_function(const char* f_name, void (*f)(void), const FunctionTestCase* test_cases, size_t count) {
+void test_function(const char* f_name, void (*f)(void), const FunctionTestCase* test_cases, size_t count, long reps) {
     const FunctionTestCase* test_case;
     int i;
+    long j;
     Float result;
 
     for (i = 0; i < count; i++) {
         test_case = test_cases + i;
         fprintf(stderr, "  %s:%d %s(t=%08LX e=%02X)\n", __FILE__, __LINE__, f_name,
             test_case->arg.t, test_case->arg.e);
-        load_fp0(&test_case->arg);
-        f();
+        for (j = 0; j < reps; j++) {
+            load_fp0(&test_case->arg);
+            f();
+        }
         ASSERT_EQ(err, 0);
         store_fp0(&result);
         ASSERT_FLOAT_EQ(result, test_case->result);
@@ -787,9 +794,9 @@ void test_function(const char* f_name, void (*f)(void), const FunctionTestCase* 
 }
 
 #define TEST_FUNCTION(f) \
-    void test_##f(void) { \
+    void test_##f(long reps) { \
         PRINT_TEST_NAME(); \
-        test_function(#f, f, f##_test_cases, sizeof f##_test_cases / sizeof *f##_test_cases); \
+        test_function(#f, f, f##_test_cases, sizeof f##_test_cases / sizeof *f##_test_cases, reps); \
     }
 
 const FunctionTestCase flog_test_cases[] = {
@@ -874,8 +881,52 @@ int make_checksum(void) {
     return sum;
 }
 
-int main(void) {
+void looptest(char* name, long reps) {
+    if (reps <= 0) {
+        return;
+    }
+    if (strcmp(name, "fadd") == 0) {
+        test_fadd(reps);
+    }
+    if (strcmp(name, "fsub") == 0) {
+        test_fsub(reps);
+    }
+    if (strcmp(name, "fmul") == 0) {
+        test_fmul(reps);
+    }
+    if (strcmp(name, "fdiv") == 0) {
+        test_fdiv(reps);
+    }
+    if (strcmp(name, "fpow") == 0) {
+        test_fpow(reps);
+    }
+    if (strcmp(name, "flog") == 0) {
+        test_flog(reps);
+    }
+    if (strcmp(name, "fexp") == 0) {
+        test_fexp(reps);
+    }
+    if (strcmp(name, "fsin") == 0) {
+        test_fsin(reps);
+    }
+    if (strcmp(name, "fcos") == 0) {
+        test_fcos(reps);
+    }
+    if (strcmp(name, "ftan") == 0) {
+        test_ftan(reps);
+    }
+    if (strcmp(name, "fatn") == 0) {
+        test_fatn(reps);
+    }
+}
+
+int main(int argc, char* argv[]) {
     initialize_target();
+    if (argc >= 3) {
+        looptest(argv[1], atol(argv[2]));
+        exit(0);
+    }
+
     test_load_fp();
     test_store_fp0();
     test_swap_fp0_fp1();
@@ -887,22 +938,22 @@ int main(void) {
     test_truncate_fp_to_int32();
     test_truncate();
     test_round();
-    test_fadd();
-    test_fsub();
-    test_fmul();
-    test_fdiv();
-    test_fpow();
+    test_fadd(1);
+    test_fsub(1);
+    test_fmul(1);
+    test_fdiv(1);
+    test_fpow(1);
     test_fcmp();
     test_char_to_digit();
     test_fp_to_string();
     test_string_to_fp();
     test_fpoly();
     test_fpoly_odd();
-    test_flog();
-    test_fexp();
-    test_fsin();
-    test_fcos();
-    test_ftan();
-    test_fatn();
+    test_flog(1);
+    test_fexp(1);
+    test_fsin(1);
+    test_fcos(1);
+    test_ftan(1);
+    test_fatn(1);
     return 0;
 }
