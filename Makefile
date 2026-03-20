@@ -12,6 +12,12 @@ ASMFLAGS = --create-dep $(@:.o=.d)
 CFLAGS = --create-dep $(@:.o=.d)
 LDFLAGS = -m $@.map
 
+PRINT_SIZE = @sum=0; \
+	for size in $$(awk '/^(CODE|PARSER|VECTORS) / { print $$4 }' $@.map); do \
+		sum=$$(($$sum + 0x$$size)); \
+	done; \
+	printf "Code size: \$$%X (%d)\n" $$sum $$sum
+
 # Define DEBUG=1 to build with debug symbols
 ifeq ($(DEBUG),1)
 ASMFLAGS += -g
@@ -27,6 +33,7 @@ basic_sim6502.o: basic_sim6502.s basic.s constants.inc zeropage.s version.inc
 
 basic_sim6502: basic_sim6502.o
 	cl65 -t sim6502 -C sim6502/sim6502.cfg $(LDFLAGS) -o $@ $<
+	$(PRINT_SIZE)
 
 # Goal: basic_apple2
 basic_apple2.o: basic_apple2.s basic.s constants.inc zeropage.s version.inc
@@ -34,6 +41,7 @@ basic_apple2.o: basic_apple2.s basic.s constants.inc zeropage.s version.inc
 
 basic_apple2: basic_apple2.o
 	cl65 -t apple2 -C apple2/apple2.cfg $(LDFLAGS) -o $@ $<
+	$(PRINT_SIZE)
 
 # Goal: basic_atari
 basic_atari.o: basic_atari.s basic.s constants.inc zeropage.s version.inc
@@ -41,6 +49,7 @@ basic_atari.o: basic_atari.s basic.s constants.inc zeropage.s version.inc
 
 basic_atari: basic_atari.o
 	cl65 -t atari -C atari/atari.cfg $(LDFLAGS) -o $@ $<
+	$(PRINT_SIZE)
 
 # Rule for version.inc
 version.inc: .git/HEAD .git/index
