@@ -22,13 +22,10 @@ evaluate_function:
         inc     line_pos                ; Skip ')'
         pla                             ; Recover the function number
         clc
-        bmi     @extension
         adc     #function_vectors_offset
-        jmp     invoke_indexed_vector
-
-@extension:
-        and     #<~TOKEN_EXTENSION
-        adc     #ex_function_vectors_offset
+        bpl     @core                   ; It's a core function not extension
+        sbc     #(TOKEN_EXTENSION - ex_function_vectors_offset + function_vectors_offset - 1)
+@core:
         jmp     invoke_indexed_vector
 
 evaluate_paren:

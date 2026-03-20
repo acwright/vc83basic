@@ -118,13 +118,10 @@ main:
 exec_statement:
         jsr     decode_byte             ; Get statement number
         clc
-        bmi     @extension              ; It's an extension
         adc     #statement_vectors_offset
-        jmp     invoke_indexed_vector
-
-@extension:
-        and     #<~TOKEN_EXTENSION
-        adc     #ex_statement_vectors_offset
+        bpl     @core                   ; It's a core statement not extension
+        sbc     #(TOKEN_EXTENSION - ex_statement_vectors_offset + statement_vectors_offset - 1)
+@core:
         jmp     invoke_indexed_vector
 
 .segment "VECTORS"
