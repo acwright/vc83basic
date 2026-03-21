@@ -39,14 +39,14 @@ exec_list:
         jsr     write
         jsr     newline
         jsr     advance_next_line_ptr
-        ldy     #Line::number+1         ; Check for the ending line number
+        ldy     #Line::number           ; Check for the ending line number
+        sec
         lda     (line_ptr),y
-        cmp     line_number+1
-        bcc     @next_line              ; High byte is less
-        dey                             ; Check low byte
+        sbc     line_number
+        iny
         lda     (line_ptr),y
-        cmp     line_number
-        bcc     @next_line              ; Less
+        sbc     line_number+1
+        bcc     @next_line              ; If line we just printed < limit, loop
 
 @done:
         plsta   next_line_pos
@@ -70,7 +70,7 @@ list_line:
         bcs     @done                   ; Yep
         lda     #':'                    ; Else write ':' and next statement
         jsr     append_buffer
-        jmp     @next
+        bcc     @next
 
 @done:
         rts
@@ -108,15 +108,16 @@ list_statement:
         cmp     #TOKEN_FUNCTION         ; Is it the function token?
         bne     @try_unary_operator
         jsr     decode_byte             ; Get the function number
-        bmi     @ex_function            ; It's an extension function
         tay
+        bmi     @ex_function            ; It's an extension function
         ldax    #function_name_table
-        jsr     expand_tokenized_name   ; Call directly becuase we don't want to add whitespace after
-        jmp     @next
+        bne     @got_func_table
 @ex_function:
+        tya
         and     #$7F
         tay
         ldax    #ex_function_name_table
+@got_func_table:
         jsr     expand_tokenized_name   ; Call directly becuase we don't want to add whitespace after
         jmp     @next
 @try_unary_operator:
@@ -173,11 +174,11 @@ expand_tokenized_name:
         jsr     add_whitespace
 @next_name_byte:
         lda     (name_ptr),y
-        php                             ; Remember if EOT bit was set
+        pha                             ; Remember if EOT bit was set
         and     #<~EOT                  ; Clear if it was
         jsr     append_buffer
         iny
-        plp
+        pla
         bpl     @next_name_byte
 @done:
         rts
