@@ -104,21 +104,30 @@ find_line:
 @next_line:      
         jsr     advance_next_line_ptr   ; Advance to the next line
 @test_line:
-        ldy     #Line::number           ; Index of low byte of line number
-        sec
-        lda     (next_line_ptr),y       ; Subtract low byte of target line number
-        sbc     line_number
-        tax                             ; Save low byte difference in X for equality check later
-        iny                             ; Increment Y to get high byte of line number
-        lda     (next_line_ptr),y       ; Subtract high byte of target line number
-        sbc     line_number+1
+        jsr     compare_next_line_to_target
         bcc     @next_line              ; Line number is < target; go to next line
-        
-        bne     @not_found              ; Difference in high byte is non-zero (so line is strictly > target)
-        cpx     #0                      ; High byte difference is 0; check the low byte difference
-        bne     @not_found              ; Difference in low byte is non-zero (so line is strictly > target)
+        bne     @not_found              ; Line is strictly > target; return with carry set
         clc                             ; Exact match found; return with carry clear
 @not_found:
+        rts     
+
+; Compares the line number at next_line_ptr to the target line_number.
+; Returns carry clear if next_line_ptr is strictly < target.
+; If next_line_ptr is strictly > target, returns carry set and Z=0.
+; If exactly equal, returns carry set and Z=1.
+
+compare_next_line_to_target:
+        ldy     #Line::number           ; Compare line number using 16-bit subtraction
+        sec
+        lda     (next_line_ptr),y       ; Subtract low byte
+        sbc     line_number
+        tax                             ; Stash low difference in X
+        iny
+        lda     (next_line_ptr),y       ; Subtract high byte
+        sbc     line_number+1           ; If < target, carry is clear
+        bne     @done                   ; If high difference != 0, we're done (Z=0, C=1)
+        txa                             ; High byte diff is 0; load low difference to set Z flag
+@done:
         rts     
 
 ; Advances next_line_ptr to the next line.

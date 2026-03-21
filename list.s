@@ -31,6 +31,10 @@ exec_list:
         jsr     get_line_number         ; Save the ending line number in line_number
         stax    line_number
 @next_line:
+        jsr     compare_next_line_to_target ; Verify we haven't crossed the ending line number
+        bcc     @print                  ; < limit => print it 
+        bne     @done                   ; > limit => stop listing
+@print:
         mvaa    next_line_ptr, line_ptr
         jsr     list_line
         ldax    #buffer
@@ -39,14 +43,7 @@ exec_list:
         jsr     write
         jsr     newline
         jsr     advance_next_line_ptr
-        ldy     #Line::number           ; Compare the ending line number by subtracting
-        sec
-        lda     (line_ptr),y            ; Subtract low byte of limit
-        sbc     line_number
-        iny
-        lda     (line_ptr),y            ; Subtract high byte of limit
-        sbc     line_number+1
-        bcc     @next_line              ; If line we just printed < limit, loop to next line
+        jmp     @next_line
 
 @done:
         plsta   next_line_pos
