@@ -785,7 +785,7 @@ string_to_fp_2:
 @scale_div:
         jsr     copy_fp0_fp1            ; Move divisor into FP1
         plzp    FP0, .sizeof(UnpackedFloat)     ; Reload result saved earlier
-        jsr     fdiv_fp1                ; Divide
+        jsr     fdiv_2                  ; Divide
 
 @whole:
         ldy     E                       ; Return buffer read position in Y
@@ -1226,7 +1226,7 @@ fmul_2:
 
 fdiv:
         jsr     load_fp1
-fdiv_fp1:
+fdiv_2:
         lda     FP0e                    ; Is FP0 zero?
         beq     @return_zero            ; Yes, just return
         lda     FP1e                    ; Test FP1
@@ -1630,7 +1630,7 @@ fatn:
         beq     @approximate            ; Exactly 1
         jsr     copy_fp0_fp1            ; FP1 = x
         jsr     load_one_fp0            ; FP0 = 1
-        jsr     fdiv_fp1                ; FP0 = 1 / x
+        jsr     fdiv_2                  ; FP0 = 1 / x
         jsr     @approximate            ; Get ATN of this new value
         jsr     copy_fp0_fp1            ; Move ATN value to right side
         lday    #fp_pi
