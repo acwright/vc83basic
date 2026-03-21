@@ -35,10 +35,11 @@ exec_end:
 exec_stop:
         lda     next_line_ptr+1         ; Check if we're running in immediate mode
         cmp     #>line_buffer
-        raieq   ERR_IMMEDIATE_MODE_STOP
+        beq     @stopped                ; STOP in immdiate mode just does nothing
         sta     resume_line_ptr+1
         mva     next_line_ptr, resume_line_ptr  ; Note mva not mvaa
         mva     next_line_pos, resume_line_pos
+@stopped:
         raise   ERR_STOPPED
 
 ; CONT statement:

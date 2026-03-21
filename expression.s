@@ -39,7 +39,6 @@ evaluate_function:
 @core:
         sta     B                       ; Save in B
         asl     A                       ; Multiply vector number by 2; clears carry
-        clc
         adc     B                       ; Add back B to multiply by 3
         tax                             ; Set up as index
         lda     __FUNCTABS_LOAD__+2,x   ; Arity and flags
@@ -92,72 +91,6 @@ evaluate_function:
 
 raise_arity_mismatch:
         raise   ERR_ARITY_MISMATCH
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-;         asl     A
-;         asl     A
-;         asl     A
-;         bcc     @push_vector            ; First bit is 1 if we're going to push an epilog
-;         bmi     @epilog_int             ; Second bit is 0 for float or 1 for int
-;         ldpha   #>(push_fp0-1)          ; Set up push_fp0 epilog
-;         ldpha   #<(push_fp0-1)
-;         bcs     @push_vector            ; Unconditional
-; @epilog_int:
-;         ldpha   #>(push_int_fp0-1)      ; Set up push_int_fp0 epilog
-;         ldpha   #<(push_int_fp0-1)
-; @push_vector:
-;         lda     __FUNCTABS_LOAD__+1,x   ; High byte of function address
-;         pha
-;         lda     __FUNCTABS_LOAD__,x     ; Low byte 
-;         pha
-;         lda     __FUNCTABS_LOAD__+2,x   ; Arity and flags
-;         pha                             ; Argument parsing will clobber X so remember this value
-;         and     #$07                    ; Limit to 7 args: leaves 1 extra bit for some future use
-;         inc     line_pos                ; Skip '('
-;         jsr     evaluate_argument_list
-;         raine   ERR_ARITY_MISMATCH
-;         inc     line_pos                ; Skip ')'
-;         pla                             ; Get the arity/flag byte agin
-
-; ; The stack now looks like this:
-; ;     SP+6      evaluate_function return address high byte
-; ;     SP+5      evaluate_function return address low byte
-; ;     SP+4      Epilog function high byte (if present)
-; ;     SP+3      Epilog function low byte (if present)
-; ;     SP+2      Function handler high byte
-; ;     SP+1      Function handler low byte
-; ;     SP        Current stack pointer       
-; ;
-; ; From here we jump to the prolog function, if it's present. control jumps to the prolog function. When it returns, that invokes the function
-; ; handler, and when the handler returns, the epilog function. Finally, returning from the epilog function returns
-; ; control to the caller of this function. If the function has no prolog or epilog then we just don't push those
-; ; addresses on the stack and skip that part of the chian.
-
-;         asl     A
-;         bcc     @done                   ; First bit is 1 if there's a prolog
-;         bmi     @prolog_int             ; Second bit is 0 for float or 1 for int
-;         jmp     pop_fp0                 ; On RTS from pop_fp0 will jump to function
-; @prolog_int:
-;         jmp     pop_int_fp0             ; On RTS from pop_int_fp0 will jump to function
-; @done:
-;         rts
-
-; Evaluate a full expression.
-; Evaluating an expression often involves evaluating names, and decoding names affects decode_name_ptr and related
-; values. Sometimes the caller is using them (for example, they might identify the variable that LET is setting), so
-; we save them on the stack and restore them before returning.
 
 .assert TOKEN_EXTENSION = $80, error
 
@@ -298,6 +231,8 @@ evaluate_argument_list:
         pla                             ; Return remaining count
         rts
 
+
+
 push_operator:
         ldx     op_stack_pos
         raieq   ERR_EXPRESSION_TOO_COMPLEX   ; If already zero then fail
@@ -330,30 +265,6 @@ process_operators:
 @done:
         rts
 
-op_sub:
-        lda     #>(fsub-1)
-        ldx     #<(fsub-1)
-        jmp     call_binary_operator_push
-        
-op_add:
-        lda     #>(fadd-1)
-        ldx     #<(fadd-1)
-        jmp     call_binary_operator_push
-
-op_mul:
-        lda     #>(fmul-1)
-        ldx     #<(fmul-1)
-        jmp     call_binary_operator_push
-
-op_div:
-        lda     #>(fdiv-1)
-        ldx     #<(fdiv-1)
-        jmp     call_binary_operator_push
-
-op_pow:
-        lda     #>(fpow-1)
-        ldx     #<(fpow-1)
-        jmp     call_binary_operator_push
 
 op_concat:
         jsr     pop_string              ; Get the second string
@@ -409,19 +320,20 @@ compare_string_values:
 
 op_eq:
         jsr     compare_values
-        bne     push_value_0            ; A <> B
+op_eq_tail:
         beq     push_value_1            ; A = B
+        bne     push_value_0            ; A <> B
 
 op_ne:
         jsr     compare_values
+op_ne_tail:
         bne     push_value_1            ; A <> B
         beq     push_value_0            ; A = B
 
 op_le:
         jsr     compare_values
         bcc     push_value_1            ; A < B
-        bne     push_value_0            ; A <> B
-        beq     push_value_1            ; A = B
+        bcs     op_eq_tail              ; A >= B
 
 op_lt:
         jsr     compare_values
@@ -436,13 +348,20 @@ op_ge:
 op_gt:
         jsr     compare_values
         bcc     push_value_0            ; A < B
-        bne     push_value_1            ; A <> B
-        beq     push_value_0            ; A = B
+        bcs     op_ne_tail              ; A >= B
 
 ; Compares two values from the stack returns flags based on the comparison.
 ; On return, C ("not borrow") will be or clear if the second value is greater than the first (B > A or A < B)
 ; or set if the second value is less than or equal to the first (B <= A or A >= B).
 ; If carry is set, then Z will be also be set if the values are equal or clear if they are not.
+
+push_value_0:
+        jsr     clear_fp0
+        jmp     push_fp0
+
+push_value_1:
+        jsr     load_one_fp0
+        jmp     push_fp0
 
 compare_values:
         ldy     stack_pos               ; Get stack pointer
@@ -474,6 +393,31 @@ call_binary_operator:
         ldy     #>stack                 ; Stack page
         rts                             ; JMP to the operator handler
 
+op_mul:
+        lda     #>(fmul-1)
+        ldx     #<(fmul-1)
+        jmp     call_binary_operator_push
+
+op_div:
+        lda     #>(fdiv-1)
+        ldx     #<(fdiv-1)
+        jmp     call_binary_operator_push
+
+op_pow:
+        lda     #>(fpow-1)
+        ldx     #<(fpow-1)
+
+op_sub:
+        lda     #>(fsub-1)
+        ldx     #<(fsub-1)
+        jmp     call_binary_operator_push
+        
+op_add:
+        lda     #>(fadd-1)
+        ldx     #<(fadd-1)
+        jmp     call_binary_operator_push
+
+; Fall through
 ; Invokes a binary operator and pushes the result back.
 
 call_binary_operator_push:
@@ -490,19 +434,10 @@ unary_op_not:
         lda     FP0e
         bne     push_value_0            ; Value was not zero so we should return 0
         beq     push_value_1
-        rts
 
 ; Push the value in FP0 onto the value stack.
 ; FP0 = the value to push
 ; DE SAFE
-
-push_value_0:
-        jsr     clear_fp0
-        jmp     push_fp0
-
-push_value_1:
-        jsr     load_one_fp0
-        jmp     push_fp0
 
 push_int_fp0:
         jsr     int_to_fp

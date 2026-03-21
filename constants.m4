@@ -116,8 +116,7 @@ def(ERR_EXPRESSION_TOO_COMPLEX,     hex(8E))
 def(ERR_FORMAT_ERROR,               hex(8F))
 def(ERR_ARITY_MISMATCH,             hex(90))
 def(ERR_SYNTAX_ERROR,               hex(91))
-def(ERR_IMMEDIATE_MODE_STOP,        hex(92))
-def(ERR_DIVIDE_BY_ZERO,             hex(93))
+def(ERR_DIVIDE_BY_ZERO,             hex(92))
 
 comment Parse virtual machine (PVM) constants and instruction codes
 
