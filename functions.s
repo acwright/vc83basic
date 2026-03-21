@@ -183,11 +183,6 @@ fun_len:
         ldx     #0                      ; Zero-extend to 16 bits; for len we receive the string length in A
         rts
 
-fun_round:
-        jsr     pop_fp0
-        jsr     round
-        jmp     push_fp0        
-
 .bss
 
 rnd_value:      .res .sizeof(Float::t)
