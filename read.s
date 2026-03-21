@@ -51,9 +51,8 @@ exec_read:
 
 @assign:
         jsr     assign_variable         ; Store the value
-        ldy     line_pos
-        lda     (line_ptr),y            ; Peek next byte
-        cmp     #','                    ; More variables?
+        lda     #','
+        jsr     test_byte               ; Check if more variables
         clc                             ; Prepare to return success
         bne     @done                   ; Nope
         inc     line_pos
@@ -83,8 +82,7 @@ exec_read:
 ; RESTORE statement:
 
 exec_restore:
-        ldy     line_pos
-        lda     (line_ptr),y            ; Peek next byte
+        jsr     peek_byte               ; Peek next byte
         bne     @has_line_number
         jmp     reset_data
 

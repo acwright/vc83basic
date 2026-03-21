@@ -7,9 +7,8 @@
 .assert TYPE_NUMBER = $00, error
 
 exec_input:
-        ldy     line_pos
-        lda     (line_ptr),y            ; Peek next byte
-        cmp     #'"'                    ; Is it a string?
+        lda     #'"'
+        jsr     test_byte
         bne     @default_prompt
         jsr     decode_string
         lday    string_ptr

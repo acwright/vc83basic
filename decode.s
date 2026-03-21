@@ -79,3 +79,12 @@ decode_byte:
         inc     line_pos  
         lda     (line_ptr),y            ; Load and return the byte
         rts
+
+; EORs the next byte from the stream with a value in A, which sets the Z flag if the values were the same.
+
+peek_byte:
+        lda     #0                      ; Setting A to 0 effectively turns the EOR into a LDA
+test_byte:
+        ldy     line_pos                ; Read line_pos into Y and increment
+        eor     (line_ptr),y            ; Load and return the byte
+        rts

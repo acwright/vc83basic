@@ -168,8 +168,7 @@ evaluate_expression:
         jmp     @next
 
 @dispatch:
-        ldy     line_pos                ; Peek at next byte in token stream
-        lda     (line_ptr),y
+        jsr     peek_byte
         beq     @done                   ; Short circuit to end if we're at the end of the line
         and     #<~EOT                  ; Clear EOT if it's set
         cmp     #TOKEN_FUNCTION         ; First check for a function
@@ -287,9 +286,8 @@ evaluate_argument_list:
         tsx
         dec     $101,x                  ; Decrement remaining
         beq     @done                   ; If reached 0 exactly, stop
-        ldy     line_pos
-        lda     (line_ptr),y
-        cmp     #','
+        lda     #','
+        jsr     test_byte
         bne     @done                   ; No comma, stop
         inc     line_pos                ; Skip comma
         jmp     @loop                   ; And continue

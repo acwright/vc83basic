@@ -10,8 +10,7 @@ exec_print_number:
         jsr     pop_fp0                 ; Get the value
         jsr     print_number            ; Print the number
 exec_print:
-        ldy     line_pos                ; Read line_pos into Y
-        lda     (line_ptr),y            ; Peek at next character
+        jsr     peek_byte               ; Peek at next character
         beq     @newline                ; Found 0
 @continue:
         cmp     #';'
@@ -35,8 +34,7 @@ exec_print:
         bne     @tab                    ; Not yet
 @empty_space:
         inc     line_pos                ; Skip over the empty space or tab token
-        ldy     line_pos                ; Read line_pos into Y
-        lda     (line_ptr),y            ; Peek at next character
+        jsr     peek_byte               ; Peek at next character
         bne     @continue               ; It's not the end of the PRINT so continue
         beq     @done                   ; Unconditional
         

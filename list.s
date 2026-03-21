@@ -19,13 +19,11 @@ exec_list:
         lda     #$FF
         sta     line_number             ; Set line number to max in case user did not provide arguments
         sta     line_number+1
-        ldy     line_pos                ; Look to see if there are arguments
-        lda     (line_ptr),y
+        jsr     peek_byte               ; Look to see if there are arguments
         beq     @next_line              ; Nothing after LIST, just go
         jsr     get_line_number         ; Go get it
         jsr     find_line               ; Stores the line number in line_number
-        ldy     line_pos                ; Anything else?
-        lda     (line_ptr),y
+        jsr     peek_byte               ; Anything else?
         beq     @next_line              ; Nope: the value in line_number becomes the terminating line number
         inc     line_pos                ; There's another arg, so skip over the ','
         jsr     get_line_number         ; Save the ending line number in line_number
@@ -91,8 +89,7 @@ list_statement:
         ldax    #ex_statement_name_table
 @token:
         jsr     expand_tokenized_name
-        ldy     line_pos                ; Exit w/o adding whitespace if there's no more data on the line
-        lda     (line_ptr),y
+        jsr     peek_byte
         bne     @not_empty
         inc     line_pos                ; Skip 0 at end of statement
         rts
