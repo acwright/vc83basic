@@ -156,11 +156,8 @@ word(array_element_size)
 comment The offset of an element in the array
 word(array_element_offset)
 
-comment The value of the stack pointer to restore in the exception handler
-byte(exception_handler_sp)
-
-comment The exception handler itself
-word(exception_handler, void*)
+comment The value of the stack pointer to restore in on_raise
+byte(on_raise_sp)
 
 comment PVM instruction pointer
 word(pvm_program_ptr, const char*)

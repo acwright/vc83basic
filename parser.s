@@ -254,7 +254,11 @@ op_match_any:
 ; DISPATCH: JUMP to the address following the end of the matched name in the name table
 
 op_dispatch:
-        mvax    name_ptr, pvm_program_ptr   ; JUMP to name_ptr
+        ldax    name_ptr
+        cmp     next_name_ptr               ; Any data there? (only need to check low byte)
+        beq     op_return                   ; If not, just pretend that we found RETURN
+        stax    pvm_program_ptr             ; JUMP to name_ptr
+@skip:
         jmp     next_pvm
 
 ; RETURN: resume at the opcode following last call
@@ -799,7 +803,6 @@ statement_name_table:
             JUMP pvm_let
 :       name_table_entry ""             ; Implied LET: won't ever match
 :       name_table_entry "RUN"
-            RETURN
 :       name_table_entry "PRINT"
             JUMP pvm_print_expression
 :       name_table_entry "?"
@@ -812,9 +815,7 @@ statement_name_table:
 :       name_table_entry "GOSUB"
             JUMP pvm_number
 :       name_table_entry "RETURN"
-            RETURN
 :       name_table_entry "POP"
-            RETURN
 :       name_table_entry "ON"
             CALL pvm_expression    
             WS
@@ -837,13 +838,9 @@ statement_name_table:
 :       name_table_entry "NEXT"
             JUMP pvm_var
 :       name_table_entry "STOP"
-            RETURN
 :       name_table_entry "CONT"
-            RETURN
 :       name_table_entry "NEW"
-            RETURN
 :       name_table_entry "CLR"
-            RETURN
 :       name_table_entry "DIM"
             JUMP pvm_var
 :       name_table_entry "REM"
@@ -857,7 +854,6 @@ statement_name_table:
 :       name_table_entry "POKE"
             JUMP pvm_arg_2
 :       name_table_entry "END"
-            RETURN
 :       name_table_entry "INPUT"
             TRY @vars
             CALL pvm_string

@@ -20,11 +20,16 @@ error_message_2_length = * - error_message_2
 main:
         jsr     initialize              ; initialize is in ONCE segment and will be clobbered after it returns
         jsr     initialize_program
-        lda     #PS_READY               ; Will be passed through install_exception_handler
-        jsr     install_exception_handler
+        tsx                             ; Save stack pointer for on_raise
+        stx     on_raise_sp
+        lda     #PS_READY               ; As we pass into on_raise, initialize program state to running
 
 ; Exception handler: control reaches here following "raise" or JMP to on_raise.
 
+on_raise:
+        ldx     on_raise_sp             ; Restore the saved stack pointer
+        txs
+        tax                             ; Update flags for new program state since STA won't do it
         sta     program_state           ; Whatever comes back from exception handler is new state
         beq     @dispatch               ; Program is running; do the next thing
         pha                             ; Save the error value and output a newline, which we will need no matter what
@@ -110,50 +115,6 @@ main:
 @no_line_number:
         jsr     newline
         jmp     @get_command
-
-; Decodes and executes one statement from the token stream.
-
-.assert TOKEN_EXTENSION = $80, error
-
-exec_statement:
-        jsr     decode_byte             ; Get statement number
-        clc
-        adc     #statement_vectors_offset
-        bpl     @core                   ; It's a core statement not extension
-        sbc     #(TOKEN_EXTENSION - ex_statement_vectors_offset + statement_vectors_offset - 1)
-@core:
-        jmp     invoke_indexed_vector
-
-.segment "VECTORS"
-
-statement_vectors:
-        .word   exec_let-1
-        .word   exec_let-1
-        .word   exec_run-1
-        .word   exec_print-1
-        .word   exec_print-1
-        .word   exec_list-1
-        .word   exec_goto-1
-        .word   exec_goto-1
-        .word   exec_gosub-1
-        .word   exec_return-1
-        .word   exec_pop-1
-        .word   exec_on_goto_gosub-1
-        .word   exec_for-1
-        .word   exec_next-1
-        .word   exec_stop-1
-        .word   exec_cont-1
-        .word   exec_new-1
-        .word   exec_clr-1
-        .word   exec_dim-1
-        .word   exec_rem-1
-        .word   exec_data-1
-        .word   exec_read-1
-        .word   exec_restore-1
-        .word   exec_poke-1
-        .word   exec_end-1
-        .word   exec_input-1
-        .word   exec_if-1
 
 .segment "ONCE"
 
