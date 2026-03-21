@@ -210,13 +210,12 @@ find_array_element:
         sta     array_element_size+1
         iny
         jsr     rebase_name_ptr         ; Move name_ptr to the next dimension value
-        txa                             ; Compare the multiplication result (currently in EX) with the limit
-        cmp     array_element_size+1    ; Result high byte < limit high byte?
-        bcc     @ok                     ; <
-        bne     name_out_of_range            ; >, otherwise =
-        lda     E                       ; Same with low byte
-        cmp     array_element_size
-        bcs     name_out_of_range            ; >=
+        lda     E                       ; Compare the multiplication result (currently in EX) with the limit
+        sec                             ; Subtract the limit (in array_element_size) using 16-bit math
+        sbc     array_element_size      ; Subtract low byte of limit
+        txa                             ; Move high byte of result into A
+        sbc     array_element_size+1    ; Subtract high byte of limit
+        bcs     name_out_of_range       ; If carry is set then result >= limit, so it's out of range
 @ok:
         lda     E                       ; Result still in EX; make sure we have low byte of result in A
         adc     array_element_offset    ; Add result to array_element_offset; carry will always be clear

@@ -104,18 +104,21 @@ find_line:
 @next_line:      
         jsr     advance_next_line_ptr   ; Advance to the next line
 @test_line:
-        ldy     #Line::number+1         ; Index of high byte of line number
-        lda     (next_line_ptr),y        
-        cmp     line_number+1      
-        bcc     @next_line              ; Line number high byte is <target; go to next line
-        bne     @not_found              ; Return with carry set
-        dey                             ; High byte is equal; decrement Y to get low byte of line number
-        lda     (next_line_ptr),y       ; Check the low byte of line number
-        cmp     line_number             ; Same logic for low byte
-        bcc     @next_line     
-        bne     @not_found              ; If not the line then return with carry bit set
-        clc                             ; If it was the line then return with carry clear
-@not_found:        
+        ldy     #Line::number           ; Index of low byte of line number
+        sec
+        lda     (next_line_ptr),y       ; Subtract low byte of target line number
+        sbc     line_number
+        tax                             ; Save low byte difference in X for equality check later
+        iny                             ; Increment Y to get high byte of line number
+        lda     (next_line_ptr),y       ; Subtract high byte of target line number
+        sbc     line_number+1
+        bcc     @next_line              ; Line number is < target; go to next line
+        
+        bne     @not_found              ; Difference in high byte is non-zero (so line is strictly > target)
+        cpx     #0                      ; High byte difference is 0; check the low byte difference
+        bne     @not_found              ; Difference in low byte is non-zero (so line is strictly > target)
+        clc                             ; Exact match found; return with carry clear
+@not_found:
         rts     
 
 ; Advances next_line_ptr to the next line.

@@ -465,12 +465,11 @@ set_name_ptr_data:
 ; Returns carry clear if it is, otherwise carry set.
 
 check_src_ptr:
-        lda     src_ptr+1               ; Is src_ptr < himem_ptr?
-        cmp     himem_ptr+1
-        bcc     @done                   ; High byte is less; exit with carry clear
-        bne     @done                   ; If greater than exit with carry set
-        lda     src_ptr                 ; Compare low byte
-        cmp     himem_ptr
+        sec                             ; Compare src_ptr with himem_ptr using 16-bit subtraction
+        lda     src_ptr                 ; Subtract low byte
+        sbc     himem_ptr
+        lda     src_ptr+1               ; Subtract high byte
+        sbc     himem_ptr+1             ; Returns with carry clear if src_ptr < himem_ptr, else carry set
 @done:
         rts
 

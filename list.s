@@ -39,14 +39,14 @@ exec_list:
         jsr     write
         jsr     newline
         jsr     advance_next_line_ptr
-        ldy     #Line::number           ; Check for the ending line number
+        ldy     #Line::number           ; Compare the ending line number by subtracting
         sec
-        lda     (line_ptr),y
+        lda     (line_ptr),y            ; Subtract low byte of limit
         sbc     line_number
         iny
-        lda     (line_ptr),y
+        lda     (line_ptr),y            ; Subtract high byte of limit
         sbc     line_number+1
-        bcc     @next_line              ; If line we just printed < limit, loop
+        bcc     @next_line              ; If line we just printed < limit, loop to next line
 
 @done:
         plsta   next_line_pos
