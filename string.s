@@ -22,9 +22,7 @@ load_s:
         iny                             ; Increment low byte of address
         sty     0,x                     ; Store low byte of string address
         bne     @skip_inc               ; Low byte didn't roll over so don't have to adjust high byte
-        ldy     C                       ; High byte is in C, so re-load and re-store
-        iny
-        sty     1,x
+        inc     1,x
 @skip_inc:
         ldy     #0                      ; Length offset
         lda     (BC),y                  ; Load the length for return
@@ -77,7 +75,7 @@ read_string_2:
         sta     (string_ptr),y          ; Store in output
         inc     D                       ; Increment read and write offset
         inc     E
-        jmp     @next
+        bne     @next
 
 ; When we get here, D always points to the next read position, and the length of the string is in E.
 
@@ -357,17 +355,16 @@ handle_string:
 ; Phase 1 handler
 
 phase_1_clear_string:
-        iny
         lda     #$FF
-        sta     (src_ptr),y             ; Set relocation offset high byte to $FF
-        rts
+        bne     phase_x_store
 
 ; Phase 2 handler
 
 phase_2_mark_string:
-        iny
         lda     #0
-        sta     (src_ptr),y             ; Set relocation offset high byte to 0
+phase_x_store:
+        iny
+        sta     (src_ptr),y
         rts
 
 ; Phase 3 handler
