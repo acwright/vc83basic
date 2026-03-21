@@ -231,8 +231,6 @@ evaluate_argument_list:
         pla                             ; Return remaining count
         rts
 
-
-
 push_operator:
         ldx     op_stack_pos
         raieq   ERR_EXPRESSION_TOO_COMPLEX   ; If already zero then fail
@@ -264,7 +262,6 @@ process_operators:
         jmp     @next                   ; Continue processing operators
 @done:
         rts
-
 
 op_concat:
         jsr     pop_string              ; Get the second string
