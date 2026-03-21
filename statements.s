@@ -6,12 +6,14 @@
 
 .assert TOKEN_EXTENSION = $80, error
 
+.assert ex_statement_vectors_offset >= statement_vectors_offset, error
+
 exec_statement:
         jsr     decode_byte             ; Get statement number
         clc
         adc     #statement_vectors_offset
         bpl     @core                   ; It's a core statement not extension
-        sbc     #(TOKEN_EXTENSION - ex_statement_vectors_offset + statement_vectors_offset - 1)
+        sbc     #(TOKEN_EXTENSION - ex_statement_vectors_offset + statement_vectors_offset - 1) ; -1 b/c carry clear
 @core:
         jmp     invoke_indexed_vector
 

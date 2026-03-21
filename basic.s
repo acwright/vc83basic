@@ -24,11 +24,6 @@ operator_vectors_offset = <(operator_vectors - __VECTORS_LOAD__) / 2
 function_table_offset = <(function_table - __FUNCTABS_LOAD__) / 3
 ex_function_table_offset = <(ex_function_table - __FUNCTABS_LOAD__) / 3
 
-.assert ex_statement_vectors_offset >= statement_vectors_offset, error
-.assert ex_function_table_offset >= function_table_offset, error
-
-.assert operator_vectors_offset = 0, error
-
 ; Data structures
 
 .struct Float

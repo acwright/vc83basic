@@ -18,15 +18,7 @@
 .assert PROLOG_POP_INT = (2 << 6), error
 .assert PROLOG_POP_STRING = (3 << 6), error
 
-.assert function_table_offset <= ex_function_table_offset, error
-
-; Things to do:
-; Calculate index
-; Get arity: requires index
-; Push epilog: requires arity
-; Push function vector: requires index and epilog
-; Evaluate arguments: requires arity, destroys index
-; Jump to prolog: requires arity
+.assert ex_function_table_offset >= function_table_offset, error
 
 function_prologs:
         .word   pop_fp0-1
@@ -317,6 +309,8 @@ push_operator:
 ; The open and close parens will never be handled through the jump table: close paren is never actually put on the
 ; operator stack, and open parens have such a low precedence that they will never be evaluated.
 ; A = minimum precedence
+
+.assert operator_vectors_offset = 0, error
 
 process_operators:
         sta     min_precedence          ; Store the minimum precedence
