@@ -56,6 +56,11 @@ fp_pi:          .byte $81, $CF, $0F, $49, 129
 load_fp1:
         ldx     #FP1
         bne     load_fp
+load_ten_fp0:
+        lday    #fp_ten
+        bne     load_fp0
+load_one_fp0:
+        lday    #fp_one
 load_fp0:
         ldx     #FP0
 load_fp:
@@ -770,8 +775,7 @@ string_to_fp_2:
         bmi     @multiply
         
         phzp    FP0, .sizeof(UnpackedFloat)     ; Hold FP0 result on stack
-        lday    #fp_ten
-        jsr     load_fp0                ; Set FP0 to 10
+        jsr     load_ten_fp0            ; Set FP0 to 10
 @scale_divisor:
         dec     D                       ; Decrement number of digits after decimal
         beq     @scale_div
@@ -790,8 +794,7 @@ string_to_fp_2:
 
 @multiply:
         phzp    FP0, .sizeof(UnpackedFloat)     ; Hold FP0 result on stack
-        lday    #fp_ten
-        jsr     load_fp0                ; Set FP0 to 10
+        jsr     load_ten_fp0            ; Set FP0 to 10
 @scale_multiplier:
         inc     D                       ; Increment number of digits after decimal
         beq     @scale_mul
@@ -1626,8 +1629,7 @@ fatn:
         bcc     @approximate            ; Less than 1, so approximate
         beq     @approximate            ; Exactly 1
         jsr     copy_fp0_fp1            ; FP1 = x
-        lday    #fp_one
-        jsr     load_fp0                ; FP0 = 1
+        jsr     load_one_fp0            ; FP0 = 1
         jsr     fdiv_fp1                ; FP0 = 1 / x
         jsr     @approximate            ; Get ATN of this new value
         jsr     copy_fp0_fp1            ; Move ATN value to right side

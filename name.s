@@ -172,8 +172,7 @@ find_or_add_variable:
         jsr     find_name               ; Look for an array with this name
         bcc     find_array_element
         mva     decode_name_arity, D    ; Do DIM var(10, 10, ..., 10); D counts down arity
-        lday    #fp_ten
-        jsr     load_fp0                ; Set FP0 to 10
+        jsr     load_ten_fp0            ; Set FP0 to 10
 @push:
         jsr     push_fp0
         dec     D

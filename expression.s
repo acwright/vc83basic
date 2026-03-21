@@ -505,8 +505,7 @@ push_value_0:
         jmp     push_fp0
 
 push_value_1:
-        lday    #fp_one
-        jsr     load_fp0
+        jsr     load_one_fp0
         jmp     push_fp0
 
 push_int_fp0:

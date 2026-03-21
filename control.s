@@ -120,8 +120,7 @@ exec_for:
         jsr     pop_fp0
         jmp     @store_step
 @no_step:
-        lday    #fp_one
-        jsr     load_fp0
+        jsr     load_one_fp0
 @store_step:
         lda     stack_pos               ; Stack pointer again
         clc

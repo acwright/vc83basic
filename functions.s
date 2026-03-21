@@ -222,8 +222,7 @@ fun_sgn:
         lda     FP0e                    ; If exponent is 0 then value is 0; return 0
         beq     @done
         ldpha   FP0s                    ; Return the sign of the original value
-        lday    #fp_one
-        jsr     load_fp0                ; Load 1
+        jsr     load_one_fp0            ; Load 1
         plsta   FP0s                    ; Replace the sign of 1 with the sign of the original number
 @done:
         rts
