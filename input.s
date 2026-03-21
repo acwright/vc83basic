@@ -7,8 +7,8 @@
 .assert TYPE_NUMBER = $00, error
 
 exec_input:
-        lda     #'"'
-        jsr     test_byte
+        jsr     peek_byte
+        cmp     #'"'
         bne     @default_prompt
         jsr     decode_string
         lday    string_ptr

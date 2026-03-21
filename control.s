@@ -111,8 +111,8 @@ exec_for:
         adc     #Control::end_value     ; Add the offset of the end value; carry is clear
         ldy     #>stack                 ; Stack page
         jsr     store_fp0               ; Store FP0 there
-        lda     #TOKEN_CLAUSE | CLAUSE_STEP
-        jsr     test_byte               ; Check for STEP
+        jsr     peek_byte               ; Check for STEP
+        cmp     #TOKEN_CLAUSE | CLAUSE_STEP
         bne     @no_step
         inc     line_pos
         jsr     evaluate_expression

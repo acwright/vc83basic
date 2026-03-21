@@ -286,8 +286,8 @@ evaluate_argument_list:
         tsx
         dec     $101,x                  ; Decrement remaining
         beq     @done                   ; If reached 0 exactly, stop
-        lda     #','
-        jsr     test_byte
+        jsr     peek_byte
+        cmp     #','
         bne     @done                   ; No comma, stop
         inc     line_pos                ; Skip comma
         jmp     @loop                   ; And continue

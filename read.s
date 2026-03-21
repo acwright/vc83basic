@@ -51,8 +51,8 @@ exec_read:
 
 @assign:
         jsr     assign_variable         ; Store the value
-        lda     #','
-        jsr     test_byte               ; Check if more variables
+        jsr     peek_byte               ; Check if more variables
+        cmp     #','
         clc                             ; Prepare to return success
         bne     @done                   ; Nope
         inc     line_pos
