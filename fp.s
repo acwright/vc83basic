@@ -190,22 +190,17 @@ fp0_low_bits_are_zero:
         rts
 
 ; Generates the two's complement of the FP0 extended significand by subtracting it from 0.
-; X SAFE, Y SAFE, BC SAFE, DE SAFE
+; Y SAFE, BC SAFE, DE SAFE
 
 negate_significand:
         sec
+        ldx     #<(-4)
+@loop:  
         lda     #0
-        sbc     FP0t
-        sta     FP0t
-        lda     #0
-        sbc     FP0t+1
-        sta     FP0t+1
-        lda     #0
-        sbc     FP0t+2
-        sta     FP0t+2
-        lda     #0
-        sbc     FP0t+3
-        sta     FP0t+3
+        sbc     FP0t+4,x
+        sta     FP0t+4,x
+        inx
+        bne     @loop
         lda     #0
         sbc     FPX
         sta     FPX
@@ -218,7 +213,8 @@ add_significands:
         clc                     
 add_significands_with_carry:
         ldx     #<(-4)
-@loop:  lda     FP0t+4,x                ; Add the significands
+@loop:  
+        lda     FP0t+4,x                ; Add the significands
         adc     FP1t+4,x
         sta     FP0t+4,x
         inx
@@ -1050,11 +1046,11 @@ fadd_2:
         jsr     negate_significand      ; This makes the sign bit of FP0t match FP0s
 @equal_signs:
         jsr     add_significands
-        tax                             ; Temporarily store in X
+        pha                             ; Save high byte of result
         bpl     @positive               ; Result was positive
         jsr     negate_significand      ; Result was negative so negate    
 @positive:
-        txa                             ; Recover high byte of result
+        pla                             ; Recover high byte of result
         and     #$80                    ; Isolate sign bit (which will be 1)
         eor     FP1s                    ; Result is neg if FP1 was neg or result is now neg but not both
         sta     FP0s
