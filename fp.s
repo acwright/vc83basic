@@ -217,18 +217,12 @@ negate_significand:
 add_significands:
         clc                     
 add_significands_with_carry:
-        lda     FP0t                    ; Add the significands
-        adc     FP1t
-        sta     FP0t
-        lda     FP0t+1
-        adc     FP1t+1
-        sta     FP0t+1
-        lda     FP0t+2
-        adc     FP1t+2
-        sta     FP0t+2
-        lda     FP0t+3
-        adc     FP1t+3
-        sta     FP0t+3
+        ldx     #<(-4)
+@loop:  lda     FP0t+4,x                ; Add the significands
+        adc     FP1t+4,x
+        sta     FP0t+4,x
+        inx
+        bne     @loop
         lda     FPX                     ; Extended significand
         adc     #0                      ; Extended significand of FP1 is always 0
         sta     FPX
