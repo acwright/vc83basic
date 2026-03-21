@@ -327,13 +327,13 @@ truncate_fp_to_int:
         rol     A                       ; Rotate high bit into carry: this is the sign of the return value
         lda     #0
         adc     FP0t+2                  ; If I add the sign to the top 2 bytes, it must be zero
-        bne     fp_out_of_range
+        bne     raise_out_of_range
         adc     FP0t+3
-        bne     fp_out_of_range
+        bne     raise_out_of_range
         lda     FP0t+0                  ; Load low byte of return value into A
         rts
 
-fp_out_of_range:
+raise_out_of_range:
         raise   ERR_OUT_OF_RANGE
 
 ; Truncates the FP value to a 32-bit integer and leaves it in the FP0 significand field.
@@ -352,7 +352,7 @@ truncate_fp_to_int32:
         eor     #$FF                    ; A is now -e-1; I want 31-e, so just add 31 and let carry negate the -1
         adc     #31
         beq     @done                   ; Result was 0 so we don't have to shift at all
-        bmi     fp_out_of_range            ; If negative then e was >= 32; max e is 127 so no wraparound issues
+        bmi     raise_out_of_range            ; If negative then e was >= 32; max e is 127 so no wraparound issues
         cmp     #16                     ; Do I need to shift more than 16 places?
         bcs     @optimized              ; Yes
         tay                             ; Transfer total shift count into Y: will be between 1 and 15
@@ -985,7 +985,7 @@ normalize:
         bne     @fine                   ; Exponent is not zero so check if we need to shift some more
 
 @out_of_range:
-        raise   ERR_OUT_OF_RANGE
+        jmp     raise_out_of_range
 
 ; Round the result, which will possibly require another right shift.
 
@@ -1447,7 +1447,7 @@ flog:
         jmp     fadd_2
 
 @out_of_range:
-        raise   ERR_OUT_OF_RANGE
+        jmp     raise_out_of_range
 
 fexp_x = fp_scratch + .sizeof(Float) * 2
 fexp_k = fp_scratch + .sizeof(Float) * 3

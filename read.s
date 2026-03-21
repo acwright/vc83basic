@@ -77,7 +77,7 @@ exec_read:
         beq     @done                   ; No separator, but did find EOL
 
 @format_error:
-        raise   ERR_FORMAT_ERROR
+        jmp     raise_format_error
 
 ; RESTORE statement:
 

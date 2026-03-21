@@ -12,7 +12,7 @@ exec_run:
         jsr     reset_program
         jsr     reset_next_line_ptr
         jsr     clear_variables
-        raise   PS_RUNNING
+        jmp     raise_ps_running
 
 ; CLR statement:
 ; Resets the runtime state of the program, but keeps the program in memory.
@@ -27,7 +27,7 @@ exec_clr:
 
 exec_end:
         mva     #0, resume_line_ptr+1   ; Disable CONT
-        raise   PS_READY
+        jmp     raise_ps_ready
 
 ; STOP statement:
 ; Stops the program (can be resumed with CONT).
@@ -49,7 +49,7 @@ exec_cont:
         mvaa    resume_line_ptr, next_line_ptr
         raieq   ERR_CONT_WITHOUT_STOP
         mva     resume_line_pos, next_line_pos
-        raise   PS_RUNNING
+        jmp     raise_ps_running
 
 ; NEW statment:
 ; Clears the program from memory, which also has the effect of stopping the program as if END.

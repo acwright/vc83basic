@@ -12,7 +12,7 @@ decode_number:
         ldax    line_ptr
         ldy     line_pos
         jsr     string_to_fp            ; May fail with carry set
-        raics   ERR_FORMAT_ERROR
+        bcs     raise_format_error
         sty     line_pos                ; Update line_pos
         rts
 
@@ -23,9 +23,12 @@ decode_string:
         ldax    line_ptr                ; Prepare for read_string
         ldy     line_pos
         jsr     read_string
-        raics   ERR_FORMAT_ERROR
+        bcs     raise_format_error
         sty     line_pos
         rts
+
+raise_format_error:
+        raise   ERR_FORMAT_ERROR
 
 ; Decodes a variable name and set up decode_name_ptr, decode_name_length, and decode_name_type.
 ; BC SAFE, DE SAFE

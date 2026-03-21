@@ -100,6 +100,14 @@ on_raise_2:
         tya                             ; Return the exception number in A
         rts
 
+; We have to define these two functions here because they are ordinarily defined in main, which is not included in tests.
+
+raise_ps_ready:
+        raise   PS_READY
+
+raise_ps_running:
+        raise   PS_RUNNING
+
 ; Function wrappers
 
 ; decode.s

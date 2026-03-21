@@ -152,7 +152,7 @@ fun_mid_s_finish:
         jmp     copy_y_from
 
 fun_mid_out_of_range:
-        raise   ERR_OUT_OF_RANGE
+        jmp     raise_out_of_range
 
 ; Go get the string, set E to its length, and also return length in A.
 ; D contains the requested length; limit it to the string length.

@@ -45,7 +45,7 @@ read_string_2:
         sty     D                       ; Read position relative to read_ptr
         ldax    #(255 + STRING_EXTRA + STRING_EXTRA)    ; Allocate space for 2 strings with total length of 255
         jsr     string_alloc_memory
-        bcc     out_of_memory
+        bcc     raise_out_of_memory     ; Allocation failed
         ldy     D
         lda     (read_ptr),y            ; Get first character
         iny                             ; Skip past it in case it's a double quote
@@ -98,7 +98,7 @@ read_string_2:
         ldy     D                       ; Return read position in Y
         rts                             ; Carry guaranteed to be clear by ADC
 
-out_of_memory:
+raise_out_of_memory:
         raise   ERR_OUT_OF_MEMORY
 
 ; Allocates a new string and sets dst_ptr to point to its data space.
@@ -108,6 +108,7 @@ out_of_memory:
 
 string_alloc_for_copy:
         jsr     string_alloc            ; Returns string address in AY
+        bcc     raise_out_of_memory     ; Reassign string failed
         ldx     #dst_ptr
         jsr     load_s                  ; load_s can load any ZP pointer, not just S0 and S1
         tay
@@ -127,7 +128,7 @@ string_alloc:
         inx                             ; Otherwise it's 1
 @skip_inx:
         jsr     string_alloc_memory     ; Allocate memory
-        bcc     out_of_memory
+        bcc     raise_out_of_memory
         pla                             ; Get size we saved earlier
         ldy     #0
         sta     (string_ptr),y          ; Set the length of the allocated string

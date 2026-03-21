@@ -60,4 +60,4 @@ exec_input:
         jmp     @assign
 
 @format_error:
-        raise   ERR_FORMAT_ERROR
+        jmp     raise_format_error

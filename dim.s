@@ -19,7 +19,7 @@ exec_dim:
         jmp     dimension_array         ; Go do it
 
 @invalid_variable:
-        raise   ERR_INVALID_VARIABLE
+        jmp     raise_invalid_variable
 
 @already_dimensioned:
         raise   ERR_ALREADY_DIMENSIONED

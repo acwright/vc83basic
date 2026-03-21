@@ -62,7 +62,7 @@ exec_on_goto_gosub:
         rts
 
 @out_of_range:
-        raise   ERR_OUT_OF_RANGE
+        jmp     raise_out_of_range
 
 ; RETURN statement:
 
@@ -126,9 +126,9 @@ exec_for:
         adc     #Control::step_value    ; Add the offset of the step value
         ldy     #>stack
         jmp     store_fp0               ; Store the step value
-
+        
 @invalid_variable:
-        raise   ERR_INVALID_VARIABLE
+        jmp     raise_invalid_variable
 
 ; NEXT statement:
 
@@ -146,7 +146,7 @@ exec_next:
         beq     @next_without_for       ; If it was zero then top of stack is GOSUB not FOR
         sta     name_ptr+1
         jsr     match_name              ; Make sure it's the right name
-        bcs     @invalid_variable
+        bcs     raise_invalid_variable
         jsr     evaluate_decoded_variable   ; Continue with evaluation of variable decoded above
         bcs     @next_without_for
         jsr     pop_fp0                 ; Variable value is now in FP0
@@ -183,7 +183,7 @@ exec_next:
 @next_without_for:
         raise   ERR_NEXT_WITHOUT_FOR                            
 
-@invalid_variable:
+raise_invalid_variable:
         raise   ERR_INVALID_VARIABLE
 
 ; POP statement:

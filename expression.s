@@ -86,9 +86,12 @@ evaluate_function:
         and     #$07                    ; Limit to 7 args: ensures bit 3 is always 0
         inc     line_pos                ; Skip '('
         jsr     evaluate_argument_list
-        raine   ERR_ARITY_MISMATCH
+        bne     raise_arity_mismatch
         inc     line_pos                ; Skip ')'
         rts                             ; Jumps to prolog or function handler
+
+raise_arity_mismatch:
+        raise   ERR_ARITY_MISMATCH
 
 
 
@@ -371,7 +374,7 @@ op_concat:
         jmp     push_string             ; Happily, string_ptr is still the address of the new string
 
 @out_of_range:
-        raise   ERR_OUT_OF_RANGE
+        jmp     raise_out_of_range
 
 ; Compares two strings from the stack returns flags based on the comparison.
 ; CMP s1 len, s2 len
@@ -445,7 +448,9 @@ compare_values:
         ldy     stack_pos               ; Get stack pointer
         lda     stack+Value::type,y                 ; Type of first argument
         cmp     stack+.sizeof(Value)+Value::type,y  ; Type of second argument
-        raine   ERR_TYPE_MISMATCH
+        beq     @match
+        jmp     raise_type_mismatch
+@match:
         cmp     #TYPE_STRING            ; Is it a string?
         beq     compare_string_values   ; Yes
         lda     #>(fcmp-1)
@@ -594,6 +599,7 @@ stack_free_value_with_type:
         ldx     stack_pos               ; Get stack pointer
         cmp     stack+Value::type,x     ; Test the type
         beq     stack_free_value        ; Type check succeeded so remove value from stack
+raise_type_mismatch:
         raise   ERR_TYPE_MISMATCH       ; Not the expected type
 
 op_and:
