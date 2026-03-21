@@ -692,6 +692,8 @@ output_y_zeros:
 ; Y = the starting offset
 ; Returns the number in FP0 and the last read position in Y, carry clear if ok, carry set if error.
 
+string_to_fp_x = fp_scratch
+
 string_to_fp:
         stax    read_ptr                ; Store read_ptr
 string_to_fp_2:
@@ -770,11 +772,12 @@ string_to_fp_2:
         mva     #0, D                   ; Clear D if negative so we don't do unwanted scaling
 @calc_fp:
         jsr     int32_to_fp
+        lday    #string_to_fp_x
+        jsr     store_fp0               ; Save FP0 in scratch so we can get it back later
         lda     D                       ; Test number of digits
         beq     @whole                  ; If zero then no scaling
         bmi     @multiply
         
-        phzp    FP0, .sizeof(UnpackedFloat)     ; Hold FP0 result on stack
         jsr     load_ten_fp0            ; Set FP0 to 10
 @scale_divisor:
         dec     D                       ; Decrement number of digits after decimal
@@ -784,7 +787,8 @@ string_to_fp_2:
         jmp     @scale_divisor          ; Do it again until E is 0
 @scale_div:
         jsr     copy_fp0_fp1            ; Move divisor into FP1
-        plzp    FP0, .sizeof(UnpackedFloat)     ; Reload result saved earlier
+        lday    #string_to_fp_x
+        jsr     load_fp0                ; Reload result saved earlier
         jsr     fdiv_2                  ; Divide
 
 @whole:
@@ -793,7 +797,6 @@ string_to_fp_2:
         rts
 
 @multiply:
-        phzp    FP0, .sizeof(UnpackedFloat)     ; Hold FP0 result on stack
         jsr     load_ten_fp0            ; Set FP0 to 10
 @scale_multiplier:
         inc     D                       ; Increment number of digits after decimal
@@ -803,7 +806,8 @@ string_to_fp_2:
         jmp     @scale_multiplier       ; Do it again until E is 0
 @scale_mul:
         jsr     copy_fp0_fp1            ; Move multiplier into FP1
-        plzp    FP0, .sizeof(UnpackedFloat)     ; Reload result saved earlier
+        lday    #string_to_fp_x
+        jsr     load_fp0                ; Reload result saved earlier
         jsr     fmul_2                  ; Multiply by FP1
         jmp     @whole
 
