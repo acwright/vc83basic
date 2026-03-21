@@ -30,7 +30,7 @@ exec_bye:
 .segment "FUNCTABS"
 
 ex_function_table:
-        .word   fun_ver-1
+        .word   fun_ver_s-1
         .byte   1 | PROLOG_POP_FP | EPILOG_PUSH_STRING
 
 .code
@@ -39,7 +39,7 @@ version:
 .include "version.inc"
 version_length = * - version
 
-fun_ver:
+fun_ver_s:
         lda     #version_length         ; Ignore argument
         jsr     string_alloc_for_copy
         ldax    #version

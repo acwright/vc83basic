@@ -41,12 +41,13 @@ function_epilogs:
 evaluate_function:
         inc     line_pos                ; Skip over the function token
         jsr     decode_byte             ; Return the function number in A
-        clc
         bpl     @core                   ; It's a core function not extension
-        sbc     #(TOKEN_EXTENSION - ex_function_table_offset + function_table_offset - 1)
+        sec
+        sbc     #(TOKEN_EXTENSION - ex_function_table_offset + function_table_offset)
 @core:
         sta     B                       ; Save in B
         asl     A                       ; Multiply vector number by 2; clears carry
+        clc
         adc     B                       ; Add back B to multiply by 3
         tax                             ; Set up as index
         lda     __FUNCTABS_LOAD__+2,x   ; Arity and flags

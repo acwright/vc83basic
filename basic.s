@@ -21,8 +21,8 @@ pvm_opcode_vectors_offset = <(pvm_opcode_vectors - __VECTORS_LOAD__) / 2
 statement_vectors_offset = <(statement_vectors - __VECTORS_LOAD__) / 2
 ex_statement_vectors_offset = <(ex_statement_vectors - __VECTORS_LOAD__) / 2
 operator_vectors_offset = <(operator_vectors - __VECTORS_LOAD__) / 2
-function_table_offset = <(function_table - __FUNCTABS_LOAD__) / 2
-ex_function_table_offset = <(ex_function_table - __FUNCTABS_LOAD__) / 2
+function_table_offset = <(function_table - __FUNCTABS_LOAD__) / 3
+ex_function_table_offset = <(ex_function_table - __FUNCTABS_LOAD__) / 3
 
 .assert ex_statement_vectors_offset >= statement_vectors_offset, error
 .assert ex_function_table_offset >= function_table_offset, error
