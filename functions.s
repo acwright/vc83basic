@@ -185,7 +185,7 @@ fun_rnd:
         beq     @output
         lda     FP0s
         bpl     @generate
-        jsr     initialize_rnd_value
+        jsr     rnd_reseed
 @generate:
         jsr     rnd_generate
 @output:
@@ -199,15 +199,6 @@ fun_rnd:
         sta     FP0e
         stx     FP0s                    ; The purpose of all the -1s was to make X 0 here
         jmp     normalize 
-
-initialize_rnd_value:
-        ldx     #4                      ; Copy given number into rnd_value
-@next_copy_to_value:
-        lda     FP0t-1,x
-        sta     rnd_value-1,x
-        dex
-        bne     @next_copy_to_value
-        rts        
 
 fun_sgn:
         lda     FP0e                    ; If exponent is 0 then value is 0; return 0

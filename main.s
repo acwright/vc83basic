@@ -148,6 +148,6 @@ initialize:
         jsr     newline
         ldax    #fp_pi                  ; Initialize the random number generator with pi
         jsr     load_fp0
-        jmp     initialize_rnd_value
+        jmp     rnd_reseed
 
 .code

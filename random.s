@@ -35,3 +35,12 @@ rnd_generate:
         dey
         bne     @next_shift
         rts
+
+rnd_reseed:
+        ldx     #4                      ; Copy given number into rnd_value
+@next_copy_to_value:
+        lda     FP0t-1,x
+        sta     rnd_value-1,x
+        dex
+        bne     @next_copy_to_value
+        rts        
