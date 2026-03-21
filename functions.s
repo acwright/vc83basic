@@ -14,11 +14,11 @@ function_table:
     .word   fun_asc-1
     .byte   1 | PROLOG_POP_STRING | EPILOG_PUSH_INT
     .word   fun_left_s-1
-    .byte   2 | EPILOG_PUSH_STRING
+    .byte   2 | PROLOG_POP_INT | EPILOG_PUSH_STRING
     .word   fun_right_s-1
-    .byte   2 | EPILOG_PUSH_STRING
+    .byte   2 | PROLOG_POP_INT | EPILOG_PUSH_STRING
     .word   fun_mid_s-1
-    .byte   3 | EPILOG_PUSH_STRING
+    .byte   3 | PROLOG_POP_INT | EPILOG_PUSH_STRING
     .word   fun_val-1
     .byte   1 | PROLOG_POP_STRING | EPILOG_PUSH_FP
     .word   fun_fre-1
@@ -92,20 +92,23 @@ fun_fre:
         rts
 
 fun_left_s:
-        jsr     fun_mid_s_setup         ; Requested length in D
+        bmi     fun_mid_out_of_range    ; Don't allow negative length
+        sta     D                       ; Save in D
         jsr     fun_mid_s_pop_string    ; String length in E and requested length <= string length in D
         lda     #0                      ; Starting position
         jmp     fun_mid_s_finish        ; Finish as MID
 
 fun_right_s:
-        jsr     fun_mid_s_setup         ; Requested length in D
+        bmi     fun_mid_out_of_range    ; Don't allow negative length
+        sta     D                       ; Save in D
         jsr     fun_mid_s_pop_string    ; String length in E and requested length <= string length in D
         sec
         sbc     D                       ; Subtract requested length from string length to get starting position
         jmp     fun_mid_s_finish        ; Finish as MID
 
 fun_mid_s:
-        jsr     fun_mid_s_setup         ; Requested length in D
+        bmi     fun_mid_out_of_range    ; Don't allow negative length
+        sta     D                       ; Save in D
         jsr     pop_int_fp0             ; Pop the starting position
         bmi     fun_mid_out_of_range    ; Don't allow negative starting position
         sec
@@ -150,18 +153,6 @@ fun_mid_s_finish:
 
 fun_mid_out_of_range:
         raise   ERR_OUT_OF_RANGE
-
-; Do some stuff that is common to LEFT$, RIGHT$, MID$: set D to the requested length.
-
-fun_mid_s_setup:
-        ldphaa  string_ptr              ; Remember current string_ptr
-        lda     #255
-        jsr     string_alloc            ; Allocate a 255-byte string; if success then we know we can alloc later
-        plstaa  string_ptr              ; Restore string_ptr
-        jsr     pop_int_fp0             ; Length of string returned in A
-        bmi     fun_mid_out_of_range    ; Don't allow negative length
-        sta     D                       ; Save in D
-        rts
 
 ; Go get the string, set E to its length, and also return length in A.
 ; D contains the requested length; limit it to the string length.
