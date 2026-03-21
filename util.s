@@ -121,8 +121,7 @@ set_memory:
 ; Callers can use BC and DE to pass parameters to the target function.
 ; Since Y, the vector index, can never exceed 127, the ASL will clear the carry flag, and it will still be clear
 ; when control reaches the target routine.
-; AX = address of the vector table
-; Y = the index of the vector
+; A = the index of the vector
 ; BC SAFE, DE SAFE
 
 invoke_indexed_vector:

@@ -11,39 +11,152 @@
 
 .assert TOKEN_EXTENSION = $80, error
 
+.assert EPILOG_PUSH_FP = (1 << 4), error
+.assert EPILOG_PUSH_INT = (2 << 4), error
+.assert EPILOG_PUSH_STRING = (3 << 4), error
+.assert PROLOG_POP_FP = (1 << 6), error
+.assert PROLOG_POP_INT = (2 << 6), error
+.assert PROLOG_POP_STRING = (3 << 6), error
+
+.assert function_table_offset <= ex_function_table_offset, error
+
+; Things to do:
+; Calculate index
+; Get arity: requires index
+; Push epilog: requires arity
+; Push function vector: requires index and epilog
+; Evaluate arguments: requires arity, destroys index
+; Jump to prolog: requires arity
+
+function_prologs:
+        .word   pop_fp0-1
+        .word   pop_int_fp0-1
+        .word   pop_string_s0-1
+
+function_epilogs:
+        .word   push_fp0-1
+        .word   push_int_fp0-1
+        .word   push_string-1
+
 evaluate_function:
         inc     line_pos                ; Skip over the function token
         jsr     decode_byte             ; Return the function number in A
-        pha                             ; Remember what function it was, while we go decode the arguments
-        tax
-        lda     function_arity_table,x  ; How many arguments?
+        clc
+        bpl     @core                   ; It's a core function not extension
+        sbc     #(TOKEN_EXTENSION - ex_function_table_offset + function_table_offset - 1)
+@core:
+        sta     B                       ; Save in B
+        asl     A                       ; Multiply vector number by 2; clears carry
+        adc     B                       ; Add back B to multiply by 3
+        tax                             ; Set up as index
+        lda     __FUNCTABS_LOAD__+2,x   ; Arity and flags
+        lsr     A                       ; Move epilog bits 4-5 to positions 1-2
+        lsr     A
+        lsr     A
+        sta     C                       ; Save shifted value
+        and     #$06                    ; Mask out the prolog bits; ensure bit 0 is clear
+        beq     @skip_epilog
+        tay                             ; Make it an index
+        lda     function_epilogs-1,y    ; Push epilog
+        pha
+        lda     function_epilogs-2,y
+        pha
+@skip_epilog:
+        lda     __FUNCTABS_LOAD__+1,x   ; High byte of function address
+        pha
+        lda     __FUNCTABS_LOAD__,x     ; Low byte 
+        pha
+        lda     C                       ; Get back the shifted value
+        lsr     A                       ; Shift prolog bits 6-7 from original to positions 1-2
+        lsr     A
+        and     #$06                    ; If bit 0 was set from epilog bits, clear them
+        beq     @skip_prolog
+        tay                             ; Make it an index
+        lda     function_prologs-1,y    ; Push epilog
+        pha
+        lda     function_prologs-2,y
+        pha
+@skip_prolog:
+
+; The stack now looks like this:
+;     SP+8      evaluate_function return address high byte
+;     SP+7      evaluate_function return address low byte
+;     SP+6      Epilog function high byte (if present)
+;     SP+5      Epilog function low byte (if present)
+;     SP+4      Function handler high byte
+;     SP+3      Function handler low byte
+;     SP+2      Prolog function high byte (if present)
+;     SP+1      Prolog function low byte (if present)
+;     SP        Current stack pointer       
+
+        lda     __FUNCTABS_LOAD__+2,x   ; Reload arity and flags
+        and     #$07                    ; Limit to 7 args: ensures bit 3 is always 0
         inc     line_pos                ; Skip '('
         jsr     evaluate_argument_list
+        raine   ERR_ARITY_MISMATCH
         inc     line_pos                ; Skip ')'
-        pla                             ; Recover the function number
-        clc
-        adc     #function_vectors_offset
-        bpl     @core                   ; It's a core function not extension
-        sbc     #(TOKEN_EXTENSION - ex_function_vectors_offset + function_vectors_offset - 1)
-@core:
-        jmp     invoke_indexed_vector
+        rts                             ; Jumps to prolog or function handler
 
-evaluate_paren:
-        inc     line_pos                ; Consume the '('
-        lda     #PR_OPEN_PAREN          ; Push the open paren, which will never be removed by process_operators
-        jsr     push_operator
-        jsr     evaluate_expression     ; Evaluate the subexpression; may fail
-        inc     op_stack_pos            ; Pop the open paren (even if evaluate_expression failed)
-        inc     line_pos                ; Consume the ')'
-        rts
 
-evaluate_number:
-        jsr     decode_number           ; Returns number in FP0
-        jmp     push_fp0                ; Push number
 
-evaluate_string:
-        jsr     decode_string           ; Sets string_ptr
-        jmp     push_string
+
+
+
+
+
+
+
+
+
+
+
+;         asl     A
+;         asl     A
+;         asl     A
+;         bcc     @push_vector            ; First bit is 1 if we're going to push an epilog
+;         bmi     @epilog_int             ; Second bit is 0 for float or 1 for int
+;         ldpha   #>(push_fp0-1)          ; Set up push_fp0 epilog
+;         ldpha   #<(push_fp0-1)
+;         bcs     @push_vector            ; Unconditional
+; @epilog_int:
+;         ldpha   #>(push_int_fp0-1)      ; Set up push_int_fp0 epilog
+;         ldpha   #<(push_int_fp0-1)
+; @push_vector:
+;         lda     __FUNCTABS_LOAD__+1,x   ; High byte of function address
+;         pha
+;         lda     __FUNCTABS_LOAD__,x     ; Low byte 
+;         pha
+;         lda     __FUNCTABS_LOAD__+2,x   ; Arity and flags
+;         pha                             ; Argument parsing will clobber X so remember this value
+;         and     #$07                    ; Limit to 7 args: leaves 1 extra bit for some future use
+;         inc     line_pos                ; Skip '('
+;         jsr     evaluate_argument_list
+;         raine   ERR_ARITY_MISMATCH
+;         inc     line_pos                ; Skip ')'
+;         pla                             ; Get the arity/flag byte agin
+
+; ; The stack now looks like this:
+; ;     SP+6      evaluate_function return address high byte
+; ;     SP+5      evaluate_function return address low byte
+; ;     SP+4      Epilog function high byte (if present)
+; ;     SP+3      Epilog function low byte (if present)
+; ;     SP+2      Function handler high byte
+; ;     SP+1      Function handler low byte
+; ;     SP        Current stack pointer       
+; ;
+; ; From here we jump to the prolog function, if it's present. control jumps to the prolog function. When it returns, that invokes the function
+; ; handler, and when the handler returns, the epilog function. Finally, returning from the epilog function returns
+; ; control to the caller of this function. If the function has no prolog or epilog then we just don't push those
+; ; addresses on the stack and skip that part of the chian.
+
+;         asl     A
+;         bcc     @done                   ; First bit is 1 if there's a prolog
+;         bmi     @prolog_int             ; Second bit is 0 for float or 1 for int
+;         jmp     pop_fp0                 ; On RTS from pop_fp0 will jump to function
+; @prolog_int:
+;         jmp     pop_int_fp0             ; On RTS from pop_int_fp0 will jump to function
+; @done:
+;         rts
 
 ; Evaluate a full expression.
 ; Evaluating an expression often involves evaluating names, and decoding names affects decode_name_ptr and related
@@ -100,6 +213,23 @@ evaluate_expression:
         jsr     process_operators
         inc     op_stack_pos            ; Pop the open paren (even if evaluation failed)
         plzp    DECODE_NAME_STATE, DECODE_NAME_STATE_SIZE   ; Recover the decoded name
+        rts
+
+evaluate_number:
+        jsr     decode_number           ; Returns number in FP0
+        jmp     push_fp0                ; Push number
+
+evaluate_string:
+        jsr     decode_string           ; Sets string_ptr
+        jmp     push_string
+
+evaluate_paren:
+        inc     line_pos                ; Consume the '('
+        lda     #PR_OPEN_PAREN          ; Push the open paren, which will never be removed by process_operators
+        jsr     push_operator
+        jsr     evaluate_expression     ; Evaluate the subexpression; may fail
+        inc     op_stack_pos            ; Pop the open paren (even if evaluate_expression failed)
+        inc     line_pos                ; Consume the ')'
         rts
 
 evaluate_variable:

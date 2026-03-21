@@ -28,13 +28,11 @@ ex_statement_vectors:
 exec_bye:
         jmp     exit
 
-ex_function_arity_table:
-        .byte   1                       ; VER
+.segment "FUNCTABS"
 
-.segment "VECTORS"
-
-ex_function_vectors:
+ex_function_table:
         .word   fun_ver-1
+        .byte   1 | PROLOG_POP_FP | EPILOG_PUSH_STRING
 
 .code
 
@@ -43,9 +41,7 @@ version:
 version_length = * - version
 
 fun_ver:
-        jsr     pop_fp0                 ; Ignore argument
-        lda     #version_length
+        lda     #version_length         ; Ignore argument
         jsr     string_alloc_for_copy
         ldax    #version
-        jsr     copy_y_from
-        jmp     push_string
+        jmp     copy_y_from

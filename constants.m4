@@ -150,3 +150,12 @@ def(STRING_EXTRA, 3)
 
 comment Maximum line length we're willing to encode (leave 16 bytes at end for END statement in immediate mode
 def(MAX_LINE_LENGTH, 240)
+
+comment Function templates
+
+def(EPILOG_PUSH_FP,     hex(10))
+def(EPILOG_PUSH_INT,    hex(20))
+def(EPILOG_PUSH_STRING, hex(30))
+def(PROLOG_POP_FP,      hex(40))
+def(PROLOG_POP_INT,     hex(80))
+def(PROLOG_POP_STRING,  hex(C0))

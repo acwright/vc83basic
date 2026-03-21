@@ -13,7 +13,7 @@ CFLAGS = --create-dep $(@:.o=.d)
 LDFLAGS = -m $@.map
 
 PRINT_SIZE = @sum=0; \
-	for size in $$(awk '/^(CODE|PARSER|VECTORS) / { print $$4 }' $@.map); do \
+	for size in $$(awk '/^(CODE|PARSER|VECTORS|FUNCTABS) / { print $$4 }' $@.map); do \
 		sum=$$(($$sum + 0x$$size)); \
 	done; \
 	printf "Code size: \$$%X (%d)\n" $$sum $$sum

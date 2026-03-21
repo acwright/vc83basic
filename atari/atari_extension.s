@@ -22,10 +22,8 @@ ex_statement_vectors:
 exec_dos:
         jmp     (DOSVEC)
 
-ex_function_arity_table:
+.segment "FUNCTABS"
 
-.segment "VECTORS"
-
-ex_function_vectors:
+ex_function_table:
 
 .code

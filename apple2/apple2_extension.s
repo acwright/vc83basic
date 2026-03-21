@@ -31,19 +31,16 @@ exec_text:
         jsr     SETTXT
         rts
 
-ex_function_arity_table:
-        .byte   1                       ; PDL
+.segment "FUNCTABS"
 
-.segment "VECTORS"
-
-ex_function_vectors:
+ex_function_table:
         .word   fun_pdl-1
+        .byte   1 | PROLOG_POP_INT | EPILOG_PUSH_INT
 
 .code
 
 fun_pdl:
-        jsr     pop_int_fp0
         jsr     PREAD                   ; Returns result in Y
         tya
         ldx     #0
-        jmp     push_int_fp0
+        rts
