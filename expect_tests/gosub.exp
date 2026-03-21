@@ -74,7 +74,7 @@ RUN
 2
 2
 
-ERR: O'FLOW AT 20
+ERR: STACK AT 20
 }
 
 # ON...GOSUB
@@ -225,5 +225,5 @@ RUN
 } {
 1
 
-ERR: U'FLOW AT 20
+ERR: STACK AT 20
 }

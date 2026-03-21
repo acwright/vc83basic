@@ -36,7 +36,7 @@ void test_stack_alloc_free(void) {
     stack_alloc(96);
     stack_alloc(96);
     stack_alloc(96);
-    ASSERT_EQ(err, ERR_STACK_OVERFLOW);
+    ASSERT_EQ(err, ERR_STACK);
 }
 
 void test_one_op(char op, const Float* expected00, const Float* expected01, const Float* expected10, 

@@ -573,10 +573,13 @@ stack_alloc_value:
 stack_alloc:
         clc
         sbc     stack_pos               ; Do A - stack_pos - 1
-        raics   ERR_STACK_OVERFLOW      ; Fail if stack has stack is grown too low
+        bcs     raise_err_stack         ; Fail if stack has stack is grown too low
         eor     #$FF                    ; It's already 1 less than we want so inverting gives two's complement
         sta     stack_pos               ; Update the stack pointer
         rts
+
+raise_err_stack:
+        raise   ERR_STACK
 
 ; Frees space on the stack by moving the stack pointer up.
 ; No error checking; the caller must know for sure that there is something on the stack that can be removed.

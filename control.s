@@ -192,7 +192,8 @@ raise_invalid_variable:
 exec_pop:
         ldx     stack_pos               ; Check stack pointer
         cpx     #PRIMARY_STACK_SIZE     ; Stack empty?
-        raieq   ERR_STACK_EMPTY
+        bne     exec_pop_2
+        jmp     raise_err_stack
 exec_pop_2:
         lda     #.sizeof(Control)       ; Free the control record
         jmp     stack_free
