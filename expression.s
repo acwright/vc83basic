@@ -330,9 +330,7 @@ process_operators:
         bcc     @done                   ; If carry clear (we had to borrow) then op prec < min prec; stop
         inc     op_stack_pos            ; Move stack position to next operator
         and     #$1F                    ; Keep lower 5 bits
-        clc
-        adc     #operator_vectors_offset
-        jsr     invoke_indexed_vector   ; Invoke the vector
+        jsr     invoke_indexed_vector   ; Invoke the vector; don't need to adjust b/c we assert op vector offet is 0
         jmp     @next                   ; Continue processing operators
 @done:
         rts
