@@ -1349,29 +1349,31 @@ fcmp:
 fcmp_2:      
         lda     FP1s                    ; Sign of FP1 (note registers 0 and 1 are reversed here)
         cmp     FP0s                    ; Subtract sign of FP0
-        beq     @same_sign              ; If same sign then continue
-        rts                             ; Carry set if FP1s was negative and FP0s was positive -> FP0 is greater
-
-@same_sign:
-        lda     FP0e                    ; FP0 exponent
-        cmp     FP1e                    ; Subtract FP1 exponent 1
-        beq     @same_e                 ; If same exponent then continue
-        rts                             ; Carry set if FP0e was greater -> FP0 is greater
-
-@same_e:
-        lda     FP0t+3                  ; Compare significands (just 32 bits)
-        cmp     FP1t+3
-        bne     @done
-        lda     FP0t+2
-        sbc     FP1t+2
-        bne     @done
-        lda     FP0t+1
-        sbc     FP1t+1
-        bne     @done
-        lda     FP0t
-        sbc     FP1t
+        bne     @done                   ; Differing signs
+        lda     FP0e                    ; Same sign; compare magnitudes
+        cmp     FP1e
+        bne     @magnitude_not_equal
+        ldy     #3                      ; Same exponent; compare significands high-to-low
+@loop:
+        lda     FP0t,y
+        cmp     FP1t,y
+        bne     @magnitude_not_equal
+        dey
+        bpl     @loop
+        iny                             ; Force Z=1 for equality; C is already 1 from last cmp
 @done:
-        rts                             ; Flags will be set correctly here
+        rts                             ; Equal (Z=1, C=1) or differing signs
+
+@magnitude_not_equal:
+        php                             ; Save magnitude flags (Z is 0)
+        lda     FP0s                    ; Check sign
+        bpl     @finish
+        pla                             ; If negative, flip Carry flag (bit 0 of PSR)
+        eor     #$01
+        pha
+@finish:
+        plp
+        rts
 
 ; flog calls fpoly, so use the next three slots.
 

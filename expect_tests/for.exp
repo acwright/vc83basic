@@ -122,3 +122,18 @@ RUN
 3
 5
 }
+
+test {
+NEW
+10 FOR I=10 TO -0.5 STEP -1.5:PRINT I:NEXT I
+RUN
+} {
+10
+8.5
+7
+5.5
+4
+2.5
+1
+-0.5
+}
