@@ -23,16 +23,16 @@ readline:
 
 write:
         stax    BC
-        sty     D
+        tya
+        tax
+        beq     @done
         ldy     #0
 @next:
-        cpy     D
-        beq     @done
         lda     (BC),y
         jsr     putch
         iny
-        jmp     @next
-
+        dex
+        bne     @next
 @done:
         rts
 

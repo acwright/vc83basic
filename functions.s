@@ -57,7 +57,7 @@ function_table:
 .code
 
 fun_abs:
-        mva     #0, FP0s                ; Set sign to positive unconditionally
+        lsr     FP0s                    ; Clear sign bit
         rts
 
 fun_adr:

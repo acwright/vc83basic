@@ -20,8 +20,6 @@ error_message_2_length = * - error_message_2
 main:
         jsr     initialize              ; initialize is in ONCE segment and will be clobbered after it returns
         jsr     initialize_program
-        tsx                             ; Save stack pointer for on_raise
-        stx     on_raise_sp
 
 raise_ps_ready:
         lda     #PS_READY               ; As we pass into on_raise, initialize program state to running
@@ -29,7 +27,7 @@ raise_ps_ready:
 ; Exception handler: control reaches here following "raise" or JMP to on_raise.
 
 on_raise:
-        ldx     on_raise_sp             ; Restore the saved stack pointer
+        ldx     #$FF                    ; Reset the stack pointer
         txs
         tax                             ; Update flags for new program state since STA won't do it
         sta     program_state           ; Whatever comes back from exception handler is new state

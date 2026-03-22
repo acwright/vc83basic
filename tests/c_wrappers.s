@@ -25,6 +25,7 @@ _Y: .res 1
 _err: .res 1
 .export _err
 
+on_raise_sp: .res 1
 exception_handler: .res 2
 
 .code

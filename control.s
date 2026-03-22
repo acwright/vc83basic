@@ -72,12 +72,7 @@ exec_return:
         beq     @return_without_gosub
         lda     stack+Control::variable_name_ptr+1,x    ; Check if high byte of variable name pointer is 0
         bne     @return_without_gosub   ; Variable was not GOSUB signal
-        lda     stack+Control::next_line_ptr,x
-        sta     next_line_ptr           ; Restore next_line_ptr value
-        lda     stack+Control::next_line_ptr+1,x
-        sta     next_line_ptr+1
-        lda     stack+Control::next_line_pos,x
-        sta     next_line_pos           ; Restore next_line_pos value
+        jsr     restore_next_line_ptr
         jmp     exec_pop_2
 
 @return_without_gosub:
@@ -170,13 +165,7 @@ exec_next:
 @negative_step:
         bcc     exec_pop_2              ; Negative step: current < end so stop
 @return_to_for:
-        ldx     stack_pos               ; Get stack pointer once again
-        lda     stack+Control::next_line_ptr,x
-        sta     next_line_ptr           ; Restore next_line_ptr value
-        lda     stack+Control::next_line_ptr+1,x
-        sta     next_line_ptr+1
-        lda     stack+Control::next_line_pos,x
-        sta     next_line_pos           ; Restore next_line_pos value
+        jsr     restore_next_line_ptr
         clc                             ; Signal success
         rts
 
@@ -222,6 +211,15 @@ push_next_line_ptr:
         lda     #TYPE_CONTROL           ; Identify this as Control not Value
         sta     stack+Control::type,x
         txa                             ; Move stack pointer back to A
+        rts
+
+restore_next_line_ptr:
+        lda     stack+Control::next_line_ptr,x
+        sta     next_line_ptr           ; Restore next_line_ptr value
+        lda     stack+Control::next_line_ptr+1,x
+        sta     next_line_ptr+1
+        lda     stack+Control::next_line_pos,x
+        sta     next_line_pos           ; Restore next_line_pos value
         rts
 
 get_line_number:

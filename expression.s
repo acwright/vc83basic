@@ -139,7 +139,7 @@ evaluate_expression:
         pla
         lda     #PR_CLOSE_PAREN         ; Process any operators not yet processed (except open paren)
         jsr     process_operators
-        inc     op_stack_pos            ; Pop the open paren (even if evaluation failed)
+        inc     op_stack_pos            ; Pop the open paren
         plzp    DECODE_NAME_STATE, DECODE_NAME_STATE_SIZE   ; Recover the decoded name
         rts
 
@@ -250,9 +250,6 @@ process_operators:
         sta     min_precedence          ; Store the minimum precedence
 @next:
         ldx     op_stack_pos            ; Get operator stack position
-        cpx     #OP_STACK_SIZE          ; Stack exhausted?
-        clc                             ; Clear carry to signal success in case we take BEQ to @done
-        beq     @done                   ; If so then done
         lda     op_stack,x              ; Get whatever operator it is
         cmp     min_precedence          ; Compare with minimum precedence
         bcc     @done                   ; If carry clear (we had to borrow) then op prec < min prec; stop
