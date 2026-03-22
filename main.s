@@ -125,7 +125,16 @@ handle_error:
 ; for variable and array name tables.
 
 start_message:  .byte "VC83 BASIC "
+.if .defined(__APPLE2__)
+                .pushcharmap
+                .repeat 26, i
+                .charmap $61 + i, $41 + i
+                .endrep
+.endif
 .include "version.inc"
+.if .defined(__APPLE2__)
+                .popcharmap
+.endif
                 .byte " <> "
 start_length = * - start_message
 
