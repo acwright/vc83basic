@@ -1547,7 +1547,7 @@ fsin:
         jsr     fsub_2                  ; Subtract giving the remainder of x/2pi
         lda     FP0s                    ; Save sign of remainder
         pha
-        mva     #0, FP0s                ; Take absolute value
+        asl     FP0s                    ; Make sign positive
         lday    #fp_pi                  ; Load pi/2 into FP1
         jsr     load_fp1
         dec     FP1e
@@ -1613,9 +1613,10 @@ fatn:
         beq     @done                   ; If 0, return 0
         lda     FP0s
         bpl     @positive
-        mva     #0, FP0s                ; It's negative; make it positive
+        asl     FP0s                    ; It's negative; make it positive
         jsr     @positive               ; Calculate as if it was positive all along
-        mva     #$80, FP0s              ; Make the result negative
+        sec
+        ror     FP0s                    ; Make the result negative
 @done:
         rts
 

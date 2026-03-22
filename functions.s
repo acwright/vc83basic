@@ -57,7 +57,7 @@ function_table:
 .code
 
 fun_abs:
-        lsr     FP0s                    ; Clear sign bit
+        asl     FP0s                    ; Clear sign bit
         rts
 
 fun_adr:
