@@ -47,7 +47,7 @@ The file `basic_apple2` is an [AppleSingle](https://nulib.com/library/AppleSingl
     ```bash
     java -jar ac.jar -dos140 basic.dsk
     ```
-2.  Add the `basic_apple2` file to the disk image. Use `-as` because this is an AppleSerial file.
+2.  Add the `basic_apple2` file to the disk image. Use `-as` because this is an AppleSingle file.
     ```bash
     java -jar ac.jar -as basic.dsk basic < basic_apple2
     ```
@@ -140,7 +140,7 @@ like it should be an unfixable problem.
 ## What's missing?
 
 My goal was to fit the BASIC core into 8K. But in order to get there, I had to remove platform-specific features
-such as I/O and graphics and sound statements from the core. So the BASIC interpreter that will be actually
+such as I/O and graphics and sound statements from the core. So the BASIC interpreter that will actually
 run on real hardware will probably be 10K, 12K, or even 16K.
 
 VC83 BASIC does not support for DEF FN or ON ERROR. Let me know if these are important.
@@ -165,4 +165,4 @@ The VC83 name itself and logo are restricted. [You can share the official versio
 Contributions are welcome! Please keep the following in mind:
 
 *   **Licensing**: By contributing code to this project, you agree to license your contribution under the [MIT License](LICENSES/MIT.txt).
-*   **Pull requests**: Pull requests are welcome, but we can't guarantee that we'll merge them. To improve the chance of your contribution being accepted, please reach out or open an issue to discuss your proposed changes before starting work.
+*   **Pull requests**: Pull requests are welcome, but I can't guarantee that I'll merge them. To improve the chance of your contribution being accepted, please reach out or open an issue to discuss your proposed changes before starting work.
