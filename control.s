@@ -87,9 +87,9 @@ exec_for:
         jsr     decode_name             ; Get the name (now in decode_name_ptr)
         sec                             ; Set carry for error return if type check goes wrong
         lda     decode_name_type        ; No string variables please
-        bne     @invalid_variable
+        bne     raise_invalid_variable
         lda     decode_name_arity       ; Or arrays
-        bmi     @invalid_variable
+        bmi     raise_invalid_variable
         inc     line_pos                ; Skip terminator following name
         ldx     stack_pos               ; Get stack pointer to store name
         lda     decode_name_ptr         ; Store pointer to variable name
@@ -122,8 +122,8 @@ exec_for:
         ldy     #>stack
         jmp     store_fp0               ; Store the step value
         
-@invalid_variable:
-        jmp     raise_invalid_variable
+raise_invalid_variable:
+        raise   ERR_INVALID_VARIABLE
 
 ; NEXT statement:
 
@@ -134,16 +134,16 @@ exec_next:
         jsr     decode_name             ; Sets decode_name_ptr
         ldx     stack_pos               ; Load stack position
         cpx     #PRIMARY_STACK_SIZE     ; Check if stack empty
-        beq     @next_without_for       ; If so then fail
+        beq     raise_next_without_for  ; If so then fail
         lda     stack+Control::variable_name_ptr,x  ; Point name_ptr to name at top of control stack
         sta     name_ptr
         lda     stack+Control::variable_name_ptr+1,x
-        beq     @next_without_for       ; If it was zero then top of stack is GOSUB not FOR
+        beq     raise_next_without_for  ; If it was zero then top of stack is GOSUB not FOR
         sta     name_ptr+1
         jsr     match_name              ; Make sure it's the right name
         bcs     raise_invalid_variable
         jsr     evaluate_decoded_variable   ; Continue with evaluation of variable decoded above
-        bcs     @next_without_for
+        bcs     raise_next_without_for
         jsr     pop_fp0                 ; Variable value is now in FP0
         lda     stack_pos               ; Get stack position again
         adc     #Control::step_value    ; Add offset of step value to stack pointer (carry will be clear)
@@ -155,25 +155,30 @@ exec_next:
         clc
         adc     #Control::end_value     ; Calculate address of end value (carry will be clear)
         ldy     #>stack
-        jsr     fcmp                    ; Compare the current value (still in FP0) with the end value
-        beq     @return_to_for          ; Current == end so continue
-        ldx     stack_pos               ; Check sign of step
-        lda     stack+Control::step_value+3,x
-        bmi     @negative_step
-        bcs     exec_pop_2              ; Positive step: current > end so stop
-        bcc     @return_to_for          ; Positive step: current < end so continue
-@negative_step:
+        jsr     fcmp                    ; Compare current with end value
+        beq     restore_next_line_ptr   ; Equal: continue
+        ldx     stack_pos               ; Reload stack position (clobbered by fcmp)
+        lda     stack+Control::step_value+3,x  ; Check sign of step
+        bpl     @positive_step
         bcc     exec_pop_2              ; Negative step: current < end so stop
-@return_to_for:
-        jsr     restore_next_line_ptr
-        clc                             ; Signal success
+        bcs     restore_next_line_ptr   ; Negative step: current >= end so continue
+@positive_step:
+        bcs     exec_pop_2              ; Positive step: current > end so stop
+
+; Fall through
+
+restore_next_line_ptr:
+        ldx     stack_pos
+        lda     stack+Control::next_line_ptr,x
+        sta     next_line_ptr           ; Restore next_line_ptr value
+        lda     stack+Control::next_line_ptr+1,x
+        sta     next_line_ptr+1
+        lda     stack+Control::next_line_pos,x
+        sta     next_line_pos           ; Restore next_line_pos value
         rts
 
-@next_without_for:
+raise_next_without_for:
         raise   ERR_NEXT_WITHOUT_FOR                            
-
-raise_invalid_variable:
-        raise   ERR_INVALID_VARIABLE
 
 ; POP statement:
 ; Returns with the popped stack pointer still in X so caller can use.
@@ -211,15 +216,6 @@ push_next_line_ptr:
         lda     #TYPE_CONTROL           ; Identify this as Control not Value
         sta     stack+Control::type,x
         txa                             ; Move stack pointer back to A
-        rts
-
-restore_next_line_ptr:
-        lda     stack+Control::next_line_ptr,x
-        sta     next_line_ptr           ; Restore next_line_ptr value
-        lda     stack+Control::next_line_ptr+1,x
-        sta     next_line_ptr+1
-        lda     stack+Control::next_line_pos,x
-        sta     next_line_pos           ; Restore next_line_pos value
         rts
 
 get_line_number:
