@@ -35,7 +35,6 @@ exec_on_goto_gosub:
         php                             ; Remember what we learned
         jsr     pop_int_fp0             ; FP0 -> integer in AX
         sta     B
-        sec                             ; Set carry in case this next check fails
         txa                             ; Check the high byte
         bne     @out_of_range           ; If high byte is set then value is out of range (either <0 or >255)
 @loop:
@@ -85,7 +84,6 @@ exec_return:
 exec_for:
         jsr     push_next_line_ptr      ; Save return address
         jsr     decode_name             ; Get the name (now in decode_name_ptr)
-        sec                             ; Set carry for error return if type check goes wrong
         lda     decode_name_type        ; No string variables please
         bne     raise_invalid_variable
         lda     decode_name_arity       ; Or arrays

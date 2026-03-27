@@ -53,7 +53,6 @@ exec_read:
         jsr     assign_variable         ; Store the value
         jsr     peek_byte               ; Check if more variables
         cmp     #','
-        clc                             ; Prepare to return success
         bne     @done                   ; Nope
         inc     line_pos
         bne     exec_read               ; Unconditional

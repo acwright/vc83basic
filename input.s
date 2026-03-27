@@ -38,7 +38,6 @@ exec_input:
 @assign:
         jsr     assign_variable         ; Store the value
         jsr     decode_byte             ; Read the next byte, which is either ',' or 0
-        clc                             ; Clear carry in case we're done            
         beq     @done                   ; It was 0, nothing more to read
         ldy     buffer_pos              ; Prepare to skip past the argument separator, if present
         jsr     skip_whitespace         ; We read something from this line so need a ',' to continue

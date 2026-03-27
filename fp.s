@@ -436,7 +436,6 @@ truncate:
         bne     @shift
         and     FP0t,x                  ; AND in the significand value
         sta     FP0t,x                  ; Store back
-        clc
         rts
 
 @e_neg_or_zero:
@@ -448,7 +447,6 @@ truncate:
         sta     FP0t+3                  ; Also have to set high bit of significand
         sty     FP0s                    ; And set the sign in case it's -1
 @done:
-        clc
         rts
 
 ; Converts FP number in FP0 into a string.
@@ -1003,7 +1001,6 @@ normalize:
         inc     FP0e                    ; Increase exponent
 
 @done:
-        clc                             ; Signal success
         rts
 
 ; Adds the value referenced by the pointer AY to FP0, leaving the sum in FP0 and possibly modifying FP1.
@@ -1145,9 +1142,7 @@ fmul_2:
         lda     FP1e                    ; Test FP1
         bne     @do_multiply
 @return_zero:
-        jsr     clear_fp0               ; Return zero
-        clc                             ; Signal success
-        rts
+        jmp     clear_fp0               ; Return zero
 
 @do_multiply:
 
@@ -1228,9 +1223,7 @@ fdiv_2:
         raise   ERR_DIVIDE_BY_ZERO
 
 @return_zero:
-        jsr     clear_fp0               ; Return zero
-        clc                             ; Signal success
-        rts
+        jmp     clear_fp0               ; Return zero
 
 @initalize:
         ldx     #FPX                    ; Copy significand into FPX so we can use FP0 to build quotient
@@ -1485,7 +1478,7 @@ fexp:
         jsr     round
         jsr     copy_fp0_fp1            ; Move into FP1
         jsr     truncate_fp_to_int      ; Convert into an signed integer (will not affect FP1)
-        sta     E                       ; Store as signed 8-bit value inE
+        sta     E                       ; Store as signed 8-bit value in E
         lday    #fp_log_2               ; Multiply rounded value in FP1 by log(2) to convert to rounded log
         jsr     load_fp0
         jsr     fmul_2

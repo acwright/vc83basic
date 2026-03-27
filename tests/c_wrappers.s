@@ -219,13 +219,13 @@ _truncate_fp_to_int32:
 
 _truncate:
 .export _truncate
-        jsr     truncate
-        jmp     set_err
+        startwrap
+        jmp     truncate
 
 _round:
 .export _round
-        jsr     round
-        jmp     set_err
+        startwrap
+        jmp     round
 
 _char_to_digit:
 .export _char_to_digit
