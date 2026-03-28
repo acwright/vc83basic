@@ -318,6 +318,10 @@ int_to_fp_common:
 
 truncate_fp_to_int:
         jsr     truncate_fp_to_int32
+        bmi     @in_range               ; Exponent < 0. Value is 0 (all fractional bits dropped).
+        cmp     #32                     ; Exponent >= 32 means out of range!
+        bcs     raise_out_of_range
+@in_range:
         lda     FP0s                    ; Was float value negative?
         bpl     @positive
         jsr     negate_significand
@@ -344,46 +348,77 @@ raise_out_of_range:
 ; BC SAFE, DE SAFE
 
 truncate_fp_to_int32:
-        lda     FP0e                    ; Exponent
+        mva     #0, B                   ; B tracks dropped fractional bits
+        lda     FP0e                    ; Load exponent
+        beq     @e_zero_val             ; Exactly 0.0 -> no active bits dropped
         sec
-        sbc     #BIAS                   ; Subtract out bias; max unbiased e value is 127
-        bcc     @e_neg_or_zero          ; Carry ("no borrow") clear we had to borrow so e < BIAS meaning e < 0
-        beq     @e_neg_or_zero          ; Exactly 0 so return 1
-        eor     #$FF                    ; A is now -e-1; I want 31-e, so just add 31 and let carry negate the -1
-        adc     #31
-        beq     @done                   ; Result was 0 so we don't have to shift at all
-        bmi     raise_out_of_range            ; If negative then e was >= 32; max e is 127 so no wraparound issues
-        cmp     #16                     ; Do I need to shift more than 16 places?
-        bcs     @optimized              ; Yes
-        tay                             ; Transfer total shift count into Y: will be between 1 and 15
+        sbc     #BIAS                   ; A is unbiased exponent
+        bmi     @e_neg                  ; Exponent < 0 -> magnitude < 1.0
+
+        cmp     #32
+        bcs     @ret                    ; e >= 32
+
+        pha                             ; Save unbiased e for return
+
+        eor     #$FF
+        adc     #32                     ; A = 31 - e
+        beq     @shift_done             ; if shift count 0, bypass loop
+        cmp     #16
+        bcs     @optimized
+        tay                             ; Y = shift count
 @shift:
-        jsr     shift_right             ; Shift right by 1
+        lsr     FP0t+3
+        ror     FP0t+2
+        ror     FP0t+1
+        ror     FP0t
+        bcc     @no_carry
+        inc     B                       ; Track dropped fractional bits
+@no_carry:
         dey
         bne     @shift
+@shift_done:
+        pla                             ; Restore unbiased e, sets flags
+@ret:
         rts
 
 @optimized:
-        and     #$0F                    ; The number of fine shifts I need after the byte move
-        mvx     FP0t+3, FP0t+1          ; Do the two-byte move through X to preserve A
+        and     #$0F
+        tay
+        
+        lda     B                       ; Track the fractional bits we are jumping over
+        ora     FP0t
+        ora     FP0t+1
+        sta     B
+
+        mvx     FP0t+3, FP0t+1
         mvx     FP0t+2, FP0t
         mvx     #0, FP0t+3
         stx     FP0t+2
-        tay                             ; Move into Y
-        beq     @done                   ; If no fine shifts required then exit
-@optimized_shift:        
+
+        tya                             ; Check if fine shifts are needed
+        beq     @shift_done
+        tay
+@opt_shift:
         lsr     FP0t+1
         ror     FP0t
+        bcc     @opt_no_carry
+        inc     B
+@opt_no_carry:
         dey
-        bne     @optimized_shift
+        bne     @opt_shift
+        beq     @shift_done             ; Unconditional (Z=1 after bne)
+
+@e_neg:
+        pha                             ; Save negative unbiased e
+        ldy     FP0s                    ; Save sign
+        jsr     clear_fp0
+        inc     B                       ; We dropped fractional bits
+        sty     FP0s                    ; Restore sign
+        pla                             ; Restore negative unbiased e, sets flags
         rts
 
-@e_neg_or_zero:
-        ldy     FP0s                    ; Remember the sign of the original value in case we return 1
-        jsr     clear_fp0
-        bcc     @done                   ; Exponent was <1 so return 0, else return 1
-        inc     FP0t
-        sty     FP0s                    ; Restore the sign in case it was -1
-@done:
+@e_zero_val:
+        lda     #<(-BIAS)               ; Sets A=-128 and N/Z flags for the e=0 case
         rts
 
 ; Rounds the floating point value in FP0 to an integer.
@@ -403,69 +438,24 @@ round:
 ; determine if the result needs floor adjustment.
 
 truncate:
-        mva     #0, B                   ; B will track any bits lost (the fractional part)
         lda     FP0e                    ; Calculate the number of fractional bits that we need to clear
         beq     @done                   ; If number was already zero, nothing to do
-        sec
-        sbc     #BIAS                   ; Unbias exponent
-        bpl     @calculate_mask         ; If (unbiased) e >= 0, we have some integer bits to keep
+        
+        jsr     truncate_fp_to_int32
+        bmi     @adjust_negative        ; Exponent < 0. Value is purely fractional, meaning int part is 0. Skip converting back.
+        
+        cmp     #32
+        bcs     @done                   ; Exponent >= 32. Value is purely integer. Unmodified!
 
-; Handle values with magnitude < 1 (e < BIAS). These values are either 0.0 or purely fractional.
-
-        inc     B                       ; Mark that bits were lost (the entire significand)
-        asl     FP0s                    ; Retain sign bit in carry
-        jsr     clear_fp0               ; Zero out the value
-        ror     FP0s                    ; Recover sign bit
-        jmp     @adjust_negative        ; Skip to floor adjustment
-
-@calculate_mask:
-        cmp     #32                     ; If unbiased e >= 32, there is no fractional part
-        bcs     @done                   ; So we're done
-        eor     #$FF                    ; A is now -e-1; I want 31-e, so just add 32
-        adc     #32
-        tay                             ; A is the total number of bits to clear; move into Y
-        lsr     A                       ; Convert bit count to byte count
-        lsr     A
-        lsr     A
-        sta     C                       ; C is the number of full bytes to clear
-        tya                             ; Retrieve original number
-        and     #$07                    ; Remaining bits to clear
-        tay                             ; Store remaining bits in Y
-        ldx     #0                      ; Index for significand byte
-@byte_loop:
-        cpx     C                       ; Have we cleared all the full bytes?
-        beq     @mask_partial
-        lda     B
-        ora     FP0t,x                  ; Keep track of any non-zero bits we clear
+        lda     B                       ; Save B across int32_to_fp
+        pha
+        jsr     int32_to_fp             ; B and C are zeroed by this call
+        pla
         sta     B
-        lda     #0
-        sta     FP0t,x
-        inx
-        bne     @byte_loop
-@mask_partial:
-        tya                             ; Check remaining bits in Y
-        beq     @adjust_negative        ; If 0, no partial masking needed
-        lda     #$FF
-@mask_loop:
-        asl     A                       ; Create a bitmask for the integer part
-        dey
-        bne     @mask_loop
-        tay                             ; Y = mask (bits to keep)
-        eor     #$FF                    ; A = inverse mask (bits to lose)
-        and     FP0t,x                  ; Check if any fractional bits are set
-        ora     B
-        sta     B                       ; Update lost bits flag
-        tya                             ; Restore the keep-mask
-        and     FP0t,x
-        sta     FP0t,x                  ; Zero the fractional bits in this byte
 
 @adjust_negative:
-
-; Perform floor adjustment for negative numbers: if bits were lost, the result must be moved one step further
-; away from zero (towards -infinity).
-
         lda     FP0s
-        bpl     @done                   ; If number was positive, then no adjustment needed     
+        bpl     @done                   ; If number is positive, then no adjustment needed
         lda     B                       ; Were any bits lost?
         beq     @done                   ; No, value was already an integer
         lday    #fp_one                 ; Add -1.0 to the result
