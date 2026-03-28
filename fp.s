@@ -422,8 +422,6 @@ truncate:
         bcs     @done                   ; So we're done
         eor     #$FF                    ; A is now -e-1; I want 31-e, so just add 32
         adc     #32
-
-@split:
         tay                             ; A is the total number of bits to clear; move into Y
         lsr     A                       ; Convert bit count to byte count
         lsr     A
@@ -443,11 +441,9 @@ truncate:
         sta     FP0t,x
         inx
         bne     @byte_loop
-
 @mask_partial:
-        ; If there are remaining bits to clear in the current byte (X).
-        cpy     #0
-        beq     @adjust_negative        ; If RemBits is 0, no partial masking needed
+        tya                             ; Check remaining bits in Y
+        beq     @adjust_negative        ; If 0, no partial masking needed
         lda     #$FF
 @mask_loop:
         asl     A                       ; Create a bitmask for the integer part
@@ -467,16 +463,12 @@ truncate:
 ; Perform floor adjustment for negative numbers: if bits were lost, the result must be moved one step further
 ; away from zero (towards -infinity).
 
-        ldx     FP0s
-        cpx     #$80                    ; Is the number negative?
-        bne     @done                   ; No, standard truncation is already floor
+        lda     FP0s
+        bpl     @done                   ; If number was positive, then no adjustment needed     
         lda     B                       ; Were any bits lost?
         beq     @done                   ; No, value was already an integer
         lday    #fp_one                 ; Add -1.0 to the result
-        jsr     load_fp1
-        lda     #$80
-        sta     FP1s
-        jmp     fadd_2
+        jmp     fsub
 
 @done:
         rts
