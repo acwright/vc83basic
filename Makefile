@@ -12,6 +12,8 @@ ASMFLAGS = --create-dep $(@:.o=.d)
 CFLAGS = --create-dep $(@:.o=.d)
 LDFLAGS = -m $@.map
 
+GIT_VERSION := .byte "$(shell git describe --always --dirty 2>/dev/null || echo unknown)"
+
 PRINT_SIZE = @sum=0; \
 	for size in $$(awk '/^(CODE|PARSER|VECTORS|FUNCTABS) / { print $$4 }' $@.map); do \
 		sum=$$(($$sum + 0x$$size)); \
@@ -52,8 +54,8 @@ basic_atari: basic_atari.o
 	$(PRINT_SIZE)
 
 # Rule for version.inc
-version.inc: .git/HEAD .git/index
-	echo ".byte \"$$(git describe --always --dirty)\"" > $@
+version.inc: FORCE
+	@echo '$(GIT_VERSION)' | cmp -s - $@ || echo '$(GIT_VERSION)' > $@
 
 # Rules for building the constants files:
 constants.inc: constants.m4
@@ -93,7 +95,7 @@ expect_test: basic_sim6502 $(addprefix run_expect_test_,$(EXPECT_TESTS))
 run_expect_test_%:
 	expect expect_tests/$*.exp
 
-.PHONY: all test expect_test clean
+.PHONY: all test expect_test clean FORCE
 .SECONDARY:
 
 clean::
