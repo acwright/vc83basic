@@ -393,6 +393,7 @@ round:
         jsr     load_fp1
         dec     FP1e                    ; Divide by 2 to get 0.5
         jsr     fadd_2                  ; Add 0.5 to the value in FP0
+
 ; Fall through
 
 ; Truncates a floating-point value to the largest integer less than or equal to its value. For
