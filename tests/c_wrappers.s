@@ -217,10 +217,10 @@ _truncate_fp_to_int32:
         startwrap
         jmp     truncate_fp_to_int32
 
-_truncate:
-.export _truncate
+_floor:
+.export _floor
         startwrap
-        jmp     truncate
+        jmp     floor
 
 _round:
 .export _round

@@ -941,7 +941,6 @@ function_name_table:
 :       name_table_entry "ADR"
 :       name_table_entry "USR"
 :       name_table_entry "INT"
-:       name_table_entry "ROUND"
 :       name_table_entry "LOG"
 :       name_table_entry "EXP"
 :       name_table_entry "SIN"

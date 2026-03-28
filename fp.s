@@ -437,7 +437,7 @@ round:
 ; bits/bytes to clear based on the exponent, accumulating any "lost bits" in register B to 
 ; determine if the result needs floor adjustment.
 
-truncate:
+floor:
         lda     FP0e                    ; Calculate the number of fractional bits that we need to clear
         beq     @done                   ; If number was already zero, nothing to do
         

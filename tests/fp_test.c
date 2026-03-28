@@ -258,7 +258,7 @@ void test_truncate_fp_to_int32(void) {
     }
 }
 
-void test_truncate(void) {
+void test_floor(void) {
     Float test_cases[] = {
         { 0x00000000, 0 },          // 0
         { 0x00000000, 128 },        // 1
@@ -282,9 +282,9 @@ void test_truncate(void) {
 
     for (i = 0; i < sizeof test_cases / sizeof *test_cases; i++) {
         Float* test_case = test_cases + i;
-        fprintf(stderr, "  %s:%d: truncate(t=$%08lX e=%02X) ", __FILE__, __LINE__, test_case->t, test_case->e);
+        fprintf(stderr, "  %s:%d: floor(t=$%08lX e=%02X) ", __FILE__, __LINE__, test_case->t, test_case->e);
         load_fp0(test_case);
-        truncate();
+        floor();
         store_fp0(&result);
         fprintf(stderr, "-> result(t=$%08lX e=%02X)\n", result.t, result.e);
         ASSERT_EQ(err, 0);
@@ -955,7 +955,7 @@ int main(int argc, char* argv[]) {
     test_int32_to_fp();
     test_truncate_fp_to_int();
     test_truncate_fp_to_int32();
-    test_truncate();
+    test_floor();
     test_round();
     test_fadd(1);
     test_fsub(1);

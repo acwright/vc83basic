@@ -144,7 +144,7 @@ PRINT VAL("3.14159")
 3.14159
 }
 
-# INT, ROUND, ABS, SGN
+# INT, ABS, SGN
 
 test {
 PRINT INT(3.9), INT(-3.1), INT(-3.9)
@@ -166,11 +166,7 @@ PRINT INT(3.9), INT(-3.1), INT(-3.9)
 # ERR: ARITY?
 # }
 
-test {
-PRINT ROUND(3.4), ROUND(3.5), ROUND(-3.4), ROUND(-3.5)
-} {
-3               4               -3              -3
-}
+
 
 test {
 PRINT ABS(3.14), ABS(-3.14), ABS(0)

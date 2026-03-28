@@ -29,9 +29,7 @@ function_table:
     .byte   1 | PROLOG_POP_STRING | EPILOG_PUSH_INT
     .word   fun_usr-1
     .byte   2 | PROLOG_POP_INT | EPILOG_PUSH_INT
-    .word   truncate-1
-    .byte   1 | PROLOG_POP_FP | EPILOG_PUSH_FP
-    .word   round-1
+    .word   floor-1
     .byte   1 | PROLOG_POP_FP | EPILOG_PUSH_FP
     .word   flog-1
     .byte   1 | PROLOG_POP_FP | EPILOG_PUSH_FP
