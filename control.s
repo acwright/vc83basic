@@ -31,7 +31,7 @@ exec_goto:
 exec_on_goto_gosub:
         jsr     evaluate_expression     ; Evaluate the "ON" expression
         jsr     decode_byte             ; Next byte tells us if it's GOTO or GOSUB
-        cmp     TOKEN_CLAUSE | CLAUSE_GOTO  ; If Z flag then we're GOTO, else GOSUB
+        cmp     #TOKEN_CLAUSE | CLAUSE_GOTO     ; If Z flag then we're GOTO, else GOSUB
         php                             ; Remember what we learned
         jsr     pop_int_fp0             ; FP0 -> integer in AX
         sta     B

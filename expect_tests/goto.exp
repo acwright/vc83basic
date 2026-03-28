@@ -149,3 +149,32 @@ RUN
 
 ERR: RANGE AT 20
 }
+
+# Make sure that GOTO is really GOTO and not GOSUB.
+# The RETURN should produce an error.
+
+test {
+NEW
+10 GOTO 30
+20 END
+30 PRINT 1
+40 RETURN
+RUN
+} {
+1
+
+ERR: NO GOSUB AT 40
+}
+
+test {
+NEW
+10 ON 1 GOTO 30
+20 END
+30 PRINT 1
+40 RETURN
+RUN
+} {
+1
+
+ERR: NO GOSUB AT 40
+}
