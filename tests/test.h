@@ -27,13 +27,13 @@ typedef struct Line {
 
 typedef struct Float {
     unsigned long t;
-    char e;
+    unsigned char e;
 } Float;
 
 typedef struct UnpackedFloat {
     unsigned long t;
-    char e;
-    char s;
+    unsigned char e;
+    unsigned char s;
 } UnpackedFloat;
 
 typedef struct String {

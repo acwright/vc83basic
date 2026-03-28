@@ -149,7 +149,7 @@ PRINT VAL("3.14159")
 test {
 PRINT INT(3.9), INT(-3.1), INT(-3.9)
 } {
-3               -3              -3
+3               -4              -4
 }
 
 # TODO: INT() expects 1 argument.
@@ -169,7 +169,7 @@ PRINT INT(3.9), INT(-3.1), INT(-3.9)
 test {
 PRINT ROUND(3.4), ROUND(3.5), ROUND(-3.4), ROUND(-3.5)
 } {
-3               4               -3              -4
+3               4               -3              -3
 }
 
 test {

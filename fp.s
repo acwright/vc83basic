@@ -47,7 +47,7 @@ fp_pi:          .byte $81, $CF, $0F, $49, 129
 ; Loads a new Float value from memory into FP0 or FP1.
 ; AY = a pointer to the value to load
 ; X = either #FP0 or #FP1
-; DE SAFE
+; DE SAFE, also does not alter carry
 
 ; Y indexes Float starting at position 0 so make sure everything is in the right place.
 .assert Float::t = 0, error
@@ -89,7 +89,7 @@ load_fp:
 
 ; Stores the value in FP0 as a Float value in memory.
 ; AY = destination address
-; DE SAFE
+; DE SAFE, also does not alter carry
 
 store_fp1:
         ldx     #FP1
@@ -387,65 +387,97 @@ truncate_fp_to_int32:
         rts
 
 ; Rounds the floating point value in FP0 to an integer.
-; Rounds to nearest, evens away from zero.
-
+; Performs a "round half up" operation: values are incremented by 0.5 and then truncated (floored).
 round:
-        lday    #fp_one
-        jsr     load_fp1                ; Load the value 1 into FP1
-        dec     FP1e                    ; Decrement exponent by 1 so it's 1/2 instead of 1
-        mva     FP0s, FP1s              ; Copy the sign; the value is now +/- 1/2 depending on sign of FP0
-        jsr     fadd_2                  ; Increase FP0 1/2 further away from zero
-
+        lday    #fp_one                 ; Load 1.0 into FP1
+        jsr     load_fp1
+        dec     FP1e                    ; Divide by 2 to get 0.5
+        jsr     fadd_2                  ; Add 0.5 to the value in FP0
 ; Fall through
 
-; Truncates a floating point value by zeroing out all of the bits to the right of the binary point.
-; We use the same logic as truncate_fp_to_int32 does to generate a shift count, but instead of shifting the
-; significand right, we're shifting a bit mask left. If the shift count is > 8, we're going
-; to mask out all the bits in the low byte, so we can just set them to 0 without bothering to shift anything. In fact
-; we can just clear the lowest (shift count / 8) bytes, then generate and apply the mask to the next byte.
-
-.assert BIAS = 128, error
+; Truncates a floating-point value to the largest integer less than or equal to its value. For
+; positive numbers, this is simple truncation; for negative numbers, we subtract 1.0 if any
+; fractional bits were lost. The implementation uses a uniform loop that calculates how many
+; bits/bytes to clear based on the exponent, accumulating any "lost bits" in register B to 
+; determine if the result needs floor adjustment.
 
 truncate:
-        lda     FP0e                    ; Exponent
+        mva     #0, B                   ; B will track any bits lost (the fractional part)
+        lda     FP0e                    ; Calculate the number of fractional bits that we need to clear
+        beq     @done                   ; If number was already zero, nothing to do
         sec
-        sbc     #BIAS                   ; Subtract out bias; max unbiased e value is 127
-        bcc     @e_neg_or_zero          ; Carry ("no borrow") clear we had to borrow so e < BIAS meaning e < 0
-        beq     @e_neg_or_zero          ; Exactly 0 so return 1
-        eor     #$FF                    ; A is now -e-1; I want 31-e, so just add 31 and let carry negate the -1
-        adc     #31
-        beq     @done                   ; Result was 0 so we don't have to shift at all
-        bmi     @done                   ; If negative then e was >= 32 and number has no fractional component
-        ldx     #0                      ; Start with least significant byte
-        ldy     #0                      ; The 0 value we're going to store
-@zero:
-        sec
-        sbc     #8                      ; Subtract 8 from shift count
-        bcc     @mask                   ; If count went negative then mask the next byte
-        sty     FP0t,x                  ; Store 0 in this significand byte
-        inx                             ; Move to next significand byte
-        bne     @zero
-@mask:
-        adc     #8                      ; The carry will be set here, so ADC with 8 to re-add the 8 we subtracted
-        tay                             ; Into Y
-        beq     @done                   ; If 0 then nothing to do
-        lda     #$FF                    ; Initialize the mask for this byte to all 1s
-@shift:
-        asl     A                       ; Shift the mask left
-        dey
-        bne     @shift
-        and     FP0t,x                  ; AND in the significand value
-        sta     FP0t,x                  ; Store back
-        rts
+        sbc     #BIAS                   ; Unbias exponent
+        bpl     @calculate_mask         ; If (unbiased) e >= 0, we have some integer bits to keep
 
-@e_neg_or_zero:
-        ldy     FP0s                    ; Remember the sign in case we're returning 1
-        jsr     clear_fp0               ; Clear FP0
-        bcc     @done                   ; Exponent was <1 so return 0, else return 1
-        ror     A                       ; We know A=0 and carry set, so roll carry into high bit
-        sta     FP0e                    ; To return 1, set exponent to 128 (assumes BIAS = 128)
-        sta     FP0t+3                  ; Also have to set high bit of significand
-        sty     FP0s                    ; And set the sign in case it's -1
+; Handle values with magnitude < 1 (e < BIAS). These values are either 0.0 or purely fractional.
+
+        inc     B                       ; Mark that bits were lost (the entire significand)
+        asl     FP0s                    ; Retain sign bit in carry
+        jsr     clear_fp0               ; Zero out the value
+        ror     FP0s                    ; Recover sign bit
+        jmp     @adjust_negative        ; Skip to floor adjustment
+
+@calculate_mask:
+        cmp     #32                     ; If unbiased e >= 32, there is no fractional part
+        bcs     @done                   ; So we're done
+        eor     #$FF                    ; A is now -e-1; I want 31-e, so just add 32
+        adc     #32
+
+@split:
+        tay                             ; A is the total number of bits to clear; move into Y
+        lsr     A                       ; Convert bit count to byte count
+        lsr     A
+        lsr     A
+        sta     C                       ; C is the number of full bytes to clear
+        tya                             ; Retrieve original number
+        and     #$07                    ; Remaining bits to clear
+        tay                             ; Store remaining bits in Y
+        ldx     #0                      ; Index for significand byte
+@byte_loop:
+        cpx     C                       ; Have we cleared all the full bytes?
+        beq     @mask_partial
+        lda     B
+        ora     FP0t,x                  ; Keep track of any non-zero bits we clear
+        sta     B
+        lda     #0
+        sta     FP0t,x
+        inx
+        bne     @byte_loop
+
+@mask_partial:
+        ; If there are remaining bits to clear in the current byte (X).
+        cpy     #0
+        beq     @adjust_negative        ; If RemBits is 0, no partial masking needed
+        lda     #$FF
+@mask_loop:
+        asl     A                       ; Create a bitmask for the integer part
+        dey
+        bne     @mask_loop
+        tay                             ; Y = mask (bits to keep)
+        eor     #$FF                    ; A = inverse mask (bits to lose)
+        and     FP0t,x                  ; Check if any fractional bits are set
+        ora     B
+        sta     B                       ; Update lost bits flag
+        tya                             ; Restore the keep-mask
+        and     FP0t,x
+        sta     FP0t,x                  ; Zero the fractional bits in this byte
+
+@adjust_negative:
+
+; Perform floor adjustment for negative numbers: if bits were lost, the result must be moved one step further
+; away from zero (towards -infinity).
+
+        ldx     FP0s
+        cpx     #$80                    ; Is the number negative?
+        bne     @done                   ; No, standard truncation is already floor
+        lda     B                       ; Were any bits lost?
+        beq     @done                   ; No, value was already an integer
+        lday    #fp_one                 ; Add -1.0 to the result
+        jsr     load_fp1
+        lda     #$80
+        sta     FP1s
+        jmp     fadd_2
+
 @done:
         rts
 

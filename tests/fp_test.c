@@ -271,7 +271,7 @@ void test_truncate(void) {
         { 0x00000000, 0 },          // 0
         { 0x00000000, 128 },        // 1
         { 0x40000000, 129 },        // 3
-        { 0xC0000000, 129 },        // -3
+        { 0x80000000, 130 },        // -4 (floor of -3.14159)
         { 0x3A43B73D, 164 },        // 9.99999999E10
         { 0x00000000, 0 },          // 0
     };
@@ -282,10 +282,11 @@ void test_truncate(void) {
 
     for (i = 0; i < sizeof test_cases / sizeof *test_cases; i++) {
         Float* test_case = test_cases + i;
-        fprintf(stderr, "  %s:%d: truncate(t=$%08LX e=%02X)\n", __FILE__, __LINE__, test_case->t, test_case->e);
+        fprintf(stderr, "  %s:%d: truncate(t=$%08lX e=%02X) ", __FILE__, __LINE__, test_case->t, test_case->e);
         load_fp0(test_case);
         truncate();
         store_fp0(&result);
+        fprintf(stderr, "-> result(t=$%08lX e=%02X)\n", result.t, result.e);
         ASSERT_EQ(err, 0);
         ASSERT_FLOAT_EQ(result, expected_results[i]);
     }
@@ -313,7 +314,7 @@ void test_round(void) {
         { 0x60000000, 130 },        // 7
         { 0x60000000, 130 },        // 7
         { 0xC0000000, 130 },        // -6
-        { 0xE0000000, 130 },        // -7
+        { 0xC0000000, 130 },        // -6
         { 0xE0000000, 130 },        // -7
     };
     Float result;
@@ -323,7 +324,7 @@ void test_round(void) {
 
     for (i = 0; i < sizeof test_cases / sizeof *test_cases; i++) {
         Float* test_case = test_cases + i;
-        fprintf(stderr, "  %s:%d: round(t=$%08LX e=%02X)\n", __FILE__, __LINE__, test_case->t, test_case->e);
+        fprintf(stderr, "  %s:%d: round(t=$%08lX e=%02X) ", __FILE__, __LINE__, test_case->t, test_case->e);
         load_fp0(test_case);
         round();
         store_fp0(&result);
