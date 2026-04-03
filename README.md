@@ -97,7 +97,7 @@ VC83 BASIC uses a custom 5-byte floating-point format documented in `fp.s`:
 *   **Format**: `sttttttt tttttttt tttttttt tttttttt eeeeeeee`
     *   `s`: Sign bit
     *   `t`: 32-bit fractional significand encoded as 31 bits with implied `1.`
-    *   `e`: 8-bit exponent, excess-128 (128 = $2^0$)
+    *   `e`: 8-bit exponent, excess-127 (127 = $2^0$)
 *   **Registers**: The system uses two main floating-point registers stored in zero page, `FP0` and `FP1`. `FPX` extends the `FP0` significand to 64 bits.
 *   **Operations**:
     *   **Unary functions** (e.g., `SIN`, `LOG`, `NEG`) always operate on `FP0`.

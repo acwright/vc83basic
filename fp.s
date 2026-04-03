@@ -9,9 +9,9 @@
 ;
 ; s = sign
 ; t = fractional part of significand, 31 bits, lowest byte first
-; e = exponent, 8 bits, excess-128
+; e = exponent, 8 bits, excess-127
 ;     If e = 0 then value = 0
-;     If e >= 1 then actual exponent is e-128 and actual significand is 1+t (implied 1. before t)
+;     If e >= 1 then actual exponent is e-127 and actual significand is 1+t (implied 1. before t)
 ;
 ; In this module:
 ; Both B and C are used by the normalize function. B holds the rounding byte. C holds the high byte of the exponent.
@@ -418,7 +418,7 @@ truncate_fp_to_int32:
         rts
 
 @e_zero_val:
-        lda     #<(-BIAS)               ; Sets A=-128 and N/Z flags for the e=0 case
+        lda     #<(-BIAS)               ; Sets A=-127 and N/Z flags for the e=0 case
         rts
 
 ; Rounds the floating point value in FP0 to an integer.
