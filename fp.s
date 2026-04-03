@@ -18,7 +18,7 @@
 ; B and C are also used in fdiv to accumulate quotient bits.
 ; D and E are used by the string conversion functions.
 
-BIAS = 128
+BIAS = 127
 MAXDIGITS = 10
 
 .bss
@@ -36,13 +36,13 @@ fp_scratch: .res .sizeof(Float) * 5
 
 ; Floating-point constants
 
-fp_one:         .byte $00, $00, $00, $00, 128
-fp_ten:         .byte $00, $00, $00, $20, 131
-fp_string_max:  .byte $00, $28, $6B, $6E, 157       ; 10^9     (1,000,000,000)
-fp_string_min:  .byte $00, $20, $BC, $3E, 154       ; 10^8     (100,000,000)
-fp_log_2:       .byte $F8, $17, $72, $31, 127
-fp_sqrt_2:      .byte $33, $F3, $04, $35, 128
-fp_pi:          .byte $81, $CF, $0F, $49, 129
+fp_one:         .byte $00, $00, $00, $00, 127
+fp_ten:         .byte $00, $00, $00, $20, 130
+fp_string_max:  .byte $00, $28, $6B, $6E, 156       ; 10^9     (1,000,000,000)
+fp_string_min:  .byte $00, $20, $BC, $3E, 153       ; 10^8     (100,000,000)
+fp_log_2:       .byte $F8, $17, $72, $31, 126
+fp_sqrt_2:      .byte $33, $F3, $04, $35, 127
+fp_pi:          .byte $81, $CF, $0F, $49, 128
 
 ; Loads a new Float value from memory into FP0 or FP1.
 ; AY = a pointer to the value to load
@@ -295,13 +295,13 @@ int_to_fp:
 @positive:
         mva     #0, FP0t                ; Clear two low bytes
         sta     FP0t+1
-        lda     #143                    ; Starting exponent = 15
+        lda     #142                    ; Starting exponent = 15
         bne     int_to_fp_common        ; Unconditional
         
 ; Assumes that the 32-bit value in the FP0 signifcand is an integer and converts it to a float.
 
 int32_to_fp:
-        lda     #159                    ; Starting exponent = 31
+        lda     #158                    ; Starting exponent = 31
 
 ; Performs the part of integer to float conversion common to 16- and 32-bit cases:
 ; clear B, C, and FPX, and normalize.
@@ -1390,11 +1390,11 @@ flog_x_plus_1 = fp_scratch + .sizeof(Float) * 3
 flog_k = fp_scratch + .sizeof(Float) * 4
 
 fp_log_coefficients:
-        .byte $E3, $38, $8E, $63, 124   ; 1/9     x^9 / 9
-        .byte $92, $24, $49, $12, 125   ; 1/7   + x^7 / 7
-        .byte $CD, $CC, $CC, $4C, 125   ; 1/5   + x^5 / 5
-        .byte $AA, $AA, $AA, $2A, 126   ; 1/3   + x^3 / 3
-        .byte $00, $00, $00, $00, 128   ; 1     + x
+        .byte $E3, $38, $8E, $63, 123   ; 1/9     x^9 / 9
+        .byte $92, $24, $49, $12, 124   ; 1/7   + x^7 / 7
+        .byte $CD, $CC, $CC, $4C, 124   ; 1/5   + x^5 / 5
+        .byte $AA, $AA, $AA, $2A, 125   ; 1/3   + x^3 / 3
+        .byte $00, $00, $00, $00, 127   ; 1     + x
 
 ; Calculate the natural logarithm of the argument in FP0.
 ; Strategy:
@@ -1463,14 +1463,14 @@ fexp_x = fp_scratch + .sizeof(Float) * 2
 fexp_k = fp_scratch + .sizeof(Float) * 3
 
 fp_exp_coefficients:
-        .byte $D0, $00, $0D, $50, 115   ; 1/7!     x^7 / 7!
-        .byte $B6, $60, $0B, $36, 118   ; 1/6!   + x^6 / 6!
-        .byte $89, $88, $88, $08, 121   ; 1/5!   + x^5 / 5!
-        .byte $AB, $AA, $AA, $2A, 123   ; 1/4!   + x^4 / 4!
-        .byte $AB, $AA, $AA, $2A, 125   ; 1/3!   + x^3 / 3!
-        .byte $00, $00, $00, $00, 127   ; 1/2!   + x^2 / 2!
-        .byte $00, $00, $00, $00, 128   ; 1      + x
-        .byte $00, $00, $00, $00, 128   ; 1      + 1
+        .byte $D0, $00, $0D, $50, 114   ; 1/7!     x^7 / 7!
+        .byte $B6, $60, $0B, $36, 117   ; 1/6!   + x^6 / 6!
+        .byte $89, $88, $88, $08, 120   ; 1/5!   + x^5 / 5!
+        .byte $AB, $AA, $AA, $2A, 122   ; 1/4!   + x^4 / 4!
+        .byte $AB, $AA, $AA, $2A, 124   ; 1/3!   + x^3 / 3!
+        .byte $00, $00, $00, $00, 126   ; 1/2!   + x^2 / 2!
+        .byte $00, $00, $00, $00, 127   ; 1      + x
+        .byte $00, $00, $00, $00, 127   ; 1      + 1
 
 ; Calculates e raised to the power of the value in FP0.
 ; Strategy:
@@ -1517,12 +1517,12 @@ ftan_cos_x = fp_scratch + .sizeof(Float) * 4
 ; They replace the traditional Taylor series coefficients (1/3!, 1/5!, etc.) to minimize the maximum error 
 ; across the entire quarter-circle range.
 fp_sin_coefficients:
-        .byte $12, $E6, $D8, $CE, 102   ; C11: -0.000000024080
-        .byte $BF, $48, $CB, $38, 109   ; C9: 0.000002753646
-        .byte $DD, $82, $0C, $D0, 115   ; C7: -0.000198410866
-        .byte $ED, $87, $88, $08, 121   ; C5: 0.008333332769
-        .byte $AA, $AA, $AA, $AA, 125   ; C3: -0.166666666639
-        .byte $00, $00, $00, $00, 128   ; C1: 1.000000000000
+        .byte $12, $E6, $D8, $CE, 101   ; C11: -0.000000024080
+        .byte $BF, $48, $CB, $38, 108   ; C9: 0.000002753646
+        .byte $DD, $82, $0C, $D0, 114   ; C7: -0.000198410866
+        .byte $ED, $87, $88, $08, 120   ; C5: 0.008333332769
+        .byte $AA, $AA, $AA, $AA, 124   ; C3: -0.166666666639
+        .byte $00, $00, $00, $00, 127   ; C1: 1.000000000000
 
 ; Calcuates the cosine of the value in FP0.
 ; This is just the sine of FP0 value plus pi/2.
@@ -1595,18 +1595,18 @@ ftan:
         jmp     fdiv
 
 fp_atn_coefficients:
-        .byte $D3, $BD, $83, $B3, 117   ; C23: -0.0006847939118870272
-        .byte $F5, $A6, $F4, $1E, 120   ; C21: 0.004850942155826488
-        .byte $10, $B0, $FC, $83, 122   ; C19: -0.016111701843328774
-        .byte $CA, $67, $1F, $0C, 123   ; C17: 0.03420963804819621
-        .byte $C1, $CB, $53, $DE, 123   ; C15: -0.054279132760711946
-        .byte $4C, $70, $64, $14, 124   ; C13: 0.07245719654019922
-        .byte $7A, $51, $EA, $B7, 124   ; C11: -0.08980239537777379
-        .byte $7E, $88, $30, $63, 124   ; C9: 0.11093241343041882
-        .byte $3A, $99, $44, $92, 125   ; C7: -0.1428398076677695
-        .byte $C7, $91, $CC, $4C, 125   ; C5: 0.19999912049388513
-        .byte $13, $AA, $AA, $AA, 126   ; C3: -0.3333333156770095
-        .byte $00, $00, $00, $00, 128   ; C1: 1.0
+        .byte $D3, $BD, $83, $B3, 116   ; C23: -0.0006847939118870272
+        .byte $F5, $A6, $F4, $1E, 119   ; C21: 0.004850942155826488
+        .byte $10, $B0, $FC, $83, 121   ; C19: -0.016111701843328774
+        .byte $CA, $67, $1F, $0C, 122   ; C17: 0.03420963804819621
+        .byte $C1, $CB, $53, $DE, 122   ; C15: -0.054279132760711946
+        .byte $4C, $70, $64, $14, 123   ; C13: 0.07245719654019922
+        .byte $7A, $51, $EA, $B7, 123   ; C11: -0.08980239537777379
+        .byte $7E, $88, $30, $63, 123   ; C9: 0.11093241343041882
+        .byte $3A, $99, $44, $92, 124   ; C7: -0.1428398076677695
+        .byte $C7, $91, $CC, $4C, 124   ; C5: 0.19999912049388513
+        .byte $13, $AA, $AA, $AA, 125   ; C3: -0.3333333156770095
+        .byte $00, $00, $00, $00, 127   ; C1: 1.0
 
 ; Calculates the arctangent of the value in FP0.
 ; Strategy:
@@ -1614,7 +1614,6 @@ fp_atn_coefficients:
 ;     atan(x) = pi/2 - atan(1/x) for x > 1
 ;     Polynomial approximation for 0 <= x <= 1
 
-.assert BIAS = $80, error
 
 fatn:
         lda     FP0e

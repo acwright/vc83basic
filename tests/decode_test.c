@@ -28,9 +28,9 @@ void test_decode_byte(void) {
 
 void test_decode_number(void) {
     const char line_data[] = { '1', '0', '0', ',', '4', '1', '1', '2', ',', '3', '.', '1', '4', '1', '5', '9', ',' };
-    Float result_1 = { 0x48000000, 134 };
-    Float result_2 = { 0x00800000, 140 };
-    Float result_3 = { 0x490FCF81, 129 };
+    Float result_1 = { 0x48000000, 133 };
+    Float result_2 = { 0x00800000, 139 };
+    Float result_3 = { 0x490FCF81, 128 };
     Float result;
 
     PRINT_TEST_NAME();

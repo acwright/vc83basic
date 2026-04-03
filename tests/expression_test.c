@@ -113,9 +113,9 @@ void test_one_unary_op(char op, const Float* expected0, const Float* expected1) 
 
 void test_evaluate_expression_op(void) {
     const Float value_0 = { 0x00000000, 0 };
-    const Float value_1 = { 0x00000000, 128 };
-    const Float value_negative_1 = { 0x80000000, 128 };
-    const Float value_2 = { 0x00000000, 129 };
+    const Float value_1 = { 0x00000000, 127 };
+    const Float value_negative_1 = { 0x80000000, 127 };
+    const Float value_2 = { 0x00000000, 128 };
 
     PRINT_TEST_NAME();
 
@@ -147,7 +147,7 @@ void test_evaluate_expression_op_precedence(void) {
     Float result_1 = { 0x00000000, 0 };
     // 2-(1-1) = 2
     char line_data_2[] = { '2', TOKEN_OP | OP_SUB, '(', '1', TOKEN_OP | OP_SUB, '1', ')', 0 };
-    Float result_2 = { 0x00000000, 129 };
+    Float result_2 = { 0x00000000, 128 };
 
     PRINT_TEST_NAME();
 
@@ -201,7 +201,7 @@ void test_one_string_comparison(char op, const char* s1, const char* s2, const F
 
 void test_string_comparison(void) {
     const Float value_0 = { 0x00000000, 0 };
-    const Float value_1 = { 0x00000000, 128 };
+    const Float value_1 = { 0x00000000, 127 };
 
     PRINT_TEST_NAME();
 
@@ -244,8 +244,8 @@ void test_string_comparison(void) {
 
 void test_evaluate_argument_list(void) {
     const char line_data[] = { '(', '1', '2', '8', ',', '1', TOKEN_OP | OP_ADD, '2', ')', 0 };
-    const Float value_128 = { 0x00000000, 135 };
-    const Float value_3 = { 0x40000000, 129 };
+    const Float value_128 = { 0x00000000, 134 };
+    const Float value_3 = { 0x40000000, 128 };
 
     Float value = { 0x00000000, 0 };
     signed char skipped_arguments;
