@@ -34,7 +34,7 @@ fp_scratch: .res .sizeof(Float) * 5
 .assert .sizeof(Float::t) = 4, error
 .assert .sizeof(Float::e) = 1, error
 
-; Floating-point constants
+; Floating point constants
 
 fp_one:         .byte $00, $00, $00, $00, 127
 fp_ten:         .byte $00, $00, $00, $20, 130
@@ -431,7 +431,7 @@ round:
 
 ; Fall through
 
-; Truncates a floating-point value to the largest integer less than or equal to its value. For
+; Truncates a floating point value to the largest integer less than or equal to its value. For
 ; positive numbers, this is simple truncation; for negative numbers, we subtract 1.0 if any
 ; fractional bits were lost. The implementation uses a uniform loop that calculates how many
 ; bits/bytes to clear based on the exponent, accumulating any "lost bits" in register B to 

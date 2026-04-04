@@ -8,7 +8,7 @@ SPDX-License-Identifier: MIT
 
 ![VC83 BASIC running on an Apple II](VC83_on_Apple_II_small.jpg)
 
-A floating-point BASIC interpreter for the 6502 microprocessor, targeting the Apple II and the sim6502 simulator,
+A floating point BASIC interpreter for the 6502 microprocessor, targeting the Apple II and the sim6502 simulator,
 with the capability of being extended to other platforms.
 
 ## Tools
@@ -93,12 +93,12 @@ Most statements and functions are implemented by pushing values onto the primary
 
 ## Floating Point Support
 
-VC83 BASIC uses a custom 5-byte floating-point format documented in `fp.s`:
+VC83 BASIC uses a custom 5-byte floating point format documented in `fp.s`:
 *   **Format**: `sttttttt tttttttt tttttttt tttttttt eeeeeeee`
     *   `s`: Sign bit
     *   `t`: 32-bit fractional significand encoded as 31 bits with implied `1.`
     *   `e`: 8-bit exponent, excess-127 (127 = $2^0$)
-*   **Registers**: The system uses two main floating-point registers stored in zero page, `FP0` and `FP1`. `FPX` extends the `FP0` significand to 64 bits.
+*   **Registers**: The system uses two main floating point registers stored in zero page, `FP0` and `FP1`. `FPX` extends the `FP0` significand to 64 bits.
 *   **Operations**:
     *   **Unary functions** (e.g., `SIN`, `LOG`, `NEG`) always operate on `FP0`.
     *   **Binary functions** (e.g., `FADD`, `FMUL`) operate on `FP0` and an "argument" value. The address of the argument is passed in `AY` and loaded into `FP1` before the operation.
