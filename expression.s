@@ -389,27 +389,26 @@ call_binary_operator:
 op_mul:
         lda     #>(fmul-1)
         ldx     #<(fmul-1)
-        jmp     call_binary_operator_push
+        bne     call_binary_operator_push
 
 op_div:
         lda     #>(fdiv-1)
         ldx     #<(fdiv-1)
-        jmp     call_binary_operator_push
+        bne     call_binary_operator_push
 
 op_pow:
         lda     #>(fpow-1)
         ldx     #<(fpow-1)
-        jmp     call_binary_operator_push
+        bne     call_binary_operator_push
 
 op_sub:
         lda     #>(fsub-1)
         ldx     #<(fsub-1)
-        jmp     call_binary_operator_push
+        bne     call_binary_operator_push
         
 op_add:
         lda     #>(fadd-1)
         ldx     #<(fadd-1)
-        jmp     call_binary_operator_push
 
 ; Fall through
 ; Invokes a binary operator and pushes the result back.
