@@ -41,7 +41,7 @@ evaluate_function:
         asl     A                       ; Multiply vector number by 2; clears carry
         adc     B                       ; Add back B to multiply by 3
         tax                             ; Set up as index
-        lda     __FUNC_LOAD__+2,x      ; Arity and flags
+        lda     __FUNC_LOAD__+2,x       ; Arity and flags
         lsr     A                       ; Move epilog bits 4-5 to positions 1-2
         lsr     A
         lsr     A
@@ -221,7 +221,6 @@ evaluate_argument_list:
         jsr     evaluate_expression
         tsx
         dec     $101,x                  ; Decrement remaining
-        beq     @done                   ; If reached 0 exactly, stop
         jsr     peek_byte
         cmp     #','
         bne     @done                   ; No comma, stop
@@ -400,6 +399,7 @@ op_div:
 op_pow:
         lda     #>(fpow-1)
         ldx     #<(fpow-1)
+        jmp     call_binary_operator_push
 
 op_sub:
         lda     #>(fsub-1)

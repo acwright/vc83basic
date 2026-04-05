@@ -11,20 +11,6 @@ test {
 10 LET A$="HELLO"
 20 LET ADDR=ADR(A$)
 30 PRINT PEEK(ADDR)
-
-# TODO: PEEK() expects 1 argument.
-# test {
-# PRINT PEEK()
-# } {
-# ERR: ARITY?
-# }
-
-# TODO: PEEK(1, 2) expects 1 argument.
-# test {
-# PRINT PEEK(ADDR, 1)
-# } {
-# ERR: ARITY?
-# }
 40 PRINT PEEK(ADDR+1)
 50 PRINT PEEK(ADDR+2)
 60 PRINT PEEK(ADDR+3)
@@ -41,4 +27,16 @@ RUN
 PELLO
 
 READY
+}
+
+test {
+PRINT PEEK()
+} {
+ERR: SYNTAX
+}
+
+test {
+PRINT PEEK(ADDR, 1)
+} {
+ERR: ARITY?
 }

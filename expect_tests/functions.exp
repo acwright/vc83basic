@@ -147,26 +147,22 @@ PRINT VAL("3.14159")
 # INT, ABS, SGN
 
 test {
-PRINT INT(3.9), INT(-3.1), INT(-3.9)
+PRINT INT(3.9),INT(-3.1),INT(-3.9)
 } {
 3               -4              -4
 }
 
-# TODO: INT() expects 1 argument.
-# test {
-# PRINT INT()
-# } {
-# ERR: ARITY?
-# }
+test {
+PRINT INT()
+} {
+ERR: SYNTAX
+}
 
-# TODO: INT(1, 2) expects 1 argument.
-# test {
-# PRINT INT(1, 2)
-# } {
-# ERR: ARITY?
-# }
-
-
+test {
+PRINT INT(1, 2)
+} {
+ERR: ARITY?
+}
 
 test {
 PRINT ABS(3.14), ABS(-3.14), ABS(0)
@@ -174,39 +170,35 @@ PRINT ABS(3.14), ABS(-3.14), ABS(0)
 3.14            3.14            0
 }
 
-# TODO: ABS() expects 1 argument.
-# test {
-# PRINT ABS()
-# } {
-# ERR: ARITY?
-# }
-
-# TODO: ABS(1, 2) expects 1 argument.
-# test {
-# PRINT ABS(1, 2)
-# } {
-# ERR: ARITY?
-# }
+test {
+PRINT ABS()
+} {
+ERR: SYNTAX
+}
 
 test {
-PRINT SGN(5), SGN(-5), SGN(0)
+PRINT ABS(1,2)
+} {
+ERR: ARITY?
+}
+
+test {
+PRINT SGN(5),SGN(-5),SGN(0)
 } {
 1               -1              0
 }
 
-# TODO: SGN() expects 1 argument.
-# test {
-# PRINT SGN()
-# } {
-# ERR: ARITY?
-# }
+test {
+PRINT SGN()
+} {
+ERR: SYNTAX
+}
 
-# TODO: SGN(1, 2) expects 1 argument.
-# test {
-# PRINT SGN(1, 2)
-# } {
-# ERR: ARITY?
-# }
+test {
+PRINT SGN(1,2)
+} {
+ERR: ARITY?
+}
 
 # FRE
 # TODO: FRE(0) returns negative value in sim65 due to 16-bit signed integer limits.
@@ -219,25 +211,25 @@ PRINT SGN(5), SGN(-5), SGN(0)
 # RND
 
 test {
-PRINT RND(1) >= 0 AND RND(1) < 1
+PRINT RND(1)>=0 AND RND(1)<1
 } {
 1
 }
 
 test {
-LET R1=RND(1): LET R2=RND(1): PRINT R1<>R2
+LET R1=RND(1):LET R2=RND(1):PRINT R1<>R2
 } {
 1
 }
 
 test {
-PRINT RND(0) = RND(0)
+PRINT RND(0)=RND(0)
 } {
 1
 }
 
 # test {
-# PRINT RND(-1) <> RND(-2)
+# PRINT RND(-1)<>RND(-2)
 # } {
 # 1
 # }
