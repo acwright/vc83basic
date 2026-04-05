@@ -15,7 +15,7 @@ LDFLAGS = -m $@.map
 GIT_VERSION := .byte "$(shell git describe --always --dirty 2>/dev/null || echo unknown)"
 
 PRINT_SIZE = @sum=0; \
-	for size in $$(awk '/^(CODE|PARSER|VECTORS|FUNCTABS) / { print $$4 }' $@.map); do \
+	for size in $$(awk '/^(CODE|PARSER|VEC|XVEC|FUNC|XFUNC) / { print $$4 }' $@.map); do \
 		sum=$$(($$sum + 0x$$size)); \
 	done; \
 	printf "Code size: \$$%X (%d)\n" $$sum $$sum

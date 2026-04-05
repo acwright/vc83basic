@@ -112,12 +112,12 @@ void test_reverse_copy(void) {
     test_reverse_copy_case(4000, 256, __LINE__);
 }
 
-extern char _VECTORS_LOAD__[];
+extern char _VEC_LOAD__[];
 extern char test_vectors[]; 
 
 void test_invoke_indexed_vector(void) {
     int result;
-    char test_vectors_offset = (char)(test_vectors - _VECTORS_LOAD__) / 2;
+    char test_vectors_offset = (char)(test_vectors - _VEC_LOAD__) / 2;
 
     PRINT_TEST_NAME();
 

@@ -17,7 +17,7 @@ exec_statement:
 @core:
         jmp     invoke_indexed_vector
 
-.segment "VECTORS"
+.segment "VEC"
 
 statement_vectors:
         .word   exec_let-1

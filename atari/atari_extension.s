@@ -11,7 +11,7 @@ ex_statement_name_table:
 ex_function_name_table:
         name_table_end
 
-.segment "VECTORS"
+.segment "XVEC"
 
 ex_statement_vectors:
         .word   exec_dos-1
@@ -21,7 +21,7 @@ ex_statement_vectors:
 exec_dos:
         jmp     (DOSVEC)
 
-.segment "FUNCTABS"
+.segment "XFUNC"
 
 ex_function_table:
 

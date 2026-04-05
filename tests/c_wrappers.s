@@ -552,7 +552,7 @@ _skip_whitespace:
         sty     _Y
         jmp     set_err
 
-.segment "VECTORS"
+.segment "VEC"
 
 ; Used by test_invoke_indexed_vector
 

@@ -953,7 +953,7 @@ function_name_table:
 :       name_table_entry "RND"
 :       name_table_end
 
-.segment "VECTORS"
+.segment "VEC"
 
 pvm_opcode_vectors:
         .word   op_fail-1

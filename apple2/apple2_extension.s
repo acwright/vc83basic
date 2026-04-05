@@ -13,7 +13,7 @@ ex_function_name_table:
         name_table_entry "PDL"
 :       name_table_end
 
-.segment "VECTORS"
+.segment "XVEC"
 
 ex_statement_vectors:
         .word   exec_gr-1
@@ -29,7 +29,7 @@ exec_text:
         jsr     SETTXT
         rts
 
-.segment "FUNCTABS"
+.segment "XFUNC"
 
 ex_function_table:
         .word   fun_pdl-1

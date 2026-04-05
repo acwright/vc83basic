@@ -2,7 +2,7 @@
 ;
 ; SPDX-License-Identifier: MIT
 
-.segment "FUNCTABS"
+.segment "FUNC"
 
 function_table:
     .word   fun_len-1

@@ -127,9 +127,9 @@ set_memory:
 invoke_indexed_vector:
         asl     A                       ; Multiply vector number by 2; clears carry
         tax                             ; Set up as index
-        lda     __VECTORS_LOAD__+1,x    ; High byte
+        lda     __VEC_LOAD__+1,x        ; High byte
         pha
-        lda     __VECTORS_LOAD__,x      ; Low byte
+        lda     __VEC_LOAD__,x          ; Low byte
         pha
         rts                             ; RTS jumps to vector pushed on the stack
         

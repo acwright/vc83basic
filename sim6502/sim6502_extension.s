@@ -15,7 +15,7 @@ ex_function_name_table:
         name_table_entry "VER$"
 :       name_table_end
 
-.segment "VECTORS"
+.segment "XVEC"
 
 ex_statement_vectors:
         .word   exec_bye-1
@@ -27,7 +27,7 @@ ex_statement_vectors:
 exec_bye:
         jmp     exit
 
-.segment "FUNCTABS"
+.segment "XFUNC"
 
 ex_function_table:
         .word   fun_ver_s-1
