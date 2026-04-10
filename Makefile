@@ -45,6 +45,14 @@ basic_apple2: basic_apple2.o
 	cl65 -t apple2 -C apple2/apple2.cfg $(LDFLAGS) -o $@ $<
 	$(PRINT_SIZE)
 
+# Goal: basic_apple2_lc
+basic_apple2_lc.o: basic_apple2_lc.s basic.s constants.inc zeropage.s version.inc
+	cl65 -t apple2 -c $(ASMFLAGS) -o $@ $<
+
+basic_apple2_lc: basic_apple2_lc.o
+	cl65 -t apple2 -C apple2/apple2_lc.cfg $(LDFLAGS) -o $@ $<
+	$(PRINT_SIZE)
+
 # Goal: basic_atari
 basic_atari.o: basic_atari.s basic.s constants.inc zeropage.s version.inc
 	cl65 -t atari -c $(ASMFLAGS) -o $@ $<

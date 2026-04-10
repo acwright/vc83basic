@@ -11,6 +11,11 @@ BRKVEC      := $03F0    ; Break vector
 SOFTEV      := $03F2    ; Vector for warm start
 PWREDUP     := $03F4    ; This must be = EOR #$A5 of SOFTEV+1
 
+LCRAMWP     := $C080    ; Select RAM + write protect RAM
+LCROM       := $C081    ; Select ROM
+LCROMWP     := $C082    ; Select ROM + write protect RAM
+LCRAM       := $C083    ; Select RAM (read twice to write-enable RAM)
+
 SETTXT      := $FB39
 PREAD       := $FB1E
 SETGR       := $FB40
