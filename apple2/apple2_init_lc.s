@@ -25,7 +25,7 @@ initialize_target_apple2_lc:
         jsr     copy_lc
         lda     LCRAM                   ; Read LCRAM twice write-enable RAM
         lda     LCRAM
-        lda     #$A5                    ; Check if Langauge Card exists
+        lda     #$A5                    ; Write and verify to check if Langauge Card exists
         sta     $E000
         cmp     $E000
         bne     no_lc
@@ -49,11 +49,20 @@ no_lc_message_length = * - no_lc_message
 
 no_lc:
         jsr     CROUT
-        lday    #no_lc_message
-        ldx     #no_lc_message_length
-        jsr     write_lc
+        ldy     #0
+@next:
+        lda     no_lc_message,y
+        ora     #$80
+        jsr     COUT
+        iny
+        cpy     #no_lc_message_length
+        bne     @next
+@done:
         jsr     CROUT
         jmp     DOSWARM                 ; Bail
+
+; We need our own copy function because the one in util.s is not available until after the copy
+; is complete.
 
 copy_lc:
         stax    size
@@ -92,21 +101,6 @@ copy_lc:
         dex                             ; Decrement number of blocks
         bne     @next_byte              ; More to move
 
-@done:
-        rts
-
-; Copy of the write function for the LC loader.
-
-write_lc:
-        stay    BC
-        ldy     #0
-@next:
-        lda     (BC),y
-        ora     #$80
-        jsr     COUT
-        iny
-        dex
-        bne     @next
 @done:
         rts
 
