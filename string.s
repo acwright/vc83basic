@@ -354,6 +354,8 @@ handle_string:
         rts
 
 ; Phase 1 handler
+; We store $FF in the high byte of the relocation offset to indicate an unmarked/unreferenced string because $FFxx
+; is never a valid relocation offset value.
 
 phase_1_clear_string:
         lda     #$FF
