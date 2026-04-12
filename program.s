@@ -35,6 +35,7 @@ clear_variables:
         tay                             ; Write index is also zero
         sta     (variable_name_table_ptr),y ; Initialize variable name table to 0
         sta     (array_name_table_ptr),y    ; Initialize array name table to 0
+        sta     print_column            ; Reset print column to 0
         mvax    himem_ptr, string_ptr   ; Clear string space
         mva     #OP_STACK_SIZE, op_stack_pos
         mva     #PRIMARY_STACK_SIZE, stack_pos

@@ -386,29 +386,32 @@ call_binary_operator:
         ldy     #>stack                 ; Stack page
         rts                             ; JMP to the operator handler
 
+; Since we're passing the address in XA, be sure to do LDA second, since it's the high byte and
+; is guaranteed not to be zero.
+
 op_mul:
-        lda     #>(fmul-1)
         ldx     #<(fmul-1)
+        lda     #>(fmul-1)
         bne     call_binary_operator_push
 
 op_div:
-        lda     #>(fdiv-1)
         ldx     #<(fdiv-1)
+        lda     #>(fdiv-1)
         bne     call_binary_operator_push
 
 op_pow:
-        lda     #>(fpow-1)
         ldx     #<(fpow-1)
+        lda     #>(fpow-1)
         bne     call_binary_operator_push
 
 op_sub:
-        lda     #>(fsub-1)
         ldx     #<(fsub-1)
+        lda     #>(fsub-1)
         bne     call_binary_operator_push
         
 op_add:
-        lda     #>(fadd-1)
         ldx     #<(fadd-1)
+        lda     #>(fadd-1)
 
 ; Fall through
 ; Invokes a binary operator and pushes the result back.
