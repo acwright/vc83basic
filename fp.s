@@ -1033,16 +1033,51 @@ fadd_2:
         sbc     FP0e                    ; Compare exponents: FP1e - FP0e
         beq     @equal_exponents        ; Exponents are equal, just go ahead to addition
         bcc     @swap                   ; If borrow then FP0e is larger, so swap and try again
-        bmi     @return_larger          ; Exponent difference >127 so addition has no effect
-        tax                             ; Exponent difference is in X and is >=0
+        cmp     #40
+        bcs     @return_larger          ; Exponent difference >= 40 so addition has no effect
+        tax                             ; Store exponent difference in X
 
-; FP0 exponent is less than FP1 exponent, so shift FP0 significand right X places to align binary points.
+; FP0 exponent is less than FP1 exponent, so shift FP0 significand right to align binary points.
 
-@align:
-        jsr     shift_right
-        inc     FP0e
-        dex
-        bne     @align
+        lsr     A                       ; Divide by 8
+        lsr     A
+        lsr     A
+        beq     @align_fine_prep        ; If 0, only fine shifts
+        tay                             ; Number of coarse shifts in Y
+
+@align_coarse:
+        lda     FP0t
+        sta     B
+        lda     FP0t+1
+        sta     FP0t
+        lda     FP0t+2
+        sta     FP0t+1
+        lda     FP0t+3
+        sta     FP0t+2
+        mva     #0, FP0t+3
+        dey
+        bne     @align_coarse
+
+@align_fine_prep:
+        txa                             ; Retrieve original difference
+        and     #7
+        beq     @align_done             ; No fine shifts
+        tay                             ; Number of fine shifts in Y
+        lda     FP0t+3                  ; Load MSB into A
+
+@align_fine:
+        lsr     A
+        ror     FP0t+2
+        ror     FP0t+1
+        ror     FP0t
+        ror     B
+        dey
+        bne     @align_fine
+        sta     FP0t+3                  ; Store MSB back
+
+@align_done:
+        lda     FP1e
+        sta     FP0e                      ; Once aligned, FP0 exponent is same as FP1
 
 ; If both arguments have the same sign, just add and use the sign of FP0.
 ; If one is negative, put it in FP0 and negate it.
@@ -1073,7 +1108,7 @@ fadd_2:
         jsr     swap_fp0_fp1            ; Swap FP0 and FP1 in order to get value with larger exponent in FP0
         jmp     fadd_2
 
-; The difference between exponents is >127, so just return the larger number (identified by N flag).
+; The difference between exponents is >= 40, so just return the larger number (identified by N flag).
 
 @return_larger:
         jsr     swap_fp0_fp1            ; Otherwise swap
