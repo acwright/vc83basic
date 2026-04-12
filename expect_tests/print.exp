@@ -52,3 +52,17 @@ test {
 } {
 0
 }
+
+# Expressions must be separated by ';' or ','
+
+test {
+PRINT A B C
+} {
+ERR: SYNTAX
+}
+
+test {
+PRINT A "B C"
+} {
+ERR: SYNTAX
+}

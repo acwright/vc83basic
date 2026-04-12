@@ -626,17 +626,22 @@ pvm_paren_arg_list:
 ; pvm_print_expression is the particular kind of expression in the PRINT statement.
 
 pvm_print_expression:
+        TRY pvm_print_separator
+        CALL pvm_expression
+
+; In pvm_print_separator we can *only* match a separator, because:
+;     1. We failed to match an expression, so a separator is the only remaining alternative.
+;     2. We just matched an expression, so a separator is required before another expression.
+; If we find a separator, then we can try parsing another expression.
+
+pvm_print_separator:
         WS
         TRY @not_comma
         MATCH ','
         ACCEPT pvm_print_expression
 @not_comma:
-        TRY @not_semi
-        MATCH ';'
-        ACCEPT pvm_print_expression
-@not_semi:
         TRY @done
-        CALL pvm_expression
+        MATCH ';'
         ACCEPT pvm_print_expression
 @done:
         RETURN
