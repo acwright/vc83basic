@@ -108,7 +108,6 @@ raise_out_of_memory:
 
 string_alloc_for_copy:
         jsr     string_alloc            ; Returns string address in AY
-        bcc     raise_out_of_memory     ; Reassign string failed
         ldx     #dst_ptr
         jsr     load_s                  ; load_s can load any ZP pointer, not just S0 and S1
         tay
@@ -225,17 +224,17 @@ compact:
 ; Phase 6: All the strings have been relocated to free_ptr.
 ; The new value of string_ptr is in BC. Subtract it from himem_ptr to get the size to copy.
 
-        sec                             ; Do himem_ptr - BC and store in size
-        lda     himem_ptr
-        sbc     B
-        pha                             ; Save for call to copy
-        lda     himem_ptr+1
-        sbc     C
-        pha
         mvax    BC, string_ptr          ; Set up new string_ptr
         stax    dst_ptr                 ; Also destination for copy
         mvax    free_ptr, src_ptr
-        plax                            ; Get the size we pushed earlier
+        sec                             ; Do himem_ptr - BC to get size for reverse_copy
+        lda     himem_ptr
+        sbc     B
+        tay                             ; Park low byte in Y
+        lda     himem_ptr+1
+        sbc     C
+        tax                             ; Save high byte in X
+        tya                             ; Restore low byte in A
         jmp     reverse_copy            ; All done!
 
 ; Invokes a handler each string in the string heap.
@@ -468,9 +467,8 @@ set_name_ptr_data:
 ; Returns carry clear if it is, otherwise carry set.
 
 check_src_ptr:
-        sec                             ; Compare src_ptr with himem_ptr using 16-bit subtraction
-        lda     src_ptr                 ; Subtract low byte
-        sbc     himem_ptr
+        lda     src_ptr                 ; Compare src_ptr with himem_ptr using 16-bit subtraction
+        cmp     himem_ptr               ; Check low byte
         lda     src_ptr+1               ; Subtract high byte
         sbc     himem_ptr+1             ; Returns with carry clear if src_ptr < himem_ptr, else carry set
 @done:

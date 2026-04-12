@@ -213,8 +213,7 @@ find_array_element:
         iny
         jsr     rebase_name_ptr         ; Move name_ptr to the next dimension value
         lda     E                       ; Compare the multiplication result (currently in EX) with the limit
-        sec                             ; Subtract the limit (in array_element_size) using 16-bit math
-        sbc     array_element_size      ; Subtract low byte of limit
+        cmp     array_element_size      ; Check low byte of limit
         txa                             ; Move high byte of result into A
         sbc     array_element_size+1    ; Subtract high byte of limit
         bcs     name_out_of_range       ; If carry is set then result >= limit, so it's out of range
