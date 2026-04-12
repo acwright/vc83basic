@@ -2,7 +2,6 @@
 ;
 ; SPDX-License-Identifier: MIT
 
-
 newline = CROUT
 
 readline:

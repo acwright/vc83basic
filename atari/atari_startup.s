@@ -11,14 +11,8 @@
 start:
         ldx     #$FF
         txs                             ; Initialize the stack to $FF
-        jsr     initialize_once
+        jsr     initialize_target
         jsr     main
         jmp     (DOSVEC)                ; Exit to DOS
-
-;.segment "ONCE"
-;
-initialize_once:
-initialize_target:
-        rts
 
 .code

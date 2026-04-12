@@ -2,11 +2,6 @@
 ;
 ; SPDX-License-Identifier: MIT
 
-.segment "ONCE"
-
-initialize_target:
-        rts
-
 ; Buffers
 
 .segment "BUFFERS"
@@ -21,5 +16,15 @@ line_buffer: .res BUFFER_SIZE
 stack := $300
 ; Operator stack
 op_stack := $300 + PRIMARY_STACK_SIZE
+
+.segment "ONCE"     
+
+initialize_target_apple2:        
+        lda     #$FF                    ; Print in normal mode
+        sta     COUTMASK
+        mvax    #reset_handler, SOFTEV  ; RESET button returns control to this program
+        mva     #(>reset_handler ^ $A5), PWREDUP        
+        jsr     HOME                    ; Clear screen
+        jmp     display_startup_banner
 
 .code

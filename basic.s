@@ -6,10 +6,10 @@
 
 ; Linker-defined symbols
 .import __MAIN_START__, __MAIN_SIZE__
-.import __VEC_LOAD__, __VEC_SIZE__
-.import __XVEC_LOAD__, __XVEC_SIZE__
-.import __FUNC_LOAD__, __FUNC_SIZE__
-.import __XFUNC_LOAD__, __XFUNC_SIZE__
+.import __VEC_RUN__, __VEC_SIZE__
+.import __XVEC_RUN__, __XVEC_SIZE__
+.import __FUNC_RUN__, __FUNC_SIZE__
+.import __XFUNC_RUN__, __XFUNC_SIZE__
 .import __BSS_RUN__, __BSS_SIZE__
 .import __STACKSIZE__
 
@@ -19,12 +19,12 @@
 .assert __VEC_SIZE__ + __XVEC_SIZE__ < 256, error
 
 ; Generate the offset of each vector table in terms of the number of vectors.
-pvm_opcode_vectors_offset = <(pvm_opcode_vectors - __VEC_LOAD__) / 2
-operator_vectors_offset = <(operator_vectors - __VEC_LOAD__) / 2
-statement_vectors_offset = <(statement_vectors - __VEC_LOAD__) / 2
-ex_statement_vectors_offset = <(ex_statement_vectors - __VEC_LOAD__) / 2    ; VEC not XVEC
-function_table_offset = <(function_table - __FUNC_LOAD__) / 3
-ex_function_table_offset = <(ex_function_table - __FUNC_LOAD__) / 3         ; FUNC not XFUNC
+pvm_opcode_vectors_offset = <(pvm_opcode_vectors - __VEC_RUN__) / 2
+operator_vectors_offset = <(operator_vectors - __VEC_RUN__) / 2
+statement_vectors_offset = <(statement_vectors - __VEC_RUN__) / 2
+ex_statement_vectors_offset = <(ex_statement_vectors - __VEC_RUN__) / 2    ; VEC not XVEC
+function_table_offset = <(function_table - __FUNC_RUN__) / 3
+ex_function_table_offset = <(ex_function_table - __FUNC_RUN__) / 3         ; FUNC not XFUNC
 
 ; Data structures
 
@@ -93,6 +93,7 @@ S1 = FPX+2
 .include "expression.s"
 .include "fp.s"
 .include "functions.s"
+.include "init.s"
 .include "input.s"
 .include "let.s"
 .include "list.s"

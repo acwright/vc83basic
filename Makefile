@@ -2,7 +2,7 @@
 #
 # SPDX-License-Identifier: MIT
 
-TARGETS = sim6502 apple2 atari
+TARGETS = sim6502 apple2 apple2_lc atari
 TEST_TARGET = sim6502
 
 TESTS = $(notdir $(basename $(wildcard tests/*_test.c)))

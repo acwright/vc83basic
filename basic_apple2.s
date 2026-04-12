@@ -2,6 +2,8 @@
 ;
 ; SPDX-License-Identifier: MIT
 
+initialize_target = initialize_target_apple2
+
 .include "basic.s"
 .include "main.s"
 .include "random.s"

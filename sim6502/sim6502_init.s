@@ -8,18 +8,6 @@
 ; C standard library functions
 .import _fprintf, _stderr
 
-.segment "ONCE"
-
-; Architecture-specific initializations that will be invoked from main (even for unit tests).
-; We point the BRK handler to the debug_handler function here.
-
-initialize_target:
-        lda     #<debug_handler
-        sta     $FFFE                   ; BRK vector low byte
-        lda     #>debug_handler
-        sta     $FFFF                   ; BRK vector high byte
-        rts
-
 ; Buffers
 
 .segment "BUFFERS"
@@ -31,6 +19,18 @@ line_buffer: .res BUFFER_SIZE
 stack: .res PRIMARY_STACK_SIZE
 ; Operator stack
 op_stack: .res OP_STACK_SIZE
+
+.segment "ONCE"
+
+; Architecture-specific initializations that will be invoked from main (even for unit tests).
+; We point the BRK handler to the debug_handler function here.
+
+initialize_target:
+        lda     #<debug_handler
+        sta     $FFFE                   ; BRK vector low byte
+        lda     #>debug_handler
+        sta     $FFFF                   ; BRK vector high byte
+        jmp     display_startup_banner
 
 ; Debugging helpers
 

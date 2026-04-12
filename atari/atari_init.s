@@ -14,4 +14,10 @@ stack: .res PRIMARY_STACK_SIZE
 ; Operator stack
 op_stack: .res OP_STACK_SIZE
 
+;.segment "ONCE"
+.code
+
+initialize_target:
+        jmp     display_startup_banner
+
 .code

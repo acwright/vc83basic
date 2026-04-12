@@ -1,47 +1,61 @@
-.include "apple2.inc"
-.include "../macros.inc"
+; SPDX-FileCopyrightText: 2022-2026 Willis Blackburn
+;
+; SPDX-License-Identifier: MIT
 
 .import __MAIN_START__, __MAIN_SIZE__
 .import __CODE_LOAD__, __CODE_RUN__
 .import __PARSER_LOAD__, __PARSER_RUN__, __PARSER_SIZE__
 
-.export startup
-
-.zeropage
-
-size: .res 2
-src_ptr: .res 2
-dst_ptr: .res 2
-ptr: .res 2
-
-.segment "STARTUP"
+.segment "ONCE"
 
 SYSTEM_ROM_START = $F800
 SYSTEM_ROM_SIZE = $800
 
-startup:
-        ldx     #$FF        
-        txs                             ; Initialize the stack to $FF
+system_rom: .res SYSTEM_ROM_SIZE
+
+; Copies the BASIC code from wherever it was loaded in RAM into the Language Card RAM.
+; Also copies the system ROM into the LC RAM it continues to appear at the same addresses.
+; Any subroutines used by this initialization function have to be here in this module, because the rest of the
+; program has not yet been copied to the address from which it was intended to run.
+
+initialize_target_apple2_lc:
         mvax    #SYSTEM_ROM_START, src_ptr  ; Move system ROM into RAM
         mvax    #system_rom, dst_ptr
         ldax    #SYSTEM_ROM_SIZE
-        jsr     copy
+        jsr     copy_lc
         lda     LCRAM                   ; Read LCRAM twice write-enable RAM
         lda     LCRAM
+        lda     #$A5                    ; Check if Langauge Card exists
+        sta     $E000
+        cmp     $E000
+        bne     no_lc
+        lda     #$5A                    ; Check different value, in case $E000 just happened to be $A5
+        sta     $E000
+        cmp     $E000
+        bne     no_lc
         mvax    #system_rom, src_ptr        ; Copy system ROM into LC
         mvax    #SYSTEM_ROM_START, dst_ptr
         ldax    #SYSTEM_ROM_SIZE
-        jsr     copy
+        jsr     copy_lc
         mvax    #__CODE_LOAD__, src_ptr     ; Copy BASIC code into LC
         mvax    #__CODE_RUN__, dst_ptr
         ldax    #(__PARSER_LOAD__ + __PARSER_SIZE__ - __CODE_LOAD__)
-        jsr     copy
+        jsr     copy_lc
         lda     LCRAMWP                 ; Write-protect LC RAM
-        jsr     print_message
-        lda     LCROM                   ; Re-enable LC ROM before returning to Applesoft
-        rts
+        jmp     initialize_target_apple2
 
-copy:
+no_lc_message: .byte "NO LANGUAGE CARD FOUND!"
+no_lc_message_length = * - no_lc_message
+
+no_lc:
+        jsr     CROUT
+        lday    #no_lc_message
+        ldx     #no_lc_message_length
+        jsr     write_lc
+        jsr     CROUT
+        jmp     DOSWARM                 ; Bail
+
+copy_lc:
         stax    size
         lda     #0                      ; Low byte of #256
         sec
@@ -81,31 +95,19 @@ copy:
 @done:
         rts
 
-system_rom: .res SYSTEM_ROM_SIZE
+; Copy of the write function for the LC loader.
 
-.segment "ONCE"
-
-.byte 0
-
-.code
-
-message:    .byte 13, 13, "HELLO, WORLD", 13
-message_length = * - message
-
-print_message:
-        mvax    #message, ptr
+write_lc:
+        stay    BC
         ldy     #0
 @next:
-        lda     (ptr),y
+        lda     (BC),y
         ora     #$80
         jsr     COUT
         iny
-        cpy     #message_length
+        dex
         bne     @next
 @done:
         rts
 
-.segment "PARSER"
-
-.byte 0
-
+.code

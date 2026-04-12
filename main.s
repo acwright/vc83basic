@@ -18,7 +18,6 @@ error_message_2_length = * - error_message_2
 .assert ERR_STOPPED = $80, error
 
 main:
-        jsr     initialize              ; initialize is in ONCE segment and will be clobbered after it returns
         jsr     initialize_program
 
 raise_ps_ready:
@@ -117,44 +116,3 @@ handle_error:
 @no_line_number:
         jsr     newline
         jmp     get_command
-
-.segment "ONCE"
-
-; We only need the start message at startup, so we put it in the ONCE segment so it can later be overwritten by
-; program data. Free memory is a constant; subtract 5 in order to account for null line (3 bytes) and end byte
-; for variable and array name tables.
-
-start_message:  .byte "VC83 BASIC "
-.if .defined(__APPLE2__)
-                .pushcharmap
-                .repeat 26, i
-                .charmap $61 + i, $41 + i
-                .endrep
-.endif
-.include "version.inc"
-.if .defined(__APPLE2__)
-                .popcharmap
-.endif
-                .byte " <> "
-start_length = * - start_message
-
-free_message:   .byte " BYTES FREE"
-free_length = * - free_message
-
-initialize:
-        jsr     initialize_target
-        ldax    #start_message
-        ldy     #start_length
-        jsr     write
-        ldax    #((__MAIN_START__ + __MAIN_SIZE__) - (__BSS_RUN__ + __BSS_SIZE__) - 5)
-        jsr     int_to_fp               ; Load into FP0
-        jsr     print_number
-        ldax    #free_message
-        ldy     #free_length
-        jsr     write
-        jsr     newline
-        ldax    #fp_pi                  ; Initialize the random number generator with pi
-        jsr     load_fp0
-        jmp     rnd_reseed
-
-.code

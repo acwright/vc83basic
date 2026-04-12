@@ -41,7 +41,7 @@ evaluate_function:
         asl     A                       ; Multiply vector number by 2; clears carry
         adc     B                       ; Add back B to multiply by 3
         tax                             ; Set up as index
-        lda     __FUNC_LOAD__+2,x       ; Arity and flags
+        lda     __FUNC_RUN__+2,x        ; Arity and flags
         lsr     A                       ; Move epilog bits 4-5 to positions 1-2
         lsr     A
         lsr     A
@@ -54,9 +54,9 @@ evaluate_function:
         lda     function_epilogs-2,y
         pha
 @skip_epilog:
-        lda     __FUNC_LOAD__+1,x       ; High byte of function address
+        lda     __FUNC_RUN__+1,x        ; High byte of function address
         pha
-        lda     __FUNC_LOAD__,x         ; Low byte 
+        lda     __FUNC_RUN__,x          ; Low byte 
         pha
         lda     C                       ; Get back the shifted value
         lsr     A                       ; Shift prolog bits 6-7 from original to positions 1-2
@@ -81,7 +81,7 @@ evaluate_function:
 ;     SP+1      Prolog function low byte (if present)
 ;     SP        Current stack pointer       
 
-        lda     __FUNC_LOAD__+2,x       ; Reload arity and flags
+        lda     __FUNC_RUN__+2,x        ; Reload arity and flags
         and     #$07                    ; Limit to 7 args: ensures bit 3 is always 0
         inc     line_pos                ; Skip '('
         jsr     evaluate_argument_list
