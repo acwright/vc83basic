@@ -165,16 +165,21 @@ evaluate_variable:
 evaluate_decoded_variable:
         jsr     find_or_add_variable
         jsr     stack_alloc_value
-        tay                             ; Stack position into Y to set type
+        tax                             ; Stack position into X
         lda     decode_name_type        ; Set type of value on stack
-        sta     stack+Value::type,y
-        tax                             ; Move the type into X
-        tya                             ; Use as low byte of copy address
-        ldy     type_size_table,x       ; Replace Y with the size of the type
-        ldx     #>stack                 ; Stack page
-        stax    dst_ptr                 ; Copy to stack
-        ldax    name_ptr                ; Copy from variable data
-        jmp     copy_y_from
+        sta     stack+Value::type,x
+        tay                             ; Setup type index inside Y
+        lda     type_size_table,y       ; Get copy size locally
+        sta     B                       ; Store size bound in B
+        ldy     #0                      ; Reset iterator
+@copy_loop:
+        lda     (name_ptr),y            ; Copy from variable data incrementing
+        sta     stack,x                 ; Copy to stack incrementing
+        inx
+        iny
+        cpy     B
+        bne     @copy_loop
+        rts
 
 ; Operator precedence table
 ; We index this by the operator index divided by 2.

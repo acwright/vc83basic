@@ -18,11 +18,20 @@ exec_let:
 ; name_ptr = pointer to the variable's data in the variable name table
 
 assign_variable:
-        mvax    name_ptr, dst_ptr       ; Copy into variable data
-        lda     decode_name_type        ; Load the variable type
-        tax                             ; While we're here, load the size of the variable type into Y
-        ldy     type_size_table,x       ; Replace Y with the size of the type
-        jsr     stack_free_value_with_type
-        txa                             ; Becomes low byte of source address
-        ldx     #>stack                 ; Stack page
-        jmp     copy_y_from             ; Copy from stack into variable data
+        lda     decode_name_type        ; Determine what format the allocated memory natively represents
+        jsr     stack_free_value_with_type      ; Drop the actively evaluated item from the top of the stack and yield X representing its base boundary
+        
+        ldy     decode_name_type        ; Restore the target variable type index
+        lda     type_size_table,y       ; Fetch structural footprint directly mapping index (5 for numeric, 2 for string offset)
+        sta     B                       ; Save loop delimiter threshold inside B locally
+        ldy     #0                      ; Init sequence relative iteration pointer to exactly 0 to offset naturally up
+@copy_loop:
+        lda     stack,x                 ; Pull byte directly mapping baseline evaluation layer
+        sta     (name_ptr),y            ; Bind into memory aligned table space
+        inx                             ; Traverse source footprint
+        iny                             ; Traverse destination footprint
+        cpy     B                       ; Evaluate alignment matching our explicitly retained structural delimiter
+        bne     @copy_loop
+        
+        clc                             ; Explicitly clear carry flag natively assuming success 
+        rts

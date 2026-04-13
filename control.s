@@ -141,7 +141,6 @@ exec_next:
         jsr     match_name              ; Make sure it's the right name
         bcs     raise_invalid_variable
         jsr     evaluate_decoded_variable   ; Continue with evaluation of variable decoded above
-        bcs     raise_next_without_for
         jsr     pop_fp0                 ; Variable value is now in FP0
         lda     stack_pos               ; Get stack position again
         adc     #Control::step_value    ; Add offset of step value to stack pointer (carry will be clear)
