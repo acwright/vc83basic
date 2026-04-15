@@ -120,7 +120,7 @@ rebase_name_ptr:
         sta     name_ptr
         bcc     advance_rebase_name_ptr_done
         inc     name_ptr+1
-        clc                             ; Clear carry for return
+        clc                             ; Clear carry to signal "found" from advance_name_ptr
 advance_rebase_name_ptr_done:
         rts
 
