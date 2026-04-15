@@ -89,15 +89,18 @@ exec_for:
         lda     decode_name_arity       ; Or arrays
         bmi     raise_invalid_variable
         inc     line_pos                ; Skip terminator following name
-        ldx     stack_pos               ; Get stack pointer to store name
-        lda     decode_name_ptr         ; Store pointer to variable name
-        sta     stack+Control::variable_name_ptr,x
-        lda     decode_name_ptr+1
-        sta     stack+Control::variable_name_ptr+1,x
-        jsr     evaluate_expression     ; Start value (may clobber decode_name_ptr)
+        jsr     evaluate_expression     ; Start value
         inc     line_pos                ; Skip terminator
-        jsr     find_or_add_variable
-        jsr     assign_variable
+        jsr     find_or_add_variable    ; name_ptr now points to variable data
+        jsr     assign_variable         ; Assign start value to variable
+        ldx     stack_pos               ; Store pointer to name in variable name table
+        lda     name_ptr                ; Calculate start of name: name_ptr - decode_name_length
+        sec
+        sbc     decode_name_length
+        sta     stack+Control::variable_name_ptr,x
+        lda     name_ptr+1
+        sbc     #0
+        sta     stack+Control::variable_name_ptr+1,x
         jsr     evaluate_expression     ; End value
         jsr     pop_fp0                 ; Get the evaluated value
         lda     stack_pos               ; Stack pointer
@@ -133,21 +136,25 @@ exec_next:
         ldx     stack_pos               ; Load stack position
         cpx     #PRIMARY_STACK_SIZE     ; Check if stack empty
         beq     raise_next_without_for  ; If so then fail
-        lda     stack+Control::variable_name_ptr,x  ; Point name_ptr to name at top of control stack
+        lda     stack+Control::variable_name_ptr,x  ; Point name_ptr to name in variable name table
         sta     name_ptr
         lda     stack+Control::variable_name_ptr+1,x
         beq     raise_next_without_for  ; If it was zero then top of stack is GOSUB not FOR
         sta     name_ptr+1
-        jsr     match_name              ; Make sure it's the right name
+        jsr     match_name              ; Make sure it's the right name; Y = name length on success
         bcs     raise_invalid_variable
-        jsr     evaluate_decoded_variable   ; Continue with evaluation of variable decoded above
-        jsr     pop_fp0                 ; Variable value is now in FP0
-        lda     stack_pos               ; Get stack position again
-        adc     #Control::step_value    ; Add offset of step value to stack pointer (carry will be clear)
+        jsr     rebase_name_ptr         ; Advance name_ptr past name to variable data
+        lda     name_ptr                ; Load variable value directly into FP0
+        ldy     name_ptr+1
+        jsr     load_fp0
+        lda     stack_pos               ; Get stack position
+        clc
+        adc     #Control::step_value    ; Add offset of step value
         ldy     #>stack                 ; Stack page
-        jsr     fadd                    ; Add the step value to the variable value from before
-        jsr     push_fp0                ; Push back onto stack
-        jsr     assign_variable         ; Assign stack value to name_ptr set up earlier
+        jsr     fadd                    ; FP0 = variable value + step
+        lda     name_ptr                ; Store updated value back to variable
+        ldy     name_ptr+1
+        jsr     store_fp0
         lda     stack_pos               ; Get stack position again
         clc
         adc     #Control::end_value     ; Calculate address of end value (carry will be clear)
