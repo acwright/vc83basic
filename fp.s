@@ -224,15 +224,6 @@ add_significands_with_carry:
         sta     FPX
         rts
 
-; Utility function to shift the FP0 significand right by one bit.
-
-rotate_right:
-        ror     FP0t+3
-        ror     FP0t+2
-        ror     FP0t+1
-        ror     FP0t
-        ror     B                       ; Rotate carry into rounding register
-        rts
 
 ; Utility function to shift the FP0 significand left by one bit.
 
@@ -258,7 +249,7 @@ shift_fp0_right:
         lsr     A                       ; Divide by 8
         lsr     A
         lsr     A
-        beq     @fine                   ; No coarse shifts needed
+        beq     shift_fp0_fine          ; No coarse shifts needed
         tay                             ; Coarse count in Y
 @coarse:
         lda     B
@@ -274,28 +265,35 @@ shift_fp0_right:
         dey
         bne     @coarse
 
-; Saturate B to $FF so that up to 7 fine ror operations cannot shift all the bits out.
+; Saturate B to $FF so that up to 7 fine ROR operations cannot shift all the bits out.
 ; This preserves the sticky property (once B is non-zero, it stays non-zero) while allowing the
-; fine loop to use unconditional ror B for correct guard-bit positioning.
+; fine loop to use unconditional ROR B for correct guard-bit positioning.
 
         lda     B
-        beq     @fine                   ; B is 0, nothing to saturate
+        beq     shift_fp0_fine          ; B is 0, nothing to saturate
         lda     #$FF
         sta     B
-@fine:
+shift_fp0_fine:
         txa                             ; Retrieve original count
         and     #7
-        beq     @done                   ; No fine shifts needed
-        tay                             ; Fine count in Y
-@next_fine:
-        lsr     FP0t+3
+        tay
+        jmp     rotate_right_clc_loop   ; Jump into end of rotate_right loop
+
+; The rotate_right entry point rotates the significand right one place.
+
+rotate_right:
+        ldy     #1
+rotate_right_y:
+        ror     FP0t+3
         ror     FP0t+2
         ror     FP0t+1
         ror     FP0t
         ror     B
         dey
-        bne     @next_fine
-@done:
+rotate_right_clc_loop:
+        clc                             ; Clear carry to convert ROR into LSR
+        bne     rotate_right_y
+shift_fp0_done:
         rts
 
 ; Multiplies the FP0 significand by 10. Copies the FP0 value into FP1.
