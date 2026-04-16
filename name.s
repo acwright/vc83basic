@@ -18,7 +18,7 @@ find_name_2:
         inc     name_index              ; Increment index
         jsr     advance_name_ptr        ; Tee up next entry
         bcs     @done
-        jsr     match_name              ; Try to match
+        jsr     match_name_y            ; Try to match (Y is already 0)
         bcs     find_name_2             ; If no match then try next one
         jsr     rebase_name_ptr         ; Advance name_ptr to point to data after name
 @done:
@@ -34,13 +34,13 @@ find_name_2:
 
 match_name:
         ldy     #0                      ; Start matching at position 0; also clears N flag
-@next:
+match_name_y:
         lda     (name_ptr),y            ; Load next byte from name table entry
         bmi     @last                   ; This is the last character
         cmp     (decode_name_ptr),y     ; Compare to the source name
         bne     @no_match               ; If not match then fail; if we get past this point then we're still matching
         iny
-        bne     @next
+        bne     match_name_y
 
 @last:
         cmp     (decode_name_ptr),y     ; One last compare
