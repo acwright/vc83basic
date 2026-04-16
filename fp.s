@@ -354,12 +354,9 @@ truncate_fp_to_int32:
         sec
         sbc     #BIAS                   ; A is unbiased exponent
         bmi     @e_neg                  ; Exponent < 0 -> magnitude < 1.0
-
         cmp     #32
-        bcs     @ret                    ; e >= 32
-
+        bcs     @done                   ; e >= 32
         pha                             ; Save unbiased e for return
-
         eor     #$FF
         adc     #32                     ; A = 31 - e
         beq     @shift_done             ; if shift count 0, bypass loop
@@ -378,7 +375,7 @@ truncate_fp_to_int32:
         bne     @shift
 @shift_done:
         pla                             ; Restore unbiased e, sets flags
-@ret:
+@done:
         rts
 
 @optimized:
