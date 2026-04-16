@@ -226,8 +226,6 @@ add_significands_with_carry:
 
 ; Utility function to shift the FP0 significand right by one bit.
 
-shift_right:
-        clc
 rotate_right:
         ror     FP0t+3
         ror     FP0t+2
@@ -246,6 +244,58 @@ rotate_left:
         rol     FP0t+2
         rol     FP0t+3
         rol     FPX                     ; Rotate carry into FPX
+        rts
+
+; Shifts FP0 significand right by A positions. B is used as a combined rounding and sticky register.
+; Coarse shifts (8 bits at a time): shifted-out bytes are OR'd into B.
+; Between coarse and fine, B is saturated to $FF to ensure stickiness through up to 7 fine shifts.
+; Fine shifts (1 bit at a time): uses unconditional ror B, so MSB of B is the guard bit (last carry)
+; and B remains non-zero if any bits were ever shifted out.
+; A = shift count (1-39). Caller must initialize B to 0. Clobbers X, Y.
+
+shift_fp0_right:
+        tax                             ; Save original count in X
+        lsr     A                       ; Divide by 8
+        lsr     A
+        lsr     A
+        beq     @fine                   ; No coarse shifts needed
+        tay                             ; Coarse count in Y
+@coarse:
+        lda     B
+        ora     FP0t                    ; OR shifted-out byte into B (sticky)
+        sta     B
+        lda     FP0t+1
+        sta     FP0t
+        lda     FP0t+2
+        sta     FP0t+1
+        lda     FP0t+3
+        sta     FP0t+2
+        mva     #0, FP0t+3
+        dey
+        bne     @coarse
+
+; Saturate B to $FF so that up to 7 fine ror operations cannot shift all the bits out.
+; This preserves the sticky property (once B is non-zero, it stays non-zero) while allowing the
+; fine loop to use unconditional ror B for correct guard-bit positioning.
+
+        lda     B
+        beq     @fine                   ; B is 0, nothing to saturate
+        lda     #$FF
+        sta     B
+@fine:
+        txa                             ; Retrieve original count
+        and     #7
+        beq     @done                   ; No fine shifts needed
+        tay                             ; Fine count in Y
+@next_fine:
+        lsr     FP0t+3
+        ror     FP0t+2
+        ror     FP0t+1
+        ror     FP0t
+        ror     B
+        dey
+        bne     @next_fine
+@done:
         rts
 
 ; Multiplies the FP0 significand by 10. Copies the FP0 value into FP1.
@@ -345,10 +395,10 @@ raise_out_of_range:
 ; integer part will now be to the left of the binary point. But because that would push the integer part off the
 ; left end of the significand field, instead we adjust until the exponent is 31, at which point the integer value
 ; will be in the significand field of FP0.
-; BC SAFE, DE SAFE
+; DE SAFE
 
 truncate_fp_to_int32:
-        mva     #0, B                   ; B tracks dropped fractional bits
+        mva     #0, B                   ; B tracks dropped fractional bits (sticky)
         lda     FP0e                    ; Load exponent
         beq     @e_zero_val             ; Exactly 0.0 -> no active bits dropped
         sec
@@ -358,52 +408,13 @@ truncate_fp_to_int32:
         bcs     @done                   ; e >= 32
         pha                             ; Save unbiased e for return
         eor     #$FF
-        adc     #32                     ; A = 31 - e
+        adc     #32                     ; A = 31 - e = shift count
         beq     @shift_done             ; if shift count 0, bypass loop
-        cmp     #16
-        bcs     @optimized
-        tay                             ; Y = shift count
-@shift:
-        lsr     FP0t+3
-        ror     FP0t+2
-        ror     FP0t+1
-        ror     FP0t
-        bcc     @no_carry
-        inc     B                       ; Track dropped fractional bits
-@no_carry:
-        dey
-        bne     @shift
+        jsr     shift_fp0_right
 @shift_done:
         pla                             ; Restore unbiased e, sets flags
 @done:
         rts
-
-@optimized:
-        and     #$0F
-        tay
-        
-        lda     B                       ; Track the fractional bits we are jumping over
-        ora     FP0t
-        ora     FP0t+1
-        sta     B
-
-        mvx     FP0t+3, FP0t+1
-        mvx     FP0t+2, FP0t
-        mvx     #0, FP0t+3
-        stx     FP0t+2
-
-        tya                             ; Check if fine shifts are needed
-        beq     @shift_done
-        tay
-@opt_shift:
-        lsr     FP0t+1
-        ror     FP0t
-        bcc     @opt_no_carry
-        inc     B
-@opt_no_carry:
-        dey
-        bne     @opt_shift
-        beq     @shift_done             ; Unconditional (Z=1 after bne)
 
 @e_neg:
         pha                             ; Save negative unbiased e
@@ -1028,47 +1039,9 @@ fadd_2:
         bcc     @swap                   ; If borrow then FP0e is larger, so swap and try again
         cmp     #40
         bcs     @return_larger          ; Exponent difference >= 40 so addition has no effect
-        tax                             ; Store exponent difference in X
-
 ; FP0 exponent is less than FP1 exponent, so shift FP0 significand right to align binary points.
 
-        lsr     A                       ; Divide by 8
-        lsr     A
-        lsr     A
-        beq     @align_fine_prep        ; If 0, only fine shifts
-        tay                             ; Number of coarse shifts in Y
-
-@align_coarse:
-        lda     FP0t
-        sta     B
-        lda     FP0t+1
-        sta     FP0t
-        lda     FP0t+2
-        sta     FP0t+1
-        lda     FP0t+3
-        sta     FP0t+2
-        mva     #0, FP0t+3
-        dey
-        bne     @align_coarse
-
-@align_fine_prep:
-        txa                             ; Retrieve original difference
-        and     #7
-        beq     @align_done             ; No fine shifts
-        tay                             ; Number of fine shifts in Y
-        lda     FP0t+3                  ; Load MSB into A
-
-@align_fine:
-        lsr     A
-        ror     FP0t+2
-        ror     FP0t+1
-        ror     FP0t
-        ror     B
-        dey
-        bne     @align_fine
-        sta     FP0t+3                  ; Store MSB back
-
-@align_done:
+        jsr     shift_fp0_right
         lda     FP1e
         sta     FP0e                      ; Once aligned, FP0 exponent is same as FP1
 
