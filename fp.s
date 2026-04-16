@@ -238,9 +238,9 @@ rotate_left:
         rts
 
 ; Shifts FP0 significand right by A positions. B is used as a combined rounding and sticky register.
-; Coarse shifts (8 bits at a time): shifted-out bytes are OR'd into B.
+; Coarse shifts (8 bits at a time): shifted-out bytes are ORed into B.
 ; Between coarse and fine, B is saturated to $FF to ensure stickiness through up to 7 fine shifts.
-; Fine shifts (1 bit at a time): uses unconditional ror B, so MSB of B is the guard bit (last carry)
+; Fine shifts (1 bit at a time): uses unconditional ROR B, so MSB of B is the guard bit (last carry)
 ; and B remains non-zero if any bits were ever shifted out.
 ; A = shift count (1-39). Caller must initialize B to 0. Clobbers X, Y.
 
