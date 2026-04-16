@@ -144,16 +144,14 @@ exec_next:
         jsr     match_name              ; Make sure it's the right name; Y = name length on success
         bcs     raise_invalid_variable
         jsr     rebase_name_ptr         ; Advance name_ptr past name to variable data
-        lda     name_ptr                ; Load variable value directly into FP0
-        ldy     name_ptr+1
+        lday    name_ptr                ; Load variable value directly into FP0
         jsr     load_fp0
         lda     stack_pos               ; Get stack position
         clc
         adc     #Control::step_value    ; Add offset of step value
         ldy     #>stack                 ; Stack page
         jsr     fadd                    ; FP0 = variable value + step
-        lda     name_ptr                ; Store updated value back to variable
-        ldy     name_ptr+1
+        lday    name_ptr                ; Store updated value back to variable
         jsr     store_fp0
         lda     stack_pos               ; Get stack position again
         clc
