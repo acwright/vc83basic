@@ -437,19 +437,15 @@ round:
 floor:
         lda     FP0e                    ; Calculate the number of fractional bits that we need to clear
         beq     @done                   ; If number was already zero, nothing to do
-        
         jsr     truncate_fp_to_int32
         bmi     @adjust_negative        ; Exponent < 0. Value is purely fractional, meaning int part is 0. Skip converting back.
-        
         cmp     #32
         bcs     @done                   ; Exponent >= 32. Value is purely integer. Unmodified!
-
         lda     B                       ; Save B across int32_to_fp
         pha
         jsr     int32_to_fp             ; B and C are zeroed by this call
         pla
         sta     B
-
 @adjust_negative:
         lda     FP0s
         bpl     @done                   ; If number is positive, then no adjustment needed
