@@ -1030,12 +1030,12 @@ fadd_2:
         mva     #0, B                   ; Initialize the rounding register to 0
         sta     C                       ; Clear the extended exponent register
         sta     FPX                     ; Also clear FP0 extended significand
-        lda     FP1e                    ; FP1 exponent
+        lda     FP1e                    ; We want value with smaller exponent in FP0
         sec
         sbc     FP0e                    ; Compare exponents: FP1e - FP0e
         beq     @equal_exponents        ; Exponents are equal, just go ahead to addition
         bcc     @swap                   ; If borrow then FP0e is larger, so swap and try again
-
+@post_swap:
         cmp     #40
         bcs     @return_larger          ; Exponent difference >= 40 so addition has no effect
         jsr     shift_fp0_right         ; FP0 exponent is less; shift FP0 right to align binary points
@@ -1068,10 +1068,13 @@ fadd_2:
         jmp     normalize               ; Normalize result and return
 
 @swap:
-        jsr     swap_fp0_fp1            ; Swap FP0 and FP1 in order to get value with larger exponent in FP0
-        jmp     fadd_2
+        jsr     swap_fp0_fp1            ; Swap FP0 and FP1 in order to get value with smaller exponent in FP0
+        lda     FP1e                    ; FP1 exponent
+        sec
+        sbc     FP0e                    ; Compare exponents: FP1e - FP0e
+        bcs     @post_swap              ; Unconditional since FP1e >= FP0e
 
-; The difference between exponents is >= 40, so just return the larger number (identified by N flag).
+; The difference between exponents is >= 40, so just return the larger number (now in FP1).
 
 @return_larger:
         jsr     swap_fp0_fp1            ; Otherwise swap
