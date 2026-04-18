@@ -1035,13 +1035,12 @@ fadd_2:
         sbc     FP0e                    ; Compare exponents: FP1e - FP0e
         beq     @equal_exponents        ; Exponents are equal, just go ahead to addition
         bcc     @swap                   ; If borrow then FP0e is larger, so swap and try again
+
         cmp     #40
         bcs     @return_larger          ; Exponent difference >= 40 so addition has no effect
-; FP0 exponent is less than FP1 exponent, so shift FP0 significand right to align binary points.
-
-        jsr     shift_fp0_right
+        jsr     shift_fp0_right         ; FP0 exponent is less; shift FP0 right to align binary points
         lda     FP1e
-        sta     FP0e                      ; Once aligned, FP0 exponent is same as FP1
+        sta     FP0e                    ; Once aligned, FP0 exponent is same as FP1
 
 ; If both arguments have the same sign, just add and use the sign of FP0.
 ; If one is negative, put it in FP0 and negate it.
