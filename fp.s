@@ -290,6 +290,9 @@ shift_right:
 @done:
         rts
 
+; Right shift variant used when have overflowed the FP0 significand and need to shift
+; right from FPX and adjust the exponent.
+
 shift_right_from_fpx:
         lsr     FPX
         ror     FP0t+3
@@ -910,7 +913,7 @@ adjust_exponent:
 ; Invoked from normalize when the significand doesn't fit into 32 bits.
 
 shift_right_normalize:
-        jsr     shift_right_from_fpx    ; Shift FPX right, remaining 32 bits into B, and inc exponent
+        jsr     shift_right_from_fpx    ; Shift FPX right, remaining 32 bits into B, and INC exponent
         bne     normalize               ; Skip increment of exponent high byte FP0e did not roll over
         inc     C                       ; Increment high byte
 
