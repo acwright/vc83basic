@@ -1,3 +1,6 @@
+; SPDX-FileCopyrightText: 2022-2026 Willis Blackburn
+;
+; SPDX-License-Identifier: MIT
 
 BAS_LINBUF_SIZE = 240
 
@@ -8,4 +11,3 @@ CH_BKSP             = $08               ; Backspace
 
 CHROUT      := $A000
 CHRIN       := $A003
-
