@@ -244,56 +244,60 @@ rotate_left:
 ; and B remains non-zero if any bits were ever shifted out.
 ; A = shift count (1-39). Caller must initialize B to 0. Clobbers X, Y.
 
-shift_fp0_right:
-        tax                             ; Save original count in X
+shift_right:
+        pha                             ; Save original count
         lsr     A                       ; Divide by 8
         lsr     A
         lsr     A
-        beq     shift_fp0_fine          ; No coarse shifts needed
+        beq     @fine                   ; No coarse shifts needed
         tay                             ; Coarse count in Y
-@coarse:
+@coarse_next:
         lda     B
-        ora     FP0t                    ; OR shifted-out byte into B (sticky)
+        ora     FP0t,x                  ; OR shifted-out byte into B (sticky)
         sta     B
-        lda     FP0t+1
-        sta     FP0t
-        lda     FP0t+2
-        sta     FP0t+1
-        lda     FP0t+3
-        sta     FP0t+2
-        mva     #0, FP0t+3
+        lda     FP0t+1,x
+        sta     FP0t,x
+        lda     FP0t+2,x
+        sta     FP0t+1,x
+        lda     FP0t+3,x
+        sta     FP0t+2,x
+        lda     #0
+        sta     FP0t+3,x
         dey
-        bne     @coarse
+        bne     @coarse_next
 
 ; Saturate B to $FF so that up to 7 fine ROR operations cannot shift all the bits out.
 ; This preserves the sticky property (once B is non-zero, it stays non-zero) while allowing the
 ; fine loop to use unconditional ROR B for correct guard-bit positioning.
 
         lda     B
-        beq     shift_fp0_fine          ; B is 0, nothing to saturate
+        beq     @fine                   ; B is 0, nothing to saturate
         lda     #$FF
         sta     B
-shift_fp0_fine:
-        txa                             ; Retrieve original count
+@fine:
+        pla                             ; Retrieve original count
         and     #7
+        beq     @done
         tay
-        jmp     rotate_right_clc_loop   ; Jump into end of rotate_right loop
+@fine_next:
+        lsr     FP0t+3,x
+        ror     FP0t+2,x
+        ror     FP0t+1,x
+        ror     FP0t,x
+        ror     B
+        dey
+        bne     @fine_next
+@done:
+        rts
 
-; The rotate_right entry point rotates the significand right one place.
-
-rotate_right:
-        ldy     #1
-rotate_right_y:
+shift_right_from_fpx:
+        lsr     FPX
         ror     FP0t+3
         ror     FP0t+2
         ror     FP0t+1
         ror     FP0t
         ror     B
-        dey
-rotate_right_clc_loop:
-        clc                             ; Clear carry to convert ROR into LSR
-        bne     rotate_right_y
-shift_fp0_done:
+        inc     FP0e
         rts
 
 ; Multiplies the FP0 significand by 10. Copies the FP0 value into FP1.
@@ -408,7 +412,8 @@ truncate_fp_to_int32:
         eor     #$FF
         adc     #32                     ; A = 31 - e = shift count
         beq     @shift_done             ; if shift count 0, bypass loop
-        jsr     shift_fp0_right
+        ldx     #0
+        jsr     shift_right
 @shift_done:
         pla                             ; Restore unbiased e, sets flags
 @done:
@@ -905,9 +910,7 @@ adjust_exponent:
 ; Invoked from normalize when the significand doesn't fit into 32 bits.
 
 shift_right_normalize:
-        lsr     FPX                     ; Shift FPX right
-        jsr     rotate_right            ; Shift the remaining 32 bits; output in carry
-        inc     FP0e                    ; Increase exponent
+        jsr     shift_right_from_fpx    ; Shift FPX right, remaining 32 bits into B, and inc exponent
         bne     normalize               ; Skip increment of exponent high byte FP0e did not roll over
         inc     C                       ; Increment high byte
 
@@ -1013,9 +1016,7 @@ normalize:
         sta     B                       ; Also clear rounding register since it has been used to round up
         jsr     add_significands_with_carry
         beq     @done                   ; If the value written to FPX was 0 then all done
-        lsr     FPX                     ; This has the dual effect of clearing FPX and setting carry
-        jsr     rotate_right            ; Otherwise have to shift right again
-        inc     FP0e                    ; Increase exponent
+        jsr     shift_right_from_fpx    ; This has the dual effect of clearing FPX and shifting carry
 
 @done:
         rts
@@ -1030,17 +1031,31 @@ fadd_2:
         mva     #0, B                   ; Initialize the rounding register to 0
         sta     C                       ; Clear the extended exponent register
         sta     FPX                     ; Also clear FP0 extended significand
-        lda     FP1e                    ; We want value with smaller exponent in FP0
+        lda     FP1e
         sec
         sbc     FP0e                    ; Compare exponents: FP1e - FP0e
         beq     @equal_exponents        ; Exponents are equal, just go ahead to addition
-        bcc     @swap                   ; If borrow then FP0e is larger, so swap and try again
-@post_swap:
+        bcc     @shift_fp1              ; If borrow then FP0e is larger, so shift FP1
+
         cmp     #40
-        bcs     @return_larger          ; Exponent difference >= 40 so addition has no effect
-        jsr     shift_fp0_right         ; FP0 exponent is less; shift FP0 right to align binary points
+        bcs     @return_fp1             ; Exponent difference >= 40 so addition has no effect
+        ldx     #0
+        jsr     shift_right             ; FP0 exponent is less; shift FP0 right to align binary points
         lda     FP1e
         sta     FP0e                    ; Once aligned, FP0 exponent is same as FP1
+        jmp     @equal_exponents
+
+@shift_fp1:
+        cmp     #<(-39)
+        bcc     @finish                 ; FP0 is much larger, addition has no effect, return FP0
+        eor     #$FF                    ; Negate exponent diff
+        clc
+        adc     #1
+        ldx     #(FP1 - FP0)
+        jsr     shift_right             ; FP1 exponent is less; shift FP1 right
+        lda     FP0e
+        sta     FP1e                    ; Once aligned, FP1 exponent is same as FP0
+        jmp     @equal_exponents
 
 ; If both arguments have the same sign, just add and use the sign of FP0.
 ; If one is negative, put it in FP0 and negate it.
@@ -1067,16 +1082,9 @@ fadd_2:
 @finish:
         jmp     normalize               ; Normalize result and return
 
-@swap:
-        jsr     swap_fp0_fp1            ; Swap FP0 and FP1 in order to get value with smaller exponent in FP0
-        lda     FP1e                    ; FP1 exponent
-        sec
-        sbc     FP0e                    ; Compare exponents: FP1e - FP0e
-        bcs     @post_swap              ; Unconditional since FP1e >= FP0e
-
 ; The difference between exponents is >= 40, so just return the larger number (now in FP1).
 
-@return_larger:
+@return_fp1:
         jsr     swap_fp0_fp1            ; Otherwise swap
         jmp     @finish
 
