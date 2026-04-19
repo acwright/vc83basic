@@ -2,7 +2,7 @@
 #
 # SPDX-License-Identifier: MIT
 
-TARGETS = sim6502 apple2 apple2_lc atari
+TARGETS = sim6502 apple2 apple2_lc atari ac6502
 TEST_TARGET = sim6502
 
 TESTS = $(notdir $(basename $(wildcard tests/*_test.c)))
@@ -10,7 +10,7 @@ EXPECT_TESTS = $(notdir $(basename $(wildcard expect_tests/*.exp)))
 
 ASMFLAGS = --create-dep $(@:.o=.d)
 CFLAGS = --create-dep $(@:.o=.d)
-LDFLAGS = -m $@.map
+LDFLAGS = -m $@.map -vm
 
 GIT_VERSION := .byte "$(shell git describe --always --dirty 2>/dev/null || echo unknown)"
 
@@ -59,6 +59,14 @@ basic_atari.o: basic_atari.s basic.s constants.inc zeropage.s version.inc
 
 basic_atari: basic_atari.o
 	cl65 -t atari -C atari/atari.cfg $(LDFLAGS) -o $@ $<
+	$(PRINT_SIZE)
+
+# Goal: basic_ac6502
+basic_ac6502.o: basic_ac6502.s basic.s constants.inc zeropage.s version.inc
+	cl65 -t none -c $(ASMFLAGS) -o $@ $<
+
+basic_ac6502: basic_ac6502.o
+	cl65 -t none -C ac6502/ac6502.cfg $(LDFLAGS) -o $@ $<
 	$(PRINT_SIZE)
 
 # Rule for version.inc

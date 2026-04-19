@@ -5,6 +5,7 @@
 *.d
 *.dbg
 *.map
+basic_ac6502
 basic_apple2
 basic_apple2_lc
 basic_atari
