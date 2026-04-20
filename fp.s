@@ -19,7 +19,6 @@
 ; D and E are used by the string conversion functions.
 
 BIAS = 128
-MAXDIGITS = 10
 
 .bss
 
@@ -41,7 +40,7 @@ fp_ten:         .byte $00, $00, $00, $20, 131
 fp_string_max:  .byte $00, $28, $6B, $6E, 157       ; 10^9     (1,000,000,000)
 fp_string_min:  .byte $00, $20, $BC, $3E, 154       ; 10^8     (100,000,000)
 fp_log_2:       .byte $F8, $17, $72, $31, 127
-fp_sqrt_2:      .byte $33, $F3, $04, $35, 128
+fp_sqrt_2:      .byte $34, $F3, $04, $35, 128
 fp_pi:          .byte $81, $CF, $0F, $49, 129
 
 ; Loads a new Float value from memory into FP0 or FP1.
@@ -1402,7 +1401,9 @@ flog_x_plus_1 = fp_scratch + .sizeof(Float) * 3
 flog_k = fp_scratch + .sizeof(Float) * 4
 
 fp_log_coefficients:
-        .byte $E3, $38, $8E, $63, 124   ; 1/9     x^9 / 9
+        .byte $9E, $D8, $89, $1D, 124   ; 1/13  x^13 / 13
+        .byte $A3, $8B, $2E, $3A, 124   ; 1/11  + x^11 / 11
+        .byte $E3, $38, $8E, $63, 124   ; 1/9   + x^9 / 9
         .byte $92, $24, $49, $12, 125   ; 1/7   + x^7 / 7
         .byte $CD, $CC, $CC, $4C, 125   ; 1/5   + x^5 / 5
         .byte $AA, $AA, $AA, $2A, 126   ; 1/3   + x^3 / 3
@@ -1458,7 +1459,7 @@ flog:
         lday    #flog_x_plus_1          ; Calculate (arg - 1) / (arg + 1)
         jsr     fdiv
         ldax    #fp_log_coefficients
-        ldy     #5
+        ldy     #7
         jsr     fpoly_odd
         inc     FP0e                    ; Increment the exponent to multiply by 2
         lday    #flog_k                 ; Add in the log of the exponent
