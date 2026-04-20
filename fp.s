@@ -1401,7 +1401,7 @@ flog_x_plus_1 = fp_scratch + .sizeof(Float) * 3
 flog_k = fp_scratch + .sizeof(Float) * 4
 
 fp_log_coefficients:
-        .byte $9E, $D8, $89, $1D, 124   ; 1/13  x^13 / 13
+        .byte $9E, $D8, $89, $1D, 124   ; 1/13    x^13 / 13
         .byte $A3, $8B, $2E, $3A, 124   ; 1/11  + x^11 / 11
         .byte $E3, $38, $8E, $63, 124   ; 1/9   + x^9 / 9
         .byte $92, $24, $49, $12, 125   ; 1/7   + x^7 / 7

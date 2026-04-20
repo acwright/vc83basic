@@ -25,7 +25,7 @@ startup_message_length = * - startup_message
 free_message:   .byte " BYTES FREE"
 free_message_length = * - free_message
 
-fp_64k:         .byte $00, $00, $00, $00, 143
+fp_64k:         .byte $00, $00, $00, $00, 144
 
 display_startup_banner:
         ldax    #startup_message
