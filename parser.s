@@ -122,8 +122,7 @@ next_pvm:
         ldy     #0
         lda     (pvm_program_ptr),y     ; Load PVM opcode
         sta     B                       ; Park opcode in B
-        iny
-        jsr     rebase_pvm_program_ptr  ; Skip past the opcode byte
+        jsr     iny_rebase_pvm_program_ptr  ; Skip past the opcode byte
         lda     B                       ; Recover opcode from B
 
 ; Handle the opcode
@@ -238,8 +237,7 @@ op_match_range:
         iny
         bne     @find_zero
 @done:
-        iny
-        jsr     rebase_pvm_program_ptr  ; Update pvm_program_ptr
+        jsr     iny_rebase_pvm_program_ptr  ; Update pvm_program_ptr
 
 ; Fall through
 
@@ -286,7 +284,7 @@ op_emit:
         ldy     #0
         lda     (pvm_program_ptr),y     ; Get argument
         jsr     write_to_line_buffer
-        jmp     rebase_next_pvm
+        bne     rebase_next_pvm
 
 ; COMPOSE: OR the next byte value into the last byte written to the output
 
@@ -298,7 +296,10 @@ rebase_next_pvm:
         ldy     #1
         jsr     rebase_pvm_program_ptr  ; Advance past byte
         jmp     next_pvm
-        
+
+; OR the value in A with the last byte written to line_buffer
+; Y SAFE, BC SAFE, DE SAFE
+
 compose_with_last_byte:
         ldx     line_pos                ; Current line_pos
         ora     line_buffer-1,x         ; Subtract one since we want last character
@@ -326,7 +327,7 @@ write_to_line_buffer:
         cpy     #MAX_LINE_LENGTH
         raieq   ERR_LINE_TOO_LONG
         sta     line_buffer,y
-        inc     line_pos
+        inc     line_pos                ; Will always exit with Z clear
         rts
 
 ; Calculates the address of TRY or ACCEPT using the 6-bit offset embedded in the opcode relative to
@@ -353,7 +354,10 @@ calculate_address_12:
 @positive:
         tax                             ; Save high byte
         lda     (pvm_program_ptr),y     ; Read the low byte
-        iny
+        jsr     iny_rebase_pvm_program_ptr
+
+; Fall through
+
 add_to_pvm_program_ptr:
         clc
         adc     pvm_program_ptr         ; Add to pvm_program_ptr
@@ -361,8 +365,6 @@ add_to_pvm_program_ptr:
         txa
         adc     pvm_program_ptr+1
         tax
-rebase_pop:
-        jsr     rebase_pvm_program_ptr  ; Address low byte is on stack and high byte is safe in X
         pla
         rts
 
@@ -370,15 +372,15 @@ rebase_pop:
 ; Exits with Y=0.
 ; X SAFE, BC SAFE, DE SAFE
 
+iny_rebase_pvm_program_ptr:
+        iny
 rebase_pvm_program_ptr:
-        tya                             ; Move offset into A and add to pvm_program_ptr
-        ldy     #0                      ; Reset Y
-        clc                             ; Not sure if carry is set or not so clear it now
-        adc     pvm_program_ptr         ; Add to pvm_program_ptr
-        sta     pvm_program_ptr
-        bcc     @done
+        inc     pvm_program_ptr
+        bne     @skip_inc
         inc     pvm_program_ptr+1
-@done:
+@skip_inc:
+        dey
+        bne     rebase_pvm_program_ptr
         rts
 
 ; PVM macros
@@ -456,8 +458,8 @@ rebase_pvm_program_ptr:
 .endmacro
 
 .macro write_far_opcode opcode, address
-        .assert (address - (* + 1)) >= -1024 .and (address - (* + 1)) <= 1023, error, "Address offset out of range"
-        .byte   opcode + >(address - (* + 1)) & $0F, <(address - *)
+        .assert (address - (* + 2)) >= -1024 .and (address - (* + 2)) <= 1023, error, "Address offset out of range"
+        .byte   opcode + >(address - (* + 2)) & $0F, <(address - (* + 1))
 .endmacro
 
 .macro TRY address
