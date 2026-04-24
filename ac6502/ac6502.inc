@@ -77,3 +77,17 @@ BOOT_VECTOR         := $035B
 ; Legacy aliases used by earlier ac6502 code.
 CHROUT              := Chrout
 CHRIN               := Chrin
+
+; --- HW_PRESENT bit masks ---
+HW_RAM_L            = %00000001
+HW_RAM_H            = %00000010
+HW_RTC              = %00000100
+HW_CF               = %00001000
+HW_SC               = %00010000
+HW_GPIO             = %00100000
+HW_SID              = %01000000
+HW_VID              = %10000000
+
+; --- RTC / storage RAM variables used by kernal routines ---
+RTC_BUF_CENT        := $030B             ; Century register for RTC read/write
+RAM_BANK_L          := $83FF             ; Write-only bank latch for low RAM card
