@@ -10,10 +10,12 @@
 
 BAS_LINBUF_SIZE     = 240
 
+CH_CTRLC            = $03
 CH_BEL              = $07
 CH_BKSP             = $08
 CH_LF               = $0A
 CH_CR               = $0D
+CH_ESC              = $1B
 CH_SPACE            = $20
 CH_DEL              = $7F
 
