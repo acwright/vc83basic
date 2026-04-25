@@ -23,7 +23,7 @@ startup:
                                         ; Leaves interrupts disabled; caller must CLI.
         jsr     Beep                    ; Play the startup beep
         cli                             ; Enable interrupts (keyboard, serial RX)
-        jsr     initialize_target       ; BASIC-side target init (banner, etc.)
+        jsr     display_startup_banner  ; Display the BASIC banner
         jmp     main                    ; Enter the BASIC REPL (never returns)
 
 ; IRQ / NMI trampolines -- dispatch through the RAM vectors that

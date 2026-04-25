@@ -48,16 +48,10 @@ ex_statement_name_table:
 
 ; Helper PVM fragments for 3- and 4-argument statements.
 
-ex_pvm_arg_3:
-        CALL pvm_expression
-        ARGSEP
-        CALL pvm_expression
-        ARGSEP
-        JUMP pvm_expression
-
 ex_pvm_arg_4:
         CALL pvm_expression
         ARGSEP
+ex_pvm_arg_3:
         CALL pvm_expression
         ARGSEP
         CALL pvm_expression
