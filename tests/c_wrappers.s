@@ -372,6 +372,12 @@ _fatn:
         startwrap
         jmp     fatn
 
+; lexer.s
+
+_next_token:
+.export _next_token
+        jmp     next_token
+
 ; list.s
 
 _list_statement:

@@ -162,4 +162,10 @@ word(pvm_program_ptr, const char*)
 comment True if we're parsing or LISTing a string
 byte(string_flag)
 
+comment The token we just lexed
+byte(token)
+
+comment The position of the start of the token
+byte(token_pos)
+
 finalize()

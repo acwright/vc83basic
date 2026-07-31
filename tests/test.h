@@ -135,6 +135,9 @@ void fsin(void);
 void ftan(void);
 void fatn(void);
 
+// lexer.s
+void next_token(void);
+
 // list.s
 void list_line(void);
 void list_statement(void);
