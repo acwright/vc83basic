@@ -1052,7 +1052,6 @@ fadd_2:
         jsr     shift_right             ; FP1 exponent is less; shift FP1 right
         lda     FP0e
         sta     FP1e                    ; Once aligned, FP1 exponent is same as FP0
-        jmp     @equal_exponents
 
 ; If both arguments have the same sign, just add and use the sign of FP0.
 ; If one is negative, put it in FP0 and negate it.
