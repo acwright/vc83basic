@@ -165,7 +165,4 @@ byte(string_flag)
 comment The token we just lexed
 byte(token)
 
-comment The position of the start of the token
-byte(token_pos)
-
 finalize()

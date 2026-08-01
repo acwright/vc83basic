@@ -383,37 +383,6 @@ rebase_pvm_program_ptr:
 
 ; PVM macros
 
-; Encodes string using .byte and sets bit 7 (EOT) on the last character.
-
-.macro name s
-    .local @length
-    @length = .strlen(s)
-
-    .if (@length > 0)
-        ; Output all characters *except* the last one, if any.
-        .if (@length > 1)
-            .repeat @length - 1, i
-                .byte   .strat(s, i)
-            .endrep
-        .endif
-        
-        ; Output the last character, bitwise OR'd with EOT
-        .byte   .strat(s, @length - 1) | EOT
-    .else
-        ; If string is empty then just output a single EOT byte.
-        .byte   EOT
-    .endif
-.endmacro
-
-.macro name_table_entry s
-        .byte   :+ - *
-        name s
-.endmacro
-
-.macro name_table_end
-        .byte   0
-.endmacro
-
 .macro MATCH m
     .if (.match(m, *))
         .byte   PVM_MATCH_ANY
