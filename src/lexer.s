@@ -91,6 +91,12 @@ keywords:
 .assert TOK_EOL = 0, error
 .assert TOK_AND = $80, error
 
+; Parses the next token from buffer and writes the token value to line_buffer.
+; For single-character tokens, e.g., ',', as well as operators and keywords, the token value is the token itself.
+; For strings, names, and numbers, the token value is the list of characters read from the buffer.
+; Sets the EOT bit on the last character of names to facilitate name lookups at runtime.
+; Returns the next token in A.
+
 next_token:
         ldx     buffer_pos
         ldy     line_pos                ; Prepare to write into line_buffer using Y
@@ -99,22 +105,22 @@ next_token:
         sta     decode_name_ptr+1
 @whitespace:
         lda     buffer,x                ; Load next character
+        beq     @write                  ; Return TOK_EOL
+        inx
         debug $00
-        beq     @write_token            ; Return TOK_EOL
-        inx                             ; It's not EOL, so we're going to eat it, whatever it is
         cmp     #' '                    ; Space?
         beq     @whitespace             ; Pretend we didn't see it
 
 ; Single-character tokens
 
         cmp     #','
-        beq     @write_token
+        beq     @write
         cmp     #';'
-        beq     @write_token
+        beq     @write
         cmp     #'('
-        beq     @write_token
+        beq     @write
         cmp     #')'
-        beq     @write_token
+        beq     @write
 
 ; Strings
 
@@ -124,7 +130,7 @@ next_token:
         sta     line_buffer,y           ; Store string character in line_buffer
         iny
         lda     buffer,x
-        beq     @write_token            ; Abandon string and return TOK_EOL
+        beq     @write                  ; Abandon string and return TOK_EOL
         inx
         cmp     #'"'
         bne     @next_string_char
@@ -135,27 +141,43 @@ next_token:
         inx                             ; Consume the quote
         bne     @next_string_char       ; Unconditional
 
+; X points to the next character after the token in buffer. Y is same for line_buffer.
+; Write out both so we can reuse X and Y in the tokenization process.
+; If we find a token, we'll rewind line_pos to decode_name_ptr and write the token.
+
 @tokenize:
+        stx     buffer_pos
+        sty     line_pos
         lda     line_buffer-1,y         ; Get the previously-written character
-        ora     #EOT
+        ora     #EOT                    ; Set EOT bit to flag end of token for find_name
+        sta     line_buffer-1,y
         ldax    #operators
         jsr     find_name               ; Was it an operator?
-        bcc     @write_token            ; It was! Replace name with token
+        bcc     @replace                ; It was! Replace name with token
         ldax    #keywords
         jsr     find_name               ; Was it a keyword?
         ora     #TOK_AND                ; Equivalent to ADC because TOK_AND = $80 but doesn't set carry     
-        bcc     @write_token            ; It was! Replace name with token
+        bcc     @replace                ; It was! Replace name with token
         lda     #TOK_NAME               ; Couldn't tokenize, so it's a name
-        bcs     @done
+        rts
 
-@write_token:
-        ldy     line_pos                ; Restore original line_pos
+@replace:
+        ldy     decode_name_ptr         ; Restore original line_pos from decode_name_ptr
         sta     line_buffer,y
         iny
-@done:
-        sta     token                   ; Store token and update position variables
-        stx     buffer_pos
         sty     line_pos
+        rts
+
+; We reach here when we want to write the character in A out and also return it as the token.
+; X has already moved the past the source of the token in buffer, but Y points to the next write position
+; in line_buffer.
+
+@write:
+        sta     line_buffer,y         
+        iny
+@done:
+        sty     line_pos
+        stx     buffer_pos
         rts
 
 @number:
@@ -165,6 +187,8 @@ next_token:
 ; operator, plus relational symbols.
 
 @operator:
+        sta     line_buffer,y           ; Store it
+        iny
         sec
         sbc     #' '
         cmp     #16
@@ -177,6 +201,9 @@ next_token:
         cmp     #3
         bcs     @tokenize               ; Tokenize without the next character
         inx                             ; Include the next character
+        sta     line_buffer,y           ; Store it
+        iny
+        bne     @tokenize               ; Unconditional
 
 @name:
         rts
