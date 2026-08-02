@@ -8,6 +8,15 @@ Outputs ca65-compatible assembly code to stdout.
 
 import sys
 from collections import deque
+from dataclasses import dataclass
+
+
+@dataclass
+class TokenSpec:
+    name: str
+    pattern: str
+    case_insensitive: bool = False
+
 
 # ==============================================================================
 # TOKEN REGEX DEFINITIONS & SUPPORTED SYNTAX
@@ -23,15 +32,15 @@ from collections import deque
 #   - Quantifiers     : * (0 or more), + (1 or more), ? (0 or 1 optional)
 # ==============================================================================
 TOKEN_SPECS = [
-    ("TOK_EOL", r'\0'),
-    ("TOK_COMMA", r','),
-    ("TOK_SEMI", r';'),
-    ("TOK_LPAREN", r'\('),
-    ("TOK_RPAREN", r'\)'),
-    ("TOK_STRING", r'("[ !#-~]*")+'),
-    ("TOK_NUM", r'([0-9]+(\.[0-9]*)?|\.[0-9]+)([eE][-+]?[0-9]+)?'),
-    ("TOK_OPERATOR", r'[-+/*^&<=>][>=]?'),
-    ("TOK_NAME", r'[a-zA-Z][a-zA-Z0-9_]+\$?'),
+    TokenSpec("TOK_EOL", r'\0'),
+    TokenSpec("TOK_COMMA", r','),
+    TokenSpec("TOK_SEMI", r';'),
+    TokenSpec("TOK_LPAREN", r'\('),
+    TokenSpec("TOK_RPAREN", r'\)'),
+    TokenSpec("TOK_STRING", r'("[ !#-~]*")+'),
+    TokenSpec("TOK_NUM", r'([0-9]+(\.[0-9]*)?|\.[0-9]+)(E[-+]?[0-9]+)?', case_insensitive=True),
+    TokenSpec("TOK_OPERATOR", r'[-+/*^&<=>][>=]?'),
+    TokenSpec("TOK_NAME", r'[A-Z][A-Z0-9_]*\$?', case_insensitive=True),
 ]
 
 
@@ -59,8 +68,9 @@ class NFA:
 class NFABuilder:
     """Parses basic regular expressions into NFAs using Thompson's construction."""
 
-    def __init__(self):
+    def __init__(self, case_insensitive=False):
         self.next_state_id = 0
+        self.case_insensitive = case_insensitive
 
     def new_state(self):
         state = NFAState(self.next_state_id)
@@ -70,11 +80,17 @@ class NFABuilder:
     def from_char_set(self, chars):
         start = self.new_state()
         end = self.new_state()
-        for c in chars:
+        final_chars = set(chars)
+        if self.case_insensitive:
+            for c in list(chars):
+                if 'A' <= c <= 'Z':
+                    final_chars.add(c.lower())
+        for c in final_chars:
             start.add_transition(c, end)
         return NFA(start, end)
 
-    def parse_regex(self, pattern):
+    def parse_regex(self, pattern, case_insensitive=False):
+        self.case_insensitive = case_insensitive
         nfa, pos = self._parse_alternation(pattern, 0)
         return nfa
 
@@ -229,14 +245,21 @@ def build_dfa(token_specs):
     """
     builder = NFABuilder()
     named_nfas = []
-    for token_name, pattern in token_specs:
-        nfa = builder.parse_regex(pattern)
-        named_nfas.append((token_name, nfa))
+    for spec in token_specs:
+        if isinstance(spec, TokenSpec):
+            token_name, pattern, case_insensitive = spec.name, spec.pattern, spec.case_insensitive
+        elif len(spec) == 3:
+            token_name, pattern, case_insensitive = spec
+        else:
+            token_name, pattern = spec
+            case_insensitive = False
+        nfa = builder.parse_regex(pattern, case_insensitive)
+        named_nfas.append((token_name, nfa, case_insensitive))
 
     global_start = builder.new_state()
     nfa_final_tags = {}
 
-    for token_name, nfa in named_nfas:
+    for token_name, nfa, _ in named_nfas:
         global_start.add_transition(None, nfa.start)
         # Tag all terminal states for this token (supports multiple final states per NFA)
         final_states = getattr(nfa, 'final_states', [nfa.end] if hasattr(nfa, 'end') else [])
@@ -256,7 +279,7 @@ def build_dfa(token_specs):
         current_id = dfa_state_map[current_set]
 
         matched_type = None
-        for token_name, _ in named_nfas:
+        for token_name, _, _ in named_nfas:
             if any(nfa_final_tags.get(s) == token_name for s in current_set):
                 matched_type = token_name
                 break
@@ -342,7 +365,16 @@ def generate_6502_asm(token_specs):
                 count = ord(max_c) - ord(min_c) + 1
                 min_code = f"${ord(min_c):02X}"
                 count_code = f"${count:02X}"
-                target_hex = f"${target_st:02X}"
+
+                # Set bit 7 on target_st if min_c is in 'a'..'z'
+                if 'a' <= min_c <= 'z':
+                    effective_target = target_st | 0x80
+                    caps_note = " (convert caps)"
+                else:
+                    effective_target = target_st
+                    caps_note = ""
+
+                target_hex = f"${effective_target:02X}"
 
                 if min_c == max_c:
                     char_desc = f"'{min_c}'" if min_c.isprintable() and min_c != "'" else f"ASCII ${ord(min_c):02X}"
@@ -351,7 +383,7 @@ def generate_6502_asm(token_specs):
                     max_desc = f"'{max_c}'" if max_c.isprintable() and max_c != "'" else f"${ord(max_c):02X}"
                     char_desc = f"{min_desc} to {max_desc}"
 
-                comment = f"Transition: {char_desc} ({count} chars) -> state_{target_st}"
+                comment = f"Transition: {char_desc} ({count} chars){caps_note} -> state_{target_st}"
                 lines.append(
                     f"    .byte {min_code}, {count_code}, {target_hex} ; {comment}"
                 )

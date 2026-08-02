@@ -49,24 +49,6 @@ void test_lexer_strings(void) {
     call_next_token(TOK_EOL, line_data_4, sizeof line_data_4);
 }
 
-void test_lexer_operators(void) {
-
-    const char line_data_1[] = { TOK_ADD, 0 };
-    const char line_data_2[] = { TOK_ADD, TOK_DIV, 0 };
-
-    init_buffer("+", __LINE__);
-    call_next_token(TOK_ADD, line_data_1, 1);
-    call_next_token(TOK_EOL, line_data_1, sizeof line_data_1);
-    init_buffer("  +", __LINE__);
-    call_next_token(TOK_ADD, line_data_1, 1);
-    call_next_token(TOK_EOL, line_data_1, sizeof line_data_1);
-
-    init_buffer("+/", __LINE__);
-    call_next_token(TOK_ADD, line_data_2, 1);
-    call_next_token(TOK_DIV, line_data_2, 2);
-    call_next_token(TOK_EOL, line_data_2, sizeof line_data_2);
-}
-
 void test_lexer_numbers(void) {
     const char line_data_1[] = { '0', 0 };
     const char line_data_2[] = { '1', '2', '3', 0 };
@@ -76,7 +58,7 @@ void test_lexer_numbers(void) {
     const char line_data_9[] = { '1', '0', '0', '.', 0 };
     const char line_data_e1[] = { '1', 'E', '1', '0', 0 };
     const char line_data_e2[] = { '1', '.', '5', 'E', '-', '5', 0 };
-    const char line_data_e4[] = { '.', '5', 'e', '3', 0 };
+    const char line_data_e4[] = { '.', '5', 'E', '3', 0 };
 
     PRINT_TEST_NAME();
 
@@ -117,7 +99,25 @@ void test_lexer_numbers(void) {
     call_next_token(TOK_EOL, line_data_e4, sizeof line_data_e4);
 }
 
-void test_lexer_keywords_and_names(void) {
+void test_lexer_operators(void) {
+
+    const char line_data_1[] = { TOK_ADD, 0 };
+    const char line_data_2[] = { TOK_ADD, TOK_DIV, 0 };
+
+    init_buffer("+", __LINE__);
+    call_next_token(TOK_ADD, line_data_1, 1);
+    call_next_token(TOK_EOL, line_data_1, sizeof line_data_1);
+    init_buffer("  +", __LINE__);
+    call_next_token(TOK_ADD, line_data_1, 1);
+    call_next_token(TOK_EOL, line_data_1, sizeof line_data_1);
+
+    init_buffer("+/", __LINE__);
+    call_next_token(TOK_ADD, line_data_2, 1);
+    call_next_token(TOK_DIV, line_data_2, 2);
+    call_next_token(TOK_EOL, line_data_2, sizeof line_data_2);
+}
+
+void test_lexer_names(void) {
     const char line_data_1[] = { TOK_PRINT, 0 };
     const char line_data_2[] = { TOK_GOTO, 0 };
     const char line_data_3[] = { TOK_FOR, 0 };
@@ -155,6 +155,20 @@ void test_lexer_keywords_and_names(void) {
     call_next_token(TOK_THEN, line_data_6, 1);
     call_next_token(TOK_EOL, line_data_6, sizeof line_data_6);
 
+    // Lowercase keywords (should be case-insensitive and match TOK_PRINT etc.)
+    init_buffer("print", __LINE__);
+    call_next_token(TOK_PRINT, line_data_1, 1);
+    call_next_token(TOK_EOL, line_data_1, sizeof line_data_1);
+
+    init_buffer("goto", __LINE__);
+    call_next_token(TOK_GOTO, line_data_2, 1);
+    call_next_token(TOK_EOL, line_data_2, sizeof line_data_2);
+
+    // Lowercase variable names (should convert to uppercase in line_buffer with EOT set)
+    init_buffer("foo", __LINE__);
+    call_next_token(TOK_NAME, line_data_foo, 3);
+    call_next_token(TOK_EOL, line_data_foo, sizeof line_data_foo);
+
     // Variable names (not in keyword table) should return TOK_NAME with EOT set on the last character
     init_buffer("FOO", __LINE__);
     call_next_token(TOK_NAME, line_data_foo, 3);
@@ -172,8 +186,8 @@ void test_lexer_keywords_and_names(void) {
 int main(void) {
     initialize_target();
     test_lexer_strings();
-    test_lexer_operators();
     test_lexer_numbers();
-    test_lexer_keywords_and_names();
+    test_lexer_operators();
+    test_lexer_names();
     return 0;
 }

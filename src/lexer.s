@@ -163,8 +163,19 @@ next_token:
 @range_matched:
         iny                             ; Y points to dest_state
         lda     (vector_ptr),y
+        bpl     @no_uppercase           ; Bit 7 is 0 -> don't convert
+
+        and     #$7F                    ; Clear bit 7 to get true dest_state index
         sta     B                       ; B = dest_state
-        lda     buffer,x                ; Write character to line_buffer
+        lda     buffer,x                ; Read character
+        and     #$DF                    ; Convert 'a'..'z' -> 'A'..'Z'
+        bne     @store_char             ; Unconditional
+
+@no_uppercase:
+        sta     B                       ; B = dest_state
+        lda     buffer,x                ; Read character
+
+@store_char:
         ldy     line_pos
         sta     line_buffer,y
         inc     line_pos
