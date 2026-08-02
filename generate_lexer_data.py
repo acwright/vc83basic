@@ -304,7 +304,84 @@ def build_dfa(token_specs):
             dfa_transitions[current_id][char] = dfa_state_map[target_closure]
 
     initial_state_id = dfa_state_map[start_closure]
-    return dfa_transitions, initial_state_id, dfa_state_types
+    return minimize_dfa(dfa_transitions, initial_state_id, dfa_state_types)
+
+
+def minimize_dfa(dfa_transitions, initial_state_id, dfa_state_types):
+    """
+    Minimizes a DFA using Moore's partition refinement algorithm.
+    Merges equivalent states while preserving initial state and token tags.
+    """
+    all_states = list(dfa_transitions.keys())
+    if not all_states:
+        return dfa_transitions, initial_state_id, dfa_state_types
+
+    # Step 1: Initial partition by accepting token tag
+    group_map = {}
+    groups = {}
+    for s in all_states:
+        tag = dfa_state_types.get(s, None)
+        if tag not in groups:
+            groups[tag] = []
+        groups[tag].append(s)
+        group_map[s] = id(groups[tag])
+
+    # Step 2: Refine partitions until stable
+    changed = True
+    while changed:
+        changed = False
+        new_groups = []
+        new_group_map = {}
+
+        for group in groups.values():
+            if len(group) <= 1:
+                new_groups.append(group)
+                for s in group:
+                    new_group_map[s] = id(group)
+                continue
+
+            # Sub-partition states based on their transition target groups
+            subpartitions = {}
+            for s in group:
+                trans = dfa_transitions.get(s, {})
+                signature = tuple(sorted((c, group_map.get(target)) for c, target in trans.items()))
+                if signature not in subpartitions:
+                    subpartitions[signature] = []
+                subpartitions[signature].append(s)
+
+            if len(subpartitions) > 1:
+                changed = True
+
+            for sub in subpartitions.values():
+                new_groups.append(sub)
+                for s in sub:
+                    new_group_map[s] = id(sub)
+
+        group_map = new_group_map
+        groups = {id(g): g for g in new_groups}
+
+    # Step 3: Reindex minimized states into contiguous IDs 0..N-1
+    initial_group_id = group_map[initial_state_id]
+    ordered_group_ids = [initial_group_id] + [g_id for g_id in groups if g_id != initial_group_id]
+
+    state_remap = {}
+    for new_id, g_id in enumerate(ordered_group_ids):
+        for s in groups[g_id]:
+            state_remap[s] = new_id
+
+    new_dfa_transitions = {}
+    new_dfa_state_types = {}
+
+    for old_s, new_id in state_remap.items():
+        if new_id not in new_dfa_transitions:
+            new_dfa_transitions[new_id] = {}
+            if old_s in dfa_state_types:
+                new_dfa_state_types[new_id] = dfa_state_types[old_s]
+            for c, target in dfa_transitions.get(old_s, {}).items():
+                new_dfa_transitions[new_id][c] = state_remap[target]
+
+    new_initial_state = state_remap[initial_state_id]
+    return new_dfa_transitions, new_initial_state, new_dfa_state_types
 
 
 def get_character_ranges(transitions_dict):
