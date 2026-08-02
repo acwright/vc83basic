@@ -8,6 +8,8 @@ ifdef(`__C__',
 
 comment Generated from __file__
 
+def(CASE_INSENSITIVE,   hex(80)) comment ORed with terminal token tag in DFA state data
+
 def(TOK_EOL,            hex(00))
 def(TOK_ADD,            hex(01))
 def(TOK_SUB,            hex(02))
@@ -22,9 +24,10 @@ def(TOK_NE,             hex(0A))
 def(TOK_LE,             hex(0B))
 def(TOK_GE,             hex(0C))
 
-def(TOK_NUM,            hex(1D))
-def(TOK_OPERATOR,       hex(1E))
-def(TOK_NAME,           hex(1F))
+def(TOK_NUM,            hex(1C))
+def(TOK_OPERATOR,       hex(1D))
+def(TOK_NAME,           hex(1E))
+def(TOK_NON_TERMINAL,   hex(1F)) comment Identifies intermediate DFA states
 
 def(TOK_STRING,         hex(22)) comment ASCII "
 def(TOK_COMMA,          hex(2C)) comment ASCII ,

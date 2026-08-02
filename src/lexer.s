@@ -122,21 +122,32 @@ next_token:
 
 @init_dfa:
         mva     #0, B                   ; B = current DFA state index
-
 @dfa_loop:
         ldy     B                       ; Load vector_ptr with address of state_table[B]
         lda     state_table_low,y
         sta     vector_ptr
         lda     state_table_high,y
         sta     vector_ptr+1
-        ldy     #1                      ; Read transition count at offset 1
+        ldy     #0                      ; Read terminal token tag at offset 0
+        lda     (vector_ptr),y
+        asl     A                       ; Carry = 1 if bit 7 set (case-fold state), else 0
+        lda     buffer,x                ; Read input character
+        bcc     @char_ready             ; Carry clear -> no case folding needed
+        cmp     #'a'
+        bcc     @char_ready
+        cmp     #'z'+1
+        bcs     @char_ready
+        and     #$DF                    ; Convert 'a'..'z' -> 'A'..'Z'
+@char_ready:
+        sta     D                       ; Save (maybe case-folded) character in D
+        iny                             ; Read transition count at offset 1
         lda     (vector_ptr),y
         beq     @finish_token           ; 0 transitions -> finish token matching
         sta     C                       ; C = number of transitions
         iny                             ; Offset of first transition range (Y = 2)
 
 @check_range:
-        lda     buffer,x                ; Read character to test
+        lda     D                       ; Read character from D
         sec
         sbc     (vector_ptr),y          ; A = char - min_char
         iny                             ; Y points to count_chars
@@ -151,28 +162,22 @@ next_token:
         stx     buffer_pos
         ldy     #0                      ; Read terminal token tag of state B
         lda     (vector_ptr),y
-        bmi     @syntax_error           ; Bit 7 set (-1) -> syntax error
+        and     #$7F                    ; Clear bit 7 (case-fold flag)
         cmp     #TOK_OPERATOR
         clc
         beq     @try_replace
         cmp     #TOK_NAME
         sec
         beq     @try_replace
-        rts                             ; Standard token: line_pos & line_buffer already updated
+        rts                             ; Standard token or TOK_NON_TERMINAL
 
 @range_matched:
         iny                             ; Y points to dest_state
         lda     (vector_ptr),y
-        cmp     #$80                    ; Carry = 1 if bit 7 set, else 0
-        and     #$7F                    ; A = clean dest_state (carry untouched!)
-        sta     B                       ; B = clean dest_state
-        lda     buffer,x                ; Read character from buffer
-        bcc     @store_char             ; Carry clear -> no uppercase conversion
-        and     #$DF                    ; Convert 'a'..'z' -> 'A'..'Z'
-
-@store_char:
+        sta     B                       ; B = dest_state
+        lda     D                       ; Read character from D
         ldy     line_pos
-        sta     line_buffer,y
+        sta     line_buffer,y           ; Store in line_buffer
         inc     line_pos
         inx
         bne     @dfa_loop
@@ -202,7 +207,3 @@ next_token:
 @no_match:
         lda     B
         rts
-
-@syntax_error:
-        jmp     syntax_error
-

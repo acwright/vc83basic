@@ -181,6 +181,10 @@ void test_lexer_names(void) {
     init_buffer("MY_VAR", __LINE__);
     call_next_token(TOK_NAME, line_data_myvar, 6);
     call_next_token(TOK_EOL, line_data_myvar, sizeof line_data_myvar);
+
+    // Invalid character input should return TOK_NON_TERMINAL
+    init_buffer("!", __LINE__);
+    assert(next_token() == TOK_NON_TERMINAL);
 }
 
 int main(void) {

@@ -10,10 +10,12 @@ import sys
 from collections import deque
 from dataclasses import dataclass
 
+NON_TERMINAL_TOKEN_TAG = "TOK_NON_TERMINAL"
+
 
 @dataclass
 class TokenSpec:
-    name: str
+    tag: str
     pattern: str
     case_insensitive: bool = False
 
@@ -80,12 +82,7 @@ class NFABuilder:
     def from_char_set(self, chars):
         start = self.new_state()
         end = self.new_state()
-        final_chars = set(chars)
-        if self.case_insensitive:
-            for c in list(chars):
-                if 'A' <= c <= 'Z':
-                    final_chars.add(c.lower())
-        for c in final_chars:
+        for c in chars:
             start.add_transition(c, end)
         return NFA(start, end)
 
@@ -247,7 +244,7 @@ def build_dfa(token_specs):
     named_nfas = []
     for spec in token_specs:
         if isinstance(spec, TokenSpec):
-            token_name, pattern, case_insensitive = spec.name, spec.pattern, spec.case_insensitive
+            token_name, pattern, case_insensitive = spec.tag, spec.pattern, spec.case_insensitive
         elif len(spec) == 3:
             token_name, pattern, case_insensitive = spec
         else:
@@ -421,19 +418,33 @@ def generate_6502_asm(token_specs):
     lines = []
     lines.append("; ========================================================")
     lines.append("; Auto-Generated 6502 Assembly Lexer Data Tables")
+    lines.append(";")
+    lines.append("; State Record Format:")
+    lines.append(";   Byte 0: Terminal token tag (ORed with CASE_INSENSITIVE")
+    lines.append(";           if input characters should be capitalized)")
+    lines.append(";   Byte 1: Number of transitions (N)")
+    lines.append(";   N Transition Triplets (3 bytes each):")
+    lines.append(";           Byte 0: min_char (inclusive start of ASCII range)")
+    lines.append(";           Byte 1: count_chars (number of contiguous ASCII chars)")
+    lines.append(";           Byte 2: target_state_id (index of destination state)")
     lines.append("; ========================================================")
     lines.append("")
 
     # Output each state's data table
     for state_id in range(num_states):
-        token_name = dfa_state_types.get(state_id, "<(-1)")
+        token_name = dfa_state_types.get(state_id, NON_TERMINAL_TOKEN_TAG)
         ranges = get_character_ranges(dfa_transitions.get(state_id, {}))
         num_trans = len(ranges)
 
-        lines.append(f"state_{state_id}:")
-        lines.append(f"    .byte {token_name:<11}       ; Terminal token tag (<(-1) if non-terminal)")
+        has_case_folding = any('A' <= min_c <= 'Z' or 'A' <= max_c <= 'Z' for min_c, max_c, target_st in ranges)
+        if has_case_folding:
+            tag_expr = f"{token_name} | CASE_INSENSITIVE"
+        else:
+            tag_expr = token_name
 
-        lines.append(f"    .byte ${num_trans:02X}               ; Number of transitions")
+        lines.append(f"state_{state_id}:")
+        lines.append(f"    .byte {tag_expr}")
+        lines.append(f"    .byte ${num_trans:02X}")
 
         if num_trans == 0:
             lines.append("    ; (No transitions out of this state)")
@@ -442,16 +453,7 @@ def generate_6502_asm(token_specs):
                 count = ord(max_c) - ord(min_c) + 1
                 min_code = f"${ord(min_c):02X}"
                 count_code = f"${count:02X}"
-
-                # Set bit 7 on target_st if min_c is in 'a'..'z'
-                if 'a' <= min_c <= 'z':
-                    effective_target = target_st | 0x80
-                    caps_note = " (convert caps)"
-                else:
-                    effective_target = target_st
-                    caps_note = ""
-
-                target_hex = f"${effective_target:02X}"
+                target_hex = f"${target_st:02X}"
 
                 if min_c == max_c:
                     char_desc = f"'{min_c}'" if min_c.isprintable() and min_c != "'" else f"ASCII ${ord(min_c):02X}"
@@ -460,7 +462,7 @@ def generate_6502_asm(token_specs):
                     max_desc = f"'{max_c}'" if max_c.isprintable() and max_c != "'" else f"${ord(max_c):02X}"
                     char_desc = f"{min_desc} to {max_desc}"
 
-                comment = f"Transition: {char_desc} ({count} chars){caps_note} -> state_{target_st}"
+                comment = f"Transition: {char_desc} ({count} chars) -> state_{target_st}"
                 lines.append(
                     f"    .byte {min_code}, {count_code}, {target_hex} ; {comment}"
                 )
