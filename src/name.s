@@ -11,6 +11,7 @@
 ; On match, updates name_ptr to point to the data following matched name, and returns the index of the matched name
 ; in A.
 ; If no match, then A is the number of names in the name table and name_ptr points to the 0 at the end of the table.
+; BC SAFE, DE SAFE
 
 find_name:
         jsr     initialize_name_ptr

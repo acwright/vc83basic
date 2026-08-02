@@ -8,6 +8,9 @@ TEST_TARGET = sim6502
 TESTS = $(notdir $(basename $(wildcard tests/*_test.c)))
 EXPECT_TESTS = $(notdir $(basename $(wildcard expect_tests/*.exp)))
 
+GENERATED_ASM_SOURCES = src/constants.inc src/zeropage.s src/version.inc src/lexer_data.inc
+GENERATED_C_SOURCES = src/constants.h src/zeropage.h
+
 ASMFLAGS = --create-dep $(@:.o=.d) --asm-include-dir src
 CFLAGS = --create-dep $(@:.o=.d) -I src
 LDFLAGS = -m $@.map -vm
@@ -20,6 +23,8 @@ PRINT_SIZE = @sum=0; \
 	done; \
 	printf "Code size: \$$%X (%d)\n" $$sum $$sum
 
+PYTHON ?= ./.venv/bin/python
+
 # Define DEBUG=1 to build with debug symbols
 ifeq ($(DEBUG),1)
 ASMFLAGS += -g
@@ -30,7 +35,7 @@ endif
 all: $(addprefix build/basic_,$(TARGETS))
 
 # Goal: basic_sim6502
-build/basic_sim6502.o: targets/sim6502/basic_sim6502.s src/basic.s src/constants.inc src/zeropage.s src/version.inc
+build/basic_sim6502.o: targets/sim6502/basic_sim6502.s src/basic.s $(GENERATED_ASM_SOURCES)
 	@mkdir -p $(@D)
 	cl65 -t sim6502 -c $(ASMFLAGS) --asm-include-dir targets/sim6502 -o $@ $<
 
@@ -40,7 +45,7 @@ build/basic_sim6502: build/basic_sim6502.o
 	$(PRINT_SIZE)
 
 # Goal: basic_apple2
-build/basic_apple2.o: targets/apple2/basic_apple2.s src/basic.s src/constants.inc src/zeropage.s src/version.inc
+build/basic_apple2.o: targets/apple2/basic_apple2.s src/basic.s $(GENERATED_ASM_SOURCES)
 	@mkdir -p $(@D)
 	cl65 -t apple2 -c $(ASMFLAGS) --asm-include-dir targets/apple2 -o $@ $<
 
@@ -50,7 +55,7 @@ build/basic_apple2: build/basic_apple2.o
 	$(PRINT_SIZE)
 
 # Goal: basic_apple2_lc
-build/basic_apple2_lc.o: targets/apple2/basic_apple2_lc.s src/basic.s src/constants.inc src/zeropage.s src/version.inc
+build/basic_apple2_lc.o: targets/apple2/basic_apple2_lc.s src/basic.s $(GENERATED_ASM_SOURCES)
 	@mkdir -p $(@D)
 	cl65 -t apple2 -c $(ASMFLAGS) --asm-include-dir targets/apple2 -o $@ $<
 
@@ -60,7 +65,7 @@ build/basic_apple2_lc: build/basic_apple2_lc.o
 	$(PRINT_SIZE)
 
 # Goal: basic_atari
-build/basic_atari.o: targets/atari/basic_atari.s src/basic.s src/constants.inc src/zeropage.s src/version.inc
+build/basic_atari.o: targets/atari/basic_atari.s src/basic.s $(GENERATED_ASM_SOURCES)
 	@mkdir -p $(@D)
 	cl65 -t atari -c $(ASMFLAGS) --asm-include-dir targets/atari -o $@ $<
 
@@ -70,7 +75,7 @@ build/basic_atari: build/basic_atari.o
 	$(PRINT_SIZE)
 
 # Goal: basic_ac6502
-build/basic_ac6502.o: targets/ac6502/basic_ac6502.s src/basic.s src/constants.inc src/zeropage.s src/version.inc
+build/basic_ac6502.o: targets/ac6502/basic_ac6502.s src/basic.s $(GENERATED_ASM_SOURCES)
 	@mkdir -p $(@D)
 	cl65 -t none -c $(ASMFLAGS) --asm-include-dir targets/ac6502 -o $@ $<
 
@@ -80,7 +85,7 @@ build/basic_ac6502: build/basic_ac6502.o
 	$(PRINT_SIZE)
 
 # Goal: basic_vc83_serial
-build/basic_vc83_serial.o: targets/vc83_serial/basic_vc83_serial.s src/basic.s src/constants.inc src/zeropage.s src/version.inc
+build/basic_vc83_serial.o: targets/vc83_serial/basic_vc83_serial.s src/basic.s $(GENERATED_ASM_SOURCES)
 	@mkdir -p $(@D)
 	cl65 -t none -c $(ASMFLAGS) --asm-include-dir targets/vc83_serial -o $@ $<
 
@@ -116,6 +121,11 @@ src/zeropage.h: src/zeropage.m4
 	@mkdir -p $(@D)
 	m4 -DOUTPUT=h $< >$@
 
+# Rules for building lexer data tables:
+src/lexer_data.inc: generate_lexer_data.py
+	@mkdir -p $(@D)
+	$(PYTHON) $< > $@
+
 # Unit tests
 test: $(addprefix run_,$(TESTS))
 
@@ -126,11 +136,11 @@ build/tests/%: build/tests/%.o build/tests/basic_tests.o
 	@mkdir -p $(@D)
 	cl65 -t $(TEST_TARGET) -C targets/$(TEST_TARGET)/$(TEST_TARGET).cfg $(LDFLAGS) -o $@ $^
 
-build/tests/%.o: tests/%.c src/constants.h src/zeropage.h tests/test.h
+build/tests/%.o: tests/%.c $(GENERATED_C_SOURCES) tests/test.h
 	@mkdir -p $(@D)
 	cl65 -t $(TEST_TARGET) -C targets/$(TEST_TARGET)/$(TEST_TARGET).cfg -c $(CFLAGS) -o $@ $<
 
-build/tests/basic_tests.o: tests/basic_tests.s src/basic.s src/constants.inc src/zeropage.s src/version.inc
+build/tests/basic_tests.o: tests/basic_tests.s src/basic.s $(GENERATED_ASM_SOURCES)
 	@mkdir -p $(@D)
 	cl65 -t $(TEST_TARGET) -C targets/$(TEST_TARGET)/$(TEST_TARGET).cfg -c $(ASMFLAGS) --asm-include-dir targets/sim6502 --asm-include-dir tests -o $@ $<
 
@@ -145,7 +155,7 @@ run_expect_test_%:
 
 clean::
 	rm -rf build/
-	rm -f src/constants.inc src/constants.h src/zeropage.s src/zeropage.h src/version.inc
+	rm -f $(GENERATED_ASM_SOURCES) $(GENERATED_C_SOURCES)
 
 -include $(addsuffix .d,$(addprefix build/basic_,$(TARGETS)))
 -include $(addsuffix .d,$(addprefix build/tests/,$(TESTS)))

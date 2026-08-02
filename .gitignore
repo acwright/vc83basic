@@ -2,8 +2,12 @@
 .DS_Store
 *.code-workspace
 build/
+.venv/
+__pycache__/
+*.pyc
 src/constants.inc
 src/constants.h
+src/lexer_data.inc
 src/zeropage.inc
 src/zeropage.h
 src/zeropage.s

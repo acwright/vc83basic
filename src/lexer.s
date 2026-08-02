@@ -2,6 +2,8 @@
 ;
 ; SPDX-License-Identifier: MIT
 
+.include "lexer_data.inc"
+
 .segment "PARSER"
 
 ; Encodes string using .byte and sets bit 7 (EOT) on the last character.
@@ -88,123 +90,115 @@ keywords:
 :       name_table_entry "THEN"
 :       name_table_end
 
+; Parses the next token from buffer using the DFA data tables in lexer_data.inc.
+; Writes token characters or matched token byte into line_buffer.
+; Reads using X (buffer_pos) and writes using Y (line_pos).
+; Skips leading whitespace and returns TOK_EOL on NUL (0).
+; For TOK_OPERATOR or TOK_NAME, sets EOT on the last character written, then calls find_name.
+; Maps operator to index of matched operator name.
+; Maps name to index of matched keyword OR'd with TOK_AND ($80).
+; Returns the next token in A.
+
+; Buffers must be page-aligned.
+.assert <buffer = 0, error
+.assert <line_buffer = 0, error
+
 .assert TOK_EOL = 0, error
 .assert TOK_AND = $80, error
 
-; Parses the next token from buffer and writes the token value to line_buffer.
-; For single-character tokens, e.g., ',', as well as operators and keywords, the token value is the token itself.
-; For strings, names, and numbers, the token value is the list of characters read from the buffer.
-; Sets the EOT bit on the last character of names to facilitate name lookups at runtime.
-; Returns the next token in A.
-
 next_token:
-        ldx     buffer_pos
-        ldy     line_pos                ; Prepare to write into line_buffer using Y
-        sty     decode_name_ptr         ; Start of token in decode_name_ptr so we can tokenize it later
+        lda     line_pos                ; Prepare to write into line_buffer using Y
+        sta     decode_name_ptr         ; Start of token in decode_name_ptr
         lda     #>line_buffer           ; High byte
         sta     decode_name_ptr+1
+        ldx     buffer_pos
+
 @whitespace:
         lda     buffer,x                ; Load next character
-        beq     @write                  ; Return TOK_EOL
-        inx
-        debug $00
         cmp     #' '                    ; Space?
-        beq     @whitespace             ; Pretend we didn't see it
-
-; Single-character tokens
-
-        cmp     #','
-        beq     @write
-        cmp     #';'
-        beq     @write
-        cmp     #'('
-        beq     @write
-        cmp     #')'
-        beq     @write
-
-; Strings
-
-        cmp     #'"'
-        bne     @number
-@next_string_char:
-        sta     line_buffer,y           ; Store string character in line_buffer
-        iny
-        lda     buffer,x
-        beq     @write                  ; Abandon string and return TOK_EOL
+        bne     @init_dfa
         inx
-        cmp     #'"'
-        bne     @next_string_char
-        sta     line_buffer,y           ; Write this quote out to line_buffer
-        iny
-        cmp     buffer,x                ; If two double quotes in a row, string continues
-        bne     @done                   ; It wasn't so string ends with '"' still in A
-        inx                             ; Consume the quote
-        bne     @next_string_char       ; Unconditional
+        bne     @whitespace             ; Skip space
 
-; X points to the next character after the token in buffer. Y is same for line_buffer.
-; Write out both so we can reuse X and Y in the tokenization process.
-; If we find a token, we'll rewind line_pos to decode_name_ptr and write the token.
+@init_dfa:
+        mva     #0, B                   ; B = current DFA state index
 
-@tokenize:
+@dfa_loop:
+        ldy     B                       ; Load vector_ptr with address of state_table[B]
+        lda     state_table_low,y
+        sta     vector_ptr
+        lda     state_table_high,y
+        sta     vector_ptr+1
+        ldy     #1                      ; Read transition count at offset 1
+        lda     (vector_ptr),y
+        beq     @finish_token           ; 0 transitions -> finish token matching
+        sta     C                       ; C = number of transitions
+        iny                             ; Offset of first transition range (Y = 2)
+
+@check_range:
+        lda     buffer,x                ; Read character to test
+        sec
+        sbc     (vector_ptr),y          ; A = char - min_char
+        iny                             ; Y points to count_chars
+        cmp     (vector_ptr),y          ; Compare (char - min_char) to count_chars
+        bcc     @range_matched          ; Carry clear -> in range [0, count-1]
+        iny                             ; Skip dest_state
+        iny                             ; Point to next min_char
+        dec     C
+        bne     @check_range
+
+@finish_token:
         stx     buffer_pos
-        sty     line_pos
-        lda     line_buffer-1,y         ; Get the previously-written character
-        ora     #EOT                    ; Set EOT bit to flag end of token for find_name
+        ldy     #0                      ; Read terminal token tag of state B
+        lda     (vector_ptr),y
+        bmi     @syntax_error           ; Bit 7 set (-1) -> syntax error
+        cmp     #TOK_OPERATOR
+        clc
+        beq     @try_replace
+        cmp     #TOK_NAME
+        sec
+        beq     @try_replace
+        rts                             ; Standard token: line_pos & line_buffer already updated
+
+@range_matched:
+        iny                             ; Y points to dest_state
+        lda     (vector_ptr),y
+        sta     B                       ; B = dest_state
+        lda     buffer,x                ; Write character to line_buffer
+        ldy     line_pos
+        sta     line_buffer,y
+        inc     line_pos
+        inx
+        bne     @dfa_loop
+
+@try_replace:
+        sta     B                       ; Re-use B to remember original token
+        ldy     line_pos
+        lda     line_buffer-1,y
+        ora     #EOT
         sta     line_buffer-1,y
         ldax    #operators
-        jsr     find_name               ; Was it an operator?
-        bcc     @replace                ; It was! Replace name with token
+        ldy     #0
+        bcc     @call_find_name
         ldax    #keywords
-        jsr     find_name               ; Was it a keyword?
-        ora     #TOK_AND                ; Equivalent to ADC because TOK_AND = $80 but doesn't set carry     
-        bcc     @replace                ; It was! Replace name with token
-        lda     #TOK_NAME               ; Couldn't tokenize, so it's a name
-        rts
+        ldy     #TOK_AND
+@call_find_name:
+        sty     C
+        jsr     find_name
+        bcs     @no_match
+        ora     C
 
-@replace:
-        ldy     decode_name_ptr         ; Restore original line_pos from decode_name_ptr
+@write_replacement:
+        ldy     decode_name_ptr         ; Replace string with single token byte
         sta     line_buffer,y
         iny
         sty     line_pos
         rts
 
-; We reach here when we want to write the character in A out and also return it as the token.
-; X has already moved the past the source of the token in buffer, but Y points to the next write position
-; in line_buffer.
-
-@write:
-        sta     line_buffer,y         
-        iny
-@done:
-        sty     line_pos
-        stx     buffer_pos
+@no_match:
+        lda     B
         rts
 
-@number:
-
-; Operators
-; We've already handled spaces and double quotes so anything in the $2x ASCII range is an
-; operator, plus relational symbols.
-
-@operator:
-        sta     line_buffer,y           ; Store it
-        iny
-        sec
-        sbc     #' '
-        cmp     #16
-        bcc     @tokenize
-        sbc     #('<' - ' ')
-        cmp     #3
-        bcs     @name
-        lda     buffer,x                ; Relational operators are potentially two characters
-        sbc     #('<' - 1)              ; Carry is clear so result will one less than expected
-        cmp     #3
-        bcs     @tokenize               ; Tokenize without the next character
-        inx                             ; Include the next character
-        sta     line_buffer,y           ; Store it
-        iny
-        bne     @tokenize               ; Unconditional
-
-@name:
-        rts
+@syntax_error:
+        jmp     syntax_error
 

@@ -22,8 +22,15 @@ def(TOK_NE,             hex(0A))
 def(TOK_LE,             hex(0B))
 def(TOK_GE,             hex(0C))
 
-def(TOK_NUM,            hex(1E))
+def(TOK_NUM,            hex(1D))
+def(TOK_OPERATOR,       hex(1E))
 def(TOK_NAME,           hex(1F))
+
+def(TOK_STRING,         hex(22)) comment ASCII "
+def(TOK_COMMA,          hex(2C)) comment ASCII ,
+def(TOK_SEMI,           hex(3B)) comment ASCII ;
+def(TOK_LPAREN,         hex(28)) comment ASCII (
+def(TOK_RPAREN,         hex(29)) comment ASCII )
 
 def(TOK_AND,            hex(80))
 def(TOK_OR,             hex(81))
