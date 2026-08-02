@@ -417,7 +417,7 @@ def generate_6502_asm(token_specs):
 
     lines = []
     lines.append("; ========================================================")
-    lines.append("; Auto-Generated 6502 Assembly Lexer Data Tables")
+    lines.append("; Generated 6502 Assembly Lexer Data Tables")
     lines.append(";")
     lines.append("; State Record Format:")
     lines.append(";   Byte 0: Terminal token tag (ORed with CASE_INSENSITIVE")
@@ -444,7 +444,7 @@ def generate_6502_asm(token_specs):
 
         lines.append(f"state_{state_id}:")
         lines.append(f"    .byte {tag_expr}")
-        lines.append(f"    .byte ${num_trans:02X}")
+        lines.append(f"    .byte {num_trans}")
 
         if num_trans == 0:
             lines.append("    ; (No transitions out of this state)")
@@ -453,7 +453,7 @@ def generate_6502_asm(token_specs):
                 count = ord(max_c) - ord(min_c) + 1
                 min_code = f"${ord(min_c):02X}"
                 count_code = f"${count:02X}"
-                target_hex = f"${target_st:02X}"
+                target_code = f"<(state_{target_st} - state_0)"
 
                 if min_c == max_c:
                     char_desc = f"'{min_c}'" if min_c.isprintable() and min_c != "'" else f"ASCII ${ord(min_c):02X}"
@@ -464,21 +464,10 @@ def generate_6502_asm(token_specs):
 
                 comment = f"Transition: {char_desc} ({count} chars) -> state_{target_st}"
                 lines.append(
-                    f"    .byte {min_code}, {count_code}, {target_hex} ; {comment}"
+                    f"    .byte {min_code}, {count_code}, {target_code} ; {comment}"
                 )
 
         lines.append("")
-
-    # Output split high/low address tables
-    lines.append("; Address tables (low/high bytes split for 6502 indexing)")
-    lines.append("state_table_low:")
-    for state_id in range(num_states):
-        lines.append(f"    .byte <state_{state_id}")
-    lines.append("")
-
-    lines.append("state_table_high:")
-    for state_id in range(num_states):
-        lines.append(f"    .byte >state_{state_id}")
 
     return "\n".join(lines)
 

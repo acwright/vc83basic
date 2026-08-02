@@ -121,16 +121,11 @@ next_token:
         bne     @whitespace             ; Skip space
 
 @init_dfa:
-        mva     #0, B                   ; B = current DFA state index
+        mva     #0, B                   ; B = current DFA state byte offset (relative to state_0)
 @dfa_loop:
-        ldy     B                       ; Load vector_ptr with address of state_table[B]
-        lda     state_table_low,y
-        sta     vector_ptr
-        lda     state_table_high,y
-        sta     vector_ptr+1
-        ldy     #0                      ; Read terminal token tag at offset 0
-        lda     (vector_ptr),y
-        asl     A                       ; Carry = 1 if bit 7 set (case-fold state), else 0
+        ldy     B                       ; Y = state byte offset
+        lda     state_0,y               ; Read terminal token tag at offset 0
+        cmp     #$80                    ; Carry = 1 if bit 7 set (case-fold state), else 0
         lda     buffer,x                ; Read input character
         bcc     @char_ready             ; Carry clear -> no case folding needed
         cmp     #'a'
@@ -138,20 +133,22 @@ next_token:
         cmp     #'z'+1
         bcs     @char_ready
         and     #$DF                    ; Convert 'a'..'z' -> 'A'..'Z'
+
 @char_ready:
-        sta     D                       ; Save (maybe case-folded) character in D
-        iny                             ; Read transition count at offset 1
-        lda     (vector_ptr),y
+        sta     D                       ; Save character in D
+
+        iny                             ; Y = B + 1 (transition count offset)
+        lda     state_0,y               ; Read transition count
         beq     @finish_token           ; 0 transitions -> finish token matching
         sta     C                       ; C = number of transitions
-        iny                             ; Offset of first transition range (Y = 2)
+        iny                             ; Y = B + 2 (first min_char offset)
 
 @check_range:
         lda     D                       ; Read character from D
         sec
-        sbc     (vector_ptr),y          ; A = char - min_char
+        sbc     state_0,y               ; A = char - min_char
         iny                             ; Y points to count_chars
-        cmp     (vector_ptr),y          ; Compare (char - min_char) to count_chars
+        cmp     state_0,y               ; Compare (char - min_char) to count_chars
         bcc     @range_matched          ; Carry clear -> in range [0, count-1]
         iny                             ; Skip dest_state
         iny                             ; Point to next min_char
@@ -160,8 +157,8 @@ next_token:
 
 @finish_token:
         stx     buffer_pos
-        ldy     #0                      ; Read terminal token tag of state B
-        lda     (vector_ptr),y
+        ldy     B                       ; Y = state byte offset
+        lda     state_0,y               ; Read terminal token tag
         and     #$7F                    ; Clear bit 7 (case-fold flag)
         cmp     #TOK_OPERATOR
         clc
@@ -172,15 +169,18 @@ next_token:
         rts                             ; Standard token or TOK_NON_TERMINAL
 
 @range_matched:
-        iny                             ; Y points to dest_state
-        lda     (vector_ptr),y
-        sta     B                       ; B = dest_state
+        iny                             ; Y points to target_state byte offset
+        lda     state_0,y
+        sta     B                       ; B = new state byte offset relative to state_0
         lda     D                       ; Read character from D
         ldy     line_pos
         sta     line_buffer,y           ; Store in line_buffer
         inc     line_pos
         inx
         bne     @dfa_loop
+
+; If we get here then we have an operator or a name. Look it up in the `operators` or `keywords` name tables,
+; and if successful, output that token instead.
 
 @try_replace:
         sta     B                       ; Re-use B to remember original token
