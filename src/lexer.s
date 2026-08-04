@@ -136,13 +136,11 @@ next_token:
 
 @char_ready:
         sta     D                       ; Save character in D
-
         iny                             ; Y = B + 1 (transition count offset)
         lda     state_0,y               ; Read transition count
         beq     @finish_token           ; 0 transitions -> finish token matching
         sta     C                       ; C = number of transitions
         iny                             ; Y = B + 2 (first min_char offset)
-
 @check_range:
         lda     D                       ; Read character from D
         sec
@@ -152,12 +150,12 @@ next_token:
         bcc     @range_matched          ; Carry clear -> in range [0, count-1]
         iny                             ; Skip dest_state
         iny                             ; Point to next min_char
-        dec     C
-        bne     @check_range
+        dec     C                       ; Decrement number of remaining transition records
+        bne     @check_range            ; If more than check them, else @finish_token
 
 @finish_token:
         stx     buffer_pos
-        ldy     B                       ; Y = state byte offset
+        ldy     B                       ; Y = reload state byte offset
         lda     state_0,y               ; Read terminal token tag
         and     #$7F                    ; Clear bit 7 (case-fold flag)
         cmp     #TOK_OPERATOR
@@ -173,7 +171,7 @@ next_token:
         lda     state_0,y
         sta     B                       ; B = new state byte offset relative to state_0
         lda     D                       ; Read character from D
-        ldy     line_pos
+        ldy     line_pos                ; Y goes back to being the line_buffer write position
         sta     line_buffer,y           ; Store in line_buffer
         inc     line_pos
         inx
