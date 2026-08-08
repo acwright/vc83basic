@@ -13,61 +13,61 @@
 ; on the stack and restore it after so we can resume execution after the LIST statement.
 
 exec_list:
-        ldphaa  next_line_ptr
-        ldpha   next_line_pos
-        jsr     reset_next_line_ptr
-        lda     #$FF
-        sta     line_number             ; Set line number to max in case user did not provide arguments
-        sta     line_number+1
-        jsr     peek_byte               ; Look to see if there are arguments
-        beq     @next_line              ; Nothing after LIST, just go
-        jsr     get_line_number         ; Go get it
-        jsr     find_line               ; Stores the line number in line_number
-        jsr     peek_byte               ; Anything else?
-        beq     @next_line              ; Nope: the value in line_number becomes the terminating line number
-        inc     line_pos                ; There's another arg, so skip over the ','
-        jsr     get_line_number         ; Save the ending line number in line_number
-        stax    line_number
-@next_line:
-        jsr     compare_next_line_to_target ; Verify we haven't crossed the ending line number
-        bcc     @print                  ; < limit => print it 
-        bne     @done                   ; > limit => stop listing
-@print:
-        mvaa    next_line_ptr, line_ptr
-        jsr     list_line
-        ldax    #buffer
-        ldy     buffer_pos              ; buffer_pos will be the amount of data written to the buffer
-        beq     @done                   ; If it was zero bytes then no more lines
-        jsr     write
-        jsr     newline
-        jsr     advance_next_line_ptr
-        jmp     @next_line
+;         ldphaa  next_line_ptr
+;         ldpha   next_line_pos
+;         jsr     reset_next_line_ptr
+;         lda     #$FF
+;         sta     line_number             ; Set line number to max in case user did not provide arguments
+;         sta     line_number+1
+;         jsr     peek_byte               ; Look to see if there are arguments
+;         beq     @next_line              ; Nothing after LIST, just go
+;         jsr     get_line_number         ; Go get it
+;         jsr     find_line               ; Stores the line number in line_number
+;         jsr     peek_byte               ; Anything else?
+;         beq     @next_line              ; Nope: the value in line_number becomes the terminating line number
+;         inc     line_pos                ; There's another arg, so skip over the ','
+;         jsr     get_line_number         ; Save the ending line number in line_number
+;         stax    line_number
+; @next_line:
+;         jsr     compare_next_line_to_target ; Verify we haven't crossed the ending line number
+;         bcc     @print                  ; < limit => print it 
+;         bne     @done                   ; > limit => stop listing
+; @print:
+;         mvaa    next_line_ptr, line_ptr
+;         jsr     list_line
+;         ldax    #buffer
+;         ldy     buffer_pos              ; buffer_pos will be the amount of data written to the buffer
+;         beq     @done                   ; If it was zero bytes then no more lines
+;         jsr     write
+;         jsr     newline
+;         jsr     advance_next_line_ptr
+;         jmp     @next_line
 
-@done:
-        plsta   next_line_pos
-        plstaa  next_line_ptr
+; @done:
+;         plsta   next_line_pos
+;         plstaa  next_line_ptr
         rts
 
 ; Outputs a line with a line number and all statements separated by ':'.
 ; line_ptr = the line to write
 
 list_line:
-        mvy     #0, buffer_pos          ; Initialize write position in buffer (also set Y to next_line_offset)
-        lda     (line_ptr),y            ; Next line offset into A
-        beq     @done                   ; If it's the null statement then we're at the end of the program
-        jsr     line_number_to_string
-        mva     #.sizeof(Line), line_pos
-@next:
-        jsr     list_statement
-        ldy     #0
-        lda     line_pos                ; Current position
-        cmp     (line_ptr),y            ; At next line offset?
-        bcs     @done                   ; Yep
-        lda     #':'                    ; Else write ':' and next statement
-        jsr     append_buffer
-        bcc     @next
+;         mvy     #0, buffer_pos          ; Initialize write position in buffer (also set Y to next_line_offset)
+;         lda     (line_ptr),y            ; Next line offset into A
+;         beq     @done                   ; If it's the null statement then we're at the end of the program
+;         jsr     line_number_to_string
+;         mva     #.sizeof(Line), line_pos
+; @next:
+;         jsr     list_statement
+;         ldy     #0
+;         lda     line_pos                ; Current position
+;         cmp     (line_ptr),y            ; At next line offset?
+;         bcs     @done                   ; Yep
+;         lda     #':'                    ; Else write ':' and next statement
+;         jsr     append_buffer
+;         bcc     @next
 
-@done:
+; @done:
         rts
 
 ; Outputs a statement.
@@ -76,77 +76,77 @@ list_line:
 .assert TOKEN_EXTENSION = $80, error
 
 list_statement:
-        inc     line_pos                ; Skip past the next statement offset; we don't use it
-@then:
-        jsr     decode_byte             ; Get statement token
-        bmi     @ex_statement           ; It's an extension
-        tay                             ; Set up for list_tokenized_name
-        ldax    #statement_name_table
-        bne     @token                  ; Unconditional
-@ex_statement:
-        and     #<~TOKEN_EXTENSION
-        tay
-        ldax    #ex_statement_name_table
-@token:
-        jsr     expand_tokenized_name
-        jsr     peek_byte
-        bne     @not_empty
-        inc     line_pos                ; Skip 0 at end of statement
-        rts
-@not_empty:
-        jsr     add_whitespace
-@next:
-        jsr     decode_byte             ; Get the next byte; Y is line_pos
-        beq     @done
-        and     #<~EOT                  ; Clear EOT if it's set
-        cmp     #TOKEN_FUNCTION         ; Is it the function token?
-        bne     @try_unary_operator
-        jsr     decode_byte             ; Get the function number
-        tay
-        bpl     @not_ex_function        ; Standard function
-        and     #$7F
-        tay
-        ldax    #ex_function_name_table
-        bne     @got_func_table         ; Unconditional
-@not_ex_function:
-        ldax    #function_name_table
-@got_func_table:
-        jsr     expand_tokenized_name   ; Call directly becuase we don't want to add whitespace after
-        jmp     @next
-@try_unary_operator:
-        sec                             ; Look for other tokens
-        sbc     #TOKEN_UNARY_OP         ; Unary operator
-        cmp     #4
-        bcs     @try_clause
-        tay
-        ldax    #unary_operator_name_table
-        bcc     @token
-@try_clause:
-        sbc     #TOKEN_CLAUSE - TOKEN_UNARY_OP  ; Clause
-        cmp     #8
-        bcs     @try_operator
-        tay
-        pha                             ; Remember the value to check for THEN later
-        ldax    #clause_name_table
-        jsr     expand_tokenized_name
-        jsr     add_whitespace          ; Can just add because there's always something after a clause token
-        pla
-        beq     @then                   ; If it was 0 (THEN), restart statement
-        bne     @next                   ; Unconditional
-@try_operator:
-        sbc     #TOKEN_OP - TOKEN_CLAUSE        ; Binary operator
-        cmp     #16
-        bcs     @default
-        tay
-        ldax    #operator_name_table
-        bcc     @token                  ; Unconditional
-@default:
-        sbc     #<(0 - TOKEN_OP)        ; Subtract to cycle the value A back around to its original value
-        and     #<~EOT                  ; Clear EOT if it's set
-        jsr     append_buffer
-        bne     @next                   ; Unconditional because append_buffer does INC
+;         inc     line_pos                ; Skip past the next statement offset; we don't use it
+; @then:
+;         jsr     decode_byte             ; Get statement token
+;         bmi     @ex_statement           ; It's an extension
+;         tay                             ; Set up for list_tokenized_name
+;         ldax    #statement_name_table
+;         bne     @token                  ; Unconditional
+; @ex_statement:
+;         and     #<~TOKEN_EXTENSION
+;         tay
+;         ldax    #ex_statement_name_table
+; @token:
+;         jsr     expand_tokenized_name
+;         jsr     peek_byte
+;         bne     @not_empty
+;         inc     line_pos                ; Skip 0 at end of statement
+;         rts
+; @not_empty:
+;         jsr     add_whitespace
+; @next:
+;         jsr     decode_byte             ; Get the next byte; Y is line_pos
+;         beq     @done
+;         and     #<~EOT                  ; Clear EOT if it's set
+;         cmp     #TOKEN_FUNCTION         ; Is it the function token?
+;         bne     @try_unary_operator
+;         jsr     decode_byte             ; Get the function number
+;         tay
+;         bpl     @not_ex_function        ; Standard function
+;         and     #$7F
+;         tay
+;         ldax    #ex_function_name_table
+;         bne     @got_func_table         ; Unconditional
+; @not_ex_function:
+;         ldax    #function_name_table
+; @got_func_table:
+;         jsr     expand_tokenized_name   ; Call directly becuase we don't want to add whitespace after
+;         jmp     @next
+; @try_unary_operator:
+;         sec                             ; Look for other tokens
+;         sbc     #TOKEN_UNARY_OP         ; Unary operator
+;         cmp     #4
+;         bcs     @try_clause
+;         tay
+;         ldax    #unary_operator_name_table
+;         bcc     @token
+; @try_clause:
+;         sbc     #TOKEN_CLAUSE - TOKEN_UNARY_OP  ; Clause
+;         cmp     #8
+;         bcs     @try_operator
+;         tay
+;         pha                             ; Remember the value to check for THEN later
+;         ldax    #clause_name_table
+;         jsr     expand_tokenized_name
+;         jsr     add_whitespace          ; Can just add because there's always something after a clause token
+;         pla
+;         beq     @then                   ; If it was 0 (THEN), restart statement
+;         bne     @next                   ; Unconditional
+; @try_operator:
+;         sbc     #TOKEN_OP - TOKEN_CLAUSE        ; Binary operator
+;         cmp     #16
+;         bcs     @default
+;         tay
+;         ldax    #operator_name_table
+;         bcc     @token                  ; Unconditional
+; @default:
+;         sbc     #<(0 - TOKEN_OP)        ; Subtract to cycle the value A back around to its original value
+;         and     #<~EOT                  ; Clear EOT if it's set
+;         jsr     append_buffer
+;         bne     @next                   ; Unconditional because append_buffer does INC
 
-@done:
+; @done:
         rts
 
 ; Given a name table index obtained from a token, list the name from the name table.
@@ -154,26 +154,26 @@ list_statement:
 ; Y = index number
 
 expand_tokenized_name:
-        jsr     get_name                ; Get the statement name
-        bcs     @done                   ; Shouldn't happen, but just in case
-        ldy     #0
-        lda     (name_ptr),y
-        and     #<~EOT                  ; In case EOT is set
-        beq     @done                   ; If first character is just EOT the output nothing
-        sec
-        sbc     #'?'                    ; Skip whitespace if character outside the range '?'-'Z'
-        cmp     #28
-        bcs     @next_name_byte
-        jsr     add_whitespace
-@next_name_byte:
-        lda     (name_ptr),y
-        pha                             ; Remember if EOT bit was set
-        and     #<~EOT                  ; Clear if it was
-        jsr     append_buffer
-        iny
-        pla
-        bpl     @next_name_byte
-@done:
+;         jsr     get_name                ; Get the statement name
+;         bcs     @done                   ; Shouldn't happen, but just in case
+;         ldy     #0
+;         lda     (name_ptr),y
+;         and     #<~EOT                  ; In case EOT is set
+;         beq     @done                   ; If first character is just EOT the output nothing
+;         sec
+;         sbc     #'?'                    ; Skip whitespace if character outside the range '?'-'Z'
+;         cmp     #28
+;         bcs     @next_name_byte
+;         jsr     add_whitespace
+; @next_name_byte:
+;         lda     (name_ptr),y
+;         pha                             ; Remember if EOT bit was set
+;         and     #<~EOT                  ; Clear if it was
+;         jsr     append_buffer
+;         iny
+;         pla
+;         bpl     @next_name_byte
+; @done:
         rts
 
 ; Adds whitespace to the output if necessary.

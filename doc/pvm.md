@@ -58,10 +58,8 @@ It's useful in the parser to identify token classes, e.g., binary operators. We'
 | Range | Size | Description | Examples |
 |-------|------|-------------|----------|
 | `$00` | 1 | End of line | EOL |
-| `$01-$0F` | 15 | Value/structural tokens | NUM, NAME, STRING, COMMA, LPAREN, RPAREN, SEMI, also NON_TERMINAL and NOT |
-| `$10-$1F` | 16 | Binary operators | ADD, SUB, MUL, DIV, EXP, CONCAT, EQ, LT, GT, NE, LE, GE, AND, OR |
-| `$20-$2F` | 16 | Clause keywords | THEN, TO, STEP |
-| `$30-$3F` | 16 | Reserved (unused) | - |
+| `$01-$1F` | 31 | Value/structural tokens | NUM, NAME, STRING, COMMA, LPAREN, RPAREN, SEMI, also NON_TERMINAL and NOT |
+| `$20-$3F` | 32 | Binary operators | ADD, SUB, MUL, DIV, EXP, CONCAT, EQ, LT, GT, NE, LE, GE, AND, OR |
 | `$40-$7F` | 64 | Function names | LEN, STR$, ASC, LEFT$, SIN, COS |
 | `$80-$BF` | 64 | Statement keywords | LET, PRINT, GOTO, FOR, IF, DIM |
 | `$C0-$FF` | 64 | Reserved (PVM instructions) | - |
@@ -77,6 +75,7 @@ Tokens returned from the lexer will be in the range $00-1F and $80-$FF, plus a f
 | `$D0-$DF`  | 1 | 1 | 0 | 1 | h | h | h | h | JUMP | 2 | `llllllll` |
 | `$E0-$EF`  | 1 | 1 | 1 | 0 | h | h | h | h | BRANCH_IF | 3 | `llllllll`, `tttttttt` |
 | `$F0` | 1 | 1 | 1 | 1 | 0 | 0 | 0 | 0 | RETURN | 1 | - |
+| `$F1` | 1 | 1 | 1 | 1 | 0 | 0 | 0 | 1 | FAIL | 1 | - |
 
 ### Field Key
 

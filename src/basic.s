@@ -19,7 +19,6 @@
 .assert __VEC_SIZE__ + __XVEC_SIZE__ < 256, error
 
 ; Generate the offset of each vector table in terms of the number of vectors.
-pvm_opcode_vectors_offset = <(pvm_opcode_vectors - __VEC_RUN__) / 2
 operator_vectors_offset = <(operator_vectors - __VEC_RUN__) / 2
 statement_vectors_offset = <(statement_vectors - __VEC_RUN__) / 2
 ex_statement_vectors_offset = <(ex_statement_vectors - __VEC_RUN__) / 2    ; VEC not XVEC
