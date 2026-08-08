@@ -54,13 +54,11 @@ keywords:
 :       name_table_entry "OR"
 :       name_table_entry "NOT"
 :       name_table_entry "LET"
-:       name_table_entry "IMPL_LET"
 :       name_table_entry "RUN"
 :       name_table_entry "PRINT"
-:       name_table_entry "ALT_PRINT"
+:       name_table_entry "?"
 :       name_table_entry "LIST"
 :       name_table_entry "GOTO"
-:       name_table_entry "IMPL_GOTO"
 :       name_table_entry "GOSUB"
 :       name_table_entry "RETURN"
 :       name_table_entry "POP"
@@ -101,13 +99,11 @@ keyword_tokens:
         .byte TOK_OR
         .byte TOK_NOT
         .byte TOK_LET
-        .byte TOK_IMPL_LET
         .byte TOK_RUN
         .byte TOK_PRINT
         .byte TOK_ALT_PRINT
         .byte TOK_LIST
         .byte TOK_GOTO
-        .byte TOK_IMPL_GOTO
         .byte TOK_GOSUB
         .byte TOK_RETURN
         .byte TOK_POP
@@ -199,10 +195,10 @@ next_token:
         ora     #EOT                    ;     overwritten (single-character tokens), or discarded (strings)
         sta     line_buffer-1,y
         lda     E                       ; Read back the terminal token we saved earlier
-        ldy     decode_name_ptr         ; Get the line_pos+1 vave we saved earlier
+        ldy     decode_name_ptr         ; Get the line_pos+1 value we saved earlier
         sta     line_buffer-1,y         ; Save the terminal token into the position we reserved for it
 
-; When we entered this position, line_pos was L. Now we have set up:
+; When we entered this function, line_pos was L. Now we have set up:
 ;     L   = the matched token
 ;     L+1 = the first character of the token value (decode_name_ptr points here)
 ;     ...
@@ -257,7 +253,7 @@ next_token:
 @encode_string:
         dec     line_pos                ; Remove the last quote; the first quote will become length byte
         lda     line_pos                ; Now points one past the end of the string
-        clc                             ; We have original line_pos+1 but we want to subtract line_pos+2 so set carry
+        clc                             ; We have original line_pos+1 but we want to subtract line_pos+2 so clear carry
         sbc     decode_name_ptr         ; This is the original line_pos+1
         ldy     decode_name_ptr         ; Will point to the quote at the start of the string
         sta     line_buffer,y           ; Replace with length byte

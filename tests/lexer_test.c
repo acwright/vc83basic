@@ -120,6 +120,7 @@ void test_lexer_names(void) {
     const char line_data_4[] = { TOK_NEXT, TOK_EOL };
     const char line_data_5[] = { TOK_IF, TOK_EOL };
     const char line_data_6[] = { TOK_THEN, TOK_EOL };
+    const char line_data_7[] = { TOK_ALT_PRINT, TOK_EOL };
 
     const char line_data_foo[] = { TOK_NAME, 'F', 'O', 'O' | 0x80, TOK_EOL };
     const char line_data_var123[] = { TOK_NAME, 'V', 'A', 'R', '1', '2', '3' | 0x80, TOK_EOL };
@@ -161,6 +162,11 @@ void test_lexer_names(void) {
     init_buffer("goto", __LINE__);
     call_next_token(TOK_GOTO, line_data_2, 1);
     call_next_token(TOK_EOL, line_data_2, sizeof line_data_2);
+
+    // '?' is an alternative syntax for PRINT
+    init_buffer("?", __LINE__);
+    call_next_token(TOK_ALT_PRINT, line_data_7, 1);
+    call_next_token(TOK_EOL, line_data_7, sizeof line_data_7);
 
     // Lowercase variable names (should convert to uppercase in line_buffer with EOT set)
     init_buffer("foo", __LINE__);
