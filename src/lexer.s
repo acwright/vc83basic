@@ -133,10 +133,8 @@ keyword_tokens:
 ; Parses the next token from buffer using the DFA data tables in lexer_data.inc.
 ; Writes token characters or matched token byte into line_buffer.
 ; Reads using X (buffer_pos) and writes using Y (line_pos).
-; Skips leading whitespace and returns TOK_EOL on NUL (0).
-; For TOK_OPERATOR or TOK_NAME, sets EOT on the last character written, then calls find_name.
-; Maps operator to index of matched operator name.
-; Maps name to index of matched keyword OR'd with TOK_AND ($80).
+; Skips leading whitespace. Returns the next token in line_buffer at position line_pos, then the
+; token value in the following positions. Updates line_pos.
 ; Returns the next token in A.
 
 ; Buffers must be page-aligned.
@@ -144,7 +142,6 @@ keyword_tokens:
 .assert <line_buffer = 0, error
 
 .assert TOK_EOL = 0, error
-.assert TOK_AND = $80, error
 
 next_token:
         inc     line_pos                ; Leave space for token; we'll encode value after it

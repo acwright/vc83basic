@@ -40,8 +40,8 @@ void test_lexer_strings(void) {
     call_next_token(TOK_STRING, line_data_2, sizeof line_data_2 - 1);
     call_next_token(TOK_EOL, line_data_2, sizeof line_data_2);
     init_buffer("\"ONE\" \"TWO\"", __LINE__);
-    call_next_token('"', line_data_3, 5);
-    call_next_token('"', line_data_3, 10);
+    call_next_token(TOK_STRING, line_data_3, 5);
+    call_next_token(TOK_STRING, line_data_3, 10);
     call_next_token(TOK_EOL, line_data_3, sizeof line_data_3);
 }
 
