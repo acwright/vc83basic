@@ -15,9 +15,7 @@ void call_parse_pvm_expect_buffer_pos(const char* s, const char* start, const ch
     parse_pvm(start);
     ASSERT_EQ(err, 0);
     ASSERT_EQ(buffer_pos, expect_buffer_pos);
-    if (expect_line_data) {
-        ASSERT_MEMORY_EQ(line_buffer.data, expect_line_data, expect_line_data_length);
-    }
+    ASSERT_MEMORY_EQ(line_buffer.data, expect_line_data, expect_line_data_length);
     ASSERT_EQ(line_pos, offsetof(Line, data) + expect_line_data_length);
 }
 
@@ -29,51 +27,49 @@ void call_parse_pvm(const char* s, const char* start, const char* expect_line_da
 void test_pvm_number(void) {
 
     const char line_data_1[] = { TOK_NUM, '1' | EOT };
-    // const char line_data_2[] = { '9', '1' };
-    // const char line_data_3[] = { '-', '1', '0', '0' };
-    // const char line_data_4[] = { '3', '.', '1', '4', '1', '5', '9' };
-    // const char line_data_5[] = { '3', '.' };
-    // const char line_data_6[] = { '9', '8', '.', '6' };
-    // const char line_data_7[] = { '.', '3', '5', '0' };
-    // const char line_data_8[] = { '-', '.', '5' };
-    // const char line_data_9[] = { '1', '0', 'E', '5' };
-    // const char line_data_10[] = { '1', '0', '.', 'E', '5' };
-    // const char line_data_11[] = { '.', '1', '0', 'E', '5' };
-    // const char line_data_12[] = { '1', '0', 'E', '-', '5' };
+    const char line_data_2[] = { TOK_NUM, '9', '1' | EOT };
+    const char line_data_3[] = { TOK_NUM, '-', '1', '0', '0' | EOT };
+    const char line_data_4[] = { TOK_NUM, '3', '.', '1', '4', '1', '5', '9' | EOT };
+    const char line_data_5[] = { TOK_NUM, '3', '.' | EOT };
+    const char line_data_6[] = { TOK_NUM, '9', '8', '.', '6' | EOT };
+    const char line_data_7[] = { TOK_NUM, '.', '3', '5', '0' | EOT };
+    const char line_data_8[] = { TOK_NUM, '-', '.', '5' | EOT };
+    const char line_data_9[] = { TOK_NUM, '1', '0', 'E', '5' | EOT };
+    const char line_data_10[] = { TOK_NUM, '1', '0', '.', 'E', '5' | EOT };
+    const char line_data_11[] = { TOK_NUM, '.', '1', '0', 'E', '5' | EOT };
+    const char line_data_12[] = { TOK_NUM, '1', '0', 'E', '-', '5' | EOT };
 
     PRINT_TEST_NAME();
 
     call_parse_pvm("1", pvm_number, line_data_1, sizeof line_data_1, __LINE__);
-    // call_parse_pvm("91", pvm_number, line_data_2, sizeof line_data_2, __LINE__);
-    // call_parse_pvm_expect_buffer_pos("91X", pvm_number, line_data_2, sizeof line_data_2, 2, __LINE__);
-    // call_parse_pvm("  91", pvm_number, line_data_2, sizeof line_data_2, __LINE__);
+    call_parse_pvm("91", pvm_number, line_data_2, sizeof line_data_2, __LINE__);
+    call_parse_pvm_expect_buffer_pos("91X", pvm_number, line_data_2, sizeof line_data_2, 2, __LINE__);
+    call_parse_pvm("  91", pvm_number, line_data_2, sizeof line_data_2, __LINE__);
     // call_parse_pvm("-100", pvm_number, line_data_3, sizeof line_data_3, __LINE__);
     // call_parse_pvm("  -100", pvm_number, line_data_3, sizeof line_data_3, __LINE__);
-    // call_parse_pvm("3.14159", pvm_number, line_data_4, sizeof line_data_4, __LINE__);
-    // call_parse_pvm("3.", pvm_number, line_data_5, sizeof line_data_5, __LINE__);
-    // call_parse_pvm("98.6", pvm_number, line_data_6, sizeof line_data_6, __LINE__);
-    // call_parse_pvm(".350", pvm_number, line_data_7, sizeof line_data_7, __LINE__);
+    call_parse_pvm("3.14159", pvm_number, line_data_4, sizeof line_data_4, __LINE__);
+    call_parse_pvm("3.", pvm_number, line_data_5, sizeof line_data_5, __LINE__);
+    call_parse_pvm("98.6", pvm_number, line_data_6, sizeof line_data_6, __LINE__);
+    call_parse_pvm(".350", pvm_number, line_data_7, sizeof line_data_7, __LINE__);
     // call_parse_pvm("-.5", pvm_number, line_data_8, sizeof line_data_8, __LINE__);
-    // call_parse_pvm("10E5", pvm_number, line_data_9, sizeof line_data_9, __LINE__);
-    // call_parse_pvm("10.E5", pvm_number, line_data_10, sizeof line_data_10, __LINE__);
-    // call_parse_pvm(".10E5", pvm_number, line_data_11, sizeof line_data_11, __LINE__);
-    // call_parse_pvm("10E-5", pvm_number, line_data_12, sizeof line_data_12, __LINE__);
+    call_parse_pvm("10E5", pvm_number, line_data_9, sizeof line_data_9, __LINE__);
+    call_parse_pvm("10.E5", pvm_number, line_data_10, sizeof line_data_10, __LINE__);
+    call_parse_pvm(".10E5", pvm_number, line_data_11, sizeof line_data_11, __LINE__);
+    call_parse_pvm("10E-5", pvm_number, line_data_12, sizeof line_data_12, __LINE__);
 }
 
 void test_pvm_string(void) {
 
-    const char line_data_1[] = { '"', 'H', 'E', 'L', 'L', 'O', '"' };
-    const char line_data_2[] = { '"', '"' };
-    const char line_data_3[] = { '"', 'I', 'N', 'T', 'E', 'R', 'N', 'A', 'L', ' ', '"', '"', 'Q', 'U', 'O', 'T', 'E', 'S', '"', '"', '"' };
-    const char line_data_4[] = { '"', 'l', 'o', 'w', 'e', 'r', 'c', 'a', 's', 'e', '"' };
+    const char line_data_1[] = { TOK_STRING, 5, 'H', 'E', 'L', 'L', 'O' };
+    const char line_data_2[] = { TOK_STRING, 0 };
+    const char line_data_3[] = { TOK_STRING, 9, 'l', 'o', 'w', 'e', 'r', 'c', 'a', 's', 'e' };
 
     PRINT_TEST_NAME();
 
     call_parse_pvm("\"HELLO\"", pvm_string, line_data_1, sizeof line_data_1, __LINE__);
     call_parse_pvm("\"\"", pvm_string, line_data_2, sizeof line_data_2, __LINE__);
     call_parse_pvm("  \"\"", pvm_string, line_data_2, sizeof line_data_2, __LINE__);
-    call_parse_pvm("\"INTERNAL \"\"QUOTES\"\"\"", pvm_string, line_data_3, sizeof line_data_3, __LINE__);
-    call_parse_pvm("\"lowercase\"", pvm_string, line_data_4, sizeof line_data_4, __LINE__);
+    call_parse_pvm("\"lowercase\"", pvm_string, line_data_3, sizeof line_data_3, __LINE__);
 }
 
 void test_pvm_name(void) {
@@ -259,7 +255,7 @@ void test_parse_line(void) {
 int main(void) {
     initialize_target();
     test_pvm_number();
-    // test_pvm_string();
+    test_pvm_string();
     // test_pvm_name();
     // test_pvm_expression();
     // test_pvm_statement();

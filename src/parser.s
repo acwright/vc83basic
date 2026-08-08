@@ -78,6 +78,8 @@ parse_pvm:
         mvax    #buffer, read_ptr       ; Set up read_ptr so parsing primitives in util module work
         jsr     run_pvm
         bcs     syntax_error
+        mva     D, buffer_pos           ; Put back the last token that was read but not matched
+        mva     E, line_pos
         rts
 
 ; Resume processing opcodes.
@@ -86,7 +88,9 @@ parse_pvm:
 ; and that opcode in B.
 
 run_pvm:
-        jsr     next_token
+        mva     buffer_pos, D           ; Save state so we can put back the last token
+        mva     line_pos, E
+        jsr     next_token              ; Clobbers BC, but we can use after
         sta     C                       ; Hold the token we just read in B
 run_pvm_same_token:
         jsr     get_next_pvm_byte       ; Load PVM opcode
@@ -111,7 +115,6 @@ run_pvm_same_token:
 @try_call:
         cmp     #PVM_CALL
         bcc     @try_match
-
 
 @try_match:
         tax                             ; Save the opcode in X
@@ -795,6 +798,9 @@ pvm_number:
 ; ; string ::= _ '"' ('""' | [^"])* '"' 
 
 pvm_string:
+        MATCH TOK_STRING
+        RETURN
+
 ;         WS
 ;         MATCH '"'
 ; @next:
