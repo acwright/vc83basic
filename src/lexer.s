@@ -132,6 +132,7 @@ keyword_tokens:
 ; Skips leading whitespace. Returns the next token in line_buffer at position line_pos, then the
 ; token value in the following positions. Updates line_pos.
 ; Returns the next token in A.
+; DE SAFE
 
 ; Buffers must be page-aligned.
 .assert <buffer = 0, error
@@ -162,7 +163,7 @@ next_token:
         lda     state_0,y               ; Read terminal token tag at offset 0
         cmp     #$80                    ; Carry = 1 if bit 7 (case fold flag) set, else 0
         and     #$7F                    ; Forget the case fold flag
-        sta     E                       ; Will need the terminal token without the case fold flag later
+        sta     C                       ; Will need the terminal token without the case fold flag later
         lda     buffer,x                ; Read input character
         bcc     @char_ready             ; Carry clear -> no case folding needed
         cmp     #'a'
@@ -171,14 +172,15 @@ next_token:
         bcs     @char_ready
         and     #$DF                    ; Convert 'a'..'z' -> 'A'..'Z'
 @char_ready:
-        sta     D                       ; Save character in D
-        iny                             ; Y = B + 1 (transition count offset)
+        pha                             ; Save the character on the stack
+        iny                             ; Y = state + 1 (transition count offset)
         lda     state_0,y               ; Read transition count
         beq     @finish_token           ; 0 transitions -> finish token matching
-        sta     C                       ; C = number of transitions
-        iny                             ; Y = B + 2 (first min_char offset)
+        sta     B                       ; Re-use B for counting down the number of transitions
+        iny                             ; Y = state + 2 (first min_char offset)
 @check_range:
-        lda     D                       ; Read character from D
+        pla                             ; Read character from D
+        pha                             ; Keep it on the stack
         sec
         sbc     state_0,y               ; A = char - min_char
         iny                             ; Y points to count_chars
@@ -186,16 +188,17 @@ next_token:
         bcc     @range_matched          ; Carry clear -> in range [0, count-1]
         iny                             ; Skip dest_state
         iny                             ; Point to next min_char
-        dec     C                       ; Decrement number of remaining transition records
+        dec     B                       ; Decrement number of remaining transition records
         bne     @check_range            ; If more than check them, else @finish_token
 
 @finish_token:
+        pla                             ; Don't need the character on the stack anymore
         stx     buffer_pos        
         ldy     line_pos                ; Always safe to set EOT bit on last character written
         lda     line_buffer-1,y         ; It will either be necessary (names, numbers),
         ora     #EOT                    ;     overwritten (single-character tokens), or discarded (strings)
         sta     line_buffer-1,y
-        lda     E                       ; Read back the terminal token we saved earlier
+        lda     C                       ; Read back the terminal token we saved earlier
         ldy     decode_name_ptr         ; Get the line_pos+1 value we saved earlier
         sta     line_buffer-1,y         ; Save the terminal token into the position we reserved for it
 
@@ -228,8 +231,8 @@ next_token:
 @range_matched:
         iny                             ; Y points to target_state byte offset
         lda     state_0,y
-        sta     B                       ; B = new state byte offset relative to state_0
-        lda     D                       ; Read character from D
+        sta     B                       ; B is once again the state byte offset relative to state_0
+        pla                             ; Read character from stack
         ldy     line_pos                ; Y goes back to being the line_buffer write position
         sta     line_buffer,y           ; Store in line_buffer
         inc     line_pos
@@ -261,5 +264,5 @@ next_token:
         sta     line_buffer,y           ; Replace with length byte
 
 @return_terminal_token:
-        lda     E
+        lda     C
         rts
