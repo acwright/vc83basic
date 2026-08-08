@@ -140,21 +140,22 @@ keyword_tokens:
 .assert TOK_EOL = 0, error
 
 next_token:
+        ldx     buffer_pos
+        dex                             ; Negate initial inx
+
+@whitespace:
+        inx
+        lda     buffer,x                ; Load next character
+        beq     @eol                    ; Idempotent return if EOL reached
+        cmp     #' '                    ; Space?
+        beq     @whitespace             ; Skip space
+
+@init_dfa:
         inc     line_pos                ; Leave space for token; we'll encode value after it
         lda     line_pos                ; Set up decode_name_ptr now in case we have to tokenize a keyword
         sta     decode_name_ptr         ; Start of token value in decode_name_ptr
         lda     #>line_buffer           
         sta     decode_name_ptr+1       ; High byte
-        ldx     buffer_pos
-
-@whitespace:
-        lda     buffer,x                ; Load next character
-        cmp     #' '                    ; Space?
-        bne     @init_dfa
-        inx
-        bne     @whitespace             ; Skip space
-
-@init_dfa:
         mva     #0, B                   ; B = current DFA state byte offset (relative to state_0)
 @dfa_loop:
         ldy     B                       ; Y = state byte offset
@@ -221,6 +222,7 @@ next_token:
         cmp     #TOK_STRING
         beq     @encode_string
         sty     line_pos                ; The rest of the tokens have no value
+@eol:
         rts
 
 @range_matched:

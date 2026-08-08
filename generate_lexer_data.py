@@ -34,7 +34,6 @@ class TokenSpec:
 #   - Quantifiers     : * (0 or more), + (1 or more), ? (0 or 1 optional)
 # ==============================================================================
 TOKEN_SPECS = [
-    TokenSpec("TOK_EOL", r'\0'),
     TokenSpec("TOK_COMMA", r','),
     TokenSpec("TOK_SEMI", r';'),
     TokenSpec("TOK_LPAREN", r'\('),
