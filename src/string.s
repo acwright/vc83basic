@@ -68,7 +68,7 @@ read_string_2:
         bne     @finish                 ; Nope; we're finished
         inc     D                       ; Always skip over this quote
         iny                             ; Increment Y in order to check the next character
-        cmp     (read_ptr),y            ; Check second double quote (if present cannot have EOT set)
+        cmp     (read_ptr),y            ; Check second double quote
         bne     @finish                 ; Nope, just finish; D points to character after double quote
 @not_terminator:
         ldy     E                       ; Write offset
