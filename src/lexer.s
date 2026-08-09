@@ -80,6 +80,30 @@ keywords:
 :       name_table_entry "INPUT"
 :       name_table_entry "IF"
 :       name_table_entry "THEN"
+:       name_table_entry "LEN"
+:       name_table_entry "STR$"
+:       name_table_entry "CHR$"
+:       name_table_entry "ASC"
+:       name_table_entry "LEFT$"
+:       name_table_entry "RIGHT$"
+:       name_table_entry "MID$"
+:       name_table_entry "VAL"
+:       name_table_entry "FRE"
+:       name_table_entry "PEEK"
+:       name_table_entry "DPEEK"
+:       name_table_entry "ADR"
+:       name_table_entry "USR"
+:       name_table_entry "INT"
+:       name_table_entry "LOG"
+:       name_table_entry "EXP"
+:       name_table_entry "SIN"
+:       name_table_entry "COS"
+:       name_table_entry "TAN"
+:       name_table_entry "ATN"
+:       name_table_entry "ABS"
+:       name_table_entry "SGN"
+:       name_table_entry "SQR"
+:       name_table_entry "RND"
 :       name_table_end
 
 keyword_tokens:
@@ -87,7 +111,7 @@ keyword_tokens:
         .byte TOK_SUB
         .byte TOK_MUL
         .byte TOK_DIV
-        .byte TOK_EXP
+        .byte TOK_POW
         .byte TOK_CONCAT
         .byte TOK_EQ
         .byte TOK_LT
@@ -125,6 +149,30 @@ keyword_tokens:
         .byte TOK_INPUT
         .byte TOK_IF
         .byte TOK_THEN
+        .byte TOK_LEN
+        .byte TOK_STR_S
+        .byte TOK_CHR_S
+        .byte TOK_ASC
+        .byte TOK_LEFT_S
+        .byte TOK_RIGHT_S
+        .byte TOK_MID_S
+        .byte TOK_VAL
+        .byte TOK_FRE
+        .byte TOK_PEEK
+        .byte TOK_DPEEK
+        .byte TOK_ADR
+        .byte TOK_USR
+        .byte TOK_INT
+        .byte TOK_LOG
+        .byte TOK_EXP
+        .byte TOK_SIN
+        .byte TOK_COS
+        .byte TOK_TAN
+        .byte TOK_ATN
+        .byte TOK_ABS
+        .byte TOK_SGN
+        .byte TOK_SQR
+        .byte TOK_RND
 
 ; Parses the next token from buffer using the DFA data tables in lexer_data.inc.
 ; Writes token characters or matched token byte into line_buffer.

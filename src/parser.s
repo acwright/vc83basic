@@ -632,11 +632,22 @@ pvm_expression:
         RETURN
 
 pvm_primary_expression:
+        BRANCH_IF TOK_LPAREN, pvm_subexpression
+        BRANCH_IF TOK_ADD, pvm_primary_expression   ; Unary +
+        BRANCH_IF TOK_SUB, pvm_primary_expression   ; Unary -
+        BRANCH_IF TOK_NOT, pvm_primary_expression   ; Unary NOT
         BRANCH_IF TOK_NUM, @done
         BRANCH_IF TOK_STRING, @done
-        BRANCH_IF TOK_NAME, @done
+        BRANCH_IF TOK_NAME, pvm_var
+        BRANCH_IF TOK_ANY_FN_4X, pvm_function
+        BRANCH_IF TOK_ANY_FN_5X, pvm_function
         FAIL
 @done:
+        RETURN
+
+pvm_subexpression:
+        CALL pvm_expression
+        MATCH TOK_RPAREN
         RETURN
 
 ; ; pvm_var_list is list of 1-N (but not 0) variables.
@@ -649,30 +660,39 @@ pvm_primary_expression:
 ; @done:
 ;         RETURN
 
-; ; var ::= _ name '$'? ('(' arg_list _ ')')?
+pvm_var:
+        BRANCH_IF TOK_LPAREN, @array
+        RETURN
 
-; pvm_var:
-;         WS
-;         CALL pvm_name
-;         CALL pvm_opt_type
-;         COMPOSE EOT
-;         TRY @done
-;         CALL pvm_paren_arg_list
-; @done:
-;         RETURN
+@array:
+        CALL pvm_arg_list
+        MATCH TOK_RPAREN
+        RETURN
 
-; ; Argument lists
+pvm_function:
+        MATCH TOK_LPAREN
+        CALL pvm_arg_list
+        MATCH TOK_RPAREN
+        RETURN
 
-; pvm_arg_4:
-;         CALL pvm_expression
-;         ARGSEP
-; pvm_arg_3:
-;         CALL pvm_expression
-;         ARGSEP
-; pvm_arg_2:
-;         CALL pvm_expression
-;         ARGSEP
-;         JUMP pvm_expression
+; Argument lists
+
+pvm_arg_4:
+        CALL pvm_expression
+        MATCH TOK_COMMA
+pvm_arg_3:
+        CALL pvm_expression
+        MATCH TOK_COMMA
+pvm_arg_2:
+        CALL pvm_expression
+        MATCH TOK_COMMA
+        JUMP pvm_expression
+
+pvm_arg_list:
+        CALL pvm_expression
+        BRANCH_IF TOK_COMMA, pvm_arg_list
+        RETURN
+
 
 ; ; pvm_paren_arg_list is a list of expressions surrounded by parentheses.
 
