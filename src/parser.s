@@ -638,6 +638,8 @@ calculate_address_12:
 pvm_statement:
         BRANCH_IF TOK_PRINT, pvm_print
         BRANCH_IF TOK_ALT_PRINT, pvm_print
+        BRANCH_IF TOK_FOR, pvm_for
+        BRANCH_IF TOK_NEXT, pvm_next
         BRANCH_IF TOK_ANY_ST_8X, @done  ; Any other no-arg statement
         BRANCH_IF TOK_ANY_ST_9X, @done
         FAIL
@@ -667,7 +669,30 @@ pvm_statement:
 
 ; ; Fall through
 
-; ; Expressions
+; Statements
+
+pvm_print:
+        BRANCH_IF TOK_SEMI, pvm_print
+        BRANCH_IF TOK_COMMA, pvm_print
+        GUARD TOK_COLON                 ; Abandon the PRINT statement if we see COLON or EOL
+        GUARD TOK_EOL
+        CALL pvm_expression             ; Otherwise it has to be an expression
+        JUMP pvm_print
+
+pvm_for:
+        MATCH TOK_NAME
+        MATCH TOK_EQ
+        CALL pvm_expression
+        MATCH TOK_TO
+        CALL pvm_expression
+        BRANCH_IF TOK_STEP, pvm_expression
+        RETURN
+
+pvm_next:
+        MATCH TOK_NAME
+        RETURN
+
+; Expressions
 
 pvm_expression:
         CALL pvm_primary_expression
@@ -752,16 +777,6 @@ pvm_arg_list:
 ;         WS
 ;         MATCH ')'
 ;         RETURN
-
-; pvm_print_expression is the particular kind of expression in the PRINT statement.
-
-pvm_print:
-        BRANCH_IF TOK_SEMI, pvm_print
-        BRANCH_IF TOK_COMMA, pvm_print
-        GUARD TOK_COLON                 ; Abandon the PRINT statement if we see COLON or EOL
-        GUARD TOK_EOL
-        CALL pvm_expression             ; Otherwise it has to be an expression
-        JUMP pvm_print
 
 ; pvm_print_expression:
 ;         TRY pvm_print_separator

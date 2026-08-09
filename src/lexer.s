@@ -64,6 +64,8 @@ keywords:
 :       name_table_entry "POP"
 :       name_table_entry "ON"
 :       name_table_entry "FOR"
+:       name_table_entry "TO"
+:       name_table_entry "STEP"
 :       name_table_entry "NEXT"
 :       name_table_entry "STOP"
 :       name_table_entry "CONT"
@@ -133,6 +135,8 @@ keyword_tokens:
         .byte TOK_POP
         .byte TOK_ON
         .byte TOK_FOR
+        .byte TOK_TO
+        .byte TOK_STEP
         .byte TOK_NEXT
         .byte TOK_STOP
         .byte TOK_CONT
