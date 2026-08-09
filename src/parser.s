@@ -835,6 +835,9 @@ pvm_string:
 ; ; Its only job is to capture an alphanumeric "name."
 
 pvm_name:
+        MATCH TOK_NAME
+        RETURN
+
 ;         MATCH_RANGE {'A', 'Z'}
 ; @next:
 ;         TRY @done

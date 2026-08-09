@@ -74,11 +74,11 @@ void test_pvm_string(void) {
 
 void test_pvm_name(void) {
 
-    const char line_data_1[] = { 'X' };
-    const char line_data_2[] = { 'X', '1', '0' };
-    const char line_data_3[] = { 'X', '_', '1', '0' };
-    const char line_data_4[] = { 'X', '_', '1', '0', 'X' };
-    const char line_data_5[] = { 'X', '9', 'A', 'P' };
+    const char line_data_1[] = { TOK_NAME, 'X' | EOT };
+    const char line_data_2[] = { TOK_NAME, 'X', '1', '0' | EOT };
+    const char line_data_3[] = { TOK_NAME, 'X', '_', '1', '0' | EOT };
+    const char line_data_4[] = { TOK_NAME, 'X', '_', '1', '0', 'X' | EOT };
+    const char line_data_5[] = { TOK_NAME, 'X', '9', 'A', 'P' | EOT };
 
     PRINT_TEST_NAME();
 
@@ -256,7 +256,7 @@ int main(void) {
     initialize_target();
     test_pvm_number();
     test_pvm_string();
-    // test_pvm_name();
+    test_pvm_name();
     // test_pvm_expression();
     // test_pvm_statement();
     // test_parse_line();
