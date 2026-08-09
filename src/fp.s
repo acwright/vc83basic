@@ -120,7 +120,7 @@ store_fp:
 ; BC SAFE, DE SAFE
 
 swap_fp0_fp1:
-        ldy     #.sizeof(UnpackedFloat)-1
+        ldy     #.sizeof(UnpackedFloat) - 1
 @next_byte:
         lda     FP1,y
         ldx     FP0,y
