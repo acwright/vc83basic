@@ -92,12 +92,12 @@ void test_pvm_name(void) {
 
 void test_pvm_expression(void) {
 
-    const char constant_line_data_1[] = { '1' };
-    const char variable_line_data_1[] = { 'X' | EOT };
-    const char variable_line_data_2[] = { 'S', '$' | EOT };
+    const char constant_line_data_1[] = { TOK_NUM, '1' | EOT };
+    const char variable_line_data_1[] = { TOK_NAME, 'X' | EOT };
+    const char variable_line_data_2[] = { TOK_NAME, 'S', '$' | EOT };
     const char variable_line_data_3[] = { 'X' | EOT, '(', '5', ')' };
     const char variable_line_data_4[] = { 'S', '$' | EOT, '(', '1', ',', '2', '5', ')'  };
-    const char operator_line_data_1[] = { '1', TOKEN_OP | OP_ADD, '1' };
+    const char operator_line_data_1[] = { TOK_NUM, '1' | EOT, TOK_ADD, TOK_NUM, '1' | EOT };
     const char operator_line_data_2[] = { '1', TOKEN_OP | OP_ADD, '1', TOKEN_OP | OP_DIV, '2' };
     const char operator_line_data_3[] = { '"', 'A', '"', TOKEN_OP | OP_CONCAT, '"', 'B', '"' };
     const char operator_line_data_4[] = { 'X' | EOT, TOKEN_OP | OP_AND, 'Y' | EOT };
@@ -117,29 +117,29 @@ void test_pvm_expression(void) {
     // Variables
     call_parse_pvm("X", pvm_expression, variable_line_data_1, sizeof variable_line_data_1, __LINE__);
     call_parse_pvm("S$", pvm_expression, variable_line_data_2, sizeof variable_line_data_2, __LINE__);
-    call_parse_pvm("X(5)", pvm_expression, variable_line_data_3, sizeof variable_line_data_3, __LINE__);
-    call_parse_pvm("S$(1,25)", pvm_expression, variable_line_data_4, sizeof variable_line_data_4, __LINE__);
+    // call_parse_pvm("X(5)", pvm_expression, variable_line_data_3, sizeof variable_line_data_3, __LINE__);
+    // call_parse_pvm("S$(1,25)", pvm_expression, variable_line_data_4, sizeof variable_line_data_4, __LINE__);
 
     // Operators
     call_parse_pvm("1+1", pvm_expression, operator_line_data_1, sizeof operator_line_data_1, __LINE__);
-    call_parse_pvm("  1+1", pvm_expression, operator_line_data_1, sizeof operator_line_data_1, __LINE__);
-    call_parse_pvm("  1  +  1", pvm_expression, operator_line_data_1, sizeof operator_line_data_1, __LINE__);
-    call_parse_pvm("1+1/2", pvm_expression, operator_line_data_2, sizeof operator_line_data_2, __LINE__);
-    call_parse_pvm("\"A\" & \"B\"", pvm_expression, operator_line_data_3, sizeof operator_line_data_3, __LINE__);
-    call_parse_pvm("X AND Y", pvm_expression, operator_line_data_4, sizeof operator_line_data_4, __LINE__);
+    // call_parse_pvm("  1+1", pvm_expression, operator_line_data_1, sizeof operator_line_data_1, __LINE__);
+    // call_parse_pvm("  1  +  1", pvm_expression, operator_line_data_1, sizeof operator_line_data_1, __LINE__);
+    // call_parse_pvm("1+1/2", pvm_expression, operator_line_data_2, sizeof operator_line_data_2, __LINE__);
+    // call_parse_pvm("\"A\" & \"B\"", pvm_expression, operator_line_data_3, sizeof operator_line_data_3, __LINE__);
+    // call_parse_pvm("X AND Y", pvm_expression, operator_line_data_4, sizeof operator_line_data_4, __LINE__);
 
     // Unary operators
-    call_parse_pvm("1+-A", pvm_expression, unary_operator_line_data_1, sizeof unary_operator_line_data_1, __LINE__);
-    call_parse_pvm("NOT 1", pvm_expression, unary_operator_line_data_2, sizeof unary_operator_line_data_2, __LINE__);
+    // call_parse_pvm("1+-A", pvm_expression, unary_operator_line_data_1, sizeof unary_operator_line_data_1, __LINE__);
+    // call_parse_pvm("NOT 1", pvm_expression, unary_operator_line_data_2, sizeof unary_operator_line_data_2, __LINE__);
 
     // Parentheses
-    call_parse_pvm("1+(1+1)", pvm_expression, parens_line_data_1, sizeof parens_line_data_1, __LINE__);
-    call_parse_pvm("X AND (Y OR NOT Z)", pvm_expression, parens_line_data_2, sizeof parens_line_data_2, __LINE__);
+    // call_parse_pvm("1+(1+1)", pvm_expression, parens_line_data_1, sizeof parens_line_data_1, __LINE__);
+    // call_parse_pvm("X AND (Y OR NOT Z)", pvm_expression, parens_line_data_2, sizeof parens_line_data_2, __LINE__);
 
     // Function
-    call_parse_pvm("LEN(\"HELLO\")", pvm_expression, function_line_data_1, sizeof function_line_data_1, __LINE__);
-    call_parse_pvm("MID$(\"HELLO\",2,3)", pvm_expression, function_line_data_2, sizeof function_line_data_2, __LINE__);
-    call_parse_pvm("VER$(0)", pvm_expression, function_line_data_3, sizeof function_line_data_3, __LINE__);
+    // call_parse_pvm("LEN(\"HELLO\")", pvm_expression, function_line_data_1, sizeof function_line_data_1, __LINE__);
+    // call_parse_pvm("MID$(\"HELLO\",2,3)", pvm_expression, function_line_data_2, sizeof function_line_data_2, __LINE__);
+    // call_parse_pvm("VER$(0)", pvm_expression, function_line_data_3, sizeof function_line_data_3, __LINE__);
 }
 
 void test_pvm_statement(void) {
@@ -257,7 +257,7 @@ int main(void) {
     test_pvm_number();
     test_pvm_string();
     test_pvm_name();
-    // test_pvm_expression();
+    test_pvm_expression();
     // test_pvm_statement();
     // test_parse_line();
     return 0;

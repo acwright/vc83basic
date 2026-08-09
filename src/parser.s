@@ -627,42 +627,17 @@ pvm_statement:
 ; ; Expressions
 
 pvm_expression:
-;         CALL pvm_primary_expression
-;         WS
-;         TRY @done               
-;         CALL pvm_binary_operator_name
-;         TOKENIZE operator_name_table
-;         COMPOSE TOKEN_OP
-;         ACCEPT pvm_expression
-; @done:
-;         RETURN
+        CALL pvm_primary_expression
+        BRANCH_IF TOK_ANY_OP_2X, pvm_expression
+        RETURN
 
-; pvm_primary_expression:
-;         WS
-;         TRY @string
-;         MATCH '('
-;         CALL pvm_expression
-;         WS
-;         MATCH ')'
-;         RETURN
-; @string:
-;         TRY @number
-;         CALL pvm_string
-;         RETURN
-; @number:
-;         TRY @unary_operator
-;         CALL pvm_number
-;         RETURN
-; @unary_operator:
-;         TRY @function
-;         CALL pvm_unary_operator_name
-;         TOKENIZE unary_operator_name_table
-;         COMPOSE TOKEN_UNARY_OP
-;         ACCEPT pvm_primary_expression
-; @function:
-;         TRY pvm_var
-;         CALL pvm_function
-;         RETURN
+pvm_primary_expression:
+        BRANCH_IF TOK_NUM, @done
+        BRANCH_IF TOK_STRING, @done
+        BRANCH_IF TOK_NAME, @done
+        FAIL
+@done:
+        RETURN
 
 ; ; pvm_var_list is list of 1-N (but not 0) variables.
 
