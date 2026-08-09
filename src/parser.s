@@ -113,8 +113,15 @@ run_pvm:
         rts
 
 @slurp:
-        ldx     buffer_pos              ; Prepare to write the rest of the line into line_buffer
-        ldy     line_pos   
+        ldx     D                       ; Read from D (buffer_pos before speculative next_token)
+        ldy     E                       ; Write to E (line_pos before speculative next_token)
+@slurp_whitespace:
+        lda     buffer,x
+        beq     @done
+        cmp     #' '
+        bne     @slurp_next
+        inx
+        bne     @slurp_whitespace
 @slurp_next:             
         lda     buffer,x
         beq     @done
@@ -123,6 +130,8 @@ run_pvm:
         iny
         bne     @slurp_next
 @done:
+        stx     D
+        sty     E
         clc                             ; There can't be anything more to parse so return success
         rts
 
@@ -638,36 +647,27 @@ calculate_address_12:
 pvm_statement:
         BRANCH_IF TOK_PRINT, pvm_print
         BRANCH_IF TOK_ALT_PRINT, pvm_print
+        BRANCH_IF TOK_LET, pvm_let
+        BRANCH_IF TOK_NAME, pvm_impl_let
         BRANCH_IF TOK_FOR, pvm_for
         BRANCH_IF TOK_NEXT, pvm_next
+        BRANCH_IF TOK_IF, pvm_if
+        BRANCH_IF TOK_INPUT, pvm_input
+        BRANCH_IF TOK_READ, pvm_read
+        BRANCH_IF TOK_ON, pvm_on
+        BRANCH_IF TOK_GOTO, pvm_goto
+        BRANCH_IF TOK_GOSUB, pvm_gosub
+        BRANCH_IF TOK_LIST, pvm_list
+        BRANCH_IF TOK_POKE, pvm_arg_2
+        BRANCH_IF TOK_DPOKE, pvm_arg_2
+        BRANCH_IF TOK_DIM, pvm_dim
+        BRANCH_IF TOK_DATA, pvm_data
+        BRANCH_IF TOK_REM, pvm_rem
         BRANCH_IF TOK_ANY_ST_8X, @done  ; Any other no-arg statement
         BRANCH_IF TOK_ANY_ST_9X, @done
         FAIL
 @done:
         RETURN
-
-;         WS
-;         TRY @extension                  ; Sets savepoint and start of keyword
-;         CALL pvm_statement_name
-;         TOKENIZE statement_name_table
-;         DISPATCH                        ; Note: performs JUMP
-
-; @extension:
-;         TRY @impl_let                   ; Look for an extension statement
-;         CALL pvm_name
-;         TOKENIZE ex_statement_name_table
-;         COMPOSE TOKEN_EXTENSION
-;         DISPATCH
-
-; @impl_let:
-;         EMIT ST_IMPL_LET                ; Try implied LET
-
-; pvm_let:
-;         CALL pvm_var
-;         WS
-;         MATCH '='
-
-; ; Fall through
 
 ; Statements
 
@@ -678,6 +678,13 @@ pvm_print:
         GUARD TOK_EOL
         CALL pvm_expression             ; Otherwise it has to be an expression
         JUMP pvm_print
+
+pvm_let:
+        MATCH TOK_NAME
+pvm_impl_let:
+        CALL pvm_optional_array
+        MATCH TOK_EQ
+        JUMP pvm_expression
 
 pvm_for:
         MATCH TOK_NAME
@@ -691,6 +698,60 @@ pvm_for:
 pvm_next:
         MATCH TOK_NAME
         RETURN
+
+pvm_if:
+        CALL pvm_expression
+        MATCH TOK_THEN
+        BRANCH_IF TOK_NUM, @done
+        JUMP pvm_statement
+@done:
+        RETURN
+
+pvm_input:
+        BRANCH_IF TOK_STRING, @prompt
+        JUMP pvm_read
+@prompt:
+        MATCH TOK_SEMI
+
+pvm_read:
+        MATCH TOK_NAME
+        CALL pvm_optional_array
+        BRANCH_IF TOK_COMMA, pvm_read
+        RETURN
+
+pvm_on:
+        CALL pvm_expression
+        BRANCH_IF TOK_GOTO, @line_number_list
+        BRANCH_IF TOK_GOSUB, @line_number_list
+        FAIL
+
+@line_number_list:
+        MATCH TOK_NUM
+        BRANCH_IF TOK_COMMA, @line_number_list
+        RETURN
+
+pvm_goto:
+pvm_gosub:
+        MATCH TOK_NUM
+        RETURN
+
+pvm_list:
+        GUARD TOK_COLON
+        GUARD TOK_EOL
+        CALL pvm_expression
+        BRANCH_IF TOK_COMMA, pvm_expression
+@done:
+        RETURN
+
+pvm_dim:
+        MATCH TOK_NAME
+        CALL pvm_optional_array
+        BRANCH_IF TOK_COMMA, pvm_dim
+        RETURN
+
+pvm_data:
+pvm_rem:
+        SLURP
 
 ; Expressions
 
@@ -706,7 +767,7 @@ pvm_primary_expression:
         BRANCH_IF TOK_NOT, pvm_primary_expression   ; Unary NOT
         BRANCH_IF TOK_NUM, @done
         BRANCH_IF TOK_STRING, @done
-        BRANCH_IF TOK_NAME, pvm_var
+        BRANCH_IF TOK_NAME, pvm_optional_array
         BRANCH_IF TOK_ANY_FN_4X, pvm_function
         BRANCH_IF TOK_ANY_FN_5X, pvm_function
         FAIL
@@ -728,7 +789,7 @@ pvm_subexpression:
 ; @done:
 ;         RETURN
 
-pvm_var:
+pvm_optional_array:
         BRANCH_IF TOK_LPAREN, @array
         RETURN
 

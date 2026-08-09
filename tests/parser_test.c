@@ -150,24 +150,25 @@ void test_pvm_statement(void) {
     const char print_line_data_3[] = { TOK_ALT_PRINT, TOK_NAME, 'X' | EOT };
     const char for_line_data_1[] = { TOK_FOR, TOK_NAME, 'X' | EOT, TOK_EQ, TOK_NUM, '1' | EOT, TOK_TO, TOK_NUM, '5' | EOT };
     const char for_line_data_2[] = { TOK_FOR, TOK_NAME, 'X' | EOT, TOK_EQ, TOK_NUM, '1' | EOT, TOK_TO, TOK_NUM, '2', '0' | EOT, TOK_STEP, TOK_NUM, '2' | EOT };
-    const char next_line_data_1[] = { ST_NEXT, TOK_NAME, 'X' | EOT };
-    const char let_line_data_1[] = { ST_LET, 'X' | EOT, '=', '1', '0', '0' };
-    const char let_line_data_2[] = { ST_IMPL_LET, 'X' | EOT, '=', '1', '0', '0' };
-    const char if_line_data_1[] = { ST_IF_THEN, 'X' | EOT, TOKEN_OP | OP_EQ, '1', TOKEN_CLAUSE | CLAUSE_THEN, ST_GOTO, '1', '0',};
-    const char if_line_data_2[] = { ST_IF_THEN, 'X' | EOT, TOKEN_OP | OP_EQ, '1', TOKEN_CLAUSE | CLAUSE_THEN, ST_IMPL_GOTO, '1', '0',};
-    const char if_line_data_3[] = { ST_IF_THEN, 'X' | EOT, TOKEN_OP | OP_EQ, '1', TOKEN_CLAUSE | CLAUSE_THEN, ST_LET, 'X' | EOT, '=', 'X' | EOT, TOKEN_OP | OP_ADD, '1' };
-    const char if_line_data_4[] = { ST_IF_THEN, 'X' | EOT, TOKEN_OP | OP_EQ, '1', TOKEN_CLAUSE | CLAUSE_THEN, ST_IMPL_LET, 'X' | EOT, '=', 'X' | EOT, TOKEN_OP | OP_ADD, '1' };
-    const char input_line_data_1[] = { ST_INPUT, 'A' | EOT };
-    const char input_line_data_2[] = { ST_INPUT, 'A' | EOT, ',', 'B' | EOT, ',', 'C' | EOT };
-    const char on_line_data_1[] = { ST_ON, '1', TOKEN_CLAUSE | CLAUSE_GOTO, '1', '0' };
-    const char on_line_data_2[] = { ST_ON, '1', TOKEN_CLAUSE | CLAUSE_GOSUB, '1', '0' };
-    const char on_line_data_3[] = { ST_ON, 'X' | EOT, TOKEN_CLAUSE | CLAUSE_GOSUB, '1', '0', ',', '2', '0', ',', '3', '0' };
-    const char list_line_data_1[] = { ST_LIST };
-    const char list_line_data_2[] = { ST_LIST, '1', '0', '0' };
-    const char list_line_data_3[] = { ST_LIST, '1', '0', '0', ',', '5', '0', '0' };
-    const char data_line_data_1[] = { ST_DATA, 'H', 'E', 'L', 'L', 'O', ',', '\"', 'X', ',', 'Y', '\"', ',', '5' };
-    const char poke_line_data_1[] = { ST_POKE, '7', '1', '0', ',', '0' };
-    const char dim_line_data_1[] = { ST_DIM, 'A' | EOT, '(', '5', ')'  };
+    const char next_line_data_1[] = { TOK_NEXT, TOK_NAME, 'X' | EOT };
+    const char let_line_data_1[] = { TOK_LET, TOK_NAME, 'X' | EOT, TOK_EQ, TOK_NUM, '1', '0', '0' | EOT };
+    const char let_line_data_2[] = { TOK_NAME, 'X' | EOT, TOK_EQ, TOK_NUM, '1', '0', '0' | EOT };
+    const char if_line_data_1[] = { TOK_IF, TOK_NAME, 'X' | EOT, TOK_EQ, TOK_NUM, '1' | EOT, TOK_THEN, TOK_GOTO, TOK_NUM, '1', '0' | EOT };
+    const char if_line_data_2[] = { TOK_IF, TOK_NAME, 'X' | EOT, TOK_EQ, TOK_NUM, '1' | EOT, TOK_THEN, TOK_NUM, '1', '0' | EOT };
+    const char if_line_data_3[] = { TOK_IF, TOK_NAME, 'X' | EOT, TOK_EQ, TOK_NUM, '1' | EOT, TOK_THEN, TOK_LET, TOK_NAME, 'X' | EOT, TOK_EQ, TOK_NAME, 'X' | EOT, TOK_ADD, TOK_NUM, '1' | EOT };
+    const char if_line_data_4[] = { TOK_IF, TOK_NAME, 'X' | EOT, TOK_EQ, TOK_NUM, '1' | EOT, TOK_THEN, TOK_NAME, 'X' | EOT, TOK_EQ, TOK_NAME, 'X' | EOT, TOK_ADD, TOK_NUM, '1' | EOT };
+    const char input_line_data_1[] = { TOK_INPUT, TOK_NAME, 'A' | EOT };
+    const char input_line_data_2[] = { TOK_INPUT, TOK_NAME, 'A' | EOT, TOK_COMMA, TOK_NAME, 'B' | EOT, TOK_COMMA, TOK_NAME, 'C' | EOT };
+    const char on_line_data_1[] = { TOK_ON, TOK_NUM, '1' | EOT, TOK_GOTO, TOK_NUM, '1', '0' | EOT };
+    const char on_line_data_2[] = { TOK_ON, TOK_NUM, '1' | EOT, TOK_GOSUB, TOK_NUM, '1', '0' | EOT };
+    const char on_line_data_3[] = { TOK_ON, TOK_NAME, 'X' | EOT, TOK_GOSUB, TOK_NUM, '1', '0' | EOT, TOK_COMMA, TOK_NUM, '2', '0' | EOT, TOK_COMMA, TOK_NUM, '3', '0' | EOT };
+    const char list_line_data_1[] = { TOK_LIST };
+    const char list_line_data_2[] = { TOK_LIST, TOK_NUM, '1', '0', '0' | EOT };
+    const char list_line_data_3[] = { TOK_LIST, TOK_NUM, '1', '0', '0' | EOT, TOK_COMMA, TOK_NUM, '5', '0', '0' | EOT };
+    const char data_line_data_1[] = { TOK_DATA, 'H', 'E', 'L', 'L', 'O', ',', '\"', 'X', ',', 'Y', '\"', ',', '5' };
+    const char rem_line_data_1[] = { TOK_REM, 'T', 'H', 'I', 'S', ' ', 'I', 'S', ' ', 'A', ' ', 'R', 'E', 'M' };
+    const char poke_line_data_1[] = { TOK_POKE, TOK_NUM, '7', '1', '0' | EOT, TOK_COMMA, TOK_NUM, '0' | EOT };
+    const char dim_line_data_1[] = { TOK_DIM, TOK_NAME, 'A' | EOT, TOK_LPAREN, TOK_NUM, '5' | EOT, TOK_RPAREN };
     const char extension_line_data_1[] = { TOKEN_EXTENSION | 0 };
 
     PRINT_TEST_NAME();
@@ -185,41 +186,42 @@ void test_pvm_statement(void) {
     call_parse_pvm("FOR X=1 TO 5", pvm_statement, for_line_data_1, sizeof for_line_data_1, __LINE__);
     call_parse_pvm("FOR X=1 TO 20 STEP 2", pvm_statement, for_line_data_2, sizeof for_line_data_2, __LINE__);
 
-    // // NEXT
-    // call_parse_pvm("NEXT X", pvm_statement, next_line_data_1, sizeof next_line_data_1, __LINE__);
+    // NEXT
+    call_parse_pvm("NEXT X", pvm_statement, next_line_data_1, sizeof next_line_data_1, __LINE__);
 
-    // // LET
-    // call_parse_pvm("LET X=100", pvm_statement, let_line_data_1, sizeof let_line_data_1, __LINE__);
-    // call_parse_pvm("X=100", pvm_statement, let_line_data_2, sizeof let_line_data_2, __LINE__);
+    // LET
+    call_parse_pvm("LET X=100", pvm_statement, let_line_data_1, sizeof let_line_data_1, __LINE__);
+    call_parse_pvm("X=100", pvm_statement, let_line_data_2, sizeof let_line_data_2, __LINE__);
 
-    // // IF
-    // call_parse_pvm("IF X=1 THEN GOTO 10", pvm_statement, if_line_data_1, sizeof if_line_data_1, __LINE__);
-    // call_parse_pvm("IF X=1 THEN 10", pvm_statement, if_line_data_2, sizeof if_line_data_2, __LINE__);
-    // call_parse_pvm("IF X=1 THEN LET X=X+1", pvm_statement, if_line_data_3, sizeof if_line_data_3, __LINE__);
-    // call_parse_pvm("IF X=1 THEN X=X+1", pvm_statement, if_line_data_4, sizeof if_line_data_4, __LINE__);
+    // IF
+    call_parse_pvm("IF X=1 THEN GOTO 10", pvm_statement, if_line_data_1, sizeof if_line_data_1, __LINE__);
+    call_parse_pvm("IF X=1 THEN 10", pvm_statement, if_line_data_2, sizeof if_line_data_2, __LINE__);
+    call_parse_pvm("IF X=1 THEN LET X=X+1", pvm_statement, if_line_data_3, sizeof if_line_data_3, __LINE__);
+    call_parse_pvm("IF X=1 THEN X=X+1", pvm_statement, if_line_data_4, sizeof if_line_data_4, __LINE__);
 
-    // // INPUT (covers READ)
-    // call_parse_pvm("INPUT A", pvm_statement, input_line_data_1, sizeof input_line_data_1, __LINE__);
-    // call_parse_pvm("INPUT A,B,C", pvm_statement, input_line_data_2, sizeof input_line_data_2, __LINE__);
+    // INPUT (covers READ)
+    call_parse_pvm("INPUT A", pvm_statement, input_line_data_1, sizeof input_line_data_1, __LINE__);
+    call_parse_pvm("INPUT A,B,C", pvm_statement, input_line_data_2, sizeof input_line_data_2, __LINE__);
 
-    // // ON
-    // call_parse_pvm("ON 1 GOTO 10", pvm_statement, on_line_data_1, sizeof on_line_data_1, __LINE__);
-    // call_parse_pvm("ON 1 GOSUB 10", pvm_statement, on_line_data_2, sizeof on_line_data_2, __LINE__);
-    // call_parse_pvm("ON X GOSUB 10,20,30", pvm_statement, on_line_data_3, sizeof on_line_data_3, __LINE__);
+    // ON
+    call_parse_pvm("ON 1 GOTO 10", pvm_statement, on_line_data_1, sizeof on_line_data_1, __LINE__);
+    call_parse_pvm("ON 1 GOSUB 10", pvm_statement, on_line_data_2, sizeof on_line_data_2, __LINE__);
+    call_parse_pvm("ON X GOSUB 10,20,30", pvm_statement, on_line_data_3, sizeof on_line_data_3, __LINE__);
 
-    // // LIST
-    // call_parse_pvm("LIST", pvm_statement, list_line_data_1, sizeof list_line_data_1, __LINE__);
-    // call_parse_pvm("LIST 100", pvm_statement, list_line_data_2, sizeof list_line_data_2, __LINE__);
-    // call_parse_pvm("LIST 100,500", pvm_statement, list_line_data_3, sizeof list_line_data_3, __LINE__);
+    // LIST
+    call_parse_pvm("LIST", pvm_statement, list_line_data_1, sizeof list_line_data_1, __LINE__);
+    call_parse_pvm("LIST 100", pvm_statement, list_line_data_2, sizeof list_line_data_2, __LINE__);
+    call_parse_pvm("LIST 100,500", pvm_statement, list_line_data_3, sizeof list_line_data_3, __LINE__);
 
-    // // DATA
-    // call_parse_pvm("DATA HELLO,\"X,Y\",5", pvm_statement, data_line_data_1, sizeof data_line_data_1, __LINE__);
+    // DATA & REM
+    call_parse_pvm("DATA HELLO,\"X,Y\",5", pvm_statement, data_line_data_1, sizeof data_line_data_1, __LINE__);
+    call_parse_pvm("REM THIS IS A REM", pvm_statement, rem_line_data_1, sizeof rem_line_data_1, __LINE__);
 
-    // // POKE
-    // call_parse_pvm("POKE 710, 0", pvm_statement, poke_line_data_1, sizeof poke_line_data_1, __LINE__);
+    // POKE
+    call_parse_pvm("POKE 710, 0", pvm_statement, poke_line_data_1, sizeof poke_line_data_1, __LINE__);
 
-    // // DIM
-    // call_parse_pvm("DIM A(5)", pvm_statement, dim_line_data_1, sizeof dim_line_data_1, __LINE__);
+    // DIM
+    call_parse_pvm("DIM A(5)", pvm_statement, dim_line_data_1, sizeof dim_line_data_1, __LINE__);
 
     // // BYE (extension statement)
     // call_parse_pvm("BYE", pvm_statement, extension_line_data_1, sizeof extension_line_data_1, __LINE__);
