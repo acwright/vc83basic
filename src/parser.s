@@ -14,15 +14,16 @@
 ; If the line number is missing, set it to -1.
 ; Returns normally if buffer was a valid program line, or raises an exception.
 
+.assert TOK_EOL = 0, error
+
 ; We assume that RETURN is the first of a list of unparameterized opcodes in the range $F0-$FF.
 .assert PVM_RETURN = $F0, error
 
 parse_line:
-        mva     #0, buffer_pos              ; Initialize the read pointer
-        mva     #.sizeof(Line), line_pos    ; Initialize write pointer
+        mva     #0, buffer_pos                  ; Initialize the read pointer
+        mva     #.sizeof(Line) + 1, line_pos    ; Initialize write pointer (leave room for statement length byte)
         mvax    #buffer, read_ptr       ; Set up read_ptr so parsing primitives work
         ldy     buffer_pos
-        jsr     skip_whitespace
         jsr     string_to_fp_2          ; Parse line number
         sty     buffer_pos              ; Initialize buffer_pos to wherever the number ended
         bcs     @no_line_number         ; Line number was provided so store it
@@ -41,25 +42,19 @@ parse_line:
 ; statement or we just parsed a ':'.
 
 @next_statement:
-        mva     line_pos, statement_line_pos        ; Save start of statement position
-        inc     line_pos                ; Begin tokenizing statement at next position
+        ldpha   line_pos                ; Save start of statement position
         ldax    #pvm_statement
         jsr     parse_pvm
-        lda     #0                      ; Store 0 at end of statement
+        lda     #TOK_EOL                ; Store TOK_EOL at end of statement
         ldx     line_pos
         sta     line_buffer,x
         inc     line_pos
-        lda     line_pos                ; Write position is next statement offset
-        ldx     statement_line_pos      ; Store at start of statement
-        sta     line_buffer,x
-        ldy     buffer_pos              ; Look for statement separator
-        jsr     skip_whitespace
-        beq     @finish_line            ; Reached end of line
-        iny                             ; Move past whatever other character it was and update buffer_pos
-        sty     buffer_pos
-        cmp     #':'                    ; If not EOL it has to be ':'
-        beq     @next_statement         ; It was ':'
-        bne     syntax_error            ; It wasn't
+        pla                             ; Get back the start of statement
+        tax                             
+        lda     line_pos                ; Current write position is next statement offset
+        sta     line_buffer-1,x         ; Write it to the byte before the start of this statement
+        jsr     next_token              ; Read the next token
+        bne     @check_separator        ; Z still be set if the next token is EOL
 
 @finish_line:
         mva     line_pos, line_buffer+Line::next_line_offset    ; Write position is next line offset
@@ -67,6 +62,10 @@ parse_line:
         lda     buffer,x                ; Verify the line ends with 0 as expected
         bne     syntax_error            ; Nope, fail
         rts
+
+@check_separator:
+        cmp     #TOK_COLON              ; Otherwise it had better be a statement separator
+        beq     @next_statement         ; It was ':'
 
 syntax_error:
         raise   ERR_SYNTAX_ERROR

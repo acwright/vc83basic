@@ -173,11 +173,11 @@ void call_parse_line(const char* s, const Line* expect_line, int line) {
 
 void test_parse_line(void) {
 
-    const Line line_1 = { 6, -1, { 6, ST_POP, 0 } };
-    const Line line_2 = { 9, -1, { 6, ST_POP, 0, 9, ST_POP, 0 } };
-    const Line line_3 = { 11, -1, { 11, ST_LET, 'X' | EOT, '=', '1', '0', '0', 0 } };
-    const Line line_4 = { 15, -1, { 11, ST_LET, 'X' | EOT, '=', '1', '0', '0', 0, 15, ST_PRINT, 'X' | EOT, 0 } };
-    const Line line_5 = { 7, 10, { 7, ST_PRINT, '1', 0 } };
+    const Line line_1 = { 6, -1, { 6, TOK_POP, TOK_EOL } };
+    const Line line_2 = { 9, -1, { 6, TOK_POP, TOK_EOL, 9, TOK_POP, TOK_EOL } };
+    const Line line_3 = { 13, -1, { 13, TOK_LET, TOK_NAME, 'X' | EOT, TOK_EQ, TOK_NUM, '1', '0', '0' | EOT, TOK_EOL } };
+    const Line line_4 = { 18, -1, { 13, TOK_LET, TOK_NAME, 'X' | EOT, TOK_EQ, TOK_NUM, '1', '0', '0' | EOT, TOK_EOL, 18, TOK_PRINT, TOK_NAME, 'X' | EOT, TOK_EOL } };
+    const Line line_5 = { 8, 10, { 8, TOK_PRINT, TOK_NUM, '1' | EOT, TOK_EOL } };
 
     PRINT_TEST_NAME();
 
@@ -192,6 +192,6 @@ int main(void) {
     initialize_target();
     test_pvm_expression();
     test_pvm_statement();
-    // test_parse_line();
+    test_parse_line();
     return 0;
 }

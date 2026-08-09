@@ -43,9 +43,6 @@ exception_handler: .res 2
 
 .export _pvm_statement = pvm_statement;
 .export _pvm_expression = pvm_expression;
-.export _pvm_number = pvm_number
-.export _pvm_string = pvm_string
-.export _pvm_name = pvm_name
 
 ; Sets the err variable to 1 if carry is set, 0 otherwise.
 set_err:
