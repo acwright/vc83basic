@@ -74,8 +74,8 @@ Tokens returned from the lexer will be in the range $00-1F and $80-$FF, plus a f
 | `$C0-$CF`  | 1 | 1 | 0 | 0 | h | h | h | h | CALL | 2 | `llllllll` |
 | `$D0-$DF`  | 1 | 1 | 0 | 1 | h | h | h | h | JUMP | 2 | `llllllll` |
 | `$E0-$EF`  | 1 | 1 | 1 | 0 | h | h | h | h | BRANCH_IF | 3 | `llllllll`, `tttttttt` |
-| `$F0` | 1 | 1 | 1 | 1 | 0 | 0 | 0 | 0 | RETURN | 1 | - |
-| `$F1` | 1 | 1 | 1 | 1 | 0 | 0 | 0 | 1 | FAIL | 1 | - |
+| `$F0` | 1 | 1 | 1 | 1 | 0 | 0 | 0 | 1 | FAIL | 1 | - |
+| `$F1` | 1 | 1 | 1 | 1 | 0 | 0 | 0 | 0 | RETURN | 1 | - |
 
 ### Field Key
 
