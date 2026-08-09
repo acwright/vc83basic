@@ -38,6 +38,7 @@ TOKEN_SPECS = [
     TokenSpec("TOK_SEMI", r';'),
     TokenSpec("TOK_LPAREN", r'\('),
     TokenSpec("TOK_RPAREN", r'\)'),
+    TokenSpec("TOK_COLON", r':'),
     TokenSpec("TOK_STRING", r'"[ !#-~]*"'),
     TokenSpec("TOK_NUM", r'([0-9]+(\.[0-9]*)?|\.[0-9]+)(E[-+]?[0-9]+)?', case_insensitive=True),
     TokenSpec("TOK_OPERATOR", r'[-+/*^&<=>][>=]?'),

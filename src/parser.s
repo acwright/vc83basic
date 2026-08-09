@@ -14,8 +14,8 @@
 ; If the line number is missing, set it to -1.
 ; Returns normally if buffer was a valid program line, or raises an exception.
 
-; We assume that FAIL is the first of a list of unparameterized opcodes in the range $F0-$FF.
-.assert PVM_FAIL = $F0, error
+; We assume that RETURN is the first of a list of unparameterized opcodes in the range $F0-$FF.
+.assert PVM_RETURN = $F0, error
 
 parse_line:
         mva     #0, buffer_pos              ; Initialize the read pointer
@@ -100,10 +100,44 @@ run_pvm:
 
 ; Handle the opcode
 
-        cmp     #PVM_FAIL
+        cmp     #PVM_RETURN
         bcc     @try_branch_if          ; Some opcode not in the $F0-FF range
-        beq     @fail
-        clc                             ; Wan't anything else so must be RETURN
+        clc                             ; Return with carry set if it's RETURN
+        beq     @return
+        cmp     #PVM_SLURP
+        beq     @slurp
+        cmp     #PVM_GUARD
+        beq     @guard
+        sec                             ; Wan't anything else so treat as FAIL
+@return:
+        rts
+
+@slurp:
+        ldx     buffer_pos              ; Prepare to write the rest of the line into line_buffer
+        ldy     line_pos   
+@slurp_next:             
+        lda     buffer,x
+        beq     @done
+        sta     line_buffer,y
+        inx
+        iny
+        bne     @slurp_next
+@done:
+        clc                             ; There can't be anything more to parse so return success
+        rts
+
+@guard:
+        jsr     get_next_pvm_byte       ; Read the token we want to match
+        jsr     match_token
+        bne     run_pvm                 ; If it didn't match then just carry on with the next instruction
+        clc                             ; Else the guard stops this function and causes it to return success
+        rts
+
+@try_match:
+        jsr     match_token
+        beq     run_pvm_next_token      ; It matched; continue
+@fail:
+        sec                             ; Set carry to indicate failure and return
         rts
 
 @try_branch_if:
@@ -135,14 +169,7 @@ run_pvm:
         jsr     run_pvm                 ; Call it
         plstaa  pvm_program_ptr         ; Recover return address
         bcs     @fail                   ; If the called function failed then just keep failing
-        bcc     run_pvm                 ; Unconditional
-
-@try_match:
-        jsr     match_token
-        beq     run_pvm_next_token      ; It matched; continue
-@fail:
-        sec                             ; Set carry to indicate failure and return
-        rts
+        jmp     run_pvm
 
 ; Matches the token in C with the opcode.
 ; A = the opcode
@@ -496,12 +523,20 @@ calculate_address_12:
         .byte token
 .endmacro
 
+.macro RETURN
+        .byte PVM_RETURN
+.endmacro
+
 .macro FAIL
         .byte PVM_FAIL
 .endmacro
 
-.macro RETURN
-        .byte PVM_RETURN
+.macro GUARD token
+        .byte PVM_GUARD, token
+.endmacro
+
+.macro SLURP
+        .byte PVM_SLURP
 .endmacro
 
 ; .macro MATCH m
@@ -601,6 +636,14 @@ calculate_address_12:
 ; ; PVM program
 
 pvm_statement:
+        BRANCH_IF TOK_PRINT, pvm_print
+        BRANCH_IF TOK_ALT_PRINT, pvm_print
+        BRANCH_IF TOK_ANY_ST_8X, @done  ; Any other no-arg statement
+        BRANCH_IF TOK_ANY_ST_9X, @done
+        FAIL
+@done:
+        RETURN
+
 ;         WS
 ;         TRY @extension                  ; Sets savepoint and start of keyword
 ;         CALL pvm_statement_name
@@ -710,7 +753,15 @@ pvm_arg_list:
 ;         MATCH ')'
 ;         RETURN
 
-; ; pvm_print_expression is the particular kind of expression in the PRINT statement.
+; pvm_print_expression is the particular kind of expression in the PRINT statement.
+
+pvm_print:
+        BRANCH_IF TOK_SEMI, pvm_print
+        BRANCH_IF TOK_COMMA, pvm_print
+        GUARD TOK_COLON                 ; Abandon the PRINT statement if we see COLON or EOL
+        GUARD TOK_EOL
+        CALL pvm_expression             ; Otherwise it has to be an expression
+        JUMP pvm_print
 
 ; pvm_print_expression:
 ;         TRY pvm_print_separator
