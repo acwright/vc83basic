@@ -2,9 +2,19 @@ dnl SPDX-FileCopyrightText: 2022-2026 Willis Blackburn
 dnl
 dnl SPDX-License-Identifier: MIT
 
-ifdef(`__C__',
-    `define(`def', ``#define $1 $2'') define(`hex', `0x$1') define(`comment', `//')',
-    `define(`def', ``$1 = $2'') define(`hex', `$$1') define(`comment', `;')')
+ifdef(`__C__', `
+    define(`def', ``#define $1 $2'')
+    define(`hex', `0x$1')
+    define(`comment', `//')
+    define(`ifdef', ``#ifdef' $1')
+    define(`endif', ``#endif'')
+    ', `
+    define(`def', ``$1 = $2'')
+    define(`hex', `$$1')
+    define(`comment', `;')
+    define(`ifdef', ``.ifdef' $1')
+    define(`endif', ``.endif'')
+    ')
 
 comment Generated from __file__
 
@@ -70,6 +80,9 @@ def(TOK_SGN,            hex(57))
 def(TOK_SQR,            hex(58))
 def(TOK_RND,            hex(59))
 def(TOK_ANY_FN_6X,      hex(60))
+ifdef(TARGET_SIM6502)
+def(TOK_VER_S,          hex(61))
+endif 
 def(TOK_ANY_FN_7X,      hex(70))
 
 def(TOK_ANY_ST_8X,      hex(80))
@@ -101,6 +114,9 @@ def(TOK_END,            hex(99))
 def(TOK_INPUT,          hex(9A))
 def(TOK_IF,             hex(9B))
 def(TOK_ANY_ST_AX,      hex(A0))
+ifdef(TARGET_SIM6502)
+def(TOK_BYE,            hex(A1)) 
+endif 
 def(TOK_ANY_ST_BX,      hex(B0))
 
 comment Tokenized form constants

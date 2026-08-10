@@ -2,6 +2,8 @@
 ;
 ; SPDX-License-Identifier: MIT
 
+TARGET_SIM6502 = 1
+
 .include "basic.s"
 .include "sim6502_init.s"
 .include "sim6502_io.s"

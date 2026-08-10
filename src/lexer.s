@@ -111,6 +111,10 @@ keywords:
 :       name_table_entry "SGN"
 :       name_table_entry "SQR"
 :       name_table_entry "RND"
+.ifdef TARGET_SIM6502
+:       name_table_entry "BYE"
+:       name_table_entry "VER$"
+.endif
 :       name_table_end
 
 keyword_tokens:
@@ -187,6 +191,10 @@ keyword_tokens:
         .byte TOK_SGN
         .byte TOK_SQR
         .byte TOK_RND
+.ifdef TARGET_SIM6502
+        .byte TOK_BYE
+        .byte TOK_VER_S
+.endif
 
 keyword_token_count = * - keyword_tokens;
 

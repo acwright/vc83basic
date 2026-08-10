@@ -37,7 +37,7 @@ void test_list_statement(void) {
     const char variable_line_data_4[] = { 0, TOK_PRINT, TOK_NAME, 'X', 'Y', 'Z', 'Z', 'Y', '$' | EOT, TOK_LPAREN, TOK_NUM, '1' | EOT, TOK_COMMA, TOK_NUM, '1', '0' | EOT, TOK_RPAREN, 0 };
     const char function_line_data_1[] = { 0, TOK_PRINT, TOK_LEN, TOK_LPAREN, TOK_STRING, 5, 'H', 'E', 'L', 'L', 'O', TOK_RPAREN, 0 };
     const char function_line_data_2[] = { 0, TOK_PRINT, TOK_MID_S, TOK_LPAREN, TOK_STRING, 5, 'H', 'E', 'L', 'L', 'O', TOK_COMMA, TOK_NUM, '2' | EOT, TOK_COMMA, TOK_NUM, '3' | EOT, TOK_RPAREN, 0 };
-    // const char function_line_data_3[] = { 0, TOK_PRINT, TOKEN_EXTENSION | 0, TOK_LPAREN, TOK_NUM, '0' | EOT, TOK_RPAREN, 0 };
+    const char function_line_data_3[] = { 0, TOK_PRINT, TOK_VER_S, TOK_LPAREN, TOK_NUM, '0' | EOT, TOK_RPAREN, 0 };
     const char expression_line_data_1[] = { 0, TOK_PRINT, TOK_NUM, '1' | EOT, TOK_ADD, TOK_NUM, '1' | EOT, TOK_ADD, TOK_NUM, '1' | EOT, 0 };
     const char expression_line_data_2[] = { 0, TOK_PRINT, TOK_NUM, '1' | EOT, TOK_ADD, TOK_LPAREN, TOK_NUM, '1' | EOT, TOK_ADD, TOK_NUM, '1' | EOT, TOK_RPAREN, 0 };
     const char expression_line_data_3[] = { 0, TOK_PRINT, TOK_NUM, '3', '1', '4', '.', '1', '5' | EOT, TOK_DIV, TOK_NUM, '1', '0' | EOT, TOK_POW, TOK_NUM, '2' | EOT, TOK_MUL, TOK_NAME, 'X' | EOT, 0 };
@@ -62,7 +62,7 @@ void test_list_statement(void) {
     const char list_line_data_2[] = { 0, TOK_LIST, TOK_NUM, '1', '0', '0' | EOT, 0 };
     const char list_line_data_3[] = { 0, TOK_LIST, TOK_NUM, '1', '0', '0' | EOT, TOK_COMMA, TOK_NUM, '5', '0', '0' | EOT, 0 };
     const char data_line_data_1[] = { 0, TOK_DATA, 'H', 'E', 'L', 'L', 'O', ',', '\"', 'X', ',', 'Y', '\"', ',', '5', 0 };
-    // const char extension_line_data_1[] = { 0, TOKEN_EXTENSION | 0, 0 };
+    const char extension_line_data_1[] = { 0, TOK_BYE, 0 };
 
     PRINT_TEST_NAME();
 
@@ -83,7 +83,7 @@ void test_list_statement(void) {
     call_list_statement(variable_line_data_4, sizeof variable_line_data_4, "PRINT XYZZY$(1,10)", __LINE__);
     call_list_statement(function_line_data_1, sizeof function_line_data_1, "PRINT LEN(\"HELLO\")", __LINE__);
     call_list_statement(function_line_data_2, sizeof function_line_data_2, "PRINT MID$(\"HELLO\",2,3)", __LINE__);
-    // call_list_statement(function_line_data_3, sizeof function_line_data_3, "PRINT VER$(0)", __LINE__);
+    call_list_statement(function_line_data_3, sizeof function_line_data_3, "PRINT VER$(0)", __LINE__);
     call_list_statement(expression_line_data_1, sizeof expression_line_data_1, "PRINT 1+1+1", __LINE__);
     call_list_statement(expression_line_data_2, sizeof expression_line_data_2, "PRINT 1+(1+1)", __LINE__);
     call_list_statement(expression_line_data_3, sizeof expression_line_data_3, "PRINT 314.15/10^2*X", __LINE__);
@@ -108,7 +108,7 @@ void test_list_statement(void) {
     call_list_statement(list_line_data_2, sizeof list_line_data_2, "LIST 100", __LINE__);
     call_list_statement(list_line_data_3, sizeof list_line_data_3, "LIST 100,500", __LINE__);
     call_list_statement(data_line_data_1, sizeof data_line_data_1, "DATA HELLO,\"X,Y\",5", __LINE__);
-    // call_list_statement(extension_line_data_1, sizeof extension_line_data_1, "BYE", __LINE__);
+    call_list_statement(extension_line_data_1, sizeof extension_line_data_1, "BYE", __LINE__);
 }
 
 void call_list_line(const Line* test_line, const char* expect_buffer, int line) {

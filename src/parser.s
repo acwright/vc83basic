@@ -298,6 +298,8 @@ pvm_statement:
         BRANCH_IF TOK_REM, pvm_rem
         BRANCH_IF TOK_ANY_ST_8X, @done  ; Any other no-arg statement
         BRANCH_IF TOK_ANY_ST_9X, @done
+        BRANCH_IF TOK_ANY_ST_AX, @done
+        BRANCH_IF TOK_ANY_ST_BX, @done
         FAIL
 @done:
         RETURN
@@ -403,6 +405,8 @@ pvm_primary_expression:
         BRANCH_IF TOK_NAME, pvm_optional_array
         BRANCH_IF TOK_ANY_FN_4X, pvm_function
         BRANCH_IF TOK_ANY_FN_5X, pvm_function
+        BRANCH_IF TOK_ANY_FN_6X, pvm_function
+        BRANCH_IF TOK_ANY_FN_7X, pvm_function
         FAIL
 @done:
         RETURN

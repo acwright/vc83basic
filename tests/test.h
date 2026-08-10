@@ -13,6 +13,8 @@
 #include <stddef.h>
 #include <stdlib.h>
 
+#define TARGET_SIM6502 1
+
 #include "../src/constants.h"
 
 // Types
