@@ -112,6 +112,20 @@ void test_lexer_operators(void) {
     call_next_token(TOK_EOL, line_data_2, sizeof line_data_2);
 }
 
+void test_lexer_symbols(void) {
+
+    const char line_data_1[] = { TOK_COMMA };
+    const char line_data_2[] = { TOK_LPAREN, TOK_RPAREN };
+
+    init_buffer(",", __LINE__);
+    call_next_token(TOK_COMMA, line_data_1, sizeof line_data_1);
+    call_next_token(TOK_EOL, line_data_1, sizeof line_data_1);
+    init_buffer("()", __LINE__);
+    call_next_token(TOK_LPAREN, line_data_2, 1);
+    call_next_token(TOK_RPAREN, line_data_2, sizeof line_data_2);
+    call_next_token(TOK_EOL, line_data_2, sizeof line_data_2);
+}
+
 void test_lexer_names(void) {
     const char line_data_1[] = { TOK_PRINT };
     const char line_data_2[] = { TOK_GOTO };
@@ -194,6 +208,7 @@ int main(void) {
     initialize_target();
     test_lexer_strings();
     test_lexer_numbers();
+    test_lexer_symbols();
     test_lexer_operators();
     test_lexer_names();
     return 0;

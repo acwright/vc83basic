@@ -53,6 +53,11 @@ keywords:
 :       name_table_entry "AND"
 :       name_table_entry "OR"
 :       name_table_entry "NOT"
+:       name_table_entry ","
+:       name_table_entry ";"
+:       name_table_entry ":"
+:       name_table_entry "("
+:       name_table_entry ")"
 :       name_table_entry "LET"
 :       name_table_entry "RUN"
 :       name_table_entry "PRINT"
@@ -124,6 +129,11 @@ keyword_tokens:
         .byte TOK_AND
         .byte TOK_OR
         .byte TOK_NOT
+        .byte TOK_COMMA
+        .byte TOK_SEMI
+        .byte TOK_COLON
+        .byte TOK_LPAREN
+        .byte TOK_RPAREN
         .byte TOK_LET
         .byte TOK_RUN
         .byte TOK_PRINT
@@ -178,6 +188,8 @@ keyword_tokens:
         .byte TOK_SQR
         .byte TOK_RND
 
+keyword_token_count = * - keyword_tokens;
+
 ; Parses the next token from buffer using the DFA data tables in lexer_data.inc.
 ; Writes token characters or matched token byte into line_buffer.
 ; Reads using X (buffer_pos) and writes using Y (line_pos).
@@ -199,7 +211,10 @@ next_token:
 @whitespace:
         inx
         lda     buffer,x                ; Load next character
-        beq     @eol                    ; Idempotent return if EOL reached
+        bne     @not_at_eol             ; Idempotent return if EOL reached
+        rts
+
+@not_at_eol:
         cmp     #' '                    ; Space?
         beq     @whitespace             ; Skip space
 
@@ -210,6 +225,7 @@ next_token:
         lda     #>line_buffer           
         sta     decode_name_ptr+1       ; High byte
         mva     #0, B                   ; B = current DFA state byte offset (relative to state_0)
+
 @dfa_loop:
         ldy     B                       ; Y = state byte offset
         lda     state_0,y               ; Read terminal token tag at offset 0
@@ -237,7 +253,18 @@ next_token:
         sbc     state_0,y               ; A = char - min_char
         iny                             ; Y points to count_chars
         cmp     state_0,y               ; Compare (char - min_char) to count_chars
-        bcc     @range_matched          ; Carry clear -> in range [0, count-1]
+        bcs     @out_of_range           ; Carry set -> not in range [0, count-1]
+        iny                             ; Y points to target_state byte offset
+        lda     state_0,y
+        sta     B                       ; B is once again the state byte offset relative to state_0
+        pla                             ; Read character from stack
+        ldy     line_pos                ; Y goes back to being the line_buffer write position
+        sta     line_buffer,y           ; Store in line_buffer
+        inc     line_pos
+        inx
+        bne     @dfa_loop               ; Unconditional
+
+@out_of_range:
         iny                             ; Skip dest_state
         iny                             ; Point to next min_char
         dec     B                       ; Decrement number of remaining transition records
@@ -261,41 +288,23 @@ next_token:
 ;     L+n = the last character of the token value, with EOT bit set
 ; Note that n may be zero, if the first character didn't match anything in state 0; token will be NON_TERMINAL.
 ; Now we adjust the token and/or value encoding based on the token type.
-; If OPERATOR or NAME, try to map the token value to a keyword. If matched, replace token at L with the keyword
+; If SYMBOL or NAME, try to map the token value to a keyword. If matched, replace token at L with the keyword
 ; token and discard the value. Otherwise, just return the original toke and the full value.
 ; If NUM, everything is already formatted correctly, so just return.
 ; If STRING, the character at L+1 is a quote; replace it with the length byte and discard the last character of
 ; the value, which will be the end quote.
 ; All other tokens have no value, so discard the value before returning.
 
-        cmp     #TOK_OPERATOR
-        beq     @encode_operator_or_name
-        cmp     #TOK_NAME
-        beq     @encode_operator_or_name
         cmp     #TOK_NUM
         beq     @encode_number
         cmp     #TOK_STRING
         beq     @encode_string
-        sty     line_pos                ; The rest of the tokens have no value
-@eol:
-        rts
 
-@range_matched:
-        iny                             ; Y points to target_state byte offset
-        lda     state_0,y
-        sta     B                       ; B is once again the state byte offset relative to state_0
-        pla                             ; Read character from stack
-        ldy     line_pos                ; Y goes back to being the line_buffer write position
-        sta     line_buffer,y           ; Store in line_buffer
-        inc     line_pos
-        inx
-        bne     @dfa_loop               ; Unconditional
-
-; If we get here then we have an operator or a name. Look it up in `keywords` name tables, and if successful,
-; output that token instead. Note: Although we have one keyword table, we have separate tokens for operators and
+; If we get here then we have a symbol or a name. Look it up in `keywords` name tables, and if successful,
+; output that token instead. Note: Although we have one keyword table, we have separate tokens for symbols and
 ; names, because if we can't tokenize the keyword, the parser has to be able to distinguish between them.
 
-@encode_operator_or_name:
+@encode_symbol_or_name:
         ldax    #keywords
         jsr     find_name
         bcs     @return_terminal_token

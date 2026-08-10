@@ -13,7 +13,7 @@ def(CASE_INSENSITIVE,   hex(80)) comment ORed with terminal token tag in DFA sta
 def(TOK_EOL,            hex(00))
 def(TOK_NON_TERMINAL,   hex(01)) comment Identifies intermediate DFA states
 def(TOK_NUM,            hex(02))
-def(TOK_OPERATOR,       hex(03))
+def(TOK_SYMBOL,         hex(03))
 def(TOK_NAME,           hex(04))
 def(TOK_STRING,         hex(05))
 def(TOK_COMMA,          hex(06))

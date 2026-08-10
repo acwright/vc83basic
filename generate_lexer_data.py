@@ -34,14 +34,9 @@ class TokenSpec:
 #   - Quantifiers     : * (0 or more), + (1 or more), ? (0 or 1 optional)
 # ==============================================================================
 TOKEN_SPECS = [
-    TokenSpec("TOK_COMMA", r','),
-    TokenSpec("TOK_SEMI", r';'),
-    TokenSpec("TOK_LPAREN", r'\('),
-    TokenSpec("TOK_RPAREN", r'\)'),
-    TokenSpec("TOK_COLON", r':'),
     TokenSpec("TOK_STRING", r'"[ !#-~]*"'),
     TokenSpec("TOK_NUM", r'([0-9]+(\.[0-9]*)?|\.[0-9]+)(E[-+]?[0-9]+)?', case_insensitive=True),
-    TokenSpec("TOK_OPERATOR", r'[-+/*^&<=>][>=]?'),
+    TokenSpec("TOK_SYMBOL", r'[-+/*^&,;:()<=>][>=]?'),
     TokenSpec("TOK_NAME", r'\?|[A-Z][A-Z0-9_]*\$?', case_insensitive=True),
 ]
 
