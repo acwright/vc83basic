@@ -33,14 +33,14 @@ void test_pvm_expression(void) {
     const char variable_line_data_4[] = { TOK_NAME, 'S', '$' | EOT, TOK_LPAREN, TOK_NUM, '1' | EOT, TOK_COMMA, TOK_NUM, '2', '5' | EOT, TOK_RPAREN  };
     const char operator_line_data_1[] = { TOK_NUM, '1' | EOT, TOK_ADD, TOK_NUM, '1' | EOT };
     const char operator_line_data_2[] = { TOK_NUM, '1' | EOT, TOK_ADD, TOK_NUM, '1' | EOT, TOK_DIV, TOK_NUM, '2' | EOT };
-    const char operator_line_data_3[] = { TOK_STRING, 1, 'A', TOK_CONCAT, TOK_STRING, 1, 'B' };
+    const char operator_line_data_3[] = { TOK_STRING, 1, 'A', '"' | EOT, TOK_CONCAT, TOK_STRING, 1, 'B', '"' | EOT };
     const char operator_line_data_4[] = { TOK_NAME, 'X' | EOT, TOK_AND, TOK_NAME, 'Y' | EOT };
     const char unary_operator_line_data_1[] = { TOK_NUM, '1' | EOT, TOK_ADD, TOK_SUB, TOK_NAME, 'A' | EOT };
     const char unary_operator_line_data_2[] = { TOK_NOT, TOK_NUM, '1' | EOT };
     const char parens_line_data_1[] = { TOK_NUM, '1' | EOT, TOK_ADD, TOK_LPAREN, TOK_NUM, '1' | EOT, TOK_ADD, TOK_NUM, '1' | EOT, TOK_RPAREN };
     const char parens_line_data_2[] = { TOK_NAME, 'X' | EOT, TOK_AND, TOK_LPAREN, TOK_NAME, 'Y' | EOT, TOK_OR, TOK_NOT, TOK_NAME, 'Z' | EOT, TOK_RPAREN };
-    const char function_line_data_1[] = { TOK_LEN, TOK_LPAREN, TOK_STRING, 5, 'H', 'E', 'L', 'L', 'O', TOK_RPAREN };
-    const char function_line_data_2[] = { TOK_MID_S, TOK_LPAREN, TOK_STRING, 5, 'H', 'E', 'L', 'L', 'O', TOK_COMMA, TOK_NUM, '2' | EOT, TOK_COMMA, TOK_NUM, '3' | EOT, TOK_RPAREN };
+    const char function_line_data_1[] = { TOK_LEN, TOK_LPAREN, TOK_STRING, 5, 'H', 'E', 'L', 'L', 'O', '"' | EOT, TOK_RPAREN };
+    const char function_line_data_2[] = { TOK_MID_S, TOK_LPAREN, TOK_STRING, 5, 'H', 'E', 'L', 'L', 'O', '"' | EOT, TOK_COMMA, TOK_NUM, '2' | EOT, TOK_COMMA, TOK_NUM, '3' | EOT, TOK_RPAREN };
     const char function_line_data_3[] = { TOK_VER_S, TOK_LPAREN, TOK_NUM, '0' | EOT, TOK_RPAREN };
 
     PRINT_TEST_NAME();
@@ -80,7 +80,7 @@ void test_pvm_statement(void) {
 
     const char simple_line_data_1[] = { TOK_END };
     const char print_line_data_1[] = { TOK_PRINT, TOK_NUM, '1' | EOT };
-    const char print_line_data_2[] = { TOK_PRINT, TOK_NUM, '1' | EOT, TOK_COMMA, TOK_STRING, 3, 'Y', 'E', 'S', TOK_SEMI, TOK_LPAREN, TOK_NUM, '0' | EOT, TOK_RPAREN };
+    const char print_line_data_2[] = { TOK_PRINT, TOK_NUM, '1' | EOT, TOK_COMMA, TOK_STRING, 3, 'Y', 'E', 'S', '"' | EOT, TOK_SEMI, TOK_LPAREN, TOK_NUM, '0' | EOT, TOK_RPAREN };
     const char print_line_data_3[] = { TOK_ALT_PRINT, TOK_NAME, 'X' | EOT };
     const char for_line_data_1[] = { TOK_FOR, TOK_NAME, 'X' | EOT, TOK_EQ, TOK_NUM, '1' | EOT, TOK_TO, TOK_NUM, '5' | EOT };
     const char for_line_data_2[] = { TOK_FOR, TOK_NAME, 'X' | EOT, TOK_EQ, TOK_NUM, '1' | EOT, TOK_TO, TOK_NUM, '2', '0' | EOT, TOK_STEP, TOK_NUM, '2' | EOT };

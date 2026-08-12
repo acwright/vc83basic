@@ -324,11 +324,19 @@ next_token:
 @encode_number:
         rts
 
+; When we get here the buffer looks like this:
+; T"XYZZY"
+; ^ the TOK_STRING token
+;  ^ decode_name_ptr
+;         ^ line_pos (one last the ending quote, which has EOT set)
+; We replace the beginning quote with the string length, excluding the end quote, which remains to
+; make LIST easier to implement. The length is (line_pos - 1) - (decode_name_ptr + 1)
+; or (line_pos - decode_name_ptr - 2).
+
 @encode_string:
-        dec     line_pos                ; Remove the last quote; the first quote will become length byte
-        lda     line_pos                ; Now points one past the end of the string
-        clc                             ; We have original line_pos+1 but we want to subtract line_pos+2 so clear carry
-        sbc     decode_name_ptr         ; This is the original line_pos+1
+        lda     line_pos
+        sbc     decode_name_ptr         ; Carry will be set because we got here via CMP + BEQ
+        sbc     #2
         ldy     decode_name_ptr         ; Will point to the quote at the start of the string
         sta     line_buffer,y           ; Replace with length byte
 

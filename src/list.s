@@ -129,33 +129,22 @@ list_statement:
         jsr     append_buffer
         jmp     @rem_data_loop
 
+@list_string:
+        jsr     add_whitespace
+        inc     line_pos                ; Skip the length byte
+        lda     #'"'
+        bne     @append
+
 @list_num_or_name:
         jsr     add_whitespace
 @num_name_loop:
         jsr     decode_byte
+@append:
         pha
         and     #<~EOT
         jsr     append_buffer
         pla
         bpl     @num_name_loop
-        jmp     @next_token
-
-@list_string:
-        jsr     add_whitespace
-        lda     #'"'
-        jsr     append_buffer
-        jsr     decode_byte             ; String length byte
-        sta     C                       ; Store string length in C
-        beq     @string_end
-@string_char_loop:
-        jsr     decode_byte
-        jsr     append_buffer
-        dec     C
-        bne     @string_char_loop
-
-@string_end:
-        lda     #'"'
-        jsr     append_buffer
         jmp     @next_token
 
 @done:

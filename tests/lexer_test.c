@@ -25,8 +25,8 @@ void call_next_token(char expect_token, const char* expect_line_data, char expec
 void test_lexer_strings(void) {
 
     const char line_data_1[] = { TOK_STRING, 15, 'C', 'A', 'L', 'L', ' ', 'M', 'E', ' ', 
-        'I', 'S', 'H', 'M', 'A', 'E', 'L' };
-    const char line_data_2[] = { TOK_STRING, 3, 'O', 'N', 'E', TOK_STRING, 3, 'T', 'W', 'O' };
+        'I', 'S', 'H', 'M', 'A', 'E', 'L', '"' | EOT };
+    const char line_data_2[] = { TOK_STRING, 3, 'O', 'N', 'E', '"' | EOT, TOK_STRING, 3, 'T', 'W', 'O', '"' | EOT };
 
     PRINT_TEST_NAME();
 
@@ -39,7 +39,7 @@ void test_lexer_strings(void) {
     call_next_token(TOK_STRING, line_data_1, sizeof line_data_1);
     call_next_token(TOK_EOL, line_data_1, sizeof line_data_1);
     init_buffer("\"ONE\" \"TWO\"", __LINE__);
-    call_next_token(TOK_STRING, line_data_2, 5);
+    call_next_token(TOK_STRING, line_data_2, 6);
     call_next_token(TOK_STRING, line_data_2, sizeof line_data_2);
     call_next_token(TOK_EOL, line_data_2, sizeof line_data_2);
 }
