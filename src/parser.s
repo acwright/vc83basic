@@ -99,16 +99,61 @@ run_pvm:
 
 ; Handle the opcode
 
+        cmp     #PVM_CALL
+        bcc     @match
+        cmp     #PVM_JUMP
+        bcc     @call
+        cmp     #PVM_BRANCH_IF
+        bcc     @jump
         cmp     #PVM_RETURN
-        bcc     @try_branch_if          ; Some opcode not in the $F0-FF range
-        clc                             ; Return with carry set if it's RETURN
+        bcc     @branch_if
+        clc                             ; If it was RETURN, make sure the carry is clear
         beq     @return
-        cmp     #PVM_SLURP
-        beq     @slurp
         cmp     #PVM_GUARD
         beq     @guard
-        sec                             ; Wan't anything else so treat as FAIL
+        cmp     #PVM_SLURP
+        beq     @slurp
+        sec                             ; Treat anything else as FAIL
 @return:
+        rts
+
+@match:
+        jsr     match_token
+        beq     run_pvm_next_token      ; It matched; continue
+@fail:
+        sec                             ; Set carry to indicate failure and return
+        rts
+
+@call:
+        jsr     calculate_address_10    ; Get the address: pvm_program_ptr is return address, call address in AX
+        tay
+        ldphaa  pvm_program_ptr         ; Save the return address
+        sty     pvm_program_ptr
+        stx     pvm_program_ptr+1       ; Save new address
+        jsr     run_pvm                 ; Call it
+        plstaa  pvm_program_ptr         ; Recover return address
+        bcs     @fail                   ; If the called function failed then just keep failing
+        jmp     run_pvm
+
+@jump:
+        jsr     calculate_address_10    ; Get the address: call address in AX
+        stax    pvm_program_ptr
+        jmp     run_pvm
+
+@branch_if:
+        jsr     calculate_address_10    ; Get the address: call address in AX
+        stax    vector_ptr
+        jsr     get_next_pvm_byte       ; A is the byte we have to match
+        jsr     match_token             ; Try to match it
+        bne     run_pvm                 ; If it didn't match then just carry on
+        mvax    vector_ptr, pvm_program_ptr     ; Continue at the branch address
+        bne     run_pvm_next_token      ; Unconditional
+
+@guard:
+        jsr     get_next_pvm_byte       ; Read the token we want to match
+        jsr     match_token
+        bne     run_pvm                 ; If it didn't match then just carry on with the next instruction
+        clc                             ; Else the guard stops this function and causes it to return success
         rts
 
 @slurp:
@@ -134,69 +179,23 @@ run_pvm:
         clc                             ; There can't be anything more to parse so return success
         rts
 
-@guard:
-        jsr     get_next_pvm_byte       ; Read the token we want to match
-        jsr     match_token
-        bne     run_pvm                 ; If it didn't match then just carry on with the next instruction
-        clc                             ; Else the guard stops this function and causes it to return success
-        rts
-
-@try_match:
-        jsr     match_token
-        beq     run_pvm_next_token      ; It matched; continue
-@fail:
-        sec                             ; Set carry to indicate failure and return
-        rts
-
-@try_branch_if:
-        cmp     #PVM_BRANCH_IF
-        bcc     @try_jump
-        jsr     calculate_address_12    ; Get the address: call address in AX
-        stax    vector_ptr
-        jsr     get_next_pvm_byte       ; A is the byte we have to match
-        jsr     match_token             ; Try to match it
-        bne     run_pvm                 ; If it didn't match then just carry on
-        mvax    vector_ptr, pvm_program_ptr     ; Continue at the branch address
-        bne     run_pvm_next_token      ; Unconditional
-
-@try_jump:
-        cmp     #PVM_JUMP
-        bcc     @try_call
-        jsr     calculate_address_12    ; Get the address: call address in AX
-        stax    pvm_program_ptr
-        jmp     run_pvm
-        
-@try_call:
-        cmp     #PVM_CALL
-        bcc     @try_match
-        jsr     calculate_address_12    ; Get the address: pvm_program_ptr is return address, call address in AX
-        tay
-        ldphaa  pvm_program_ptr         ; Save the return address
-        sty     pvm_program_ptr
-        stx     pvm_program_ptr+1       ; Save new address
-        jsr     run_pvm                 ; Call it
-        plstaa  pvm_program_ptr         ; Recover return address
-        bcs     @fail                   ; If the called function failed then just keep failing
-        jmp     run_pvm
-
 ; Matches the token in C with the opcode.
 ; A = the opcode
 ; Z flag will indicate whether it was matched or not
 ; X SAFE, Y SAFE, BC SAFE, DE SAFE
 
 match_token:
-        pha                             ; Push the original opcode
-        cmp     #TOK_ANY_OP_2X          ; Tokens below this must be matched exactly
+        cmp     #PVM_MATCH_CLASS        ; Opcodes below this are exact token matches
         bcc     @exact_match
-        and     #$0F                    ; See if this is a class match
-        bne     @exact_match            ; If not then do exact match
-        pla                             ; Reload the opcode
-        eor     C                       ; Class match: EOR the opcode with the token
+        asl     A                       ; The lower four bits are the mask
+        asl     A
+        asl     A
+        asl     A
+        eor     C
         and     #$F0                    ; If top 4 bits match then they will be 0 and Z will be set
         rts
 
 @exact_match:
-        pla                             ; Reload the opcode
         cmp     C                       ; Compare opcode, now the token we need to match, to the next token
         rts
 
@@ -213,15 +212,15 @@ get_next_pvm_byte:
 @skip_inc:
         rts
 
-; Calculates the address of JUMP or CALL using 4 bits from the opcode plus the next byte, for 12 bits total.
+; Calculates the address of JUMP or CALL using 2 bits from the opcode plus the next byte, for 10 bits total.
 ; A = the opcode
 ; Return the new pvm_program_ptr value in AX
 
-calculate_address_12:
-        and     #$0F                    ; Ignore top four bits of opcode
-        cmp     #$08                    ; Test bit 3, which is the sign bit of the offset field
+calculate_address_10:
+        and     #$03                    ; Ignore top four bits of opcode
+        cmp     #$02                    ; Test bit 1, which is the sign bit of the offset field
         bcc     @positive               ; Was positive so just leave it
-        ora     #$F0                    ; Sign extend to high nybble
+        ora     #$FC                    ; Sign extend to high nybble
 @positive:
         tax                             ; Save high byte
         jsr     get_next_pvm_byte  
@@ -241,9 +240,14 @@ calculate_address_12:
         .byte t    
 .endmacro
 
+.macro MATCH_CLASS c
+        .assert c < $F, error, "Class must be $0-$F"
+        .byte PVM_MATCH_CLASS | c    
+.endmacro
+
 .macro write_opcode_address opcode, address
-        .assert (address - (* + 2)) >= -2048 .and (address - (* + 2)) <= 2047, error, "Address offset out of range"
-        .byte   opcode + >(address - (* + 2)) & $0F, <(address - (* + 1))
+        .assert (address - (* + 2)) >= -512 .and (address - (* + 2)) <= 511, error, "Address offset out of range"
+        .byte   opcode | >(address - (* + 2)) & $03, <(address - (* + 1))
 .endmacro
 
 .macro CALL address
@@ -254,9 +258,14 @@ calculate_address_12:
         write_opcode_address PVM_JUMP, address
 .endmacro
 
-.macro BRANCH_IF token, address
+.macro BRANCH_IF t, address
         write_opcode_address PVM_BRANCH_IF, address
-        .byte token
+        MATCH t
+.endmacro
+
+.macro BRANCH_IF_CLASS c, address
+        write_opcode_address PVM_BRANCH_IF, address
+        MATCH_CLASS c
 .endmacro
 
 .macro RETURN
@@ -267,8 +276,14 @@ calculate_address_12:
         .byte PVM_FAIL
 .endmacro
 
-.macro GUARD token
-        .byte PVM_GUARD, token
+.macro GUARD t
+        .byte PVM_GUARD
+        MATCH t
+.endmacro
+
+.macro GUARD_CLASS c
+        .byte PVM_GUARD
+        MATCH_CLASS c
 .endmacro
 
 .macro SLURP
@@ -296,10 +311,11 @@ pvm_statement:
         BRANCH_IF TOK_DIM, pvm_dim
         BRANCH_IF TOK_DATA, pvm_data
         BRANCH_IF TOK_REM, pvm_rem
-        BRANCH_IF TOK_ANY_ST_8X, @done  ; Any other no-arg statement
-        BRANCH_IF TOK_ANY_ST_9X, @done
-        BRANCH_IF TOK_ANY_ST_AX, @done
-        BRANCH_IF TOK_ANY_ST_BX, @done
+        BRANCH_IF_CLASS TOK_CLASS_ST_4X, @done
+        BRANCH_IF_CLASS TOK_CLASS_ST_4X, @done  ; Any other no-arg statement
+        BRANCH_IF_CLASS TOK_CLASS_ST_5X, @done
+        BRANCH_IF_CLASS TOK_CLASS_ST_6X, @done
+        BRANCH_IF_CLASS TOK_CLASS_ST_7X, @done
         FAIL
 @done:
         RETURN
@@ -392,7 +408,7 @@ pvm_rem:
 
 pvm_expression:
         CALL pvm_primary_expression
-        BRANCH_IF TOK_ANY_OP_2X, pvm_expression
+        BRANCH_IF_CLASS TOK_CLASS_OP_2X, pvm_expression
         RETURN
 
 pvm_primary_expression:
@@ -403,10 +419,10 @@ pvm_primary_expression:
         BRANCH_IF TOK_NUM, @done
         BRANCH_IF TOK_STRING, @done
         BRANCH_IF TOK_NAME, pvm_optional_array
-        BRANCH_IF TOK_ANY_FN_4X, pvm_function
-        BRANCH_IF TOK_ANY_FN_5X, pvm_function
-        BRANCH_IF TOK_ANY_FN_6X, pvm_function
-        BRANCH_IF TOK_ANY_FN_7X, pvm_function
+        BRANCH_IF_CLASS TOK_CLASS_FN_8X, pvm_function
+        BRANCH_IF_CLASS TOK_CLASS_FN_9X, pvm_function
+        BRANCH_IF_CLASS TOK_CLASS_FN_AX, pvm_function
+        BRANCH_IF_CLASS TOK_CLASS_FN_BX, pvm_function
         FAIL
 @done:
         RETURN

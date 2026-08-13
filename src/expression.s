@@ -97,39 +97,48 @@ raise_arity_mismatch:
 evaluate_expression:
         phzp    DECODE_NAME_STATE, DECODE_NAME_STATE_SIZE   ; Remember the decoded name
         lda     #PR_OPEN_PAREN          ; Push the open paren, which will never be removed by process_operators
+@push:
         jsr     push_operator
-
 @next:
-        jsr     @dispatch               ; JSR to dispatcher so we can just RTS from handlers
-        jmp     @next
+        jsr     evaluate_primary_expression     ; JSR to dispatcher so we can just RTS from handlers
+        jsr     peek_byte                       ; Check if an operator follows
+        and     #$0F
+        ; cmp     TOK_ANY_OP_2X
+        beq     @operator
+        rts
 
-@dispatch:
-        jsr     peek_byte
+@operator:
+        jsr     decode_byte             ; Return the operator in A
+        and     #<~TOKEN_OP
+        pha                             ; Keep on the stack while we process higher-precedence operators
+        lsr     A                       ; Divide by 2        
+        tax                             ; Move into X to use as index
+        lda     operator_precedence_table,x ; Look up the precedence value
+        jsr     process_operators       ; Handle operators >= the precedence of this operator
+        pla                             ; Get the operator value again
+        tay                             ; Hold in Y
+        lsr     A                       ; Divide by 2 (again)
+        tax                             ; Move into X to use as index (again)
+        tya                             ; Operator value back into A
+        ora     operator_precedence_table,x ; OR the precedence value
+        jmp     @push
+
+evaluate_primary_expression:
+        jsr     decode_byte
         beq     @done                   ; Short circuit to end if we're at the end of the line
-        and     #<~EOT                  ; Clear EOT if it's set
-        cmp     #TOKEN_FUNCTION         ; First check for a function
-        beq     evaluate_function
-        sec                             ; Otherwise, prepare for subtract-o-rama
-        sbc     #'A'
-        cmp     #<('(' - 'A')           ; Start of subexpression
+        ; bmi     evaluate_function       ; Functions have high bit set
+        cmp     #TOK_LPAREN
         beq     evaluate_paren
-        cmp     #<('"' - 'A')           ; Check if it's a string
+        cmp     #TOK_NUM
+        beq     evaluate_number
+        cmp     #TOK_STRING
         beq     evaluate_string
-        cmp     #26                     ; Is it one of 26 letters starting with 'A'?
-        bcc     evaluate_variable
-        sbc     #<('0' - 'A')           ; Check for number: digits, '.', or '-'
-        cmp     #<('.' - '0')
-        beq     evaluate_number
-        cmp     #<('-' - '0')
-        beq     evaluate_number
-        cmp     #10
-        bcc     evaluate_number
-        sbc     #<(TOKEN_UNARY_OP - '0')
-        cmp     #4
-        bcc     evaluate_unary_operator
-        sbc     #<(TOKEN_OP - TOKEN_UNARY_OP)
-        cmp     #16
-        bcc     evaluate_operator
+        cmp     #TOK_NAME
+        beq     evaluate_variable
+        cmp     #TOK_SUB
+        bcc     @unary_operator
+        cmp     #TOK_NOT
+        bcc     @unary_operator
 
 ; None of the above; probably end of line or ')' or ',' or ';' so just return.
 ; Pop the @dispatch address off the stack so we return from evaluate_expression not @dispatch.
@@ -143,13 +152,11 @@ evaluate_expression:
         plzp    DECODE_NAME_STATE, DECODE_NAME_STATE_SIZE   ; Recover the decoded name
         rts
 
-evaluate_number:
-        jsr     decode_number           ; Returns number in FP0
-        jmp     push_fp0                ; Push number
-
-evaluate_string:
-        jsr     decode_string           ; Sets string_ptr
-        jmp     push_string
+@unary_operator:
+        jsr     decode_byte             ; Get the unary operator
+        and     #<~TOKEN_UNARY_OP
+        ora     #PR_UNARY_OP            ; Unary ops have highest precedence and are right-assoc so don't do anything
+        ; jmp     @push
 
 evaluate_paren:
         inc     line_pos                ; Consume the '('
@@ -159,6 +166,14 @@ evaluate_paren:
         inc     op_stack_pos            ; Pop the open paren (even if evaluate_expression failed)
         inc     line_pos                ; Consume the ')'
         rts
+
+evaluate_number:
+        jsr     decode_number           ; Returns number in FP0
+        jmp     push_fp0                ; Push number
+
+evaluate_string:
+        jsr     decode_string           ; Sets string_ptr
+        jmp     push_string
 
 evaluate_variable:
         jsr     decode_name
@@ -192,28 +207,6 @@ operator_precedence_table:
         .byte   PR_RELATIONAL           ; <=, <
         .byte   PR_RELATIONAL           ; >=, >
         .byte   PR_LOGICAL              ; AND, OR
-
-evaluate_operator:
-        jsr     decode_byte             ; Return the operator in A
-        and     #<~TOKEN_OP
-        pha                             ; Keep on the stack while we process higher-precedence operators
-        lsr     A                       ; Divide by 2        
-        tax                             ; Move into X to use as index
-        lda     operator_precedence_table,x ; Look up the precedence value
-        jsr     process_operators       ; Handle operators >= the precedence of this operator
-        pla                             ; Get the operator value again
-        tay                             ; Hold in Y
-        lsr     A                       ; Divide by 2 (again)
-        tax                             ; Move into X to use as index (again)
-        tya                             ; Operator value back into A
-        ora     operator_precedence_table,x ; OR the precedence value
-        jmp     push_operator           ; Push this operator onto the stack
-
-evaluate_unary_operator:
-        jsr     decode_byte             ; Get the unary operator
-        and     #<~TOKEN_UNARY_OP
-        ora     #PR_UNARY_OP            ; Unary ops have highest precedence and are right-assoc so don't do anything
-        jmp     push_operator           ; Except push the operator onto the stack
 
 ; Evaluate a number of arguments. The argument list will either end in a 0 (as in a series of arguments for a
 ; statement) or in a close paren (as in a DIM statement, array reference, or function call).

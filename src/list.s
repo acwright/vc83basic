@@ -90,6 +90,7 @@ list_statement:
 @next_token:
         jsr     decode_byte             ; Get next token byte
         bne     @not_eol                ; 0 = TOK_EOL
+@done:
         rts
 
 @not_eol:
@@ -127,7 +128,7 @@ list_statement:
         jsr     decode_byte
         beq     @done
         jsr     append_buffer
-        jmp     @rem_data_loop
+        bne     @rem_data_loop          ; Unconditional
 
 @list_string:
         jsr     add_whitespace
@@ -145,10 +146,8 @@ list_statement:
         jsr     append_buffer
         pla
         bpl     @num_name_loop
-        jmp     @next_token
+        bmi     @next_token             ; Unconditional
 
-@done:
-        rts
 
 ; Given a name table index obtained from a token, list the name from the name table.
 ; AX = pointer to the start of the name table
@@ -160,7 +159,6 @@ expand_tokenized_name:
         ldy     #0
         lda     (name_ptr),y
         and     #<~EOT                  ; In case EOT is set
-        beq     @done                   ; If first character is just EOT then output nothing
         sec
         sbc     #'?'                    ; Skip whitespace if character outside the range '?'-'Z'
         cmp     #28
