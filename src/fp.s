@@ -720,8 +720,13 @@ string_to_fp_2:
         cmp     #'-'                    ; Check if it's negative
         beq     @negative
         cmp     #'+'
-        beq     @positive
-@next_char:
+        beq     @consume
+        bne     @not_negative           ; Unconditional
+
+@negative:
+        ror     FP0s                    ; Roll carry into sign
+        bne     @consume                ; Unconditional
+@not_negative:
         lda     (read_ptr),y            ; Get the next character
         and     #<~EOT                  ; Mask out EOT if present
         cmp     #'.'                    ; Is it the decimal point?
@@ -729,14 +734,7 @@ string_to_fp_2:
         lda     D                       ; Check if we've already seen a decimal
         bpl     @err_multiple_decimals
         mva     #0, D                   ; Set D to 0 to count digits after '.'
-        iny                             ; Consume '.'
-        bne     @next_char              ; Unconditional
-
-@negative:
-        ror     FP0s                    ; Carry will have been set; roll into sign
-@positive:
-        iny                             ; Skip past negative or positive
-        bne     @next_char              ; Unconditional
+        beq     @consume                ; Consume '.' and loop
 
 @not_decimal_point:
         cmp     #'E'                    ; Is it 'E'?
@@ -764,8 +762,10 @@ string_to_fp_2:
 @check_overflow:
         lda     FPX                     ; If there's anything in FPX then we overflowed
         bne     @err_overflow
-        iny                             ; Consume digit
-        bne     @next_char              ; Unconditional
+
+@consume:
+        iny                             ; Consume character
+        bne     @not_negative           ; Unconditional
 
 @err_multiple_decimals:
 @err_overflow:
@@ -843,40 +843,36 @@ string_to_fp_2:
         jsr     store_fp0               ; Save FP0 in scratch so we can get it back later
         lda     D                       ; Test number of digits
         beq     @whole                  ; If zero then no scaling
-        bmi     @multiply
-        
+        pha                             ; Save signed D on stack
+        bpl     @d_pos                  ; If positive, D is already the count
+        lda     #0                      ; Else negate D (D = -D)
+        sec
+        sbc     D
+        sta     D
+@d_pos:
         jsr     load_ten_fp0            ; Set FP0 to 10
-@scale_divisor:
+@scale_loop:
         dec     D                       ; Decrement number of digits after decimal
-        beq     @scale_div
+        beq     @scale_apply
         lday    #fp_ten
         jsr     fmul                    ; Multiply FP0 by 10
-        jmp     @scale_divisor          ; Do it again until E is 0
-@scale_div:
-        jsr     copy_fp0_fp1            ; Move divisor into FP1
+        jmp     @scale_loop
+
+@scale_apply:
+        jsr     copy_fp0_fp1            ; Move scale factor into FP1
         lday    #string_to_fp_x
         jsr     load_fp0                ; Reload result saved earlier
+        pla                             ; Retrieve original signed D
+        bmi     @multiply               ; If negative, multiply
         jsr     fdiv_2                  ; Divide
+        jmp     @whole
 
+@multiply:
+        jsr     fmul_2                  ; Multiply by FP1
 @whole:
         ldy     E                       ; Return buffer read position in Y
         clc                             ; Signal success
         rts
-
-@multiply:
-        jsr     load_ten_fp0            ; Set FP0 to 10
-@scale_multiplier:
-        inc     D                       ; Increment number of digits after decimal
-        beq     @scale_mul
-        lday    #fp_ten
-        jsr     fmul                    ; Multiply FP0 by 10
-        jmp     @scale_multiplier       ; Do it again until E is 0
-@scale_mul:
-        jsr     copy_fp0_fp1            ; Move multiplier into FP1
-        lday    #string_to_fp_x
-        jsr     load_fp0                ; Reload result saved earlier
-        jsr     fmul_2                  ; Multiply by FP1
-        jmp     @whole
 
 ; Converts the character in A into a digit.
 ; Returns the digit in A, carry clear if ok, carry set if error.
