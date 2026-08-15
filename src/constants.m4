@@ -180,13 +180,11 @@ comment Other constants
 
 def(EOT, hex(80))
 def(BUFFER_SIZE, 256)
-def(PATTERN_OK, hex(80))
-def(PATTERN_ERROR, hex(81))
 def(PRIMARY_STACK_SIZE, 192)
 def(OP_STACK_SIZE, 16)
 def(STRING_EXTRA, 3)
 
-comment Maximum line length we're willing to encode (leave 16 bytes at end for END statement in immediate mode
+comment Maximum line length we're willing to encode (leave 16 bytes at end for END statement in immediate mode)
 def(MAX_LINE_LENGTH, 240)
 
 comment Function templates
