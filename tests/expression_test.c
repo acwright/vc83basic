@@ -134,6 +134,7 @@ void test_evaluate_expression_op(void) {
     test_one_op(TOK_AND, &value_0, &value_0, &value_0, &value_1);
     test_one_op(TOK_OR, &value_0, &value_1, &value_1, &value_1);
 
+    test_one_unary_op(TOK_ADD, &value_0, &value_1);
     test_one_unary_op(TOK_SUB, &value_0, &value_negative_1);
     test_one_unary_op(TOK_NOT, &value_1, &value_0);
 }

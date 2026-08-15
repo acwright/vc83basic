@@ -686,6 +686,8 @@ void test_string_to_fp(void) {
     call_string_to_fp("1", 0x00000000, 128, __LINE__);
     // -1
     call_string_to_fp("-1", 0x80000000, 128, __LINE__);
+    // +1
+    call_string_to_fp("+1", 0x00000000, 128, __LINE__);
     // 10
     call_string_to_fp("10", 0x20000000, 131, __LINE__);
     // 25
@@ -732,6 +734,7 @@ void test_string_to_fp(void) {
     // Verify that string_to_fp stops on non-digit.
     call_string_to_fp("10X", 0x20000000, 131, __LINE__);
     call_string_to_fp("-100-", 0xC8000000, 134, __LINE__);
+
     // Verify that string_to_fp handles characters with EOT set.
     call_string_to_fp("10\xB0", 0x48000000, 134, __LINE__);
     call_string_to_fp("100\xAE", 0x48000000, 134, __LINE__);

@@ -718,10 +718,10 @@ string_to_fp_2:
         mva     #$80, D                 ; D counts digits after '.'; starts at -128 and jumps to 0 on '.'
         lda     (read_ptr),y
         cmp     #'-'                    ; Check if it's negative
-        bne     @not_negative
-        ror     FP0s                    ; If equal then carry will have been set; roll into sign
-        iny                             ; Skip past negative sign
-@not_negative:
+        beq     @negative
+        cmp     #'+'
+        beq     @positive
+@next_char:
         lda     (read_ptr),y            ; Get the next character
         and     #<~EOT                  ; Mask out EOT if present
         cmp     #'.'                    ; Is it the decimal point?
@@ -730,7 +730,13 @@ string_to_fp_2:
         bpl     @err_multiple_decimals
         mva     #0, D                   ; Set D to 0 to count digits after '.'
         iny                             ; Consume '.'
-        bne     @not_negative           ; Unconditional
+        bne     @next_char              ; Unconditional
+
+@negative:
+        ror     FP0s                    ; Carry will have been set; roll into sign
+@positive:
+        iny                             ; Skip past negative or positive
+        bne     @next_char              ; Unconditional
 
 @not_decimal_point:
         cmp     #'E'                    ; Is it 'E'?
@@ -759,7 +765,7 @@ string_to_fp_2:
         lda     FPX                     ; If there's anything in FPX then we overflowed
         bne     @err_overflow
         iny                             ; Consume digit
-        bne     @not_negative           ; Unconditional
+        bne     @next_char              ; Unconditional
 
 @err_multiple_decimals:
 @err_overflow:
