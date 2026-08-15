@@ -481,7 +481,6 @@ fp_to_string:
         jsr     fcmp                    ; Carry set (borrow clear) means FP0 >= FP1 so we have to scale down
         bcs     @scale_down
         jsr     truncate_fp_to_int32    ; Make into a 32-bit integer
-        mva     #0, D                   ; D is the number of generated digits
         jsr     generate_digits
 
 ; There are D generated digits.
@@ -584,8 +583,7 @@ fp_to_string:
         mva     #0, FP0t+1
         sta     FP0t+2
         sta     FP0t+3
-        sta     D                       ; Reset number of digits and scaling factor
-        sta     E
+        sta     E                       ; Reset scaling factor
         stx     buffer_pos              ; generate_digits will clobber X so save it
         jsr     generate_digits
         ldx     buffer_pos              ; Recover X
@@ -601,6 +599,7 @@ fp_to_string:
 ; Ignore any initial zeros and increment E instead.
 
 generate_digits:
+        mva     #0, D                   ; D is the number of generated digits
         plstaa  BC                      ; Save return address
 @next_digit:
         jsr     fp0_significand_is_zero ; Check if FP0 significand zero; this will never be true the first time
