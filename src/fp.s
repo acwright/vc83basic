@@ -697,6 +697,13 @@ output_y_zeros:
 ; The caller should skip whitespace (if necessary) before calling this function.
 ; AX = the buffer address (stored in read_ptr)
 ; Y = the starting offset
+; Converts a decimal string into a floating-point number.
+; We ignore EOT on input characters. Termination relies on encountering the first
+; character that is not a valid number continuation (not a digit, '.', or 'E').
+; Because token values that can legally follow a numeric literal (delimiters,
+; operators) never overlap with ASCII digits ($30-$39), decimal point ($2E), or 'E' ($45),
+; numbers in the token stream terminate unambiguously without needing explicit EOT checks.
+;
 ; Returns the number in FP0 and the last read position in Y, carry clear if ok, carry set if error.
 
 string_to_fp_x = fp_scratch
@@ -710,25 +717,24 @@ string_to_fp_2:
         sta     FPX                     ; Also clear FPX in order to detect overflows
         mva     #$80, D                 ; D counts digits after '.'; starts at -128 and jumps to 0 on '.'
         lda     (read_ptr),y
-        cmp     #'-'                    ; Check if it's negative; note that '-' will never have EOT set
+        cmp     #'-'                    ; Check if it's negative
         bne     @not_negative
         ror     FP0s                    ; If equal then carry will have been set; roll into sign
-@next_character:
         iny                             ; Skip past negative sign
 @not_negative:
         lda     (read_ptr),y            ; Get the next character
+        and     #<~EOT                  ; Mask out EOT if present
         cmp     #'.'                    ; Is it the decimal point?
         bne     @not_decimal_point      ; No
         lda     D                       ; Check if we've already seen a decimal
         bpl     @err_multiple_decimals
         mva     #0, D                   ; Set D to 0 to count digits after '.'
-        beq     @check_eot              ; Unconditional
+        iny                             ; Consume '.'
+        bne     @not_negative           ; Unconditional
 
 @not_decimal_point:
         cmp     #'E'                    ; Is it 'E'?
-        bne     @not_e
-        jmp     @parse_e
-@not_e:
+        beq     @parse_e                ; Yes, parse exponent
         jsr     char_to_digit           ; Try to make it into a digit
         bcs     @not_digit              ; Character was not a digit, '.', or 'E'
         
@@ -751,7 +757,9 @@ string_to_fp_2:
 
 @check_overflow:
         lda     FPX                     ; If there's anything in FPX then we overflowed
-        beq     @check_eot
+        bne     @err_overflow
+        iny                             ; Consume digit
+        bne     @not_negative           ; Unconditional
 
 @err_multiple_decimals:
 @err_overflow:
@@ -760,10 +768,56 @@ string_to_fp_2:
         sec                             ; Signal error
         rts
 
-@check_eot:
-        lda     (read_ptr),y            ; Reload the original character
-        bpl     @next_character         ; If EOT not set then carry on
-        iny                             ; EOT was set to increment past this character
+@parse_e:
+        lda     D                       ; Check if we had any digits
+        cmp     #$80
+        beq     @err_not_digit          ; If no digits seen yet, error
+        mva     #0, C                   ; C = exponent accumulator
+        iny                             ; Skip 'E'
+        lda     (read_ptr),y
+        cmp     #'-'
+        php                             ; Save Z flag (if '-', Z is set)
+        beq     @e_sign
+        cmp     #'+'
+        bne     @e_digit
+@e_sign:
+        iny                             ; Skip sign
+@e_digit:
+        lda     (read_ptr),y
+        jsr     char_to_digit
+        bcs     @e_done
+        pha
+        lda     C
+        asl     A
+        sta     C
+        asl     A
+        asl     A
+        adc     C       
+        sta     C
+        pla
+        clc
+        adc     C
+        sta     C
+        iny
+        bne     @e_digit                ; Loop
+@e_done:
+        plp                             ; Restore sign flag
+        bne     @apply_e                ; If not '-', Z=0, branch taken
+        lda     C
+        eor     #$FF
+        clc
+        adc     #1
+        sta     C
+@apply_e:
+        sty     E                       ; Save Y in E
+        lda     D
+        bpl     @e_d_pos
+        lda     #0
+@e_d_pos:
+        sec
+        sbc     C
+        sta     D
+        jmp     @calc_fp
 
 @not_digit:
         lda     D                       ; Has D changed at all?
@@ -817,59 +871,6 @@ string_to_fp_2:
         jsr     load_fp0                ; Reload result saved earlier
         jsr     fmul_2                  ; Multiply by FP1
         jmp     @whole
-
-@parse_e:
-        lda     D                       ; Check if we had any digits
-        cmp     #$80
-        bne     @e_start
-        jmp     @err_not_digit
-@e_start:
-        mva     #0, C                   ; C = exponent accumulator
-        iny                             ; Skip 'E'
-        lda     (read_ptr),y
-        cmp     #'-'
-        php                             ; Save Z flag (if '-', Z is set)
-        beq     @e_sign
-        cmp     #'+'
-        bne     @e_digit
-@e_sign:
-        iny                             ; Skip sign
-@e_digit:
-        lda     (read_ptr),y
-        jsr     char_to_digit
-        bcs     @e_done
-        pha
-        lda     C
-        asl     A
-        sta     C
-        asl     A
-        asl     A
-        adc     C       
-        sta     C
-        pla
-        clc
-        adc     C
-        sta     C
-        iny
-        bne     @e_digit                ; Loop
-@e_done:
-        plp                             ; Restore sign flag
-        bne     @apply_e                ; If not '-', Z=0, branch taken
-        lda     C
-        eor     #$FF
-        clc
-        adc     #1
-        sta     C
-@apply_e:
-        sty     E                       ; Save Y in E
-        lda     D
-        bpl     @e_d_pos
-        lda     #0
-@e_d_pos:
-        sec
-        sbc     C
-        sta     D
-        jmp     @calc_fp
 
 ; Converts the character in A into a digit.
 ; Returns the digit in A, carry clear if ok, carry set if error.
