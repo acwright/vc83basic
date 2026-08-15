@@ -73,7 +73,7 @@ set_err:
 
 ; Installs an exception handler.
 ; The exception handler itself is the code after the call to this function. Whenever the program performs
-; "raise n" (or loads n into A and jumps to on_raise), this function will appear to return with that value in A.
+; "raise n," this function will appear to return with that value in A.
 ; The caller can check if it is handling an exception, or just returning from the initial call, by checking the carry.
 ; If carry is clear, then it is the initial call, and if set, then handling an exception.
 ; The caller should not return while there is still a chance that the program will jump to on_raise, in order to avoid
@@ -89,8 +89,12 @@ install_exception_handler:
         bcc     on_raise_2              ; Unconditional; execute on_raise code but with carry clear
 
 on_raise:
-        sec                             ; Signal this was caused by raise invocation
+        plsta   B                       ; Pop return address into BC
+        plsta   C
+        ldy     #1                      ; The error byte follows the JSR instruction
+        lda     (BC),y
         tay                             ; Save the exception value
+        sec                             ; Signal this was caused by raise invocation
 on_raise_2:
         ldx     on_raise_sp             ; Restore the stack pointer that we saved in install_exception_handler
         txs

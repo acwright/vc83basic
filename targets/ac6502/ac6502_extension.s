@@ -175,8 +175,7 @@ ex_break_check:
         cmp     #CH_CTRLC
         bne     @done
 @brk:
-        lda     #ERR_STOPPED
-        jmp     on_raise
+        raise   ERR_STOPPED
 @done:
         rts
 

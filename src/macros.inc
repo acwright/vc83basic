@@ -197,10 +197,8 @@
 ; Raises an error.
 
 .macro raise error
-    .if (.not .match({error}, A))
-        lda     #error
-    .endif
-        jmp     on_raise
+        jsr     on_raise
+        .byte   error
 .endmacro
 
 ; Raises an error if carry is clear.

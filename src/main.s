@@ -21,11 +21,15 @@ main:
         jsr     initialize_program
 
 raise_ps_ready:
-        lda     #PS_READY               ; As we pass into on_raise, initialize program state to running
+        raise   PS_READY
 
-; Exception handler: control reaches here following "raise" or JMP to on_raise.
+; Exception handler: control reaches here following "raise."
 
 on_raise:
+        plsta   B                       ; Return address on stack points to the last byte of JSR
+        plsta   C
+        ldy     #1                      ; The error byte follows the JSR instruction
+        lda     (BC),y
         ldx     #$FF                    ; Reset the stack pointer
         txs
         tax                             ; Update flags for new program state since STA won't do it

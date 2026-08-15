@@ -35,8 +35,7 @@ readline:
 @check_break:
         lda     program_state           ; Only break when a program is running
         bne     @waitchar               ; PS_READY (non-zero): discard and keep waiting
-        lda     #ERR_STOPPED
-        jmp     on_raise
+        raise   ERR_STOPPED
 
 @backspace:
         cpy     #0
@@ -82,8 +81,7 @@ putch:
         bne     @output                 ; Not a break key; discard and continue
 @break:
         pla                             ; Discard the saved character
-        lda     #ERR_STOPPED
-        jmp     on_raise
+        raise   ERR_STOPPED
 @output:
         pla                             ; Restore character
         jmp     CHROUT
