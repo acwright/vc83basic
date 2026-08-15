@@ -302,38 +302,6 @@ shift_right_from_fpx:
         inc     FP0e
         rts
 
-; Multiplies the FP0 significand by 10. Copies the FP0 value into FP1.
-; Y SAFE, BC SAFE, DE SAFE
-
-mul10_significand:
-        ldx     #FP1t
-        jsr     copy_significand_fp0_fp
-        jsr     shift_left              ; *2
-        jsr     rotate_left             ; *4
-        jsr     add_significands        ; *5
-        jmp     rotate_left             ; *10
-
-; Divides the FP0 significand by 10.
-; Returns the remainder in FPX.
-; Uses X to keep track of the shift count.
-; Y SAFE, BC SAFE, DE SAFE
-
-div10_significand:
-        mva     #0, FPX                 ; Initialize remainder to 0
-        ldx     #32                     ; 32 bits
-@next_bit:
-        jsr     shift_left              ; LSB of FP0 significand is now 0
-        lda     FPX                     ; Bits from significand move into FPX
-        sec
-        sbc     #10                     ; C ("don't borrow") set if FPX>=10
-        bcc     @not_10                 ; It's <10
-        inc     FP0t                    ; Increment quotient
-        sta     FPX                     ; Write updated value back
-@not_10:
-        dex
-        bne     @next_bit               ; More bits to shift
-        rts
-
 ; Accepts a 16-bit int in AX and converts it into a float in FP0.
 ; AX = the input value
 ; DE SAFE
@@ -637,7 +605,19 @@ generate_digits:
 @next_digit:
         jsr     fp0_significand_is_zero ; Check if FP0 significand zero; this will never be true the first time
         beq     @no_more_digits         ; If zero then done generating digits; go to output
-        jsr     div10_significand       ; The remainder in FPX is the digit
+        mva     #0, FPX                 ; Divide FP0t by 10; initialize remainder to 0
+        ldx     #32                     ; 32 bits
+@div_next_bit:
+        jsr     shift_left              ; LSB of FP0 significand is now 0
+        lda     FPX                     ; Bits from significand move into FPX
+        sec
+        sbc     #10                     ; C ("don't borrow") set if FPX>=10
+        bcc     @div_not_10             ; It's <10
+        inc     FP0t                    ; Increment quotient
+        sta     FPX                     ; Write updated value back
+@div_not_10:
+        dex
+        bne     @div_next_bit           ; More bits to shift
         lda     FPX
         ora     D                       ; Or with number of digits; tests if both are zero
         beq     @skip_zero              ; If so then skip this zero
@@ -854,7 +834,12 @@ parse_digits:
         jsr     char_to_digit           ; Convert to digit 0-9
         bcs     @done                   ; Not a digit, return
         pha                             ; Save digit
-        jsr     mul10_significand       ; Multiply FP0t by 10
+        ldx     #FP1t                   ; Multiply FP0t by 10
+        jsr     copy_significand_fp0_fp
+        jsr     shift_left              ; *2
+        jsr     rotate_left             ; *4
+        jsr     add_significands        ; *5
+        jsr     rotate_left             ; *10
         pla                             ; Recover digit
         inc     D                       ; Increment digit count
         adc     FP0t                    ; Add digit to FP0t
