@@ -21,20 +21,21 @@ comment Generated from __file__
 def(CASE_INSENSITIVE,   hex(80)) comment ORed with terminal token tag in DFA state data
 
 def(TOK_EOL,            hex(00))
-def(TOK_NON_TERMINAL,   hex(01)) comment Identifies intermediate DFA states
-def(TOK_NUM,            hex(02))
-def(TOK_SYMBOL,         hex(03))
-def(TOK_NAME,           hex(04))
-def(TOK_STRING,         hex(05))
-def(TOK_COMMA,          hex(06))
-def(TOK_SEMI,           hex(07))
-def(TOK_LPAREN,         hex(08))
-def(TOK_RPAREN,         hex(09))
-def(TOK_NOT,            hex(0A))
-def(TOK_THEN,           hex(0B))
-def(TOK_TO,             hex(0C))
-def(TOK_STEP,           hex(0D))
-def(TOK_COLON,          hex(0E))
+def(TOK_COMMA,          hex(01))
+def(TOK_SEMI,           hex(02))
+def(TOK_LPAREN,         hex(03))
+def(TOK_RPAREN,         hex(04))
+def(TOK_NOT,            hex(05))
+def(TOK_THEN,           hex(06))
+def(TOK_TO,             hex(07))
+def(TOK_STEP,           hex(08))
+def(TOK_COLON,          hex(09))
+
+def(TOK_NON_TERMINAL,   hex(10)) comment Identifies intermediate DFA states
+def(TOK_NUM,            hex(11))
+def(TOK_SYMBOL,         hex(12))
+def(TOK_NAME,           hex(13))
+def(TOK_STRING,         hex(14))
 
 def(TOK_ADD,            hex(20))
 def(TOK_SUB,            hex(21))

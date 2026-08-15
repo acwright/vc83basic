@@ -98,18 +98,19 @@ list_statement:
         beq     @list_num_or_name
         cmp     #TOK_STRING
         beq     @list_string
-        ldx     #0                      ; Search keyword_tokens for token in B
-@find_keyword:
-        cmp     keyword_tokens,x
-        beq     @found_keyword
-        inx
-        cpx     #keyword_token_count
-        bcc     @find_keyword
-        bcs     @next_token
-
-@found_keyword:
         pha                             ; Store the original token
-        txa
+        lsr     A                       ; Divide by 16 to get block index of token
+        lsr     A
+        lsr     A
+        lsr     A
+        tax
+        lda     keyword_block_offsets,x ; Base keyword index for block
+        sta     B
+        pla                             ; Get back the token
+        pha                             ; Store it again
+        and     #$0F                    ; Intra-block offset i
+        clc
+        adc     B                       ; Keyword index k
         tay
         ldax    #keywords
         jsr     expand_tokenized_name

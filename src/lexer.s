@@ -28,9 +28,12 @@
     .endif
 .endmacro
 
+keyword_counter .set 0
+
 .macro name_table_entry s
         .byte   :+ - *
         name s
+        keyword_counter .set keyword_counter + 1
 .endmacro
 
 .macro name_table_end
@@ -38,7 +41,23 @@
 .endmacro
 
 keywords:
-        name_table_entry "+"
+; Block 0 ($00..$09)
+KEYWORD_BLOCK_0_OFFSET = keyword_counter
+        name_table_entry ""             ; Index 0: placeholder for TOK_EOL ($00)
+:       name_table_entry ","
+:       name_table_entry ";"
+:       name_table_entry "("
+:       name_table_entry ")"
+:       name_table_entry "NOT"
+:       name_table_entry "THEN"
+:       name_table_entry "TO"
+:       name_table_entry "STEP"
+:       name_table_entry ":"
+; Block 1 ($10..$1F) - unused
+KEYWORD_BLOCK_1_OFFSET = keyword_counter
+; Block 2 ($20..$2D)
+KEYWORD_BLOCK_2_OFFSET = keyword_counter
+:       name_table_entry "+"
 :       name_table_entry "-"
 :       name_table_entry "*"
 :       name_table_entry "/"
@@ -52,41 +71,47 @@ keywords:
 :       name_table_entry ">="
 :       name_table_entry "AND"
 :       name_table_entry "OR"
-:       name_table_entry "NOT"
-:       name_table_entry ","
-:       name_table_entry ";"
-:       name_table_entry ":"
-:       name_table_entry "("
-:       name_table_entry ")"
-:       name_table_entry "LET"
-:       name_table_entry "RUN"
+; Block 3 ($30..$3F) - unused
+KEYWORD_BLOCK_3_OFFSET = keyword_counter
+; Block 4 ($40..$4F)
+KEYWORD_BLOCK_4_OFFSET = keyword_counter
 :       name_table_entry "PRINT"
 :       name_table_entry "?"
-:       name_table_entry "LIST"
+:       name_table_entry "LET"
+:       name_table_entry "FOR"
+:       name_table_entry "NEXT"
+:       name_table_entry "IF"
+:       name_table_entry "INPUT"
+:       name_table_entry "READ"
+:       name_table_entry "ON"
 :       name_table_entry "GOTO"
 :       name_table_entry "GOSUB"
-:       name_table_entry "RETURN"
-:       name_table_entry "POP"
-:       name_table_entry "ON"
-:       name_table_entry "FOR"
-:       name_table_entry "TO"
-:       name_table_entry "STEP"
-:       name_table_entry "NEXT"
+:       name_table_entry "LIST"
+:       name_table_entry "POKE"
+:       name_table_entry "DPOKE"
+:       name_table_entry "DIM"
+:       name_table_entry "DATA"
+; Block 5 ($50..$5A)
+KEYWORD_BLOCK_5_OFFSET = keyword_counter
+:       name_table_entry "REM"
+:       name_table_entry "RESTORE"
+:       name_table_entry "RUN"
 :       name_table_entry "STOP"
+:       name_table_entry "END"
 :       name_table_entry "CONT"
 :       name_table_entry "NEW"
 :       name_table_entry "CLR"
-:       name_table_entry "DIM"
-:       name_table_entry "REM"
-:       name_table_entry "DATA"
-:       name_table_entry "READ"
-:       name_table_entry "RESTORE"
-:       name_table_entry "POKE"
-:       name_table_entry "DPOKE"
-:       name_table_entry "END"
-:       name_table_entry "INPUT"
-:       name_table_entry "IF"
-:       name_table_entry "THEN"
+:       name_table_entry "RETURN"
+:       name_table_entry "POP"
+.ifdef TARGET_SIM6502
+:       name_table_entry "BYE"
+.endif
+; Block 6 ($60..$6F) - unused
+KEYWORD_BLOCK_6_OFFSET = keyword_counter
+; Block 7 ($70..$7F) - unused
+KEYWORD_BLOCK_7_OFFSET = keyword_counter
+; Block 8 ($80..$8F)
+KEYWORD_BLOCK_8_OFFSET = keyword_counter
 :       name_table_entry "LEN"
 :       name_table_entry "STR$"
 :       name_table_entry "CHR$"
@@ -103,6 +128,8 @@ keywords:
 :       name_table_entry "INT"
 :       name_table_entry "LOG"
 :       name_table_entry "EXP"
+; Block 9 ($90..$98)
+KEYWORD_BLOCK_9_OFFSET = keyword_counter
 :       name_table_entry "SIN"
 :       name_table_entry "COS"
 :       name_table_entry "TAN"
@@ -112,91 +139,29 @@ keywords:
 :       name_table_entry "SQR"
 :       name_table_entry "RND"
 .ifdef TARGET_SIM6502
-:       name_table_entry "BYE"
 :       name_table_entry "VER$"
 .endif
 :       name_table_end
+; Block A ($A0..$AF) - unused
+KEYWORD_BLOCK_A_OFFSET = keyword_counter
+; Block B ($B0..$BF) - unused
+KEYWORD_BLOCK_B_OFFSET = keyword_counter
 
-keyword_tokens:
-        .byte TOK_ADD
-        .byte TOK_SUB
-        .byte TOK_MUL
-        .byte TOK_DIV
-        .byte TOK_POW
-        .byte TOK_CONCAT
-        .byte TOK_EQ
-        .byte TOK_LT
-        .byte TOK_GT
-        .byte TOK_NE
-        .byte TOK_LE
-        .byte TOK_GE
-        .byte TOK_AND
-        .byte TOK_OR
-        .byte TOK_NOT
-        .byte TOK_COMMA
-        .byte TOK_SEMI
-        .byte TOK_COLON
-        .byte TOK_LPAREN
-        .byte TOK_RPAREN
-        .byte TOK_LET
-        .byte TOK_RUN
-        .byte TOK_PRINT
-        .byte TOK_ALT_PRINT
-        .byte TOK_LIST
-        .byte TOK_GOTO
-        .byte TOK_GOSUB
-        .byte TOK_RETURN
-        .byte TOK_POP
-        .byte TOK_ON
-        .byte TOK_FOR
-        .byte TOK_TO
-        .byte TOK_STEP
-        .byte TOK_NEXT
-        .byte TOK_STOP
-        .byte TOK_CONT
-        .byte TOK_NEW
-        .byte TOK_CLR
-        .byte TOK_DIM
-        .byte TOK_REM
-        .byte TOK_DATA
-        .byte TOK_READ
-        .byte TOK_RESTORE
-        .byte TOK_POKE
-        .byte TOK_DPOKE
-        .byte TOK_END
-        .byte TOK_INPUT
-        .byte TOK_IF
-        .byte TOK_THEN
-        .byte TOK_LEN
-        .byte TOK_STR_S
-        .byte TOK_CHR_S
-        .byte TOK_ASC
-        .byte TOK_LEFT_S
-        .byte TOK_RIGHT_S
-        .byte TOK_MID_S
-        .byte TOK_VAL
-        .byte TOK_FRE
-        .byte TOK_PEEK
-        .byte TOK_DPEEK
-        .byte TOK_ADR
-        .byte TOK_USR
-        .byte TOK_INT
-        .byte TOK_LOG
-        .byte TOK_EXP
-        .byte TOK_SIN
-        .byte TOK_COS
-        .byte TOK_TAN
-        .byte TOK_ATN
-        .byte TOK_ABS
-        .byte TOK_SGN
-        .byte TOK_SQR
-        .byte TOK_RND
-.ifdef TARGET_SIM6502
-        .byte TOK_BYE
-        .byte TOK_VER_S
-.endif
+keyword_block_offsets:
+        .byte   KEYWORD_BLOCK_0_OFFSET  ; $0x: Delimiters ($00..$09)
+        .byte   KEYWORD_BLOCK_1_OFFSET  ; $1x: (unused)
+        .byte   KEYWORD_BLOCK_2_OFFSET  ; $2x: Operators ($20..$2D)
+        .byte   KEYWORD_BLOCK_3_OFFSET  ; $3x: (unused)
+        .byte   KEYWORD_BLOCK_4_OFFSET  ; $4x: Statements 1 ($40..$4F)
+        .byte   KEYWORD_BLOCK_5_OFFSET  ; $5x: Statements 2 ($50..$59 / $5A)
+        .byte   KEYWORD_BLOCK_6_OFFSET  ; $6x: (unused)
+        .byte   KEYWORD_BLOCK_7_OFFSET  ; $7x: (unused)
+        .byte   KEYWORD_BLOCK_8_OFFSET  ; $8x: Functions 1 ($80..$8F)
+        .byte   KEYWORD_BLOCK_9_OFFSET  ; $9x: Functions 2 ($90..$98)
+        .byte   KEYWORD_BLOCK_A_OFFSET  ; $Ax: (unused)
+        .byte   KEYWORD_BLOCK_B_OFFSET  ; $Bx: (unused)
 
-keyword_token_count = * - keyword_tokens;
+
 
 ; Parses the next token from buffer using the DFA data tables in lexer_data.inc.
 ; Writes token characters or matched token byte into line_buffer.
@@ -326,8 +291,21 @@ next_token:
         ldax    #keywords
         jsr     find_name
         bcs     @return_terminal_token
-        tax                             ; Use the name index to look up the token
-        lda     keyword_tokens,x
+        ldx     #11
+@find_block:
+        cmp     keyword_block_offsets,x ; Find highest-numbered block where offset is >= keyword index
+        bcs     @found_block
+        dex
+        bpl     @find_block
+@found_block:
+        sbc     keyword_block_offsets,x ; Calculate the offset of the keyword within the block
+        sta     B                       ; Offset in B
+        txa
+        asl     A                       ; Multiply block index by 16 to get base token value
+        asl     A
+        asl     A
+        asl     A
+        ora     B
         ldy     decode_name_ptr         ; Reload line_pos+1 since find_name clobbered it
         sta     line_buffer-1,y         ; Overwrite the original token with the keyword token
         sty     line_pos                ; This will become the new line_pos since we replaced the token
