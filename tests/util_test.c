@@ -112,25 +112,6 @@ void test_reverse_copy(void) {
     test_reverse_copy_case(4000, 256, __LINE__);
 }
 
-extern char _VEC_LOAD__[];
-extern char test_vectors[]; 
-
-void test_invoke_indexed_vector(void) {
-    int result;
-    char test_vectors_offset = (char)(test_vectors - _VEC_LOAD__) / 2;
-
-    PRINT_TEST_NAME();
-
-    result = invoke_indexed_vector(test_vectors_offset);
-    ASSERT_EQ(result, 31415);
-    result = invoke_indexed_vector(test_vectors_offset+1);
-    ASSERT_EQ(result, 7771);
-    result = invoke_indexed_vector(test_vectors_offset+2);
-    ASSERT_EQ(result, 7771);
-    result = invoke_indexed_vector(test_vectors_offset+3);
-    ASSERT_EQ(result, 31415);
-}
-
 void test_skip_whitespace(void) {
 
     const char data[] = { 'X', ' ', ' ', '1', '0', '0' };
@@ -172,7 +153,6 @@ int main(void) {
     test_clear_memory();
     test_copy();
     test_reverse_copy();
-    test_invoke_indexed_vector();
     test_skip_whitespace();
     test_read_argument_separator();
     return 0;

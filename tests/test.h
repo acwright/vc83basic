@@ -179,7 +179,6 @@ void compact(void);
 void copy(/* AX */ size_t size);
 void reverse_copy(/* AX */ size_t size);
 void clear_memory(/* AX */ void* ptr, /* Y */ char size);
-int invoke_indexed_vector(/* Y */ char index);
 void read_argument_separator(char pos);
 void skip_whitespace(char pos);
 

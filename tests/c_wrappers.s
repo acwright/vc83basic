@@ -537,10 +537,6 @@ _clear_memory:
         ldy     B      
         jmp     clear_memory
 
-_invoke_indexed_vector:
-.export _invoke_indexed_vector
-        jmp     invoke_indexed_vector
-
 _read_argument_separator:
 .export _read_argument_separator
         tay
@@ -554,24 +550,3 @@ _skip_whitespace:
         jsr     skip_whitespace
         sty     _Y
         jmp     set_err
-
-.segment "VEC"
-
-; Used by test_invoke_indexed_vector
-
-.export _test_vectors
-_test_vectors:
-        .word   return_31415-1
-        .word   return_7771-1
-        .word   return_7771-1
-        .word   return_31415-1
-
-.code
-
-return_31415:
-        ldax    #31415
-        rts
-
-return_7771:
-        ldax    #7771
-        rts

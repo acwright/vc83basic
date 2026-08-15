@@ -115,24 +115,6 @@ set_memory:
         bne     set_memory
         rts
 
-; Invokes a vector selected from an table of vectors.
-; JSR to here to have the routine at the vector return to the caller of this function, or JMP to have it
-; return to the caller's caller.
-; Callers can use BC and DE to pass parameters to the target function.
-; Since Y, the vector index, can never exceed 127, the ASL will clear the carry flag, and it will still be clear
-; when control reaches the target routine.
-; A = the index of the vector
-; BC SAFE, DE SAFE
-
-invoke_indexed_vector:
-        asl     A                       ; Multiply vector number by 2; clears carry
-        tax                             ; Set up as index
-        lda     __VEC_RUN__+1,x         ; High byte
-        pha
-        lda     __VEC_RUN__,x           ; Low byte
-        pha
-        rts                             ; RTS jumps to vector pushed on the stack
-        
 ; Reads a comma beween arguments. Also recognizes 0 as end of input.
 ; read_ptr = the read address
 ; Y = the starting position

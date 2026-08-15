@@ -2,59 +2,98 @@
 ;
 ; SPDX-License-Identifier: MIT
 
-.segment "FUNC"
+function_vectors_l:
+        .byte   <(fun_len-1)
+        .byte   <(fun_str_s-1)
+        .byte   <(fun_chr_s-1 )
+        .byte   <(fun_asc-1)
+        .byte   <(fun_left_s-1)
+        .byte   <(fun_right_s-1)
+        .byte   <(fun_mid_s-1)
+        .byte   <(fun_val-1)
+        .byte   <(fun_fre-1)
+        .byte   <(fun_peek-1)
+        .byte   <(fun_dpeek-1)
+        .byte   <(fun_adr-1)
+        .byte   <(fun_usr-1)
+        .byte   <(floor-1)
+        .byte   <(flog-1)
+        .byte   <(fexp-1)
+        .byte   <(fsin-1)
+        .byte   <(fcos-1)
+        .byte   <(ftan-1)
+        .byte   <(fatn-1)
+        .byte   <(fun_abs-1)
+        .byte   <(fun_sgn-1)
+        .byte   <(fun_sqr-1)
+        .byte   <(fun_rnd-1)
+.ifdef TARGET_SIM6502
+        .byte   <(fun_ver_s-1)
+.endif
 
-function_table:
-    .word   fun_len-1
-    .byte   1 | PROLOG_POP_STRING | EPILOG_PUSH_INT
-    .word   fun_str_s-1
-    .byte   1 | PROLOG_POP_FP | EPILOG_PUSH_STRING
-    .word   fun_chr_s-1 
-    .byte   1 | PROLOG_POP_INT | EPILOG_PUSH_STRING
-    .word   fun_asc-1
-    .byte   1 | PROLOG_POP_STRING | EPILOG_PUSH_INT
-    .word   fun_left_s-1
-    .byte   2 | PROLOG_POP_INT | EPILOG_PUSH_STRING
-    .word   fun_right_s-1
-    .byte   2 | PROLOG_POP_INT | EPILOG_PUSH_STRING
-    .word   fun_mid_s-1
-    .byte   3 | PROLOG_POP_INT | EPILOG_PUSH_STRING
-    .word   fun_val-1
-    .byte   1 | PROLOG_POP_STRING | EPILOG_PUSH_FP
-    .word   fun_fre-1
-    .byte   0 | EPILOG_PUSH_INT
-    .word   fun_peek-1
-    .byte   1 | PROLOG_POP_INT | EPILOG_PUSH_INT
-    .word   fun_dpeek-1
-    .byte   1 | PROLOG_POP_INT | EPILOG_PUSH_INT
-    .word   fun_adr-1
-    .byte   1 | PROLOG_POP_STRING | EPILOG_PUSH_INT
-    .word   fun_usr-1
-    .byte   2 | PROLOG_POP_INT | EPILOG_PUSH_INT
-    .word   floor-1
-    .byte   1 | PROLOG_POP_FP | EPILOG_PUSH_FP
-    .word   flog-1
-    .byte   1 | PROLOG_POP_FP | EPILOG_PUSH_FP
-    .word   fexp-1
-    .byte   1 | PROLOG_POP_FP | EPILOG_PUSH_FP
-    .word   fsin-1
-    .byte   1 | PROLOG_POP_FP | EPILOG_PUSH_FP
-    .word   fcos-1
-    .byte   1 | PROLOG_POP_FP | EPILOG_PUSH_FP
-    .word   ftan-1
-    .byte   1 | PROLOG_POP_FP | EPILOG_PUSH_FP
-    .word   fatn-1
-    .byte   1 | PROLOG_POP_FP | EPILOG_PUSH_FP
-    .word   fun_abs-1
-    .byte   1 | PROLOG_POP_FP | EPILOG_PUSH_FP
-    .word   fun_sgn-1
-    .byte   1 | PROLOG_POP_FP | EPILOG_PUSH_FP
-    .word   fun_sqr-1
-    .byte   1 | PROLOG_POP_FP | EPILOG_PUSH_FP
-    .word   fun_rnd-1
-    .byte   1 | PROLOG_POP_FP | EPILOG_PUSH_FP
+function_count = * - function_vectors_l
 
-.code
+function_vectors_h:
+        .byte   >(fun_len-1)
+        .byte   >(fun_str_s-1)
+        .byte   >(fun_chr_s-1 )
+        .byte   >(fun_asc-1)
+        .byte   >(fun_left_s-1)
+        .byte   >(fun_right_s-1)
+        .byte   >(fun_mid_s-1)
+        .byte   >(fun_val-1)
+        .byte   >(fun_fre-1)
+        .byte   >(fun_peek-1)
+        .byte   >(fun_dpeek-1)
+        .byte   >(fun_adr-1)
+        .byte   >(fun_usr-1)
+        .byte   >(floor-1)
+        .byte   >(flog-1)
+        .byte   >(fexp-1)
+        .byte   >(fsin-1)
+        .byte   >(fcos-1)
+        .byte   >(ftan-1)
+        .byte   >(fatn-1)
+        .byte   >(fun_abs-1)
+        .byte   >(fun_sgn-1)
+        .byte   >(fun_sqr-1)
+        .byte   >(fun_rnd-1)
+.ifdef TARGET_SIM6502
+        .byte   >(fun_ver_s-1)
+.endif
+
+.assert (* - function_vectors_h) = function_count, error
+
+function_flags:
+        .byte   1 | PROLOG_POP_STRING | EPILOG_PUSH_INT
+        .byte   1 | PROLOG_POP_FP | EPILOG_PUSH_STRING
+        .byte   1 | PROLOG_POP_INT | EPILOG_PUSH_STRING
+        .byte   1 | PROLOG_POP_STRING | EPILOG_PUSH_INT
+        .byte   2 | PROLOG_POP_INT | EPILOG_PUSH_STRING
+        .byte   2 | PROLOG_POP_INT | EPILOG_PUSH_STRING
+        .byte   3 | PROLOG_POP_INT | EPILOG_PUSH_STRING
+        .byte   1 | PROLOG_POP_STRING | EPILOG_PUSH_FP
+        .byte   0 | EPILOG_PUSH_INT
+        .byte   1 | PROLOG_POP_INT | EPILOG_PUSH_INT
+        .byte   1 | PROLOG_POP_INT | EPILOG_PUSH_INT
+        .byte   1 | PROLOG_POP_STRING | EPILOG_PUSH_INT
+        .byte   2 | PROLOG_POP_INT | EPILOG_PUSH_INT
+        .byte   1 | PROLOG_POP_FP | EPILOG_PUSH_FP
+        .byte   1 | PROLOG_POP_FP | EPILOG_PUSH_FP
+        .byte   1 | PROLOG_POP_FP | EPILOG_PUSH_FP
+        .byte   1 | PROLOG_POP_FP | EPILOG_PUSH_FP
+        .byte   1 | PROLOG_POP_FP | EPILOG_PUSH_FP
+        .byte   1 | PROLOG_POP_FP | EPILOG_PUSH_FP
+        .byte   1 | PROLOG_POP_FP | EPILOG_PUSH_FP
+        .byte   1 | PROLOG_POP_FP | EPILOG_PUSH_FP
+        .byte   1 | PROLOG_POP_FP | EPILOG_PUSH_FP
+        .byte   1 | PROLOG_POP_FP | EPILOG_PUSH_FP
+        .byte   1 | PROLOG_POP_FP | EPILOG_PUSH_FP
+.ifdef TARGET_SIM6502
+        .byte   1 | PROLOG_POP_FP | EPILOG_PUSH_STRING
+.endif
+
+.assert (* - function_flags) = function_count, error
 
 fun_abs:
         asl     FP0s                    ; Clear sign bit
