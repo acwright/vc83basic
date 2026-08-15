@@ -8,7 +8,7 @@
 
 exec_input:
         jsr     peek_byte
-        cmp     #'"'
+        cmp     #TOK_STRING
         bne     @default_prompt
         jsr     decode_string
         lday    string_ptr

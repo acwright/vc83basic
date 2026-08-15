@@ -52,7 +52,7 @@ exec_read:
 @assign:
         jsr     assign_variable         ; Store the value
         jsr     peek_byte               ; Check if more variables
-        cmp     #','
+        cmp     #TOK_COMMA
         bne     @done                   ; Nope
         inc     line_pos
         bne     exec_read               ; Unconditional

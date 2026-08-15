@@ -46,7 +46,7 @@ exec_on_goto_gosub:
         lda     (line_ptr),y
         beq     @out_of_range           ; Found the terminator instead
         iny
-        cmp     #','
+        cmp     #TOK_COMMA
         bne     @next_byte
         sty     line_pos                ; Update line_pos with the position after the next ','
         beq     @loop                   ; Unconditional
