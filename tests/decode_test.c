@@ -55,7 +55,7 @@ void test_decode_number(void) {
 
 void test_decode_string(void) {
     const char line_data[] = {
-        '"', 'H', 'E', 'L', 'L', 'O', '"'
+        5, 'H', 'E', 'L', 'L', 'O', '"' | EOT
     };
 
     PRINT_TEST_NAME();
@@ -64,11 +64,7 @@ void test_decode_string(void) {
 
     set_line(0, line_data, sizeof line_data);
 
-    HEXDUMP(&line_buffer, 32);
-    HEXDUMP(line_ptr, 32);
-
     decode_string();
-    HEXDUMP(string_ptr, 32);
     ASSERT_EQ(string_ptr->length, 5);
     ASSERT_EQ(memcmp(string_ptr->data, "HELLO", 5), 0);
     ASSERT_EQ(line_pos, 10);
@@ -79,8 +75,8 @@ void test_decode_name(void) {
         'X' | EOT,
         'T', 'H', 'I', 'N', 'G', '3' | EOT,
         'A', '$' | EOT,
-        'X' | EOT, '(',
-        'A', '$' | EOT, '(',
+        'X' | EOT, TOK_LPAREN,
+        'A', '$' | EOT, TOK_LPAREN,
      };
 
     PRINT_TEST_NAME();

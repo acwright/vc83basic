@@ -729,6 +729,7 @@ string_to_fp_2:
         bne     @not_e
         jmp     @parse_e
 @not_e:
+        and     #<~EOT                  ; Mask out EOT if it's set
         jsr     char_to_digit           ; Try to make it into a digit
         bcs     @not_digit              ; Character was not a digit, '.', or 'E'
         

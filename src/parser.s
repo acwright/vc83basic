@@ -241,8 +241,8 @@ calculate_address_10:
 .endmacro
 
 .macro MATCH_CLASS c
-        .assert c < $F, error, "Class must be $0-$F"
-        .byte PVM_MATCH_CLASS | c    
+        .assert (c & $0F) = 0, error, "Class must be $0-$F"
+        .byte PVM_MATCH_CLASS | (c >> 4)    
 .endmacro
 
 .macro write_opcode_address opcode, address

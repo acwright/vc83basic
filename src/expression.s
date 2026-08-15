@@ -94,22 +94,44 @@ raise_arity_mismatch:
 
 .assert TOKEN_EXTENSION = $80, error
 
+; Evaluates an expression and leaves the result on the stack.
+; An expression is a primary expression, optionally followed by a binary operator and another expression.
+; If we're here, there *must* be an expression. The expression ends when we don't find a binary operator
+; after the primary expression.
+
 evaluate_expression:
         phzp    DECODE_NAME_STATE, DECODE_NAME_STATE_SIZE   ; Remember the decoded name
         lda     #PR_OPEN_PAREN          ; Push the open paren, which will never be removed by process_operators
-@push:
+after_operator:
         jsr     push_operator
-@next:
+next_expression:
+        jsr     decode_byte                     ; Get the next thing
+        cmp     #TOK_ADD                        ; Check for unary op cases
+        beq     next_expression                 ; Unary + does nothing
+        ldx     #PR_UNARY_OP | TOK_UNARY_MINUS
+        cmp     #TOK_SUB
+        beq     @unary_operator
+        ldx     #PR_UNARY_OP | TOK_UNARY_NOT
+        cmp     #TOK_NOT
+        beq     @unary_operator
         jsr     evaluate_primary_expression     ; JSR to dispatcher so we can just RTS from handlers
         jsr     peek_byte                       ; Check if an operator follows
-        and     #$0F
-        ; cmp     TOK_ANY_OP_2X
+        and     #$F0
+        cmp     #TOK_CLASS_OP_2X
         beq     @operator
+        lda     #PR_CLOSE_PAREN         ; Process any operators not yet processed (except open paren)
+        jsr     process_operators
+        inc     op_stack_pos            ; Pop the open paren
+        plzp    DECODE_NAME_STATE, DECODE_NAME_STATE_SIZE   ; Recover the decoded name
         rts
+
+@unary_operator:
+        txa                             ; The operator is in X; move it to A
+        bne     after_operator          ; Unconditional
 
 @operator:
         jsr     decode_byte             ; Return the operator in A
-        and     #<~TOKEN_OP
+        and     #$0F                    ; Get the operator number
         pha                             ; Keep on the stack while we process higher-precedence operators
         lsr     A                       ; Divide by 2        
         tax                             ; Move into X to use as index
@@ -121,12 +143,9 @@ evaluate_expression:
         tax                             ; Move into X to use as index (again)
         tya                             ; Operator value back into A
         ora     operator_precedence_table,x ; OR the precedence value
-        jmp     @push
+        jmp     after_operator
 
 evaluate_primary_expression:
-        jsr     decode_byte
-        beq     @done                   ; Short circuit to end if we're at the end of the line
-        ; bmi     evaluate_function       ; Functions have high bit set
         cmp     #TOK_LPAREN
         beq     evaluate_paren
         cmp     #TOK_NUM
@@ -135,31 +154,9 @@ evaluate_primary_expression:
         beq     evaluate_string
         cmp     #TOK_NAME
         beq     evaluate_variable
-        cmp     #TOK_SUB
-        bcc     @unary_operator
-        cmp     #TOK_NOT
-        bcc     @unary_operator
-
-; None of the above; probably end of line or ')' or ',' or ';' so just return.
-; Pop the @dispatch address off the stack so we return from evaluate_expression not @dispatch.
-
-@done:
-        pla
-        pla
-        lda     #PR_CLOSE_PAREN         ; Process any operators not yet processed (except open paren)
-        jsr     process_operators
-        inc     op_stack_pos            ; Pop the open paren
-        plzp    DECODE_NAME_STATE, DECODE_NAME_STATE_SIZE   ; Recover the decoded name
-        rts
-
-@unary_operator:
-        jsr     decode_byte             ; Get the unary operator
-        and     #<~TOKEN_UNARY_OP
-        ora     #PR_UNARY_OP            ; Unary ops have highest precedence and are right-assoc so don't do anything
-        ; jmp     @push
+        jmp     evaluate_function       ; None of the above; assume it's a function
 
 evaluate_paren:
-        inc     line_pos                ; Consume the '('
         lda     #PR_OPEN_PAREN          ; Push the open paren, which will never be removed by process_operators
         jsr     push_operator
         jsr     evaluate_expression     ; Evaluate the subexpression; may fail
@@ -216,14 +213,14 @@ operator_precedence_table:
 evaluate_argument_list:
         pha                             ; Save expected count
         jsr     peek_byte
-        cmp     #')'
+        cmp     #TOK_RPAREN
         beq     @done
 @loop:
         jsr     evaluate_expression
         tsx
         dec     $101,x                  ; Decrement remaining
         jsr     peek_byte
-        cmp     #','
+        cmp     #TOK_COMMA
         bne     @done                   ; No comma, stop
         inc     line_pos                ; Skip comma
         jmp     @loop                   ; And continue
@@ -254,8 +251,8 @@ process_operators:
         cmp     min_precedence          ; Compare with minimum precedence
         bcc     @done                   ; If carry clear (we had to borrow) then op prec < min prec; stop
         inc     op_stack_pos            ; Move stack position to next operator
-        and     #$1F                    ; Keep lower 5 bits
-        jsr     invoke_indexed_vector   ; Invoke the vector; don't need to adjust b/c we assert op vector offet is 0
+        and     #$0F                    ; Keep lower 5 bits
+        jsr     invoke_indexed_vector   ; Invoke the vector
         jmp     @next                   ; Continue processing operators
 @done:
         rts
@@ -581,8 +578,6 @@ operator_vectors:
         .word   op_ge-1
         .word   op_and-1
         .word   op_or-1
-        .word   0
-        .word   0
         .word   unary_op_minus-1
         .word   unary_op_not-1
 

@@ -49,8 +49,8 @@ void test_one_op(char op, const Float* expected00, const Float* expected01, cons
     DEBUG(op);
 
     line_data[2] = op;
-    line_data[1] = '0';
-    line_data[4] = '0';
+    line_data[1] = '0' | EOT;
+    line_data[4] = '0' | EOT;
     set_line(0, line_data, sizeof line_data);
     evaluate_expression();
     ASSERT_EQ(err, 0);
@@ -58,16 +58,16 @@ void test_one_op(char op, const Float* expected00, const Float* expected01, cons
     store_fp0(&value);
     ASSERT_FLOAT_EQ(value, *expected00);
 
-    line_data[1] = '0';
-    line_data[4] = '1';
+    line_data[1] = '0' | EOT;
+    line_data[4] = '1' | EOT;
     set_line(0, line_data, sizeof line_data);
     evaluate_expression();
     ASSERT_EQ(err, 0);
     store_fp0(&value);
     ASSERT_FLOAT_EQ(value, *expected01);
 
-    line_data[1] = '1';
-    line_data[4] = '0';
+    line_data[1] = '1' | EOT;
+    line_data[4] = '0' | EOT;
     set_line(0, line_data, sizeof line_data);
     evaluate_expression();
     ASSERT_EQ(err, 0);
@@ -75,8 +75,8 @@ void test_one_op(char op, const Float* expected00, const Float* expected01, cons
     store_fp0(&value);
     ASSERT_FLOAT_EQ(value, *expected10);
 
-    line_data[1] = '1';
-    line_data[4] = '1';
+    line_data[1] = '1' | EOT;
+    line_data[4] = '1' | EOT;
     set_line(0, line_data, sizeof line_data);
     evaluate_expression();
     ASSERT_EQ(err, 0);
@@ -94,7 +94,7 @@ void test_one_unary_op(char op, const Float* expected0, const Float* expected1) 
     DEBUG(op);
 
     line_data[0] = op;
-    line_data[2] = '0';
+    line_data[2] = '0' | EOT;
     set_line(0, line_data, sizeof line_data);
     evaluate_expression();
     ASSERT_EQ(err, 0);
@@ -102,7 +102,7 @@ void test_one_unary_op(char op, const Float* expected0, const Float* expected1) 
     store_fp0(&value);
     ASSERT_FLOAT_EQ(value, *expected0);
 
-    line_data[2] = '1';
+    line_data[2] = '1' | EOT;
     set_line(0, line_data, sizeof line_data);
     evaluate_expression();
     ASSERT_EQ(err, 0);
@@ -143,10 +143,10 @@ void test_evaluate_expression_op_precedence(void) {
 
     // Terminate each expression with 0.
     // 2-1-1 = 0
-    char line_data_1[] = { '2', TOK_SUB, TOK_NUM, '1' | EOT, TOK_SUB, TOK_NUM, '1' | EOT, 0 };
+    char line_data_1[] = { TOK_NUM, '2' | EOT, TOK_SUB, TOK_NUM, '1' | EOT, TOK_SUB, TOK_NUM, '1' | EOT, 0 };
     Float result_1 = { 0x00000000, 0 };
     // 2-(1-1) = 2
-    char line_data_2[] = { '2', TOK_SUB, TOK_LPAREN, TOK_NUM, '1' | EOT, TOK_SUB, TOK_NUM, '1' | EOT, TOK_RPAREN, 0 };
+    char line_data_2[] = { TOK_NUM, '2' | EOT, TOK_SUB, TOK_LPAREN, TOK_NUM, '1' | EOT, TOK_SUB, TOK_NUM, '1' | EOT, TOK_RPAREN, 0 };
     Float result_2 = { 0x00000000, 129 };
 
     PRINT_TEST_NAME();
@@ -245,7 +245,7 @@ void test_string_comparison(void) {
 }
 
 void test_evaluate_argument_list(void) {
-    const char line_data[] = { TOK_LPAREN, TOK_NUM, '1', '2', '8' | EOT, TOK_COMMA, TOK_NUM, '1' | EOT, TOK_ADD, TOK_NUM, '2' | EOT, TOK_LPAREN, 0 };
+    const char line_data[] = { TOK_LPAREN, TOK_NUM, '1', '2', '8' | EOT, TOK_COMMA, TOK_NUM, '1' | EOT, TOK_ADD, TOK_NUM, '2' | EOT, TOK_RPAREN, 0 };
     const Float value_128 = { 0x00000000, 135 };
     const Float value_3 = { 0x40000000, 129 };
 
