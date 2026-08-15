@@ -639,7 +639,6 @@ generate_digits:
 ; The digits are on the stack, behind the JSR return address, so we pop the return address off, stash it in BC, 
 ; and then restore it before returning.
 ; X = the current buffer position (updated)
-; BC SAFE
 
 output_y_digits:
         plstaa  BC                      ; Save return address in BC
