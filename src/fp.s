@@ -722,16 +722,13 @@ string_to_fp_2:
         jsr     parse_signed_digits     ; Phase 3: Exponent digits
         sty     E                       ; Save Y at end of exponent
         pla                             ; Pop mantissa D
-        sta     D
-        lda     FP0s                    ; Was exponent negative?
+        bit     FP0s                    ; Was exponent negative?
         bmi     @exp_neg
-        lda     D                       ; Positive exponent: D = D - FP0t
         sec
         sbc     FP0t
         sta     D
         jmp     @do_scale
 @exp_neg:
-        lda     D                       ; Negative exponent: D = D + FP0t
         clc
         adc     FP0t
         sta     D
