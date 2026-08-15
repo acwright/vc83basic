@@ -188,10 +188,32 @@ void test_parse_line(void) {
     call_parse_line("10 PRINT 1", &line_5, __LINE__);
 }
 
+void test_max_line_length(void) {
+    char buf[256];
+    int pos;
+
+    PRINT_TEST_NAME();
+
+    memset(buf, 0, sizeof buf);
+    strcpy(buf, "10 PRINT ");
+    pos = strlen(buf);
+    while (pos < 240) {
+        strcpy(buf + pos, "1+");
+        pos += 2;
+    }
+    buf[pos] = '1';
+    buf[pos + 1] = '\0';
+
+    strcpy(buffer, buf);
+    parse_line();
+    ASSERT_EQ(err, ERR_LINE_TOO_LONG);
+}
+
 int main(void) {
     initialize_target();
     test_pvm_expression();
     test_pvm_statement();
     test_parse_line();
+    test_max_line_length();
     return 0;
 }

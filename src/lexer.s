@@ -210,7 +210,20 @@ keyword_token_count = * - keyword_tokens;
 .assert <buffer = 0, error
 .assert <line_buffer = 0, error
 
-.assert TOK_EOL = 0, error
+; Appends A to line_buffer and advances line_pos.
+; Checks against MAX_LINE_LENGTH and raises ERR_LINE_TOO_LONG if exceeded.
+
+append_line_buffer:
+        ldy     line_pos
+        cpy     #MAX_LINE_LENGTH
+        bcs     @line_too_long
+        sta     line_buffer,y
+        iny
+        sty     line_pos
+        rts
+
+@line_too_long:
+        raise   ERR_LINE_TOO_LONG
 
 next_token:
         ldx     buffer_pos
@@ -227,9 +240,8 @@ next_token:
         beq     @whitespace             ; Skip space
 
 @init_dfa:
-        inc     line_pos                ; Leave space for token; we'll encode value after it
-        lda     line_pos                ; Set up decode_name_ptr now in case we have to tokenize a keyword
-        sta     decode_name_ptr         ; Start of token value in decode_name_ptr
+        jsr     append_line_buffer      ; Advance line_pos for token type byte
+        sty     decode_name_ptr         ; Start of token value in decode_name_ptr
         lda     #>line_buffer           
         sta     decode_name_ptr+1       ; High byte
         mva     #0, B                   ; B = current DFA state byte offset (relative to state_0)
@@ -266,9 +278,7 @@ next_token:
         lda     state_0,y
         sta     B                       ; B is once again the state byte offset relative to state_0
         pla                             ; Read character from stack
-        ldy     line_pos                ; Y goes back to being the line_buffer write position
-        sta     line_buffer,y           ; Store in line_buffer
-        inc     line_pos
+        jsr     append_line_buffer      ; Store in line_buffer
         inx
         bne     @dfa_loop               ; Unconditional
 
@@ -343,3 +353,4 @@ next_token:
 @return_terminal_token:
         lda     C
         rts
+

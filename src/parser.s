@@ -46,12 +46,10 @@ parse_line:
         ldax    #pvm_statement
         jsr     parse_pvm
         lda     #TOK_EOL                ; Store TOK_EOL at end of statement
-        ldx     line_pos
-        sta     line_buffer,x
-        inc     line_pos
+        jsr     append_line_buffer
         pla                             ; Get back the start of statement
         tax                             
-        lda     line_pos                ; Current write position is next statement offset
+        tya                             ; Current write position is next statement offset
         sta     line_buffer-1,x         ; Write it to the byte before the start of this statement
         jsr     next_token              ; Read the next token
         bne     @check_separator        ; Z still be set if the next token is EOL
@@ -158,7 +156,8 @@ run_pvm:
 
 @slurp:
         ldx     D                       ; Read from D (buffer_pos before speculative next_token)
-        ldy     E                       ; Write to E (line_pos before speculative next_token)
+        ldy     E                       ; Write to line_pos before speculative next_token
+        sty     line_pos
 @slurp_whitespace:
         lda     buffer,x
         beq     @done
@@ -169,9 +168,8 @@ run_pvm:
 @slurp_next:             
         lda     buffer,x
         beq     @done
-        sta     line_buffer,y
+        jsr     append_line_buffer
         inx
-        iny
         bne     @slurp_next
 @done:
         stx     D
