@@ -224,11 +224,6 @@ _round:
         startwrap
         jmp     round
 
-_char_to_digit:
-.export _char_to_digit
-        jsr     char_to_digit
-        jmp     set_err
-
 _adjust_exponent:
 .export _adjust_exponent
         pha                             ; popa uses Y so can't move it immediately

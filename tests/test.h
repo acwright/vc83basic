@@ -118,7 +118,6 @@ void round(void);
 void floor(void);
 void fp_to_string(void);
 void string_to_fp(/* AX */ const char* ptr, /* Y */ char pos);
-char char_to_digit(/* A */ char c);
 void adjust_exponent(/* A */ char add, /* Y */ char subtract);
 void normalize(void);
 void fadd(/* AY */ const Float* value);

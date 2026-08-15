@@ -691,24 +691,8 @@ string_to_fp:
 string_to_fp_2:
         jsr     skip_whitespace         ; Skip any whitespace        
         sty     E                       ; Save starting position in E
-        jsr     clear_fp0               ; Reset to zero (including sign)
-        sta     FPX                     ; Also clear FPX in order to detect overflows
         mva     #$80, D                 ; D counts digits after '.'; starts at -128 and jumps to 0 on '.'
-        lda     (read_ptr),y
-        cmp     #'-'                    ; Check if it's negative
-        beq     @negative
-        cmp     #'+'
-        bne     @phase1
-        iny
-        bne     @phase1                 ; Unconditional
-
-@negative:
-        ror     FP0s                    ; Roll carry into sign
-        iny
-
-@phase1:
-        jsr     parse_digits            ; Phase 1: Pre-decimal digits
-
+        jsr     parse_signed_digits     ; Phase 1: Pre-decimal digits
         lda     (read_ptr),y
         and     #<~EOT
         cmp     #'.'                    ; Is it the decimal point?
@@ -716,18 +700,14 @@ string_to_fp_2:
         mva     #0, D                   ; Set D to 0 to count digits after '.'
         iny                             ; Consume '.'
         jsr     parse_digits            ; Phase 2: Post-decimal digits
-
 @check_e:
         lda     D
         cmp     #$80
         beq     @err                    ; If D is still $80, no digits were parsed
-
         lda     (read_ptr),y
         and     #<~EOT
         cmp     #'E'                    ; Is it 'E'?
         bne     @no_e
-
-        ; Phase 3: Exponent
         lda     D
         bpl     @e_d_pos
         lda     #0                      ; D = 0 if no decimal point seen
@@ -737,22 +717,9 @@ string_to_fp_2:
         jsr     int32_to_fp
         lday    #string_to_fp_x
         jsr     store_fp0               ; Save mantissa in scratch
-        jsr     clear_fp0               ; Reset FP0t = 0, FP0s = 0
         ldy     E                       ; Restore text position Y
         iny                             ; Skip 'E'
-        lda     (read_ptr),y
-        cmp     #'-'                    ; Check exponent sign
-        beq     @e_neg
-        cmp     #'+'
-        bne     @parse_exp
-        iny
-        bne     @parse_exp              ; Unconditional
-@e_neg:
-        ror     FP0s                    ; Exponent is negative
-        iny
-
-@parse_exp:
-        jsr     parse_digits            ; Phase 3: Exponent digits
+        jsr     parse_signed_digits     ; Phase 3: Exponent digits
         sty     E                       ; Save Y at end of exponent
         pla                             ; Pop mantissa D
         sta     D
@@ -784,7 +751,6 @@ string_to_fp_2:
         jsr     int32_to_fp
         lday    #string_to_fp_x
         jsr     store_fp0               ; Save FP0 in scratch so we can get it back later
-
 @do_scale:
         lda     D                       ; Test number of digits
         bne     @scale_needed
@@ -815,7 +781,6 @@ string_to_fp_2:
         bmi     @multiply               ; If negative, multiply
         jsr     fdiv_2                  ; Divide
         jmp     @whole
-
 @multiply:
         jsr     fmul_2                  ; Multiply by FP1
 @whole:
@@ -823,13 +788,33 @@ string_to_fp_2:
         clc                             ; Signal success
         rts
 
+; Clears FP0 and FPX, parses an optional sign ('+' or '-'), setting bit 7 of FP0s if negative,
+; then falls through to parse_digits.
+
+parse_signed_digits:
+        jsr     clear_fp0               ; Reset FP0 to zero (including sign); returns A = 0
+        sta     FPX                     ; Clear FPX for overflow detection
+        lda     (read_ptr),y
+        cmp     #'-'                    ; Check if negative
+        beq     @negative
+        cmp     #'+'
+        bne     parse_digits            ; Not a sign, parse digits
+        iny                             ; Consume '+'
+        bne     parse_digits            ; Unconditional
+
+@negative:
+        ror     FP0s                    ; Roll carry into sign (sets bit 7)
+        iny                             ; Consume '-'
+
 ; Consumes contiguous digits and accumulates into 32-bit FP0t.
 ; Increments D for each digit. Returns with Y at the first non-digit.
 
 parse_digits:
         lda     (read_ptr),y            ; Load next character
-        and     #<~EOT                  ; Strip EOT
-        jsr     char_to_digit           ; Convert to digit 0-9
+        and     #<~EOT                  ; Mask out EOT if it's set
+        sec                             ; Set carry
+        sbc     #'0'                    ; Subtract '0'; maps valid values to range 0-9 and other values to 10-255
+        cmp     #10                     ; Sets carry if it's in the 10-255 range
         bcs     @done                   ; Not a digit, return
         pha                             ; Save digit
         ldx     #FP1t                   ; Multiply FP0t by 10
@@ -854,17 +839,6 @@ parse_digits:
         iny                             ; Advance to next character
         bne     parse_digits            ; Loop
 @done:
-        rts
-
-; Converts the character in A into a digit.
-; Returns the digit in A, carry clear if ok, carry set if error.
-; X SAFE, Y SAFE, BC SAFE, DE SAFE
-
-char_to_digit:
-        and     #<~EOT                  ; Mask out EOT if it's set
-        sec                             ; Set carry
-        sbc     #'0'                    ; Subtract '0'; maps valid values to range 0-9 and other values to 10-255
-        cmp     #10                     ; Sets carry if it's in the 10-255 range
         rts
 
 ; Adjusts the 16-bit signed biased exponent of FP0 (zero-extended from FP0e to C) by first adding the value in A

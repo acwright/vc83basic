@@ -573,34 +573,6 @@ void test_fcmp(void) {
     }
 }
 
-void test_char_to_digit(void) {
-    char d;
-
-    PRINT_TEST_NAME();
-
-    d = char_to_digit('0');
-    ASSERT_EQ(err, 0);
-    ASSERT_EQ(d, 0);
-    d = char_to_digit('9');
-    ASSERT_EQ(err, 0);
-    ASSERT_EQ(d, 9);
-    d = char_to_digit('5' | EOT);
-    ASSERT_EQ(err, 0);
-    ASSERT_EQ(d, 5);
-    char_to_digit('0'-1);
-    ASSERT_NE(err, 0);
-    char_to_digit('9'+1);
-    ASSERT_NE(err, 0);
-    char_to_digit(' ');
-    ASSERT_NE(err, 0);
-    char_to_digit('A');
-    ASSERT_NE(err, 0);
-    char_to_digit(0);
-    ASSERT_NE(err, 0);
-    char_to_digit(255);
-    ASSERT_NE(err, 0);
-}
-
 void call_fp_to_string(unsigned long t, char e, const char* expect_string, int line) {
     Float value;
     value.t = t;
@@ -1004,7 +976,6 @@ int main(int argc, char* argv[]) {
     test_fdiv(1);
     test_fpow(1);
     test_fcmp();
-    test_char_to_digit();
     test_fp_to_string();
     test_string_to_fp();
     test_fpoly();
