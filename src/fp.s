@@ -720,135 +720,106 @@ string_to_fp_2:
         cmp     #'-'                    ; Check if it's negative
         beq     @negative
         cmp     #'+'
-        beq     @consume
-        bne     @not_negative           ; Unconditional
+        bne     @phase1
+        iny
+        bne     @phase1                 ; Unconditional
 
 @negative:
         ror     FP0s                    ; Roll carry into sign
-        bne     @consume                ; Unconditional
-@not_negative:
-        lda     (read_ptr),y            ; Get the next character
-        and     #<~EOT                  ; Mask out EOT if present
+        iny
+
+@phase1:
+        jsr     parse_digits            ; Phase 1: Pre-decimal digits
+
+        lda     (read_ptr),y
+        and     #<~EOT
         cmp     #'.'                    ; Is it the decimal point?
-        bne     @not_decimal_point      ; No
-        lda     D                       ; Check if we've already seen a decimal
-        bpl     @err_multiple_decimals
+        bne     @check_e
         mva     #0, D                   ; Set D to 0 to count digits after '.'
-        beq     @consume                ; Consume '.' and loop
+        iny                             ; Consume '.'
+        jsr     parse_digits            ; Phase 2: Post-decimal digits
 
-@not_decimal_point:
+@check_e:
+        lda     D
+        cmp     #$80
+        beq     @err                    ; If D is still $80, no digits were parsed
+
+        lda     (read_ptr),y
+        and     #<~EOT
         cmp     #'E'                    ; Is it 'E'?
-        beq     @parse_e                ; Yes, parse exponent
-        jsr     char_to_digit           ; Try to make it into a digit
-        bcs     @not_digit              ; Character was not a digit, '.', or 'E'
-        
-; Multiply FP0 by 10 and add in new digit.
+        bne     @no_e
 
-        pha                             ; Park digit on stack
-        jsr     mul10_significand
-        pla                             ; Recover digit from stack (does not affect carry)
-        inc     D                       ; Increment digits after '.'
-        adc     FP0t                    ; Add digit to LSB (carry will be clear)
-        sta     FP0t
-        bcc     @check_overflow         ; If no carry then next character
-        inc     FP0t+1                  ; Otherwise increment next byte
-        bne     @check_overflow         ; etc,
-        inc     FP0t+2
-        bne     @check_overflow
-        inc     FP0t+3
-        bne     @check_overflow
-        inc     FPX
+        ; Phase 3: Exponent
+        lda     D
+        bpl     @e_d_pos
+        lda     #0                      ; D = 0 if no decimal point seen
+@e_d_pos:
+        sty     E                       ; Save text position Y in E
+        pha                             ; Save decimal count on stack
+        jsr     int32_to_fp
+        lday    #string_to_fp_x
+        jsr     store_fp0               ; Save mantissa in scratch
+        jsr     clear_fp0               ; Reset FP0t = 0, FP0s = 0
+        ldy     E                       ; Restore text position Y
+        iny                             ; Skip 'E'
+        lda     (read_ptr),y
+        cmp     #'-'                    ; Check exponent sign
+        beq     @e_neg
+        cmp     #'+'
+        bne     @parse_exp
+        iny
+        bne     @parse_exp              ; Unconditional
+@e_neg:
+        ror     FP0s                    ; Exponent is negative
+        iny
 
-@check_overflow:
-        lda     FPX                     ; If there's anything in FPX then we overflowed
-        bne     @err_overflow
+@parse_exp:
+        jsr     parse_digits            ; Phase 3: Exponent digits
+        sty     E                       ; Save Y at end of exponent
+        pla                             ; Pop mantissa D
+        sta     D
+        lda     FP0s                    ; Was exponent negative?
+        bmi     @exp_neg
+        lda     D                       ; Positive exponent: D = D - FP0t
+        sec
+        sbc     FP0t
+        sta     D
+        jmp     @do_scale
+@exp_neg:
+        lda     D                       ; Negative exponent: D = D + FP0t
+        clc
+        adc     FP0t
+        sta     D
+        jmp     @do_scale
 
-@consume:
-        iny                             ; Consume character
-        bne     @not_negative           ; Unconditional
-
-@err_multiple_decimals:
-@err_overflow:
-@err_not_digit:
+@err:
         ldy     E                       ; Reset position to start for return
         sec                             ; Signal error
         rts
 
-@parse_e:
-        lda     D                       ; Check if we had any digits
-        cmp     #$80
-        beq     @err_not_digit          ; If no digits seen yet, error
-        mva     #0, C                   ; C = exponent accumulator
-        iny                             ; Skip 'E'
-        lda     (read_ptr),y
-        cmp     #'-'
-        php                             ; Save Z flag (if '-', Z is set)
-        beq     @e_sign
-        cmp     #'+'
-        bne     @e_digit
-@e_sign:
-        iny                             ; Skip sign
-@e_digit:
-        lda     (read_ptr),y
-        jsr     char_to_digit
-        bcs     @e_done
-        pha
-        lda     C
-        asl     A
-        sta     C
-        asl     A
-        asl     A
-        adc     C       
-        sta     C
-        pla
-        clc
-        adc     C
-        sta     C
-        iny
-        bne     @e_digit                ; Loop
-@e_done:
-        plp                             ; Restore sign flag
-        bne     @apply_e                ; If not '-', Z=0, branch taken
-        lda     C
-        eor     #$FF
-        clc
-        adc     #1
-        sta     C
-@apply_e:
+@no_e:
         sty     E                       ; Save Y in E
         lda     D
-        bpl     @e_d_pos
-        lda     #0
-@e_d_pos:
-        sec
-        sbc     C
-        sta     D
-        jmp     @calc_fp
-
-@not_digit:
-        lda     D                       ; Has D changed at all?
-        cmp     #$80                    
-        beq     @err_not_digit          ; No, so this is an error: we wanted a number and didn't find one
-
-; There was at least one digit character followed by a non-digit character that isn't E, so treat this as
-; the end of the number. The number is now a 32-bit integer in FP0, so convert it into FP.
-
-        sty     E                       ; Y points to the first non-digit; save in E
-        lda     D                       ; Load D to test its sign
         bpl     @calc_fp
         mva     #0, D                   ; Clear D if negative so we don't do unwanted scaling
 @calc_fp:
         jsr     int32_to_fp
         lday    #string_to_fp_x
         jsr     store_fp0               ; Save FP0 in scratch so we can get it back later
+
+@do_scale:
         lda     D                       ; Test number of digits
-        beq     @whole                  ; If zero then no scaling
+        bne     @scale_needed
+        lday    #string_to_fp_x
+        jsr     load_fp0
+        jmp     @whole
+@scale_needed:
         pha                             ; Save signed D on stack
         bpl     @d_pos                  ; If positive, D is already the count
-        lda     #0                      ; Else negate D (D = -D)
+        eor     #$FF                    ; Negate A
         sec
-        sbc     D
-        sta     D
+        adc     #0
+        sta     D                       ; D = -D
 @d_pos:
         jsr     load_ten_fp0            ; Set FP0 to 10
 @scale_loop:
@@ -872,6 +843,34 @@ string_to_fp_2:
 @whole:
         ldy     E                       ; Return buffer read position in Y
         clc                             ; Signal success
+        rts
+
+; Consumes contiguous digits and accumulates into 32-bit FP0t.
+; Increments D for each digit. Returns with Y at the first non-digit.
+
+parse_digits:
+        lda     (read_ptr),y            ; Load next character
+        and     #<~EOT                  ; Strip EOT
+        jsr     char_to_digit           ; Convert to digit 0-9
+        bcs     @done                   ; Not a digit, return
+        pha                             ; Save digit
+        jsr     mul10_significand       ; Multiply FP0t by 10
+        pla                             ; Recover digit
+        inc     D                       ; Increment digit count
+        adc     FP0t                    ; Add digit to FP0t
+        sta     FP0t
+        bcc     @check_overflow
+        inc     FP0t+1
+        bne     @check_overflow
+        inc     FP0t+2
+        bne     @check_overflow
+        inc     FP0t+3
+        bne     @check_overflow
+        inc     FPX
+@check_overflow:
+        iny                             ; Advance to next character
+        bne     parse_digits            ; Loop
+@done:
         rts
 
 ; Converts the character in A into a digit.
