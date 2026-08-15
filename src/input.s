@@ -23,6 +23,7 @@ exec_input:
         jsr     readline
         mva     #0, buffer_pos          ; Reset the read position
 @next_var:
+        inc     line_pos                ; Skip TOK_NAME
         jsr     decode_name             ; Read the variable name
         jsr     find_or_add_variable
         bcs     @done

@@ -80,7 +80,7 @@ def(TOK_END,            hex(57))
 def(TOK_INPUT,          hex(58))
 def(TOK_IF,             hex(59))
 ifdef(TARGET_SIM6502)
-def(TOK_BYE,            hex(60)) 
+def(TOK_BYE,            hex(5A)) 
 endif 
 
 def(TOK_LEN,            hex(80))
@@ -108,7 +108,7 @@ def(TOK_SGN,            hex(95))
 def(TOK_SQR,            hex(96))
 def(TOK_RND,            hex(97))
 ifdef(TARGET_SIM6502)
-def(TOK_VER_S,          hex(A0))
+def(TOK_VER_S,          hex(98))
 endif 
 
 def(TOK_CLASS_OP_2X,    hex(20))

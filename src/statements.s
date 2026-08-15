@@ -10,7 +10,9 @@ exec_statement:
         mva     stack_pos, reset_stack_pos      ; Save stack pos in case we have to roll it back
         mva     #OP_STACK_SIZE, op_stack_pos    ; Clear op stack
         jsr     decode_byte             ; Get statement number
-        and     $3F                     ; Isolate statement offset from 0 to 63
+        cmp     #TOK_NAME
+        beq     @impl_let
+        and     #$3F                    ; Isolate statement offset from 0 to 63
         tax
         lda     statement_vectors_h,x
         pha
@@ -18,14 +20,15 @@ exec_statement:
         pha
         rts                             ; This does the jump to the statement handler
 
+@impl_let:
+        jmp     exec_impl_let
+
 statement_vectors_l:
-        .byte   <(exec_let-1)
-        .byte   <(exec_let-1)
+        .byte   <(exec_print-1)
+        .byte   <(exec_print-1)
         .byte   <(exec_run-1)
-        .byte   <(exec_print-1)
-        .byte   <(exec_print-1)
+        .byte   <(exec_let-1)
         .byte   <(exec_list-1)
-        .byte   <(exec_goto-1)
         .byte   <(exec_goto-1)
         .byte   <(exec_gosub-1)
         .byte   <(exec_return-1)
@@ -34,9 +37,9 @@ statement_vectors_l:
         .byte   <(exec_for-1)
         .byte   <(exec_next-1)
         .byte   <(exec_stop-1)
-        .byte   <(exec_cont-1)
         .byte   <(initialize_program-1)
         .byte   <(clear_variables-1)
+        .byte   <(exec_cont-1)
         .byte   <(exec_dim-1)
         .byte   <(exec_rem-1)
         .byte   <(exec_data-1)
@@ -54,13 +57,11 @@ statement_vectors_l:
 statement_count = * - statement_vectors_l
 
 statement_vectors_h:
-        .byte   >(exec_let-1)
-        .byte   >(exec_let-1)
+        .byte   >(exec_print-1)
+        .byte   >(exec_print-1)
         .byte   >(exec_run-1)
-        .byte   >(exec_print-1)
-        .byte   >(exec_print-1)
+        .byte   >(exec_let-1)
         .byte   >(exec_list-1)
-        .byte   >(exec_goto-1)
         .byte   >(exec_goto-1)
         .byte   >(exec_gosub-1)
         .byte   >(exec_return-1)
@@ -69,9 +70,9 @@ statement_vectors_h:
         .byte   >(exec_for-1)
         .byte   >(exec_next-1)
         .byte   >(exec_stop-1)
-        .byte   >(exec_cont-1)
         .byte   >(initialize_program-1)
         .byte   >(clear_variables-1)
+        .byte   >(exec_cont-1)
         .byte   >(exec_dim-1)
         .byte   >(exec_rem-1)
         .byte   >(exec_data-1)

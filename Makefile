@@ -34,6 +34,9 @@ endif
 
 all: $(addprefix build/basic_,$(TARGETS))
 
+run: build/basic_sim6502
+	sim65 build/basic_sim6502
+
 # Goal: basic_sim6502
 build/basic_sim6502.o: targets/sim6502/basic_sim6502.s src/basic.s $(GENERATED_ASM_SOURCES)
 	@mkdir -p $(@D)

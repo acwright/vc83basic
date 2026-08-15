@@ -5,6 +5,8 @@
 ; LET statement:
 
 exec_let:
+        inc     line_pos                ; Skip TOK_NAME
+exec_impl_let:
         jsr     decode_name             ; Sets decode_name_ptr and decode_name_length
         jsr     find_or_add_variable
         inc     line_pos                ; Skip terminator

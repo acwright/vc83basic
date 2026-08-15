@@ -83,6 +83,7 @@ exec_return:
 
 exec_for:
         jsr     push_next_line_ptr      ; Save return address
+        inc     line_pos                ; Skip TOK_NAME
         jsr     decode_name             ; Get the name (now in decode_name_ptr)
         lda     decode_name_type        ; No string variables please
         bne     raise_invalid_variable
@@ -132,6 +133,7 @@ exec_next:
 
 ; Decode the variable name and see if it matches the one at the top of the stack.
 
+        inc     line_pos                ; Skip TOK_NAME
         jsr     decode_name             ; Sets decode_name_ptr
         ldx     stack_pos               ; Load stack position
         cpx     #PRIMARY_STACK_SIZE     ; Check if stack empty
