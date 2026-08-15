@@ -6,10 +6,6 @@
 
 ; Linker-defined symbols
 .import __MAIN_START__, __MAIN_SIZE__
-.import __VEC_RUN__, __VEC_SIZE__
-.import __XVEC_RUN__, __XVEC_SIZE__
-.import __FUNC_RUN__, __FUNC_SIZE__
-.import __XFUNC_RUN__, __XFUNC_SIZE__
 .import __BSS_RUN__, __BSS_SIZE__
 .import __STACKSIZE__
 
