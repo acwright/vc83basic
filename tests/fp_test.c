@@ -584,6 +584,9 @@ void test_char_to_digit(void) {
     d = char_to_digit('9');
     ASSERT_EQ(err, 0);
     ASSERT_EQ(d, 9);
+    d = char_to_digit('5' | EOT);
+    ASSERT_EQ(err, 0);
+    ASSERT_EQ(d, 5);
     char_to_digit('0'-1);
     ASSERT_NE(err, 0);
     char_to_digit('9'+1);

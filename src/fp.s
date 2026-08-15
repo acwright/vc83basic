@@ -729,7 +729,6 @@ string_to_fp_2:
         bne     @not_e
         jmp     @parse_e
 @not_e:
-        and     #<~EOT                  ; Mask out EOT if it's set
         jsr     char_to_digit           ; Try to make it into a digit
         bcs     @not_digit              ; Character was not a digit, '.', or 'E'
         
@@ -877,6 +876,7 @@ string_to_fp_2:
 ; X SAFE, Y SAFE, BC SAFE, DE SAFE
 
 char_to_digit:
+        and     #<~EOT                  ; Mask out EOT if it's set
         sec                             ; Set carry
         sbc     #'0'                    ; Subtract '0'; maps valid values to range 0-9 and other values to 10-255
         cmp     #10                     ; Sets carry if it's in the 10-255 range
