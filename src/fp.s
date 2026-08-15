@@ -702,58 +702,44 @@ string_to_fp_2:
         jsr     parse_digits            ; Phase 2: Post-decimal digits
 @check_e:
         lda     D
+        bpl     @has_dot                ; D >= 0 means decimal point was seen
         cmp     #$80
         beq     @err                    ; If D is still $80, no digits were parsed
-        lda     (read_ptr),y
-        and     #<~EOT
-        cmp     #'E'                    ; Is it 'E'?
-        bne     @no_e
-        lda     D
-        bpl     @e_d_pos
-        lda     #0                      ; D = 0 if no decimal point seen
-@e_d_pos:
+        mva     #0, D                   ; D = 0 if no decimal point seen
+@has_dot:
         sty     E                       ; Save text position Y in E
-        pha                             ; Save decimal count on stack
         jsr     int32_to_fp
         lday    #string_to_fp_x
         jsr     store_fp0               ; Save mantissa in scratch
         ldy     E                       ; Restore text position Y
+        lda     (read_ptr),y
+        and     #<~EOT
+        cmp     #'E'                    ; Is it 'E'?
+        bne     @do_scale               ; No 'E', go directly to scaling
         iny                             ; Skip 'E'
+        lda     D
+        pha                             ; Save decimal count on stack
         jsr     parse_signed_digits     ; Phase 3: Exponent digits
         sty     E                       ; Save Y at end of exponent
         pla                             ; Pop mantissa D
         bit     FP0s                    ; Was exponent negative?
-        bmi     @exp_neg
-        sec
-        sbc     FP0t
-        sta     D
-        jmp     @do_scale
-@exp_neg:
+        bpl     @exp_pos
         clc
         adc     FP0t
+        bcc     @exp_done               ; Unconditional (sum < 256)
+
+@exp_pos:
+        sec
+        sbc     FP0t
+@exp_done:
         sta     D
-        jmp     @do_scale
-
-@err:
-        ldy     E                       ; Reset position to start for return
-        sec                             ; Signal error
-        rts
-
-@no_e:
-        sty     E                       ; Save Y in E
-        lda     D
-        bpl     @calc_fp
-        mva     #0, D                   ; Clear D if negative so we don't do unwanted scaling
-@calc_fp:
-        jsr     int32_to_fp
-        lday    #string_to_fp_x
-        jsr     store_fp0               ; Save FP0 in scratch so we can get it back later
 @do_scale:
         lda     D                       ; Test number of digits
         bne     @scale_needed
         lday    #string_to_fp_x
         jsr     load_fp0
         jmp     @whole
+
 @scale_needed:
         pha                             ; Save signed D on stack
         bpl     @d_pos                  ; If positive, D is already the count
@@ -778,11 +764,17 @@ string_to_fp_2:
         bmi     @multiply               ; If negative, multiply
         jsr     fdiv_2                  ; Divide
         jmp     @whole
+
 @multiply:
         jsr     fmul_2                  ; Multiply by FP1
 @whole:
         ldy     E                       ; Return buffer read position in Y
         clc                             ; Signal success
+        rts
+
+@err:
+        ldy     E                       ; Reset position to start for return
+        sec                             ; Signal error
         rts
 
 ; Clears FP0 and FPX, parses an optional sign ('+' or '-'), setting bit 7 of FP0s if negative,
