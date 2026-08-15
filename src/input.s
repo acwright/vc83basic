@@ -10,6 +10,7 @@ exec_input:
         jsr     peek_byte
         cmp     #TOK_STRING
         bne     @default_prompt
+        inc     line_pos                ; Skip TOK_STRING
         jsr     decode_string
         lday    string_ptr
         jsr     print_string

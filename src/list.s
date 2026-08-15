@@ -23,7 +23,6 @@ exec_list:
         beq     @next_line              ; Nothing after LIST, just go
         cmp     #TOK_NUM
         bne     @next_line
-        inc     line_pos                ; Skip TOK_NUM
         jsr     get_line_number         ; Go get start line number
         jsr     find_line               ; Stores the line number in line_number
         jsr     peek_byte               ; Anything else?
@@ -34,7 +33,6 @@ exec_list:
         jsr     peek_byte
         cmp     #TOK_NUM
         bne     @next_line
-        inc     line_pos                ; Skip TOK_NUM
         jsr     get_line_number         ; Save the ending line number in line_number
         stax    line_number
 

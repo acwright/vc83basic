@@ -49,7 +49,7 @@ exec_on_goto_gosub:
         cmp     #TOK_COMMA
         bne     @next_byte
         sty     line_pos                ; Update line_pos with the position after the next ','
-        beq     @loop                   ; Unconditional
+        jmp     @loop                   ; Unconditional
 
 @found:
         plp                             ; Recover the flags from the GOSUB check
@@ -202,7 +202,13 @@ exec_if:
         jsr     pop_fp0
         lda     FP0e                    ; Check if zero
         beq     @next_line              ; If zero then don't execute the THEN or any other statements on this line
+        jsr     peek_byte
+        cmp     #TOK_NUM
+        beq     @goto
         jmp     exec_statement          ; Otherwise execute the THEN
+
+@goto:
+        jmp     exec_goto
 
 @next_line:
         jmp     advance_next_line_ptr   ; Unconditionally go to the next line
@@ -223,5 +229,6 @@ push_next_line_ptr:
         rts
 
 get_line_number:
+        inc     line_pos                ; Skip TOK_NUM
         jsr     decode_number
         jmp     truncate_fp_to_int

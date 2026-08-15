@@ -311,9 +311,8 @@ pvm_statement:
         BRANCH_IF TOK_DIM, pvm_dim
         BRANCH_IF TOK_DATA, pvm_data
         BRANCH_IF TOK_REM, pvm_rem
-        BRANCH_IF_CLASS TOK_CLASS_ST_4X, @done
-        BRANCH_IF_CLASS TOK_CLASS_ST_4X, @done  ; Any other no-arg statement
-        BRANCH_IF_CLASS TOK_CLASS_ST_5X, @done
+        BRANCH_IF TOK_RESTORE, pvm_restore
+        BRANCH_IF_CLASS TOK_CLASS_ST_5X, @done  ; Any other no-arg statement
         BRANCH_IF_CLASS TOK_CLASS_ST_6X, @done
         BRANCH_IF_CLASS TOK_CLASS_ST_7X, @done
         FAIL
@@ -328,7 +327,11 @@ pvm_print:
         GUARD TOK_COLON                 ; Abandon the PRINT statement if we see COLON or EOL
         GUARD TOK_EOL
         CALL pvm_expression             ; Otherwise it has to be an expression
-        JUMP pvm_print
+        BRANCH_IF TOK_SEMI, pvm_print
+        BRANCH_IF TOK_COMMA, pvm_print
+        GUARD TOK_COLON
+        GUARD TOK_EOL
+        FAIL
 
 pvm_let:
         MATCH TOK_NAME
@@ -394,6 +397,11 @@ pvm_list:
 @done:
         RETURN
 
+pvm_restore:
+        BRANCH_IF TOK_NUM, @done
+@done:
+        RETURN
+
 pvm_dim:
         MATCH TOK_NAME
         CALL pvm_optional_array
@@ -443,8 +451,10 @@ pvm_optional_array:
 
 pvm_function:
         MATCH TOK_LPAREN
+        BRANCH_IF TOK_RPAREN, @done
         CALL pvm_arg_list
         MATCH TOK_RPAREN
+@done:
         RETURN
 
 ; Argument lists

@@ -29,9 +29,7 @@ function_epilogs:
         .word   push_string-1
 
 evaluate_function:
-        inc     line_pos                ; Skip over the function token
-        jsr     decode_byte             ; Return the function number in A
-        and     $3F                     ; Isolate function offset from 0 to 63
+        and     #$3F                    ; Isolate function offset from 0 to 63
         tax                             ; Set up as index
         lda     function_flags,x
         lsr     A                       ; Move epilog bits 4-5 to positions 1-2
