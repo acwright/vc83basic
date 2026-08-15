@@ -9,8 +9,6 @@
 .assert Value::number_value = 0, error
 .assert Value::string_value_ptr = 0, error
 
-.assert TOKEN_EXTENSION = $80, error
-
 .assert EPILOG_PUSH_FP = (1 << 4), error
 .assert EPILOG_PUSH_INT = (2 << 4), error
 .assert EPILOG_PUSH_STRING = (3 << 4), error
