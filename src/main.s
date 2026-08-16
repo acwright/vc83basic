@@ -83,8 +83,9 @@ run:
         mva     next_line_pos, line_pos
         jsr     decode_byte             ; The next byte is the next statement offset
         sta     next_line_pos           ; By default the "next line" is the next statement on this line
-        jsr     exec_statement
+        jsr     dispatch_statement
         jmp     run                     ; Keep on truckin'
+
 
 handle_error:
         mvx     reset_stack_pos, stack_pos   ; After an error, restore the stack position we saved

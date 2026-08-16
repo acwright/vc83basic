@@ -91,7 +91,7 @@ S1 = FPX+2
 .include "random.s"
 .include "read.s"
 .include "run.s"
-.include "statements.s"
+.include "dispatch.s"
 .include "string.s"
 .include "tables.s"
 .include "util.s"

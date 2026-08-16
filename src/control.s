@@ -205,7 +205,7 @@ exec_if:
         jsr     peek_byte
         cmp     #TOK_NUM
         beq     @goto
-        jmp     exec_statement          ; Otherwise execute the THEN
+        jmp     dispatch_statement      ; Otherwise execute the THEN
 
 @goto:
         jmp     exec_goto
