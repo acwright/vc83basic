@@ -24,10 +24,13 @@ dispatch_function:
 
 dispatch:
         tax                                     ; Save dispatch vector offset in X
+        cpx     #16                             ; Statement with no prolog/epilog?
+        bcc     @shift                          ; If so, A is 0..15, 4 LSRs will make A=0
         lsr     A                               ; Byte offset in flags table = X / 2
         tay
-        lda     dispatch_flags,y
+        lda     dispatch_flags-8,y
         bcc     @even                           ; Even index -> low nibble
+@shift:
         lsr     A                               ; Odd index -> high nibble
         lsr     A
         lsr     A
@@ -87,12 +90,12 @@ dispatch_vectors_l:
         .byte   <(exec_goto-1)
         .byte   <(exec_gosub-1)
         .byte   <(exec_list-1)
-        .byte   <(exec_poke-1)
-        .byte   <(exec_dpoke-1)
-        .byte   <(exec_dim-1)
-        .byte   <(exec_data-1)
         .byte   <(exec_rem-1)
         .byte   <(exec_restore-1)
+        .byte   <(exec_dim-1)
+        .byte   <(exec_data-1)
+        .byte   <(exec_poke-1)
+        .byte   <(exec_dpoke-1)
         .byte   <(exec_run-1)
         .byte   <(exec_stop-1)
         .byte   <(exec_end-1)
@@ -151,12 +154,12 @@ dispatch_vectors_h:
         .byte   >(exec_goto-1)
         .byte   >(exec_gosub-1)
         .byte   >(exec_list-1)
-        .byte   >(exec_poke-1)
-        .byte   >(exec_dpoke-1)
-        .byte   >(exec_dim-1)
-        .byte   >(exec_data-1)
         .byte   >(exec_rem-1)
         .byte   >(exec_restore-1)
+        .byte   >(exec_dim-1)
+        .byte   >(exec_data-1)
+        .byte   >(exec_poke-1)
+        .byte   >(exec_dpoke-1)
         .byte   >(exec_run-1)
         .byte   >(exec_stop-1)
         .byte   >(exec_end-1)
@@ -200,10 +203,9 @@ dispatch_vectors_h:
 
 dispatch_flags:
 .ifndef TARGET_SIM6502
-        ; --- Statements (apple2: 26 statements = 13 bytes) ---
-        .byte   0, 0, 0, 0, 0, 0
-        .byte   PROLOG_POP_INT | (PROLOG_POP_INT << 4)  ; POKE (12), DPOKE (13)
-        .byte   0, 0, 0, 0, 0, 0
+        ; --- Statements (apple2: 26-16 = 10 statements = 5 bytes) ---
+        .byte   PROLOG_POP_INT | (PROLOG_POP_INT << 4)  ; POKE (16), DPOKE (17)
+        .byte   0, 0, 0, 0                              ; RUN (18)..POP (25)
 
         ; --- Functions (apple2: 24 functions = 12 bytes) ---
         .byte   (PROLOG_POP_STRING | EPILOG_PUSH_INT) | ((PROLOG_POP_FP | EPILOG_PUSH_STRING) << 4)    ; LEN (26), STR$ (27)
@@ -219,14 +221,13 @@ dispatch_flags:
         .byte   (PROLOG_POP_FP | EPILOG_PUSH_FP) | ((PROLOG_POP_FP | EPILOG_PUSH_FP) << 4)             ; ABS (46), SGN (47)
         .byte   (PROLOG_POP_FP | EPILOG_PUSH_FP) | ((PROLOG_POP_FP | EPILOG_PUSH_FP) << 4)             ; SQR (48), RND (49)
 .else
-        ; --- Statements (sim6502: 27 statements, BYE at 26) ---
-        .byte   0, 0, 0, 0, 0, 0
-        .byte   PROLOG_POP_INT | (PROLOG_POP_INT << 4)  ; POKE (12), DPOKE (13)
-        .byte   0, 0, 0, 0, 0, 0
+        ; --- Statements (sim6502: 27-16 = 11 statements, BYE at 26) ---
+        .byte   PROLOG_POP_INT | (PROLOG_POP_INT << 4)  ; POKE (16), DPOKE (17)
+        .byte   0, 0, 0, 0                              ; RUN (18)..POP (25)
 
-        ; Byte 13: BYE (26) | (LEN (27) << 4)
+        ; Byte 5: BYE (26) | (LEN (27) << 4)
         .byte   0 | ((PROLOG_POP_STRING | EPILOG_PUSH_INT) << 4)
-        ; Bytes 14..25: remaining 24 functions shifted by 1 nibble
+        ; Bytes 6..17: remaining 24 functions shifted by 1 nibble
         .byte   (PROLOG_POP_FP | EPILOG_PUSH_STRING) | ((PROLOG_POP_INT | EPILOG_PUSH_STRING) << 4)   ; STR$ (28), CHR$ (29)
         .byte   (PROLOG_POP_STRING | EPILOG_PUSH_INT) | ((PROLOG_POP_INT | EPILOG_PUSH_STRING) << 4)  ; ASC (30), LEFT$ (31)
         .byte   (PROLOG_POP_INT | EPILOG_PUSH_STRING) | ((PROLOG_POP_INT | EPILOG_PUSH_STRING) << 4)  ; RIGHT$ (32), MID$ (33)
@@ -240,4 +241,4 @@ dispatch_flags:
         .byte   (PROLOG_POP_FP | EPILOG_PUSH_FP) | ((PROLOG_POP_FP | EPILOG_PUSH_FP) << 4)             ; SGN (48), SQR (49)
         .byte   (PROLOG_POP_FP | EPILOG_PUSH_FP) | ((PROLOG_POP_FP | EPILOG_PUSH_STRING) << 4)        ; RND (50), VER$ (51)
 .endif
-.assert (* - dispatch_flags) = ((dispatch_count + 1) / 2), error
+.assert (* - dispatch_flags) = ((dispatch_count - 16 + 1) / 2), error

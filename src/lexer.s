@@ -87,14 +87,14 @@ KEYWORD_BLOCK_4_OFFSET = keyword_counter
 :       name_table_entry "GOTO"
 :       name_table_entry "GOSUB"
 :       name_table_entry "LIST"
-:       name_table_entry "POKE"
-:       name_table_entry "DPOKE"
+:       name_table_entry "REM"
+:       name_table_entry "RESTORE"
 :       name_table_entry "DIM"
 :       name_table_entry "DATA"
 ; Block 5 ($50..$5A)
 KEYWORD_BLOCK_5_OFFSET = keyword_counter
-:       name_table_entry "REM"
-:       name_table_entry "RESTORE"
+:       name_table_entry "POKE"
+:       name_table_entry "DPOKE"
 :       name_table_entry "RUN"
 :       name_table_entry "STOP"
 :       name_table_entry "END"
