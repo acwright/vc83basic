@@ -13,7 +13,6 @@ dispatch_statement:
         cmp     #TOK_NAME
         beq     @impl_let
         and     #$3F                            ; Isolate statement offset from 0 to 63
-        tax
         bpl     dispatch_entry                  ; Unconditional (X < 128)
 
 @impl_let:
@@ -23,10 +22,9 @@ dispatch_function:
         and     #$3F                            ; Isolate function offset from 0 to 63
         clc
         adc     #statement_count                ; Offset by statement_count to form unified index
-        tax
 
 dispatch_entry:
-        txa
+        tax                                     ; Save dispatch vector offset in X
         lsr     A                               ; Byte offset in flags table = X / 2
         tay
         lda     dispatch_flags,y
