@@ -35,8 +35,7 @@ exec_impl_let:
 
 assign_variable:
         lda     decode_name_type        ; Determine what format the allocated memory natively represents
-        jsr     stack_free_value_with_type      ; Drop the actively evaluated item from the top of the stack and yield X representing its base boundary
-        
+        jsr     stack_free_value_with_type  ; Drop the actively evaluated item from the top of the stack and yield X representing its base boundary
         ldy     decode_name_type        ; Restore the target variable type index
         lda     type_size_table,y       ; Fetch structural footprint directly mapping index (5 for numeric, 2 for string offset)
         sta     B                       ; Save loop delimiter threshold inside B locally
@@ -48,7 +47,6 @@ assign_variable:
         iny                             ; Traverse destination footprint
         cpy     B                       ; Evaluate alignment matching our explicitly retained structural delimiter
         bne     @copy_loop
-        clc                             ; Explicitly clear carry flag natively assuming success 
         rts
 
 dispatch_function:
