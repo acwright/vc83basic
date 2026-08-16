@@ -172,9 +172,10 @@ insert_or_update_line:
 @insert:
         lda     line_buffer+Line::next_line_offset  ; Load length of line which should be <= 255
         tax                             ; Save in X since we'll need it again
-        cmp     #.sizeof(Line)          ; Compare next line offset with the offset of the data field
-        beq     @done                   ; If they're the same, line is blank, nothing to insert
+        cmp     #.sizeof(Line) + 2      ; Compare next line offset with minimum line size
+        bcc     @done                   ; If less, line is blank, nothing to insert
         ldphaa  next_line_ptr           ; Push next_line_ptr onto stack so we can get it back later
+
         txa                             ; Copy line length back into A as the amount to grow
         ldy     #next_line_ptr          ; Select next_line_ptr as the pointer to move
         jsr     grow_a                  ; Create space for the new line

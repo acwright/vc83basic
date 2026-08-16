@@ -72,7 +72,10 @@ next_expression:
         beq     evaluate_string
         cmp     #TOK_NAME
         beq     evaluate_variable
-        jmp     dispatch_function       ; None of the above; assume it's a function
+        inc     line_pos                ; None of the above; assume it's a function and skip '('
+        jsr     dispatch_function
+        inc     line_pos                ; Skip ')'
+        rts
 
 evaluate_paren:
         lda     #PR_OPEN_PAREN          ; Push the open paren, which will never be removed by process_operators

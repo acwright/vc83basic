@@ -58,9 +58,10 @@ get_command:
 
 immediate_mode:
         lda     line_buffer+Line::next_line_offset  ; See if there is any data in the buffer
-        cmp     #.sizeof(Line)          ; Does the "next line" start at the beginning of *this* line?
-        beq     get_command             ; Yes, just ignore input
+        cmp     #.sizeof(Line) + 2      ; Less than minimum line length with statement?
+        bcc     get_command             ; Yes, just ignore input
         ldx     #>line_buffer           ; High byte of the address for the the null line
+
         jsr     append_null_line
 
 raise_ps_running:

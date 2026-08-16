@@ -157,7 +157,7 @@ void test_pvm_statement(void) {
     // DIM
     call_parse_pvm("DIM A(5)", pvm_statement, dim_line_data_1, sizeof dim_line_data_1, __LINE__);
 
-    // // BYE (extension statement)
+    // BYE (extension statement)
     call_parse_pvm("BYE", pvm_statement, extension_line_data_1, sizeof extension_line_data_1, __LINE__);
 }
 
@@ -169,6 +169,18 @@ void call_parse_line(const char* s, const Line* expect_line, int line) {
     ASSERT_EQ(buffer_pos, strlen(s));
     ASSERT_MEMORY_EQ(&line_buffer, expect_line, expect_line->next_line_offset);
     ASSERT_EQ(line_pos, expect_line->next_line_offset);
+}
+
+void call_parse_blank_line(const char* s, int expect_line_number, int line) {
+    fprintf(stderr, "  %s:%d: parse_line(\"%s\")\n", __FILE__, line, s);
+    strcpy(buffer, s);
+    parse_line();
+    ASSERT_EQ(err, 0);
+    ASSERT_EQ(buffer_pos, strlen(s));
+    // parse_line reserves byte for first next statement offset even if there's no statement.
+    ASSERT_EQ(line_buffer.next_line_offset, sizeof(Line) + 1);
+    ASSERT_EQ(line_buffer.number, expect_line_number);
+    ASSERT_EQ(line_pos, sizeof(Line) + 1);
 }
 
 void test_parse_line(void) {
@@ -186,6 +198,11 @@ void test_parse_line(void) {
     call_parse_line("LET X=100", &line_3, __LINE__);
     call_parse_line("LET X=100:PRINT X", &line_4, __LINE__);
     call_parse_line("10 PRINT 1", &line_5, __LINE__);
+
+    call_parse_blank_line("", -1, __LINE__);
+    call_parse_blank_line("   ", -1, __LINE__);
+    call_parse_blank_line("10", 10, __LINE__);
+    call_parse_blank_line("10   ", 10, __LINE__);
 }
 
 void test_max_line_length(void) {

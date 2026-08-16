@@ -52,30 +52,22 @@ dispatch_entry:
         pha
         lda     C
         and     #$0C                            ; Prolog bits in positions 2-3 (values 0, 4, 8, 12)
-        beq     @skip_prolog
+        beq     @done
         lsr     A                               ; Shift to offset 2, 4, 6
         tay
         lda     dispatch_prologs-1,y            ; Push prolog
         pha
         lda     dispatch_prologs-2,y
         pha
-        cpx     #statement_count
-        bcc     @eval_statement                 ; Statement with prolog -> evaluate arguments
-@skip_prolog:
-        cpx     #statement_count
-        bcc     @done                           ; Statement without prolog -> jump to handler
-        inc     line_pos                        ; Skip '('
-        jsr     evaluate_argument_list
-        inc     line_pos                        ; Skip ')'
+        jmp     evaluate_argument_list          ; Will chain to handler etc.
+
 @done:
         rts
-
-@eval_statement:
-        jmp     evaluate_argument_list
 
 dispatch_prologs:
 
         .word   pop_fp0-1
+
         .word   pop_int_fp0-1
         .word   pop_string_s0-1
 

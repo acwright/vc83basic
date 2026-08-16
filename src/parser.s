@@ -36,9 +36,11 @@ parse_line:
         stax    line_buffer+Line::number
         ldy     buffer_pos
         jsr     skip_whitespace         ; Detect a blank line; returns non-blank character in A, may be zero
+        sty     buffer_pos
         beq     @finish_line            ; Was zero
 
 ; Parse one statement. The statement must be found because the line is not blank and this is either the first
+
 ; statement or we just parsed a ':'.
 
 @next_statement:
