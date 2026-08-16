@@ -105,6 +105,7 @@ KEYWORD_BLOCK_5_OFFSET = keyword_counter
 :       name_table_entry "POP"
 .ifdef TARGET_SIM6502
 :       name_table_entry "BYE"
+:       name_table_entry ""
 .endif
 ; Block 6 ($60..$6F) - unused
 KEYWORD_BLOCK_6_OFFSET = keyword_counter

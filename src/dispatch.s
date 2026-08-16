@@ -65,9 +65,7 @@ dispatch:
         rts
 
 dispatch_prologs:
-
         .word   pop_fp0-1
-
         .word   pop_int_fp0-1
         .word   pop_string_s0-1
 
@@ -106,7 +104,9 @@ dispatch_vectors_l:
         .byte   <(exec_pop-1)
 .ifdef TARGET_SIM6502
         .byte   <(exec_bye-1)
+        .byte   0
 .endif
+
 statement_count = * - dispatch_vectors_l
 
         ; --- Functions ---
@@ -137,6 +137,7 @@ statement_count = * - dispatch_vectors_l
 .ifdef TARGET_SIM6502
         .byte   <(fun_ver_s-1)
 .endif
+
 dispatch_count = * - dispatch_vectors_l
 function_count = dispatch_count - statement_count
 
@@ -170,6 +171,7 @@ dispatch_vectors_h:
         .byte   >(exec_pop-1)
 .ifdef TARGET_SIM6502
         .byte   >(exec_bye-1)
+        .byte   0
 .endif
         ; --- Functions ---
         .byte   >(fun_len-1)
@@ -199,46 +201,32 @@ dispatch_vectors_h:
 .ifdef TARGET_SIM6502
         .byte   >(fun_ver_s-1)
 .endif
+
 .assert (* - dispatch_vectors_h) = dispatch_count, error
 
 dispatch_flags:
-.ifndef TARGET_SIM6502
-        ; --- Statements (apple2: 26-16 = 10 statements = 5 bytes) ---
-        .byte   PROLOG_POP_INT | (PROLOG_POP_INT << 4)  ; POKE (16), DPOKE (17)
-        .byte   0, 0, 0, 0                              ; RUN (18)..POP (25)
-
-        ; --- Functions (apple2: 24 functions = 12 bytes) ---
-        .byte   (PROLOG_POP_STRING | EPILOG_PUSH_INT) | ((PROLOG_POP_FP | EPILOG_PUSH_STRING) << 4)    ; LEN (26), STR$ (27)
-        .byte   (PROLOG_POP_INT | EPILOG_PUSH_STRING) | ((PROLOG_POP_STRING | EPILOG_PUSH_INT) << 4)   ; CHR$ (28), ASC (29)
-        .byte   (PROLOG_POP_INT | EPILOG_PUSH_STRING) | ((PROLOG_POP_INT | EPILOG_PUSH_STRING) << 4)  ; LEFT$ (30), RIGHT$ (31)
-        .byte   (PROLOG_POP_INT | EPILOG_PUSH_STRING) | ((PROLOG_POP_STRING | EPILOG_PUSH_FP) << 4)   ; MID$ (32), VAL (33)
-        .byte   (PROLOG_NONE | EPILOG_PUSH_INT) | ((PROLOG_POP_INT | EPILOG_PUSH_INT) << 4)            ; FRE (34), PEEK (35)
-        .byte   (PROLOG_POP_INT | EPILOG_PUSH_INT) | ((PROLOG_POP_STRING | EPILOG_PUSH_INT) << 4)     ; DPEEK (36), ADR (37)
-        .byte   (PROLOG_POP_INT | EPILOG_PUSH_INT) | ((PROLOG_POP_FP | EPILOG_PUSH_FP) << 4)           ; USR (38), INT (39)
-        .byte   (PROLOG_POP_FP | EPILOG_PUSH_FP) | ((PROLOG_POP_FP | EPILOG_PUSH_FP) << 4)             ; LOG (40), EXP (41)
-        .byte   (PROLOG_POP_FP | EPILOG_PUSH_FP) | ((PROLOG_POP_FP | EPILOG_PUSH_FP) << 4)             ; SIN (42), COS (43)
-        .byte   (PROLOG_POP_FP | EPILOG_PUSH_FP) | ((PROLOG_POP_FP | EPILOG_PUSH_FP) << 4)             ; TAN (44), ATN (45)
-        .byte   (PROLOG_POP_FP | EPILOG_PUSH_FP) | ((PROLOG_POP_FP | EPILOG_PUSH_FP) << 4)             ; ABS (46), SGN (47)
-        .byte   (PROLOG_POP_FP | EPILOG_PUSH_FP) | ((PROLOG_POP_FP | EPILOG_PUSH_FP) << 4)             ; SQR (48), RND (49)
-.else
-        ; --- Statements (sim6502: 27-16 = 11 statements, BYE at 26) ---
-        .byte   PROLOG_POP_INT | (PROLOG_POP_INT << 4)  ; POKE (16), DPOKE (17)
-        .byte   0, 0, 0, 0                              ; RUN (18)..POP (25)
-
-        ; Byte 5: BYE (26) | (LEN (27) << 4)
-        .byte   0 | ((PROLOG_POP_STRING | EPILOG_PUSH_INT) << 4)
-        ; Bytes 6..17: remaining 24 functions shifted by 1 nibble
-        .byte   (PROLOG_POP_FP | EPILOG_PUSH_STRING) | ((PROLOG_POP_INT | EPILOG_PUSH_STRING) << 4)   ; STR$ (28), CHR$ (29)
-        .byte   (PROLOG_POP_STRING | EPILOG_PUSH_INT) | ((PROLOG_POP_INT | EPILOG_PUSH_STRING) << 4)  ; ASC (30), LEFT$ (31)
-        .byte   (PROLOG_POP_INT | EPILOG_PUSH_STRING) | ((PROLOG_POP_INT | EPILOG_PUSH_STRING) << 4)  ; RIGHT$ (32), MID$ (33)
-        .byte   (PROLOG_POP_STRING | EPILOG_PUSH_FP) | ((PROLOG_NONE | EPILOG_PUSH_INT) << 4)          ; VAL (34), FRE (35)
-        .byte   (PROLOG_POP_INT | EPILOG_PUSH_INT) | ((PROLOG_POP_INT | EPILOG_PUSH_INT) << 4)        ; PEEK (36), DPEEK (37)
-        .byte   (PROLOG_POP_STRING | EPILOG_PUSH_INT) | ((PROLOG_POP_INT | EPILOG_PUSH_INT) << 4)     ; ADR (38), USR (39)
-        .byte   (PROLOG_POP_FP | EPILOG_PUSH_FP) | ((PROLOG_POP_FP | EPILOG_PUSH_FP) << 4)             ; INT (40), LOG (41)
-        .byte   (PROLOG_POP_FP | EPILOG_PUSH_FP) | ((PROLOG_POP_FP | EPILOG_PUSH_FP) << 4)             ; EXP (42), SIN (43)
-        .byte   (PROLOG_POP_FP | EPILOG_PUSH_FP) | ((PROLOG_POP_FP | EPILOG_PUSH_FP) << 4)             ; COS (44), TAN (45)
-        .byte   (PROLOG_POP_FP | EPILOG_PUSH_FP) | ((PROLOG_POP_FP | EPILOG_PUSH_FP) << 4)             ; ATN (46), ABS (47)
-        .byte   (PROLOG_POP_FP | EPILOG_PUSH_FP) | ((PROLOG_POP_FP | EPILOG_PUSH_FP) << 4)             ; SGN (48), SQR (49)
-        .byte   (PROLOG_POP_FP | EPILOG_PUSH_FP) | ((PROLOG_POP_FP | EPILOG_PUSH_STRING) << 4)        ; RND (50), VER$ (51)
+        ; --- Statements ---
+        .byte   PROLOG_POP_INT | (PROLOG_POP_INT << 4)  ; POKE, DPOKE
+        .byte   0, 0, 0, 0                              ; RUN..POP
+.ifdef TARGET_SIM6502
+        .byte   0                                       ; BYE, RESERVED
 .endif
+
+        ; --- Functions ---
+        .byte   (PROLOG_POP_STRING | EPILOG_PUSH_INT) | ((PROLOG_POP_FP | EPILOG_PUSH_STRING) << 4)    ; LEN, STR$
+        .byte   (PROLOG_POP_INT | EPILOG_PUSH_STRING) | ((PROLOG_POP_STRING | EPILOG_PUSH_INT) << 4)   ; CHR$, ASC
+        .byte   (PROLOG_POP_INT | EPILOG_PUSH_STRING) | ((PROLOG_POP_INT | EPILOG_PUSH_STRING) << 4)  ; LEFT$, RIGHT$
+        .byte   (PROLOG_POP_INT | EPILOG_PUSH_STRING) | ((PROLOG_POP_STRING | EPILOG_PUSH_FP) << 4)   ; MID$, VAL
+        .byte   (PROLOG_NONE | EPILOG_PUSH_INT) | ((PROLOG_POP_INT | EPILOG_PUSH_INT) << 4)            ; FRE, PEEK
+        .byte   (PROLOG_POP_INT | EPILOG_PUSH_INT) | ((PROLOG_POP_STRING | EPILOG_PUSH_INT) << 4)     ; DPEEK, ADR
+        .byte   (PROLOG_POP_INT | EPILOG_PUSH_INT) | ((PROLOG_POP_FP | EPILOG_PUSH_FP) << 4)           ; USR, INT
+        .byte   (PROLOG_POP_FP | EPILOG_PUSH_FP) | ((PROLOG_POP_FP | EPILOG_PUSH_FP) << 4)             ; LOG, EXP
+        .byte   (PROLOG_POP_FP | EPILOG_PUSH_FP) | ((PROLOG_POP_FP | EPILOG_PUSH_FP) << 4)             ; SIN, COS
+        .byte   (PROLOG_POP_FP | EPILOG_PUSH_FP) | ((PROLOG_POP_FP | EPILOG_PUSH_FP) << 4)             ; TAN, ATN
+        .byte   (PROLOG_POP_FP | EPILOG_PUSH_FP) | ((PROLOG_POP_FP | EPILOG_PUSH_FP) << 4)             ; ABS, SGN
+        .byte   (PROLOG_POP_FP | EPILOG_PUSH_FP) | ((PROLOG_POP_FP | EPILOG_PUSH_FP) << 4)             ; SQR, RND
+.ifdef TARGET_SIM6502
+        .byte   PROLOG_NONE | EPILOG_PUSH_STRING        ; VER$
+.endif
+
 .assert (* - dispatch_flags) = ((dispatch_count - 16 + 1) / 2), error

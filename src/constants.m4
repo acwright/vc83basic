@@ -81,7 +81,8 @@ def(TOK_CLR,            hex(57))
 def(TOK_RETURN,         hex(58))
 def(TOK_POP,            hex(59))
 ifdef(TARGET_SIM6502)
-def(TOK_BYE,            hex(5A)) 
+def(TOK_BYE,            hex(5A))
+def(TOK_RESERVED_5B,    hex(5B))
 endif 
 
 def(TOK_LEN,            hex(80))
