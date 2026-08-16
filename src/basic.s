@@ -95,4 +95,3 @@ S1 = FPX+2
 .include "string.s"
 .include "tables.s"
 .include "util.s"
-

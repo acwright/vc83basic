@@ -86,7 +86,6 @@ run:
         jsr     dispatch_statement
         jmp     run                     ; Keep on truckin'
 
-
 handle_error:
         mvx     reset_stack_pos, stack_pos   ; After an error, restore the stack position we saved
         and     #$7F                    ; Clear the high bit
