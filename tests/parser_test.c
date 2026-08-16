@@ -41,7 +41,7 @@ void test_pvm_expression(void) {
     const char parens_line_data_2[] = { TOK_NAME, 'X' | EOT, TOK_AND, TOK_LPAREN, TOK_NAME, 'Y' | EOT, TOK_OR, TOK_NOT, TOK_NAME, 'Z' | EOT, TOK_RPAREN };
     const char function_line_data_1[] = { TOK_LEN, TOK_LPAREN, TOK_STRING, 5, 'H', 'E', 'L', 'L', 'O', '"' | EOT, TOK_RPAREN };
     const char function_line_data_2[] = { TOK_MID_S, TOK_LPAREN, TOK_STRING, 5, 'H', 'E', 'L', 'L', 'O', '"' | EOT, TOK_COMMA, TOK_NUM, '2' | EOT, TOK_COMMA, TOK_NUM, '3' | EOT, TOK_RPAREN };
-    const char function_line_data_3[] = { TOK_VER_S, TOK_LPAREN, TOK_NUM, '0' | EOT, TOK_RPAREN };
+    const char function_line_data_3[] = { TOK_VER_S, TOK_LPAREN, TOK_RPAREN };
 
     PRINT_TEST_NAME();
 
@@ -73,7 +73,7 @@ void test_pvm_expression(void) {
     // Function
     call_parse_pvm("LEN(\"HELLO\")", pvm_expression, function_line_data_1, sizeof function_line_data_1, __LINE__);
     call_parse_pvm("MID$(\"HELLO\",2,3)", pvm_expression, function_line_data_2, sizeof function_line_data_2, __LINE__);
-    call_parse_pvm("VER$(0)", pvm_expression, function_line_data_3, sizeof function_line_data_3, __LINE__);
+    call_parse_pvm("VER$()", pvm_expression, function_line_data_3, sizeof function_line_data_3, __LINE__);
 }
 
 void test_pvm_statement(void) {

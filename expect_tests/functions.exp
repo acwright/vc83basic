@@ -198,3 +198,101 @@ PRINT RND(-1)=RND(-2)
 } {
 1
 }
+
+# Arity error tests
+
+test {
+PRINT LEN()
+} {
+ERR: SYNTAX
+}
+
+test {
+PRINT LEN("HELLO",1)
+} {
+ERR: SYNTAX
+}
+
+test {
+PRINT STR$()
+} {
+ERR: SYNTAX
+}
+
+test {
+PRINT STR$(1,2)
+} {
+ERR: SYNTAX
+}
+
+test {
+PRINT CHR$()
+} {
+ERR: SYNTAX
+}
+
+test {
+PRINT CHR$(65,1)
+} {
+ERR: SYNTAX
+}
+
+test {
+PRINT LEFT$("HELLO")
+} {
+ERR: SYNTAX
+}
+
+test {
+PRINT LEFT$("HELLO",1,2)
+} {
+ERR: SYNTAX
+}
+
+test {
+PRINT RIGHT$("HELLO")
+} {
+ERR: SYNTAX
+}
+
+test {
+PRINT RIGHT$("HELLO",1,2)
+} {
+ERR: SYNTAX
+}
+
+test {
+PRINT MID$("HELLO")
+} {
+ERR: SYNTAX
+}
+
+test {
+PRINT MID$("HELLO",1)
+} {
+ERR: SYNTAX
+}
+
+test {
+PRINT MID$("HELLO",1,2,3)
+} {
+ERR: SYNTAX
+}
+
+test {
+PRINT FRE(1)
+} {
+ERR: SYNTAX
+}
+
+test {
+PRINT SIN()
+} {
+ERR: SYNTAX
+}
+
+test {
+PRINT SIN(1,2)
+} {
+ERR: SYNTAX
+}

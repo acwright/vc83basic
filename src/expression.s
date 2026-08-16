@@ -9,8 +9,8 @@
 .assert Value::number_value = 0, error
 .assert Value::string_value_ptr = 0, error
 
+.assert TOK_ADD = $20, error
 .assert TOK_LEN = $80, error
-
 
 ; Evaluates an expression and leaves the result on the stack.
 ; An expression is a primary expression, optionally followed by a binary operator and another expression.
@@ -35,7 +35,7 @@ next_expression:
         jsr     @dispatch               ; JSR to dispatcher so we can just RTS from handlers
         jsr     peek_byte               ; Check if an operator follows
         and     #$F0
-        cmp     #TOK_CLASS_OP_2X
+        cmp     #TOK_ADD
         beq     @operator
         lda     #PR_CLOSE_PAREN         ; Process any operators not yet processed (except open paren)
         jsr     process_operators

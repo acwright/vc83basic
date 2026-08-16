@@ -117,28 +117,28 @@ KEYWORD_BLOCK_8_OFFSET = keyword_counter
 :       name_table_entry "STR$"
 :       name_table_entry "CHR$"
 :       name_table_entry "ASC"
-:       name_table_entry "LEFT$"
-:       name_table_entry "RIGHT$"
-:       name_table_entry "MID$"
 :       name_table_entry "VAL"
-:       name_table_entry "FRE"
 :       name_table_entry "PEEK"
 :       name_table_entry "DPEEK"
 :       name_table_entry "ADR"
-:       name_table_entry "USR"
 :       name_table_entry "INT"
 :       name_table_entry "LOG"
 :       name_table_entry "EXP"
-; Block 9 ($90..$98)
-KEYWORD_BLOCK_9_OFFSET = keyword_counter
 :       name_table_entry "SIN"
 :       name_table_entry "COS"
 :       name_table_entry "TAN"
 :       name_table_entry "ATN"
 :       name_table_entry "ABS"
+; Block 9 ($90..$98)
+KEYWORD_BLOCK_9_OFFSET = keyword_counter
 :       name_table_entry "SGN"
 :       name_table_entry "SQR"
 :       name_table_entry "RND"
+:       name_table_entry "LEFT$"
+:       name_table_entry "RIGHT$"
+:       name_table_entry "USR"
+:       name_table_entry "MID$"
+:       name_table_entry "FRE"
 .ifdef TARGET_SIM6502
 :       name_table_entry "VER$"
 .endif
@@ -161,8 +161,6 @@ keyword_block_offsets:
         .byte   KEYWORD_BLOCK_9_OFFSET  ; $9x: Functions 2 ($90..$98)
         .byte   KEYWORD_BLOCK_A_OFFSET  ; $Ax: (unused)
         .byte   KEYWORD_BLOCK_B_OFFSET  ; $Bx: (unused)
-
-
 
 ; Parses the next token from buffer using the DFA data tables in lexer_data.inc.
 ; Writes token characters or matched token byte into line_buffer.
