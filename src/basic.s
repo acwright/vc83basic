@@ -74,6 +74,7 @@ S1 = FPX+2
 ; Core files
 .include "control.s"
 .include "decode.s"
+.include "dispatch.s"
 .include "dim.s"
 .include "expression.s"
 .include "fp.s"
@@ -91,7 +92,7 @@ S1 = FPX+2
 .include "random.s"
 .include "read.s"
 .include "run.s"
-.include "dispatch.s"
 .include "string.s"
 .include "tables.s"
 .include "util.s"
+
