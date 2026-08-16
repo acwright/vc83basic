@@ -81,7 +81,6 @@ S1 = FPX+2
 .include "functions.s"
 .include "init.s"
 .include "input.s"
-.include "let.s"
 .include "lexer.s"
 .include "list.s"
 .include "name.s"
