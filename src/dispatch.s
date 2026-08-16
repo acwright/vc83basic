@@ -13,14 +13,14 @@ dispatch_statement:
         jsr     decode_byte                     ; Get statement number
         cmp     #TOK_NAME
         beq     @impl_let
-        sbc     #TOK_PRINT                      ; C is set from cmp; convert token to index
+        sbc     #TOK_PRINT                      ; C is set from CMP; convert token to unified index
         bpl     dispatch                        ; Unconditional (index < 128)
 
 @impl_let:
         jmp     exec_impl_let
 
 dispatch_function:
-        sbc     #(TOK_LEN - statement_count)    ; C is set from cmp; convert token to unified index
+        sbc     #(TOK_LEN - statement_count)    ; C is set from CMP in caller; convert token to unified index
 
 dispatch:
         tax                                     ; Save dispatch vector offset in X
