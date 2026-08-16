@@ -185,11 +185,7 @@ process_operators:
         rts                             ; This is either RTS from process_operators or JMP to operator handler
 
 op_concat:
-        jsr     pop_string              ; Get the second string
-        jsr     load_s1                 ; Load into S1
-        sta     E                       ; Length of second string in E
-        jsr     pop_string_s0           ; Get first string
-        sta     D                       ; Length of first string in D
+        jsr     pop_two_strings
         clc
         adc     E                       ; Get total length of string
         bcs     @out_of_range           ; Combined string is too long
@@ -211,11 +207,7 @@ op_concat:
 ; C=1 (not borrow) if s1 len >= s2 len
 
 compare_string_values:
-        jsr     pop_string              ; Get second string
-        jsr     load_s1                 ; Second string into S1
-        sta     E                       ; Length of second string in E
-        jsr     pop_string_s0           ; Get first string
-        sta     D                       ; Length of first string in D
+        jsr     pop_two_strings
         cmp     E                       ; Compare first string length to second
         bcc     @use_first_string_length
         lda     E                       ; Replace length in A with the shorter second string length 
@@ -234,6 +226,14 @@ compare_string_values:
 @compare_lengths:
         lda     D                       ; Characters are the same, so shorter string is lesser or equal
         cmp     E
+        rts
+
+pop_two_strings:
+        jsr     pop_string              ; Get the second string
+        jsr     load_s1                 ; Load into S1
+        sta     E                       ; Length of second string in E
+        jsr     pop_string_s0           ; Get first string
+        sta     D                       ; Length of first string in D
         rts
 
 op_eq:

@@ -23,22 +23,20 @@ raise_format_error:
 ; On return, string_ptr will point to the decoded string.
 
 decode_string:
-        jsr     decode_byte             ; A = length, line_pos now points to first character                                                                                        
-        pha                             ; Save length on stack                                                                                                                      
-        jsr     string_alloc_for_copy   ; Allocates on heap, sets dst_ptr = string_ptr + 1                                                                                          
-        lda     line_ptr                ; Calculate source address: line_ptr + line_pos                                                                                             
-        clc                                                                                                                                                                         
-        adc     line_pos                                                                                                                                                            
-        sta     src_ptr                                                                                                                                                             
-        lda     line_ptr+1                                                                                                                                                          
-        adc     #0                                                                                                                                                                  
-        sta     src_ptr+1               ; src_ptr points to source characters                                                                                                       
-        pla                             ; A = length                                                                                                                                
-        pha                             ; Keep length for copy_a                                                                                                                    
-        sec                             ; SEC + ADC = length + line_pos + 1                                                                                                         
-        adc     line_pos                                                                                                                                                            
-        sta     line_pos                ; Advance line_pos past characters and ending quote                                                                                         
-        pla                             ; A = length                                                                                                                                
+        jsr     decode_byte             ; A = length, line_pos now points to first character
+        jsr     string_alloc_for_copy   ; Allocates on heap, sets dst_ptr = string_ptr + 1
+        lda     line_ptr                ; Calculate source address: line_ptr + line_pos
+        clc
+        adc     line_pos
+        sta     src_ptr
+        lda     line_ptr+1
+        adc     #0
+        sta     src_ptr+1               ; src_ptr points to source characters
+        tya                             ; A = length
+        sec                             ; SEC + ADC = length + line_pos + 1
+        adc     line_pos
+        sta     line_pos                ; Advance line_pos past characters and ending quote
+        tya                             ; A = length
         jmp     copy_a                  ; Copies A bytes from src_ptr to dst_ptr and returns                                                                                        
 
 ; Decodes a variable name and set up decode_name_ptr, decode_name_length, and decode_name_type.

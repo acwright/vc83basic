@@ -37,20 +37,16 @@ fun_fre:
         tya                             ; Low byte back into A
         rts
 
-fun_left_s:
-        bmi     fun_mid_out_of_range    ; Don't allow negative length
-        sta     D                       ; Save in D
-        jsr     fun_mid_s_pop_string    ; String length in E and requested length <= string length in D
-        lda     #0                      ; Starting position
-        jmp     fun_mid_s_finish        ; Finish as MID
-
 fun_right_s:
-        bmi     fun_mid_out_of_range    ; Don't allow negative length
-        sta     D                       ; Save in D
-        jsr     fun_mid_s_pop_string    ; String length in E and requested length <= string length in D
+        jsr     fun_left_right_prep
         sec
         sbc     D                       ; Subtract requested length from string length to get starting position
-        jmp     fun_mid_s_finish        ; Finish as MID
+        bcs     fun_mid_s_finish        ; Unconditional since D <= string length
+
+fun_left_s:
+        jsr     fun_left_right_prep
+        lda     #0                      ; Starting position
+        beq     fun_mid_s_finish        ; Unconditional since A=0
 
 fun_mid_s:
         bmi     fun_mid_out_of_range    ; Don't allow negative length
@@ -94,11 +90,13 @@ fun_mid_s_finish:
         bcc     @skip_src_inx
         inx
 @skip_src_inx:
-        ldy     D
         jmp     copy_y_from
 
-fun_mid_out_of_range:
-        jmp     raise_out_of_range
+fun_left_right_prep:
+        bmi     fun_mid_out_of_range    ; Don't allow negative length
+        sta     D                       ; Save in D
+
+; Fall through
 
 ; Go get the string, set E to its length, and also return length in A.
 ; D contains the requested length; limit it to the string length.
@@ -111,6 +109,9 @@ fun_mid_s_pop_string:
         sta     D                       ; Otherwise overwrite requested length with string length
 @ok:
         rts
+
+fun_mid_out_of_range:
+        jmp     raise_out_of_range
 
 fun_peek:
         stax    BC                      ; Need it to be a pointer
@@ -163,13 +164,16 @@ fun_usr:
         jmp     (BC)                    ; Jump through vector
 
 fun_val:
-        sta     D                       ; Store the length into D
-        mvax    #buffer, dst_ptr        ; Copy
-        ldax    S0
-        ldy     D
-        jsr     copy_y_from
-        ldx     D
+        tay
         lda     #0
-        sta     buffer,x                ; Terminate string with 0
+        sta     buffer,y                ; Null-terminate buffer[len]
+        beq     @check_empty            ; Unconditional since A=0
+@loop:
+        lda     (S0),y
+        sta     buffer,y
+@check_empty:
+        dey
+        bpl     @loop
+        iny                             ; Y = 0 as starting index for string_to_fp
         ldax    #buffer
         jmp     string_to_fp            ; Parse it
