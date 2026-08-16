@@ -182,18 +182,23 @@ run_pvm:
 ; Matches the token in C with the opcode.
 ; A = the opcode
 ; Z flag will indicate whether it was matched or not
-; X SAFE, Y SAFE, BC SAFE, DE SAFE
+; DE SAFE
 
 match_token:
-        cmp     #PVM_MATCH_CLASS        ; Opcodes below this are exact token matches
+        cmp     #PVM_MATCH_RANGE        ; Opcodes below this are exact token matches
         bcc     @exact_match
-        asl     A                       ; The lower four bits are the mask
-        asl     A
-        asl     A
-        asl     A
-        eor     C
-        and     #$F0                    ; If top 4 bits match then they will be 0 and Z will be set
-        rts
+        and     #$0F                    ; Extract limit (count - 1)
+        sta     B                       ; Save limit in B
+        jsr     get_next_pvm_byte       ; A = min_token
+        eor     #$FF                    ; Compute A = C - min_token; A = ~min_token
+        adc     C                       ; A = C (guaranteed set) + ~min_token + 1 (which is C - min_token)
+        cmp     B                       ; Compare difference with limit
+        beq     @match                  ; A = limit -> match
+        bcc     @match                  ; A < limit -> match
+        rts                             ; No match: return with Z flag clear
+
+@match:
+        lda     C                       ; Force the compare to return equality
 
 @exact_match:
         cmp     C                       ; Compare opcode, now the token we need to match, to the next token
@@ -240,9 +245,9 @@ calculate_address_10:
         .byte t    
 .endmacro
 
-.macro MATCH_CLASS c
-        .assert (c & $0F) = 0, error, "Class must be $0-$F"
-        .byte PVM_MATCH_CLASS | (c >> 4)    
+.macro MATCH_RANGE min_token, count
+        .assert count >= 1 .and count <= 16, error, "Range count must be 1..16"
+        .byte PVM_MATCH_RANGE | (count - 1), min_token
 .endmacro
 
 .macro write_opcode_address opcode, address
@@ -263,9 +268,9 @@ calculate_address_10:
         MATCH t
 .endmacro
 
-.macro BRANCH_IF_CLASS c, address
+.macro BRANCH_IF_RANGE min_token, count, address
         write_opcode_address PVM_BRANCH_IF, address
-        MATCH_CLASS c
+        MATCH_RANGE min_token, count
 .endmacro
 
 .macro RETURN
@@ -281,9 +286,9 @@ calculate_address_10:
         MATCH t
 .endmacro
 
-.macro GUARD_CLASS c
+.macro GUARD_RANGE min_token, count
         .byte PVM_GUARD
-        MATCH_CLASS c
+        MATCH_RANGE min_token, count
 .endmacro
 
 .macro SLURP
@@ -312,9 +317,7 @@ pvm_statement:
         BRANCH_IF TOK_DATA, pvm_data
         BRANCH_IF TOK_REM, pvm_rem
         BRANCH_IF TOK_RESTORE, pvm_restore
-        BRANCH_IF_CLASS TOK_CLASS_ST_5X, @done  ; Any other no-arg statement
-        BRANCH_IF_CLASS TOK_CLASS_ST_6X, @done
-        BRANCH_IF_CLASS TOK_CLASS_ST_7X, @done
+        BRANCH_IF_RANGE TOK_RUN, 9, @done       ; Any other no-arg statement (RUN..POP, BYE)
         FAIL
 @done:
         RETURN
@@ -416,7 +419,7 @@ pvm_rem:
 
 pvm_expression:
         CALL pvm_primary_expression
-        BRANCH_IF_CLASS TOK_CLASS_OP_2X, pvm_expression
+        BRANCH_IF_RANGE TOK_ADD, 14, pvm_expression
         RETURN
 
 pvm_primary_expression:
@@ -427,10 +430,15 @@ pvm_primary_expression:
         BRANCH_IF TOK_NUM, @done
         BRANCH_IF TOK_STRING, @done
         BRANCH_IF TOK_NAME, pvm_optional_array
-        BRANCH_IF_CLASS TOK_CLASS_FN_8X, pvm_function
-        BRANCH_IF_CLASS TOK_CLASS_FN_9X, pvm_function
-        BRANCH_IF_CLASS TOK_CLASS_FN_AX, pvm_function
-        BRANCH_IF_CLASS TOK_CLASS_FN_BX, pvm_function
+        BRANCH_IF_RANGE TOK_LEN, 16, pvm_fun_1      ; 1-arg functions ($80..$8F)
+        BRANCH_IF_RANGE TOK_SGN, 3, pvm_fun_1       ; 1-arg functions ($90..$92)
+        BRANCH_IF_RANGE TOK_LEFT_S, 3, pvm_fun_2    ; 2-arg functions ($93..$95)
+        BRANCH_IF TOK_MID_S, pvm_fun_3              ; 3-arg function ($96)
+.ifdef TARGET_SIM6502
+        BRANCH_IF_RANGE TOK_FRE, 2, pvm_fun_0       ; 0-arg functions ($97..$98: FRE, VER$)
+.else
+        BRANCH_IF TOK_FRE, pvm_fun_0                ; 0-arg function ($97: FRE)
+.endif
         FAIL
 @done:
         RETURN
@@ -449,12 +457,27 @@ pvm_optional_array:
         MATCH TOK_RPAREN
         RETURN
 
-pvm_function:
+pvm_fun_0:
         MATCH TOK_LPAREN
-        BRANCH_IF TOK_RPAREN, @done
-        CALL pvm_arg_list
         MATCH TOK_RPAREN
-@done:
+        RETURN
+
+pvm_fun_1:
+        MATCH TOK_LPAREN
+        CALL pvm_expression
+        MATCH TOK_RPAREN
+        RETURN
+
+pvm_fun_2:
+        MATCH TOK_LPAREN
+        CALL pvm_arg_2
+        MATCH TOK_RPAREN
+        RETURN
+
+pvm_fun_3:
+        MATCH TOK_LPAREN
+        CALL pvm_arg_3
+        MATCH TOK_RPAREN
         RETURN
 
 ; Argument lists
