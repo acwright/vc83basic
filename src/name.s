@@ -192,9 +192,8 @@ find_array_element:
         sty     array_element_size+1    ; High byte of array element size starts at 0
         lda     (name_ptr),y            ; Get arity
         cmp     decode_name_arity
-        beq     @match_arity
-        jmp     raise_arity_mismatch
-@match_arity:
+        bne     raise_arity_mismatch
+
         sta     D                       ; Use D to count down arity
         iny
         jsr     rebase_name_ptr         ; Advance name_ptr past arity
@@ -238,6 +237,10 @@ find_array_element:
 
 name_out_of_range:
         jmp     raise_out_of_range
+
+raise_arity_mismatch:
+        raise   ERR_ARITY_MISMATCH
+
 
 ARRAY_TRIAL_GROW_SIZE = $80
 

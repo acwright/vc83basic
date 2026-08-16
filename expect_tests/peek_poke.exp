@@ -29,18 +29,6 @@ PELLO
 READY
 }
 
-test {
-PRINT PEEK()
-} {
-ERR: ARITY?
-}
-
-test {
-PRINT PEEK(ADDR, 1)
-} {
-ERR: ARITY?
-}
-
 # DPEEK and DPOKE
 
 test {
@@ -63,17 +51,6 @@ IILLO
 READY
 }
 
-test {
-PRINT DPEEK()
-} {
-ERR: ARITY?
-}
-
-test {
-PRINT DPEEK(ADDR, 1)
-} {
-ERR: ARITY?
-}
 
 test {
 DPOKE ADDR

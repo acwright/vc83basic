@@ -9,78 +9,8 @@
 .assert Value::number_value = 0, error
 .assert Value::string_value_ptr = 0, error
 
-.assert EPILOG_PUSH_FP = (1 << 4), error
-.assert EPILOG_PUSH_INT = (2 << 4), error
-.assert EPILOG_PUSH_STRING = (3 << 4), error
-.assert PROLOG_POP_FP = (1 << 6), error
-.assert PROLOG_POP_INT = (2 << 6), error
-.assert PROLOG_POP_STRING = (3 << 6), error
-
 .assert TOK_LEN = $80, error
 
-function_prologs:
-        .word   pop_fp0-1
-        .word   pop_int_fp0-1
-        .word   pop_string_s0-1
-
-function_epilogs:
-        .word   push_fp0-1
-        .word   push_int_fp0-1
-        .word   push_string-1
-
-evaluate_function:
-        and     #$3F                    ; Isolate function offset from 0 to 63
-        tax                             ; Set up as index
-        lda     function_flags,x
-        lsr     A                       ; Move epilog bits 4-5 to positions 1-2
-        lsr     A
-        lsr     A
-        sta     C                       ; Save shifted value
-        and     #$06                    ; Mask out the prolog bits; ensure bit 0 is clear
-        beq     @skip_epilog
-        tay                             ; Make it an index
-        lda     function_epilogs-1,y    ; Push epilog
-        pha
-        lda     function_epilogs-2,y
-        pha
-@skip_epilog:
-        lda     function_vectors_h,x    ; Push function address
-        pha
-        lda     function_vectors_l,x
-        pha
-        lda     C                       ; Get back the shifted value
-        lsr     A                       ; Shift prolog bits 6-7 from original to positions 1-2
-        lsr     A
-        and     #$06                    ; If bit 0 was set from epilog bits, clear them
-        beq     @skip_prolog
-        tay                             ; Make it an index
-        lda     function_prologs-1,y    ; Push epilog
-        pha
-        lda     function_prologs-2,y
-        pha
-@skip_prolog:
-
-; The stack now looks like this:
-;     SP+8      evaluate_function return address high byte
-;     SP+7      evaluate_function return address low byte
-;     SP+6      Epilog function high byte (if present)
-;     SP+5      Epilog function low byte (if present)
-;     SP+4      Function handler high byte
-;     SP+3      Function handler low byte
-;     SP+2      Prolog function high byte (if present)
-;     SP+1      Prolog function low byte (if present)
-;     SP        Current stack pointer       
-
-        lda     function_flags,x        ; Reload arity and flags
-        and     #$07                    ; Limit to 7 args: ensures bit 3 is always 0
-        inc     line_pos                ; Skip '('
-        jsr     evaluate_argument_list
-        bne     raise_arity_mismatch
-        inc     line_pos                ; Skip ')'
-        rts                             ; Jumps to prolog or function handler
-
-raise_arity_mismatch:
-        raise   ERR_ARITY_MISMATCH
 
 ; Evaluates an expression and leaves the result on the stack.
 ; An expression is a primary expression, optionally followed by a binary operator and another expression.
@@ -142,7 +72,7 @@ next_expression:
         beq     evaluate_string
         cmp     #TOK_NAME
         beq     evaluate_variable
-        jmp     evaluate_function       ; None of the above; assume it's a function
+        jmp     dispatch_function       ; None of the above; assume it's a function
 
 evaluate_paren:
         lda     #PR_OPEN_PAREN          ; Push the open paren, which will never be removed by process_operators
