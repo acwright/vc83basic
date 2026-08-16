@@ -5,6 +5,7 @@
 ; Decodes and executes statements and functions from the token stream.
 
 .assert TOK_PRINT = $40, error
+.assert TOK_LEN = $80, error
 
 dispatch_statement:
         mva     stack_pos, reset_stack_pos      ; Save stack pos in case we have to roll it back
@@ -12,18 +13,16 @@ dispatch_statement:
         jsr     decode_byte                     ; Get statement number
         cmp     #TOK_NAME
         beq     @impl_let
-        and     #$3F                            ; Isolate statement offset from 0 to 63
-        bpl     dispatch_entry                  ; Unconditional (X < 128)
+        sbc     #TOK_PRINT                      ; C is set from cmp; convert token to index
+        bpl     dispatch                        ; Unconditional (index < 128)
 
 @impl_let:
         jmp     exec_impl_let
 
 dispatch_function:
-        and     #$3F                            ; Isolate function offset from 0 to 63
-        clc
-        adc     #statement_count                ; Offset by statement_count to form unified index
+        sbc     #(TOK_LEN - statement_count)    ; C is set from cmp; convert token to unified index
 
-dispatch_entry:
+dispatch:
         tax                                     ; Save dispatch vector offset in X
         lsr     A                               ; Byte offset in flags table = X / 2
         tay
