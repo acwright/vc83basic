@@ -120,6 +120,12 @@ exec_hlin:
 
 exec_vlin:
         jsr     get_hlin_vlin_arguments
+        tax                             ; Swap A (column) and Y (start row)
+        tya
+        pha
+        txa
+        tay
+        pla
         jmp     VLINE
 
 get_hlin_vlin_arguments:
