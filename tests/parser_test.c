@@ -11,6 +11,7 @@ void call_parse_pvm_expect_buffer_pos(const char* s, const char* start, const ch
     fprintf(stderr, "  %s:%d: parse_pvm(\"%s\")\n", __FILE__, line, s);
     strcpy(buffer, s);
     buffer_pos = 0;
+    read_ptr = buffer;
     line_pos = offsetof(Line, data);
     parse_pvm(start);
     ASSERT_EQ(err, 0);
