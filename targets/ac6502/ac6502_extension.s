@@ -2,7 +2,7 @@
 ;
 ; SPDX-License-Identifier: MIT
 ;
-; ac6502 BASIC extensions.  Adds hardware-specific statements and
+; ac6502 BASIC extensions. Adds hardware-specific statements and
 ; functions that mirror the Integer BASIC built into the 6502-BIOS:
 ; CLS, LOCATE, COLOR, SOUND, VOL, PAUSE, WAIT, TIME, DATE, SETTIME,
 ; SETDATE, NVRAM, BANK, MEM, SYS and JOY(), INKEY(), NVRAM().
@@ -13,81 +13,152 @@
 
 .setcpu "65C02"
 
-; --- Parser name tables and argument parsers --------------------------------
+TOK_CLS     = $5A
+TOK_LOCATE  = $5B
+TOK_COLOR   = $5C
+TOK_SOUND   = $5D
+TOK_VOL     = $5E
+TOK_PAUSE   = $5F
 
-.segment "PARSER"
+TOK_WAIT    = $60
+TOK_TIME    = $61
+TOK_DATE    = $62
+TOK_SETTIME = $63
+TOK_SETDATE = $64
+TOK_NVRAM_W = $65
+TOK_BANK    = $66
+TOK_MEM     = $67
+TOK_SYS     = $68
 
-ex_statement_name_table:
-        name_table_entry "CLS"
+TOK_JOY     = $98
+TOK_INKEY   = $99
+TOK_NVRAM_F = $9A
+
+.macro extension_statement_keywords
+:       name_table_entry "CLS"
 :       name_table_entry "LOCATE"
-            JUMP pvm_arg_2
 :       name_table_entry "COLOR"
-            JUMP pvm_arg_2
 :       name_table_entry "SOUND"
-            JUMP pvm_arg_3
 :       name_table_entry "VOL"
-            JUMP pvm_expression
 :       name_table_entry "PAUSE"
-            JUMP pvm_expression
+KEYWORD_BLOCK_6_OFFSET = keyword_counter
 :       name_table_entry "WAIT"
-            JUMP pvm_arg_2
 :       name_table_entry "TIME"
 :       name_table_entry "DATE"
 :       name_table_entry "SETTIME"
-            JUMP pvm_arg_3
 :       name_table_entry "SETDATE"
-            JUMP pvm_arg_4
 :       name_table_entry "NVRAM"
-            JUMP pvm_arg_2
 :       name_table_entry "BANK"
-            JUMP pvm_expression
 :       name_table_entry "MEM"
 :       name_table_entry "SYS"
-            JUMP pvm_expression
-:       name_table_end
+:       name_table_entry ""             ; Padding for even statement count
+.endmacro
 
-ex_function_name_table:
-        name_table_entry "JOY"
+.macro extension_function_keywords
+:       name_table_entry "JOY"
 :       name_table_entry "INKEY"
 :       name_table_entry "NVRAM"
-:       name_table_end
+:       name_table_entry ""             ; Padding for even function count
+.endmacro
 
-; --- Statement dispatch vectors ---------------------------------------------
+.macro extension_pvm_statements
+        BRANCH_IF TOK_CLS, @done
+        BRANCH_IF TOK_LOCATE, pvm_arg_2
+        BRANCH_IF TOK_COLOR, pvm_arg_2
+        BRANCH_IF TOK_SOUND, pvm_arg_3
+        BRANCH_IF TOK_VOL, pvm_expression
+        BRANCH_IF TOK_PAUSE, pvm_expression
+        BRANCH_IF TOK_WAIT, pvm_arg_2
+        BRANCH_IF TOK_TIME, @done
+        BRANCH_IF TOK_DATE, @done
+        BRANCH_IF TOK_SETTIME, pvm_arg_3
+        BRANCH_IF TOK_SETDATE, pvm_arg_4
+        BRANCH_IF TOK_NVRAM_W, pvm_arg_2
+        BRANCH_IF TOK_BANK, pvm_expression
+        BRANCH_IF TOK_MEM, @done
+        BRANCH_IF TOK_SYS, pvm_expression
+.endmacro
 
-.segment "XVEC"
+.macro extension_parser_code
+pvm_arg_4:
+        CALL    pvm_expression
+        MATCH   TOK_COMMA
+        JUMP    pvm_arg_3
+.endmacro
 
-ex_statement_vectors:
-        .word   exec_cls-1
-        .word   exec_locate-1
-        .word   exec_color-1
-        .word   exec_sound-1
-        .word   exec_vol-1
-        .word   exec_pause-1
-        .word   exec_wait-1
-        .word   exec_time-1
-        .word   exec_date-1
-        .word   exec_settime-1
-        .word   exec_setdate-1
-        .word   exec_nvram_w-1
-        .word   exec_bank-1
-        .word   exec_mem-1
-        .word   exec_sys-1
+.macro extension_pvm_functions
+        BRANCH_IF_RANGE TOK_JOY, 3, pvm_fun_1
+.endmacro
 
-; --- Function dispatch table ------------------------------------------------
+.macro extension_statement_vectors_l
+        .byte   <(exec_cls-1)
+        .byte   <(exec_locate-1)
+        .byte   <(exec_color-1)
+        .byte   <(exec_sound-1)
+        .byte   <(exec_vol-1)
+        .byte   <(exec_pause-1)
+        .byte   <(exec_wait-1)
+        .byte   <(exec_time-1)
+        .byte   <(exec_date-1)
+        .byte   <(exec_settime-1)
+        .byte   <(exec_setdate-1)
+        .byte   <(exec_nvram_w-1)
+        .byte   <(exec_bank-1)
+        .byte   <(exec_mem-1)
+        .byte   <(exec_sys-1)
+        .byte   0
+.endmacro
 
-.segment "XFUNC"
+.macro extension_statement_vectors_h
+        .byte   >(exec_cls-1)
+        .byte   >(exec_locate-1)
+        .byte   >(exec_color-1)
+        .byte   >(exec_sound-1)
+        .byte   >(exec_vol-1)
+        .byte   >(exec_pause-1)
+        .byte   >(exec_wait-1)
+        .byte   >(exec_time-1)
+        .byte   >(exec_date-1)
+        .byte   >(exec_settime-1)
+        .byte   >(exec_setdate-1)
+        .byte   >(exec_nvram_w-1)
+        .byte   >(exec_bank-1)
+        .byte   >(exec_mem-1)
+        .byte   >(exec_sys-1)
+        .byte   0
+.endmacro
 
-ex_function_table:
-        .word   fun_joy-1
-        .byte   1 | PROLOG_POP_INT | EPILOG_PUSH_INT
-        .word   fun_inkey-1
-        .byte   1 | PROLOG_POP_INT | EPILOG_PUSH_INT
-        .word   fun_nvram-1
-        .byte   1 | PROLOG_POP_INT | EPILOG_PUSH_INT
+.macro extension_statement_flags
+        .byte   0 | (PROLOG_POP_INT << 4)                               ; CLS, LOCATE
+        .byte   PROLOG_POP_INT | (PROLOG_POP_INT << 4)                  ; COLOR, SOUND
+        .byte   PROLOG_POP_INT | (PROLOG_POP_INT << 4)                  ; VOL, PAUSE
+        .byte   PROLOG_POP_INT | (0 << 4)                               ; WAIT, TIME
+        .byte   0 | (PROLOG_POP_INT << 4)                               ; DATE, SETTIME
+        .byte   PROLOG_POP_INT | (PROLOG_POP_INT << 4)                  ; SETDATE, NVRAM
+        .byte   PROLOG_POP_INT | (0 << 4)                               ; BANK, MEM
+        .byte   PROLOG_POP_INT | (0 << 4)                               ; SYS, padding
+.endmacro
 
-; --- Implementations --------------------------------------------------------
+.macro extension_function_vectors_l
+        .byte   <(fun_joy-1)
+        .byte   <(fun_inkey-1)
+        .byte   <(fun_nvram-1)
+        .byte   0
+.endmacro
 
-.code
+.macro extension_function_vectors_h
+        .byte   >(fun_joy-1)
+        .byte   >(fun_inkey-1)
+        .byte   >(fun_nvram-1)
+        .byte   0
+.endmacro
+
+.macro extension_function_flags
+        .byte   (PROLOG_POP_INT | EPILOG_PUSH_INT) | ((PROLOG_POP_INT | EPILOG_PUSH_INT) << 4) ; JOY, INKEY
+        .byte   (PROLOG_POP_INT | EPILOG_PUSH_INT)                                              ; NVRAM, padding
+.endmacro
+
+.macro extension_code
 
 ; ---------------------------------------------------------------------------
 ; Small utilities
@@ -143,10 +214,10 @@ ex_print_2d:
 ; Print A as two hex digits.
 ex_print_2h:
         pha
-        lsr     a
-        lsr     a
-        lsr     a
-        lsr     a
+        lsr     A
+        lsr     A
+        lsr     A
+        lsr     A
         jsr     ex_print_nib
         pla
         and     #$0F
@@ -166,7 +237,7 @@ ex_print_ax:
         jsr     int_to_fp
         jmp     print_number
 
-; Check for Ctrl-C / ESC in the keyboard buffer.  Raise ERR_STOPPED if found.
+; Check for Ctrl-C / ESC in the keyboard buffer. Raise ERR_STOPPED if found.
 ex_break_check:
         jsr     Chrin                   ; Non-blocking (C=1 if a char is waiting)
         bcc     @done
@@ -191,12 +262,9 @@ exec_cls:
         rts
 
 exec_locate:
-        jsr     evaluate_argument_list
-        jsr     pop_int_fp0             ; col
-        sta     D                       ; D = col
-        jsr     pop_int_fp0             ; row
-        tay                             ; Y = row
-        ldx     D                       ; X = col
+        tay                             ; Y = row (last arg popped by prolog)
+        jsr     pop_int_fp0             ; col -> AX
+        tax                             ; X = col
         bit     HW_PRESENT
         bpl     @skip
         jmp     VideoSetCursor
@@ -204,15 +272,13 @@ exec_locate:
         rts
 
 exec_color:
-        jsr     evaluate_argument_list
-        jsr     pop_int_fp0             ; bg
         and     #$0F
-        sta     D                       ; D = bg nibble
-        jsr     pop_int_fp0             ; fg
-        asl     a
-        asl     a
-        asl     a
-        asl     a
+        sta     D                       ; D = bg nibble (last arg popped by prolog)
+        jsr     pop_int_fp0             ; fg -> AX
+        asl     A
+        asl     A
+        asl     A
+        asl     A
         ora     D                       ; (fg<<4) | bg
         bit     HW_PRESENT
         bpl     @skip
@@ -225,9 +291,7 @@ exec_color:
 ; ---------------------------------------------------------------------------
 
 exec_sound:
-        jsr     evaluate_argument_list
-        jsr     pop_int_fp0             ; dur -> AX
-        pha                             ; push dur_lo on CPU stack
+        pha                             ; push dur_lo on CPU stack (dur in AX from prolog)
         txa
         pha                             ; push dur_hi on CPU stack
         jsr     pop_int_fp0             ; freq (Hz) -> AX (A=lo, X=hi)
@@ -271,7 +335,7 @@ exec_sound:
         lda     D
         pha                             ; push freqLo on CPU stack
         jsr     pop_int_fp0             ; voice (1-3) -> A
-        dec     a                       ; convert to 0-indexed (0-2)
+        dec     A                       ; convert to 0-indexed (0-2)
         sta     E                       ; E = voice
         lda     HW_PRESENT
         and     #HW_SID
@@ -295,9 +359,7 @@ exec_sound:
         rts
 
 exec_vol:
-        jsr     evaluate_argument_list
-        jsr     pop_int_fp0             ; level
-        sta     D
+        sta     D                       ; level in A from prolog
         lda     HW_PRESENT
         and     #HW_SID
         beq     @skip
@@ -311,15 +373,11 @@ exec_vol:
 ; ---------------------------------------------------------------------------
 
 exec_pause:
-        jsr     evaluate_argument_list
-        jsr     pop_int_fp0             ; count (AX = lo/hi centiseconds)
-        jmp     SysDelay
+        jmp     SysDelay                ; count in AX from prolog
 
 exec_wait:
-        jsr     evaluate_argument_list
-        jsr     pop_int_fp0             ; mask
-        sta     D                       ; D = mask
-        jsr     pop_int_fp0             ; address
+        sta     D                       ; D = mask (from prolog)
+        jsr     pop_int_fp0             ; address -> AX
         stax    BC                      ; BC = pointer
 @loop:
         jsr     ex_break_check
@@ -376,12 +434,10 @@ exec_date:
         jmp     newline
 
 exec_settime:
-        jsr     evaluate_argument_list
-        jsr     pop_int_fp0             ; ss
-        sta     C                       ; C = seconds
-        jsr     pop_int_fp0             ; mm
+        sta     C                       ; C = seconds (from prolog)
+        jsr     pop_int_fp0             ; mm -> AX
         sta     D                       ; D = minutes
-        jsr     pop_int_fp0             ; hh
+        jsr     pop_int_fp0             ; hh -> AX
         sta     E                       ; E = hours
         lda     HW_PRESENT
         and     #HW_RTC
@@ -393,14 +449,12 @@ exec_settime:
         jmp     RtcWriteTime
 
 exec_setdate:
-        jsr     evaluate_argument_list
-        jsr     pop_int_fp0             ; dd
-        sta     B                       ; B = day
-        jsr     pop_int_fp0             ; mm
+        sta     B                       ; B = day (from prolog)
+        jsr     pop_int_fp0             ; mm -> AX
         sta     C                       ; C = month
-        jsr     pop_int_fp0             ; yy
+        jsr     pop_int_fp0             ; yy -> AX
         sta     D                       ; D = year
-        jsr     pop_int_fp0             ; cc
+        jsr     pop_int_fp0             ; cc -> AX
         sta     RTC_BUF_CENT
         lda     HW_PRESENT
         and     #HW_RTC
@@ -416,10 +470,8 @@ exec_setdate:
 ; ---------------------------------------------------------------------------
 
 exec_nvram_w:
-        jsr     evaluate_argument_list
-        jsr     pop_int_fp0             ; value
-        sta     D                       ; D = value
-        jsr     pop_int_fp0             ; address
+        sta     D                       ; D = value (from prolog)
+        jsr     pop_int_fp0             ; address -> AX
         sta     E                       ; E = address
         lda     HW_PRESENT
         and     #HW_RTC
@@ -434,9 +486,7 @@ exec_nvram_w:
 ; ---------------------------------------------------------------------------
 
 exec_bank:
-        jsr     evaluate_argument_list
-        jsr     pop_int_fp0             ; bank number
-        sta     D                       ; D = bank
+        sta     D                       ; bank in A from prolog
         lda     HW_PRESENT
         and     #HW_RAM_L
         bne     :+
@@ -474,12 +524,7 @@ ex_str_video:   .byte   "VIDEO", 0
 ex_str_serial:  .byte   "SERIAL", 0
 
 exec_sys:
-        jsr     evaluate_argument_list
-        jsr     pop_int_fp0             ; address
-        stax    BC
-        jsr     ex_sys_call
-        rts
-ex_sys_call:
+        stax    BC                      ; address in AX from prolog
         jmp     (BC)
 
 ; ---------------------------------------------------------------------------
@@ -488,7 +533,7 @@ ex_sys_call:
 
 ; JOY(n) -- return joystick bitmask for port n (1 or 2); 0 if GPIO absent.
 fun_joy:
-        sta     D                       ; save port number
+        sta     D                       ; save port number (from prolog)
         lda     HW_PRESENT
         and     #HW_GPIO
         beq     @none
@@ -519,7 +564,7 @@ fun_inkey:
 
 ; NVRAM(addr) -- read RTC NVRAM byte; returns 0 if RTC absent.
 fun_nvram:
-        sta     D                       ; D = address
+        sta     D                       ; D = address (from prolog)
         lda     HW_PRESENT
         and     #HW_RTC
         beq     @none
@@ -531,3 +576,5 @@ fun_nvram:
         lda     #0
         tax
         rts
+
+.endmacro

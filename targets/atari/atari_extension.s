@@ -2,27 +2,32 @@
 ;
 ; SPDX-License-Identifier: MIT
 
-.segment "PARSER"
+TOK_DOS   = $5A
 
-ex_statement_name_table:
-        name_table_entry "DOS"
-:       name_table_end
+.macro extension_statement_keywords
+:       name_table_entry "DOS"
+:       name_table_entry ""             ; Padding for even statement count
+.endmacro
 
-ex_function_name_table:
-        name_table_end
+.macro extension_pvm_statements
+        BRANCH_IF TOK_DOS, @done
+.endmacro
 
-.segment "XVEC"
+.macro extension_statement_vectors_l
+        .byte   <(exec_dos-1)
+        .byte   0
+.endmacro
 
-ex_statement_vectors:
-        .word   exec_dos-1
+.macro extension_statement_vectors_h
+        .byte   >(exec_dos-1)
+        .byte   0
+.endmacro
 
-.code
+.macro extension_statement_flags
+        .byte   0
+.endmacro
 
+.macro extension_code
 exec_dos:
         jmp     (DOSVEC)
-
-.segment "XFUNC"
-
-ex_function_table:
-
-.code
+.endmacro
