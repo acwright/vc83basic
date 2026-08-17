@@ -2,6 +2,53 @@
 ;
 ; SPDX-License-Identifier: MIT
 
+TOK_BYE   = $5A
+TOK_VER_S = $98
+
+.macro extension_statement_keywords
+:       name_table_entry "BYE"
+:       name_table_entry ""
+.endmacro
+
+.macro extension_function_keywords
+:       name_table_entry "VER$"
+.endmacro
+
+.macro extension_pvm_statements
+        BRANCH_IF TOK_BYE, @done
+.endmacro
+
+.macro extension_pvm_functions
+        BRANCH_IF TOK_VER_S, pvm_fun_0
+.endmacro
+
+.macro extension_statement_vectors_l
+        .byte   <(exec_bye-1)
+        .byte   0
+.endmacro
+
+.macro extension_statement_vectors_h
+        .byte   >(exec_bye-1)
+        .byte   0
+.endmacro
+
+.macro extension_statement_flags
+        .byte   0
+.endmacro
+
+.macro extension_function_vectors_l
+        .byte   <(fun_ver_s-1)
+.endmacro
+
+.macro extension_function_vectors_h
+        .byte   >(fun_ver_s-1)
+.endmacro
+
+.macro extension_function_flags
+        .byte   PROLOG_NONE | EPILOG_PUSH_STRING
+.endmacro
+
+.macro extension_code
 ; exit function provided by sim6502
 .import exit
 
@@ -19,3 +66,4 @@ fun_ver_s:
         jsr     string_alloc_for_copy
         ldax    #version
         jmp     copy_y_from
+.endmacro

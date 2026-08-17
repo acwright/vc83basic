@@ -53,8 +53,16 @@ KEYWORD_BLOCK_0_OFFSET = keyword_counter
 :       name_table_entry "TO"
 :       name_table_entry "STEP"
 :       name_table_entry ":"
-; Block 1 ($10..$1F) - unused
+; Block 1 ($10..$1F) - Custom syntax keywords ($15..$1F)
 KEYWORD_BLOCK_1_OFFSET = keyword_counter
+.if .definedmacro(extension_custom_keywords)
+:       name_table_entry ""             ; $10: TOK_NON_TERMINAL
+:       name_table_entry ""             ; $11: TOK_NUM
+:       name_table_entry ""             ; $12: TOK_SYMBOL
+:       name_table_entry ""             ; $13: TOK_NAME
+:       name_table_entry ""             ; $14: TOK_STRING
+        extension_custom_keywords
+.endif
 ; Block 2 ($20..$2D)
 KEYWORD_BLOCK_2_OFFSET = keyword_counter
 :       name_table_entry "+"
@@ -91,7 +99,7 @@ KEYWORD_BLOCK_4_OFFSET = keyword_counter
 :       name_table_entry "RESTORE"
 :       name_table_entry "DIM"
 :       name_table_entry "DATA"
-; Block 5 ($50..$5A)
+; Block 5 ($50..$5F)
 KEYWORD_BLOCK_5_OFFSET = keyword_counter
 :       name_table_entry "POKE"
 :       name_table_entry "DPOKE"
@@ -103,10 +111,7 @@ KEYWORD_BLOCK_5_OFFSET = keyword_counter
 :       name_table_entry "CLR"
 :       name_table_entry "RETURN"
 :       name_table_entry "POP"
-.ifdef TARGET_SIM6502
-:       name_table_entry "BYE"
-:       name_table_entry ""
-.endif
+        invoke_if_defined extension_statement_keywords
 ; Block 6 ($60..$6F) - unused
 KEYWORD_BLOCK_6_OFFSET = keyword_counter
 ; Block 7 ($70..$7F) - unused
@@ -129,7 +134,7 @@ KEYWORD_BLOCK_8_OFFSET = keyword_counter
 :       name_table_entry "TAN"
 :       name_table_entry "ATN"
 :       name_table_entry "ABS"
-; Block 9 ($90..$98)
+; Block 9 ($90..$9F)
 KEYWORD_BLOCK_9_OFFSET = keyword_counter
 :       name_table_entry "SGN"
 :       name_table_entry "SQR"
@@ -139,9 +144,7 @@ KEYWORD_BLOCK_9_OFFSET = keyword_counter
 :       name_table_entry "USR"
 :       name_table_entry "MID$"
 :       name_table_entry "FRE"
-.ifdef TARGET_SIM6502
-:       name_table_entry "VER$"
-.endif
+        invoke_if_defined extension_function_keywords
 :       name_table_end
 ; Block A ($A0..$AF) - unused
 KEYWORD_BLOCK_A_OFFSET = keyword_counter

@@ -80,10 +80,6 @@ def(TOK_NEW,            hex(56))
 def(TOK_CLR,            hex(57))
 def(TOK_RETURN,         hex(58))
 def(TOK_POP,            hex(59))
-ifdef(TARGET_SIM6502)
-def(TOK_BYE,            hex(5A))
-def(TOK_RESERVED_5B,    hex(5B))
-endif 
 
 def(TOK_LEN,            hex(80))
 def(TOK_STR_S,          hex(81))
@@ -108,10 +104,7 @@ def(TOK_LEFT_S,         hex(93))
 def(TOK_RIGHT_S,        hex(94))
 def(TOK_USR,            hex(95))
 def(TOK_MID_S,          hex(96))
-def(TOK_FRE,            hex(97))
-ifdef(TARGET_SIM6502)
-def(TOK_VER_S,          hex(98))
-endif 
+def(TOK_FRE,            hex(97)) 
 
 comment Types
 

@@ -132,10 +132,7 @@ dispatch_vectors_l:
         .byte   <(clear_variables-1)
         .byte   <(exec_return-1)
         .byte   <(exec_pop-1)
-.ifdef TARGET_SIM6502
-        .byte   <(exec_bye-1)
-        .byte   0
-.endif
+        invoke_if_defined extension_statement_vectors_l
 
 statement_count = * - dispatch_vectors_l
 
@@ -164,9 +161,7 @@ statement_count = * - dispatch_vectors_l
         .byte   <(fun_usr-1)
         .byte   <(fun_mid_s-1)
         .byte   <(fun_fre-1)
-.ifdef TARGET_SIM6502
-        .byte   <(fun_ver_s-1)
-.endif
+        invoke_if_defined extension_function_vectors_l
 
 dispatch_count = * - dispatch_vectors_l
 function_count = dispatch_count - statement_count
@@ -199,10 +194,8 @@ dispatch_vectors_h:
         .byte   >(clear_variables-1)
         .byte   >(exec_return-1)
         .byte   >(exec_pop-1)
-.ifdef TARGET_SIM6502
-        .byte   >(exec_bye-1)
-        .byte   0
-.endif
+        invoke_if_defined extension_statement_vectors_h
+
         ; --- Functions ---
         .byte   >(fun_len-1)
         .byte   >(fun_str_s-1)
@@ -228,9 +221,7 @@ dispatch_vectors_h:
         .byte   >(fun_usr-1)
         .byte   >(fun_mid_s-1)
         .byte   >(fun_fre-1)
-.ifdef TARGET_SIM6502
-        .byte   >(fun_ver_s-1)
-.endif
+        invoke_if_defined extension_function_vectors_h
 
 .assert (* - dispatch_vectors_h) = dispatch_count, error
 
@@ -238,9 +229,7 @@ dispatch_flags:
         ; --- Statements ---
         .byte   PROLOG_POP_INT | (PROLOG_POP_INT << 4)  ; POKE, DPOKE
         .byte   0, 0, 0, 0                              ; RUN..POP
-.ifdef TARGET_SIM6502
-        .byte   0                                       ; BYE, RESERVED
-.endif
+        invoke_if_defined extension_statement_flags
 
         ; --- Functions ---
         .byte   (PROLOG_POP_STRING | EPILOG_PUSH_INT) | ((PROLOG_POP_FP | EPILOG_PUSH_STRING) << 4)    ; LEN, STR$
@@ -255,8 +244,6 @@ dispatch_flags:
         .byte   (PROLOG_POP_FP | EPILOG_PUSH_FP) | ((PROLOG_POP_INT | EPILOG_PUSH_STRING) << 4)       ; RND, LEFT$
         .byte   (PROLOG_POP_INT | EPILOG_PUSH_STRING) | ((PROLOG_POP_INT | EPILOG_PUSH_INT) << 4)     ; RIGHT$, USR
         .byte   (PROLOG_POP_INT | EPILOG_PUSH_STRING) | ((PROLOG_NONE | EPILOG_PUSH_INT) << 4)        ; MID$, FRE
-.ifdef TARGET_SIM6502
-        .byte   PROLOG_NONE | EPILOG_PUSH_STRING        ; VER$
-.endif
+        invoke_if_defined extension_function_flags
 
 .assert (* - dispatch_flags) = ((dispatch_count - 16 + 1) / 2), error

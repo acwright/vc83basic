@@ -2,9 +2,9 @@
 ;
 ; SPDX-License-Identifier: MIT
 
+.include "sim6502_extension.s"
 .include "basic.s"
 .include "main.s"
 .include "sim6502_startup.s"
 .include "sim6502_init.s"
 .include "sim6502_io.s"
-.include "sim6502_extension.s"

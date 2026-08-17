@@ -13,9 +13,10 @@
 #include <stddef.h>
 #include <stdlib.h>
 
-#define TARGET_SIM6502 1
-
 #include "../src/constants.h"
+
+#define TOK_BYE   0x5A
+#define TOK_VER_S 0x98
 
 // Types
 // These are not the actual types used by the interpeter! They are C structs that mirror the structures used in

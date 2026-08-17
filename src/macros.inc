@@ -4,6 +4,14 @@
 
 ; Macros
 
+; Invokes a macro if it is defined.
+
+.macro invoke_if_defined mac
+    .if .definedmacro(mac)
+        mac
+    .endif
+.endmacro
+
 ; Inserts a BRK instruction followed by a value.
 ; On the sim6502 platform the BRK will print the value followed by the 6502 registers.
 
