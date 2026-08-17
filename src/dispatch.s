@@ -34,9 +34,9 @@ exec_impl_let:
 ; name_ptr = pointer to the variable's data in the variable name table
 
 assign_variable:
-        lda     decode_name_type        ; Determine what format the allocated memory natively represents
-        jsr     stack_free_value_with_type  ; Drop the actively evaluated item from the top of the stack and yield X representing its base boundary
-        ldy     decode_name_type        ; Restore the target variable type index
+        ldy     decode_name_type        ; Load the target variable type index
+        tya                             ; Pass type in A
+        jsr     stack_free_value_with_type  ; Drop the actively evaluated item from top of stack and yield X (preserves Y)
         lda     type_size_table,y       ; Fetch structural footprint directly mapping index (5 for numeric, 2 for string offset)
         sta     B                       ; Save loop delimiter threshold inside B locally
         ldy     #0                      ; Init sequence relative iteration pointer to exactly 0 to offset naturally up

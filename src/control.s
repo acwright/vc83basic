@@ -85,10 +85,9 @@ exec_for:
         jsr     push_next_line_ptr      ; Save return address
         inc     line_pos                ; Skip TOK_NAME
         jsr     decode_name             ; Get the name (now in decode_name_ptr)
-        lda     decode_name_type        ; No string variables please
+        lda     decode_name_type        ; No string variables or arrays
+        ora     decode_name_arity
         bne     raise_invalid_variable
-        lda     decode_name_arity       ; Or arrays
-        bmi     raise_invalid_variable
         inc     line_pos                ; Skip terminator following name
         jsr     evaluate_expression     ; Start value
         inc     line_pos                ; Skip terminator
@@ -225,7 +224,6 @@ push_next_line_ptr:
         sta     stack+Control::next_line_pos,x
         lda     #TYPE_CONTROL           ; Identify this as Control not Value
         sta     stack+Control::type,x
-        txa                             ; Move stack pointer back to A
         rts
 
 get_line_number:

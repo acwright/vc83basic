@@ -116,16 +116,17 @@ append_null_line:
 find_line:
         stax    line_number
         jsr     reset_next_line_ptr     ; Set next_line_ptr to beginning of program
-        jmp     @test_line              ; Skip over first advance_line_ptr call
-@next_line:      
-        jsr     advance_next_line_ptr   ; Advance to the next line
-@test_line:
+@loop:
         jsr     compare_next_line_to_target
-        bcc     @next_line              ; Line number is < target; go to next line
+        bcc     @advance                ; Line number is < target; go to next line
         bne     @not_found              ; Line is strictly > target; return with carry set
         clc                             ; Exact match found; return with carry clear
 @not_found:
         rts     
+
+@advance:
+        jsr     advance_next_line_ptr   ; Advance to the next line
+        bne     @loop                   ; Unconditional: set_next_line_pos leaves Z=0 (Y=3)     
 
 ; Compares the line number at next_line_ptr to the target line_number.
 ; Returns carry clear if next_line_ptr is strictly < target.
