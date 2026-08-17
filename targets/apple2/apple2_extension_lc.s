@@ -26,6 +26,7 @@ TOK_SCRN  = $99
 :       name_table_entry "COLOR"
 :       name_table_entry "PLOT"
 :       name_table_entry "HLIN"
+KEYWORD_BLOCK_6_OFFSET = keyword_counter
 :       name_table_entry "VLIN"
 :       name_table_entry ""             ; Padding for even statement count
 .endmacro

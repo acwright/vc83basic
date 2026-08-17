@@ -112,10 +112,14 @@ KEYWORD_BLOCK_5_OFFSET = keyword_counter
 :       name_table_entry "RETURN"
 :       name_table_entry "POP"
         invoke_if_defined extension_statement_keywords
-; Block 6 ($60..$6F) - unused
+; Block 6 ($60..$6F) - unused unless defined by target
+.ifndef KEYWORD_BLOCK_6_OFFSET
 KEYWORD_BLOCK_6_OFFSET = keyword_counter
-; Block 7 ($70..$7F) - unused
+.endif
+; Block 7 ($70..$7F) - unused unless defined by target
+.ifndef KEYWORD_BLOCK_7_OFFSET
 KEYWORD_BLOCK_7_OFFSET = keyword_counter
+.endif
 ; Block 8 ($80..$8F)
 KEYWORD_BLOCK_8_OFFSET = keyword_counter
 :       name_table_entry "LEN"
@@ -146,10 +150,14 @@ KEYWORD_BLOCK_9_OFFSET = keyword_counter
 :       name_table_entry "FRE"
         invoke_if_defined extension_function_keywords
 :       name_table_end
-; Block A ($A0..$AF) - unused
+; Block A ($A0..$AF) - unused unless defined by target
+.ifndef KEYWORD_BLOCK_A_OFFSET
 KEYWORD_BLOCK_A_OFFSET = keyword_counter
-; Block B ($B0..$BF) - unused
+.endif
+; Block B ($B0..$BF) - unused unless defined by target
+.ifndef KEYWORD_BLOCK_B_OFFSET
 KEYWORD_BLOCK_B_OFFSET = keyword_counter
+.endif
 
 keyword_block_offsets:
         .byte   KEYWORD_BLOCK_0_OFFSET  ; $0x: Delimiters ($00..$09)
