@@ -132,21 +132,19 @@ fun_dpeek:
 
 fun_sgn:
         lda     FP0e                    ; If exponent is 0 then value is 0; return 0
-        beq     @done
+        beq     fun_sgn_done
         ldpha   FP0s                    ; Return the sign of the original value
         jsr     load_one_fp0            ; Load 1
         plsta   FP0s                    ; Replace the sign of 1 with the sign of the original number
-@done:
+fun_sgn_done:
         rts
 
 fun_sqr:
         lda     FP0e                    ; Check for 0
-        beq     @done
+        beq     fun_sgn_done            ; Return 0
         jsr     flog                    ; Take logarithm
         dec     FP0e                    ; Decrement exponent to divide by 2
-        jsr     fexp                    ; Raise again
-@done:
-        rts
+        jmp     fexp                    ; Raise again
 
 fun_str_s:
         mva     #0, buffer_pos          ; Write at buffer position 0

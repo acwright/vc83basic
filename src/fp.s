@@ -90,9 +90,6 @@ load_fp:
 ; AY = destination address
 ; DE SAFE, also does not alter carry
 
-store_fp1:
-        ldx     #FP1
-        bne     store_fp
 store_fp0:
         ldx     #FP0
 store_fp:
@@ -414,8 +411,6 @@ round:
 ; determine if the result needs floor adjustment.
 
 floor:
-        lda     FP0e                    ; Calculate the number of fractional bits that we need to clear
-        beq     @done                   ; If number was already zero, nothing to do
         jsr     truncate_fp_to_int32
         bmi     @adjust_negative        ; Exponent < 0. Value is purely fractional, meaning int part is 0. Skip converting back.
         cmp     #32
@@ -442,12 +437,12 @@ floor:
 ; buffer_pos = the write position in buffer
 
 fp_to_string:
+        ldx     buffer_pos              ; Write index
         lda     FP0s                    ; Check for negative value
         bpl     @positive               ; Nope
-        ldx     buffer_pos              ; Write index
         lda     #'-'                    ; Minus sign
         sta     buffer,x
-        inc     buffer_pos              ; Update index
+        inx
 
 ; Handle 0 as a special case.
 ; The number is 0 if the significand is zero regardless of exponent.
@@ -456,13 +451,15 @@ fp_to_string:
         mva     #0, E                   ; E keeps track of how much we have scaled up or down
         sta     FP0s                    ; Also set sign to positive since we already printed '-'
         lda     FP0e                    ; Test if FP0 is zero
-        bne     @maybe_scale_up
-        ldx     buffer_pos              ; Write index
+        bne     @not_zero
         lda     #'0'
         sta     buffer,x
-        inc     buffer_pos              ; Update index
+        inx
+        stx     buffer_pos              ; Update index
         rts
 
+@not_zero:
+        stx     buffer_pos              ; Update index
 @scale_up:
         lday    #fp_ten
         jsr     fmul                    ; Multiply FP0 by 10
@@ -515,9 +512,7 @@ fp_to_string:
         jsr     output_y_zeros          ; Output (possibly zero) leading zeros
         ldy     D
         jsr     output_y_digits
-@done:
-        stx     buffer_pos
-        rts
+        jmp     @done
 
 @initial_zero:
         eor     #$FF                    ; A is E - D but we need D - E so negate
@@ -528,24 +523,10 @@ fp_to_string:
         inx
         jmp     @decimal
 
-@digits_before_decimal:
-        eor     #$FF                    ; A is E - D but we need D - E so negate
-        tay
-        iny                             ; +1 to complete negation
-        jsr     output_y_digits
-        mva     E, D                    ; E is the number of digits remaining after decimal point
-        ldy     #0                      ; Number of zeros after decimal point
-        jmp     @decimal
-
 @whole:
         adc     D                       ; Add in D
         cmp     #10                     ; Check if more than 9 digits
-        bcs     @scientific             ; More than 9 digits; print in scientific notation
-        ldy     D                       ; Output D digits
-        jsr     output_y_digits
-        ldy     E                       ; Followed by E zeros
-        jsr     output_y_zeros
-        jmp     @done
+        bcc     @output_d_and_e         ; Less than 10 digits; print integer with trailing zeros
 
 @scientific:
         ldy     #1                      ; Print 1 digit before the decimal point
@@ -587,11 +568,14 @@ fp_to_string:
         stx     buffer_pos              ; generate_digits will clobber X so save it
         jsr     generate_digits
         ldx     buffer_pos              ; Recover X
+@output_d_and_e:
         ldy     D
         jsr     output_y_digits
         ldy     E
         jsr     output_y_zeros
-        jmp     @done        
+@done:
+        stx     buffer_pos
+        rts        
 
 ; Generate digits. Repeatedly divide FP0 by 10, generate remainder in A.
 ; Will always generate at least one digit, which cannot be zero because we
@@ -927,8 +911,6 @@ normalize:
         bcc     @out_of_range           ; If subtracting required a borrow then underflow
         beq     @out_of_range           ; Going to zero is also a fail
         sta     FP0e                    ; Otherwise update exponent
-        lda     FP0t+3
-        sta     FPX
         lda     FP0t+2
         sta     FP0t+3                  ; Store new high byte
         lda     FP0t+1                  ; Shift other bytes
@@ -994,9 +976,8 @@ fadd_2:
 @shift_fp1:
         cmp     #<(-39)
         bcc     @finish                 ; FP0 is much larger, addition has no effect, return FP0
-        eor     #$FF                    ; Negate exponent diff
-        clc
-        adc     #1
+        eor     #$FF                    ; Negate exponent diff (Carry is 1: ~A + 0 + 1 = -A)
+        adc     #0
         ldx     #(FP1 - FP0)
         jsr     shift_right             ; FP1 exponent is less; shift FP1 right
         lda     FP0e
@@ -1076,7 +1057,7 @@ fpoly_2:
         bcc     @skip_inc
         inc     src_ptr+1
 @skip_inc:
-        lday    src_ptr                 ; Add the next coefficient
+        ldy     src_ptr+1               ; Add next coefficient (A already holds src_ptr low byte)
         jsr     fadd
         jmp     @next
         
@@ -1516,20 +1497,13 @@ fsin:
         jsr     load_fp1
         dec     FP1e
         jsr     fcmp_2                  ; Compare |remainder| with pi/2
-        bcc     @no_fold                ; If |remainder| < pi/2, don't fold
-@fold:
         pla
-        sta     FP0s                    ; Restore original sign
+        sta     FP0s                    ; Restore original sign (Carry flag preserved)
+        bcc     @apply_poly             ; If |remainder| < pi/2, don't fold
         inc     FP1e                    ; FP1 is now pi
-        lda     FP0s
-        sta     FP1s                    ; FP1 is now sign(x') * pi
+        sta     FP1s                    ; FP1 is now sign(x') * pi (A still contains FP0s)
         jsr     fneg                    ; FP0 = -remainder
         jsr     fadd_2                  ; FP0 = sign(x') * pi - remainder
-        jmp     @apply_poly
-
-@no_fold:
-        pla
-        sta     FP0s                    ; Restore original sign
 
 @apply_poly:
         ldax    #fp_sin_coefficients    ; Apply Chebyshev series
