@@ -305,15 +305,16 @@ shift_right_from_fpx:
 
 int_to_fp:
         sta     FP0t+2                  ; Low byte
-        txa                             ; Move high byte into A
-        sta     FP0t+3
+        stx     FP0t+3                  ; High byte
+        lda     #0
+        sta     FP0t                    ; Clear two low bytes
+        sta     FP0t+1
+        txa
         and     #$80                    ; Isolate and store sign bit
         sta     FP0s
         bpl     @positive               ; Flags set by AND
         jsr     negate_significand
 @positive:
-        mva     #0, FP0t                ; Clear two low bytes
-        sta     FP0t+1
         lda     #143                    ; Starting exponent = 15
         bne     int_to_fp_common        ; Unconditional
         
