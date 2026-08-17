@@ -20,11 +20,12 @@
 .assert PVM_RETURN = $F0, error
 
 parse_line:
-        mva     #0, buffer_pos                  ; Initialize the read pointer
+        lda     #0
+        sta     buffer_pos                      ; Initialize the read pointer
+        tay
         mva     #.sizeof(Line) + 1, line_pos    ; Initialize write pointer (leave room for statement length byte)
-        mvax    #buffer, read_ptr       ; Set up read_ptr so parsing primitives work
-        ldy     buffer_pos
-        jsr     string_to_fp_2          ; Parse line number
+        mvax    #buffer, read_ptr               ; Set up read_ptr so parsing primitives work
+        jsr     string_to_fp_2                  ; Parse line number
         sty     buffer_pos              ; Initialize buffer_pos to wherever the number ended
         bcs     @no_line_number         ; Line number was provided so store it
         jsr     truncate_fp_to_int      ; Truncate line number to integer
@@ -77,7 +78,6 @@ syntax_error:
 
 parse_pvm:
         stax    pvm_program_ptr
-        mvax    #buffer, read_ptr       ; Set up read_ptr so parsing primitives in util module work
         jsr     run_pvm_next_token
         bcs     syntax_error
         mva     D, buffer_pos           ; Put back the last token that was read but not matched
@@ -112,8 +112,7 @@ run_pvm:
         cmp     #PVM_GUARD
         beq     @guard
         cmp     #PVM_SLURP
-        beq     @slurp
-        sec                             ; Treat anything else as FAIL
+        beq     @slurp                  ; Anything else falls through with C=1 (PVM_FAIL)
 @return:
         rts
 
@@ -313,13 +312,11 @@ pvm_statement:
         BRANCH_IF TOK_LIST, pvm_list
         BRANCH_IF TOK_POKE, pvm_arg_2
         BRANCH_IF TOK_DPOKE, pvm_arg_2
-        BRANCH_IF TOK_DIM, pvm_dim
+        BRANCH_IF TOK_DIM, pvm_read
         BRANCH_IF TOK_DATA, pvm_data
         BRANCH_IF TOK_REM, pvm_rem
         BRANCH_IF TOK_RESTORE, pvm_restore
-        BRANCH_IF_RANGE TOK_RUN, 9, @done       ; Any other no-arg statement (RUN..POP, BYE)
-        FAIL
-@done:
+        MATCH_RANGE TOK_RUN, 9                  ; Any other no-arg statement (RUN..POP, BYE)
         RETURN
 
 ; Statements
@@ -405,12 +402,6 @@ pvm_restore:
 @done:
         RETURN
 
-pvm_dim:
-        MATCH TOK_NAME
-        CALL pvm_optional_array
-        BRANCH_IF TOK_COMMA, pvm_dim
-        RETURN
-
 pvm_data:
 pvm_rem:
         SLURP
@@ -427,8 +418,6 @@ pvm_primary_expression:
         BRANCH_IF TOK_ADD, pvm_primary_expression   ; Unary +
         BRANCH_IF TOK_SUB, pvm_primary_expression   ; Unary -
         BRANCH_IF TOK_NOT, pvm_primary_expression   ; Unary NOT
-        BRANCH_IF TOK_NUM, @done
-        BRANCH_IF TOK_STRING, @done
         BRANCH_IF TOK_NAME, pvm_optional_array
         BRANCH_IF_RANGE TOK_LEN, 16, pvm_fun_1      ; 1-arg functions ($80..$8F)
         BRANCH_IF_RANGE TOK_SGN, 3, pvm_fun_1       ; 1-arg functions ($90..$92)
@@ -439,7 +428,8 @@ pvm_primary_expression:
 .else
         BRANCH_IF TOK_FRE, pvm_fun_0                ; 0-arg function ($97: FRE)
 .endif
-        FAIL
+        BRANCH_IF TOK_NUM, @done
+        MATCH TOK_STRING
 @done:
         RETURN
 
@@ -459,6 +449,7 @@ pvm_optional_array:
 
 pvm_fun_0:
         MATCH TOK_LPAREN
+pvm_close_paren:
         MATCH TOK_RPAREN
         RETURN
 
@@ -482,9 +473,6 @@ pvm_fun_3:
 
 ; Argument lists
 
-pvm_arg_4:
-        CALL pvm_expression
-        MATCH TOK_COMMA
 pvm_arg_3:
         CALL pvm_expression
         MATCH TOK_COMMA
