@@ -317,6 +317,15 @@ pvm_statement:
         BRANCH_IF TOK_REM, pvm_rem
         BRANCH_IF TOK_RESTORE, pvm_restore
         BRANCH_IF_RANGE TOK_RUN, 8, @done       ; Any other no-arg statement (RUN..POP, $52..$59)
+        BRANCH_IF TOK_OPEN, pvm_open
+        BRANCH_IF TOK_CLOSE, pvm_close
+        BRANCH_IF TOK_GET, pvm_get
+        BRANCH_IF TOK_PUT, pvm_put
+        BRANCH_IF TOK_BGET, pvm_bget_bput
+        BRANCH_IF TOK_BPUT, pvm_bget_bput
+        BRANCH_IF TOK_XIO, pvm_xio
+        BRANCH_IF TOK_SAVE, pvm_save_load
+        BRANCH_IF TOK_LOAD, pvm_save_load
         invoke_if_defined extension_pvm_statements
         FAIL
 @done:
@@ -324,14 +333,58 @@ pvm_statement:
 
 ; Statements
 
+pvm_channel:
+        BRANCH_IF_RANGE TOK_CHANNEL_0, 8, @done
+@done:
+        RETURN
+
+pvm_open:
+        CALL pvm_channel
+        CALL pvm_expression
+        BRANCH_IF TOK_COMMA, pvm_expression
+        RETURN
+
+pvm_close:
+        CALL pvm_channel
+        RETURN
+
+pvm_get:
+        CALL pvm_channel
+        MATCH TOK_NAME
+        JUMP pvm_optional_array
+
+pvm_put:
+        CALL pvm_channel
+        JUMP pvm_expression
+
+pvm_bget_bput:
+        CALL pvm_channel
+        CALL pvm_arg_2
+        RETURN
+
+pvm_xio:
+        CALL pvm_channel
+        CALL pvm_expression
+        BRANCH_IF TOK_COMMA, @arg1
+        RETURN
+@arg1:
+        CALL pvm_expression
+        BRANCH_IF TOK_COMMA, pvm_expression
+        RETURN
+
+pvm_save_load:
+        JUMP pvm_expression
+
 pvm_print:
-        BRANCH_IF TOK_SEMI, pvm_print
-        BRANCH_IF TOK_COMMA, pvm_print
+        CALL pvm_channel
+@loop:
+        BRANCH_IF TOK_SEMI, @loop
+        BRANCH_IF TOK_COMMA, @loop
         GUARD TOK_COLON                 ; Abandon the PRINT statement if we see COLON or EOL
         GUARD TOK_EOL
         CALL pvm_expression             ; Otherwise it has to be an expression
-        BRANCH_IF TOK_SEMI, pvm_print
-        BRANCH_IF TOK_COMMA, pvm_print
+        BRANCH_IF TOK_SEMI, @loop
+        BRANCH_IF TOK_COMMA, @loop
         GUARD TOK_COLON
         GUARD TOK_EOL
         FAIL
@@ -365,6 +418,7 @@ pvm_if:
         RETURN
 
 pvm_input:
+        CALL pvm_channel
         BRANCH_IF TOK_STRING, @prompt
         JUMP pvm_read
 @prompt:
@@ -426,7 +480,7 @@ pvm_primary_expression:
         BRANCH_IF_RANGE TOK_SGN, 3, pvm_fun_1       ; 1-arg functions ($90..$92)
         BRANCH_IF_RANGE TOK_LEFT_S, 3, pvm_fun_2    ; 2-arg functions ($93..$95)
         BRANCH_IF TOK_MID_S, pvm_fun_3              ; 3-arg function ($96)
-        BRANCH_IF TOK_FRE, pvm_fun_0                ; 0-arg function ($97: FRE)
+        BRANCH_IF_RANGE TOK_FRE, 3, pvm_fun_0       ; 0-arg functions ($97..$99: FRE, INKEY$, COUNT)
         invoke_if_defined extension_pvm_functions
         BRANCH_IF TOK_NUM, @done
         MATCH TOK_STRING

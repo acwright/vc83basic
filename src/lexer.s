@@ -79,8 +79,16 @@ KEYWORD_BLOCK_2_OFFSET = keyword_counter
 :       name_table_entry ">="
 :       name_table_entry "AND"
 :       name_table_entry "OR"
-; Block 3 ($30..$3F) - unused
+; Block 3 ($30..$37)
 KEYWORD_BLOCK_3_OFFSET = keyword_counter
+:       name_table_entry "#0"
+:       name_table_entry "#1"
+:       name_table_entry "#2"
+:       name_table_entry "#3"
+:       name_table_entry "#4"
+:       name_table_entry "#5"
+:       name_table_entry "#6"
+:       name_table_entry "#7"
 ; Block 4 ($40..$4F)
 KEYWORD_BLOCK_4_OFFSET = keyword_counter
 :       name_table_entry "PRINT"
@@ -111,11 +119,19 @@ KEYWORD_BLOCK_5_OFFSET = keyword_counter
 :       name_table_entry "CLR"
 :       name_table_entry "RETURN"
 :       name_table_entry "POP"
-        invoke_if_defined extension_statement_keywords
-; Block 6 ($60..$6F) - unused unless defined by target
-.ifndef KEYWORD_BLOCK_6_OFFSET
+:       name_table_entry "OPEN"
+:       name_table_entry "CLOSE"
+:       name_table_entry "GET"
+:       name_table_entry "PUT"
+:       name_table_entry "BGET"
+:       name_table_entry "BPUT"
+; Block 6 ($60..$6F)
 KEYWORD_BLOCK_6_OFFSET = keyword_counter
-.endif
+:       name_table_entry "XIO"
+:       name_table_entry "SAVE"
+:       name_table_entry "LOAD"
+:       name_table_entry ""             ; Padding for even statement count
+        invoke_if_defined extension_statement_keywords
 ; Block 7 ($70..$7F) - unused unless defined by target
 .ifndef KEYWORD_BLOCK_7_OFFSET
 KEYWORD_BLOCK_7_OFFSET = keyword_counter
@@ -148,6 +164,8 @@ KEYWORD_BLOCK_9_OFFSET = keyword_counter
 :       name_table_entry "USR"
 :       name_table_entry "MID$"
 :       name_table_entry "FRE"
+:       name_table_entry "INKEY$"
+:       name_table_entry "COUNT"
         invoke_if_defined extension_function_keywords
 :       name_table_end
 ; Block A ($A0..$AF) - unused unless defined by target

@@ -6,10 +6,9 @@
 
 .assert TYPE_NUMBER = $00, error
 
-exec_print_number:
-        jsr     pop_fp0                 ; Get the value
-        jsr     print_number            ; Print the number
 exec_print:
+        jsr     get_channel             ; Set channel at start of statement
+@loop:
         jsr     peek_byte               ; Peek at next character
         beq     @newline                ; Found 0
 @continue:
@@ -20,10 +19,15 @@ exec_print:
         jsr     evaluate_expression     ; Leaves value on stack
         ldx     stack_pos               ; Get the current stack pointer
         lda     stack+Value::type,x     ; Get the type of the variable
-        beq     exec_print_number
+        beq     @print_num
         jsr     pop_string
         jsr     print_string
-        jmp     exec_print
+        jmp     @loop
+
+@print_num:
+        jsr     pop_fp0                 ; Get the value
+        jsr     print_number            ; Print the number
+        jmp     @loop
 
 @tab:
         lda     #' '

@@ -36,6 +36,7 @@ on_raise:
         sta     program_state           ; Whatever comes back from exception handler is new state
         beq     run                     ; Program is running; do the next thing
         pha                             ; Save the error value and output a newline, which we will need no matter what
+        mva     #0, channel             ; Reset channel to console (0)
         jsr     newline
         pla
         bmi     handle_error

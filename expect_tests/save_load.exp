@@ -1,0 +1,59 @@
+# SPDX-FileCopyrightText: 2022-2026 Willis Blackburn
+#
+# SPDX-License-Identifier: MIT
+
+source [file join [file dirname [info script]] common.expinc]
+spawn_basic
+
+exec rm -f /tmp/vc83_test_prog.bas
+
+# Create program and SAVE
+test {
+10 PRINT "HELLO FROM SAVED PROGRAM"
+20 FOR I=1 TO 3
+30 PRINT "I="; I
+40 NEXT I
+SAVE "/tmp/vc83_test_prog.bas"
+} {
+READY
+}
+
+# Attempt LOAD without NEW (should fail because program is loaded)
+test {
+LOAD "/tmp/vc83_test_prog.bas"
+} {
+ERR: EXISTS
+}
+
+# NEW and LOAD
+test {
+NEW
+} {
+READY
+}
+
+test {
+LOAD "/tmp/vc83_test_prog.bas"
+LIST
+} {
+10 PRINT "HELLO FROM SAVED PROGRAM"
+20 FOR I=1 TO 3
+30 PRINT "I=";I
+40 NEXT I
+
+READY
+}
+
+# RUN the loaded program
+test {
+RUN
+} {
+HELLO FROM SAVED PROGRAM
+I=1
+I=2
+I=3
+
+READY
+}
+
+exec rm -f /tmp/vc83_test_prog.bas

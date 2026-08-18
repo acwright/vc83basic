@@ -2,8 +2,8 @@
 ;
 ; SPDX-License-Identifier: MIT
 
-TOK_BYE   = $5A
-TOK_VER_S = $98
+TOK_BYE   = $64
+TOK_VER_S = $9A
 
 .macro extension_statement_keywords
 :       name_table_entry "BYE"

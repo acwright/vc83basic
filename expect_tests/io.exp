@@ -1,0 +1,83 @@
+# SPDX-FileCopyrightText: 2022-2026 Willis Blackburn
+#
+# SPDX-License-Identifier: MIT
+
+source [file join [file dirname [info script]] common.expinc]
+spawn_basic
+
+exec rm -f /tmp/vc83_test_1.txt /tmp/vc83_test_bin.dat
+
+# Test OPEN, PRINT #, PUT, CLOSE
+test {
+10 OPEN #1 "/tmp/vc83_test_1.txt", 2
+20 PRINT #1 "LINE ONE"
+30 PRINT #1 "LINE TWO,123"
+40 PUT #1 65
+50 PUT #1 10
+60 CLOSE #1
+70 PRINT "DONE WRITE"
+RUN
+} {
+DONE WRITE
+
+READY
+}
+
+test {
+NEW
+} {
+READY
+}
+
+# Test OPEN (read), INPUT #, GET, CLOSE, COUNT()
+test {
+10 OPEN #1 "/tmp/vc83_test_1.txt", 1
+20 INPUT #1 A$
+30 PRINT A$
+40 INPUT #1 B$, N
+50 PRINT B$, N
+60 GET #1 C
+70 PRINT C
+80 GET #1 C
+90 PRINT C
+100 GET #1 C
+110 PRINT C, COUNT()
+120 CLOSE #1
+RUN
+} {
+LINE ONE
+LINE TWO        123
+65
+10
+-1              0
+
+READY
+}
+
+test {
+NEW
+} {
+READY
+}
+
+# Test BPUT and BGET
+test {
+10 LET A$="12345"
+20 OPEN #2 "/tmp/vc83_test_bin.dat", 2
+30 BPUT #2 ADR(A$), 5
+40 PRINT COUNT()
+50 CLOSE #2
+60 LET B$="....."
+70 OPEN #2 "/tmp/vc83_test_bin.dat", 1
+80 BGET #2 ADR(B$), 5
+90 PRINT COUNT(), B$
+100 CLOSE #2
+RUN
+} {
+5
+5               12345
+
+READY
+}
+
+exec rm -f /tmp/vc83_test_1.txt /tmp/vc83_test_bin.dat

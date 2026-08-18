@@ -7,6 +7,8 @@
 .assert TYPE_NUMBER = $00, error
 
 exec_input:
+        jsr     get_channel             ; Sets channel (bit 7 set if explicit channel)
+        bmi     @get_input              ; Skip prompt if explicit channel
         jsr     peek_byte
         cmp     #TOK_STRING
         bne     @default_prompt
@@ -22,6 +24,7 @@ exec_input:
         jsr     putch
 @get_input:
         jsr     readline
+        bcs     @eof_error              ; If readline returns carry set -> EOF
         mva     #0, buffer_pos          ; Reset the read position
 @next_var:
         inc     line_pos                ; Skip TOK_NAME
@@ -44,12 +47,20 @@ exec_input:
         ldy     buffer_pos              ; Prepare to skip past the argument separator, if present
         jsr     skip_whitespace         ; We read something from this line so need a ',' to continue
         cmp     #','                    ; Was it the separator?
-        bne     exec_input              ; Nope, just issue a new prompt
+        bne     @more_input             ; Nope, just get more input
         iny                             ; Skip separator        
         sty     buffer_pos              ; Save back new buffer_pos
         bne     @next_var               ; Read the next variable
 @done:
         rts
+
+@more_input:
+        lda     channel
+        bmi     @get_input
+        bpl     @default_prompt
+
+@eof_error:
+        raise   ERR_END_OF_FILE
 
 @string:
         ldax    #buffer
