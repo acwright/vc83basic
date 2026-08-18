@@ -237,19 +237,6 @@ ex_print_ax:
         jsr     int_to_fp
         jmp     print_number
 
-; Check for Ctrl-C / ESC in the keyboard buffer. Raise ERR_STOPPED if found.
-ex_break_check:
-        jsr     Chrin                   ; Non-blocking (C=1 if a char is waiting)
-        bcc     @done
-        cmp     #CH_ESC
-        beq     @brk
-        cmp     #CH_CTRLC
-        bne     @done
-@brk:
-        raise   ERR_STOPPED
-@done:
-        rts
-
 ; ---------------------------------------------------------------------------
 ; Video statements: CLS, LOCATE, COLOR
 ; ---------------------------------------------------------------------------
@@ -380,7 +367,7 @@ exec_wait:
         jsr     pop_int_fp0             ; address -> AX
         stax    BC                      ; BC = pointer
 @loop:
-        jsr     ex_break_check
+        jsr     check_break             ; From ac6502_io.s: peeks, so non-break keys survive
         ldy     #0
         lda     (BC),y
         and     D
@@ -555,7 +542,7 @@ fun_joy:
 ; INKEY(x) -- return ASCII code of a pending key, or 0 if none.
 ; The argument is ignored (vc83 functions require at least one arg).
 fun_inkey:
-        jsr     Chrin                   ; C=1 if char available
+        jsr     get_key                 ; Raw, non-echoing (C=1 if char available)
         bcs     @got
         lda     #0
 @got:
