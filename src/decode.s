@@ -16,19 +16,28 @@ decode_number:
         sty     line_pos                ; Update line_pos
         rts
 
+raise_format_error:
+        raise   ERR_FORMAT_ERROR
+
 ; Decodes a string.
 ; On return, string_ptr will point to the decoded string.
 
 decode_string:
-        ldax    line_ptr                ; Prepare for read_string
-        ldy     line_pos
-        jsr     read_string
-        bcs     raise_format_error
-        sty     line_pos
-        rts
-
-raise_format_error:
-        raise   ERR_FORMAT_ERROR
+        jsr     decode_byte             ; A = length, line_pos now points to first character
+        jsr     string_alloc_for_copy   ; Allocates on heap, sets dst_ptr = string_ptr + 1
+        lda     line_ptr                ; Calculate source address: line_ptr + line_pos
+        clc
+        adc     line_pos
+        sta     src_ptr
+        lda     line_ptr+1
+        adc     #0
+        sta     src_ptr+1               ; src_ptr points to source characters
+        tya                             ; A = length
+        sec                             ; SEC + ADC = length + line_pos + 1
+        adc     line_pos
+        sta     line_pos                ; Advance line_pos past characters and ending quote
+        tya                             ; A = length
+        jmp     copy_a                  ; Copies A bytes from src_ptr to dst_ptr and returns                                                                                        
 
 ; Decodes a variable name and set up decode_name_ptr, decode_name_length, and decode_name_type.
 ; BC SAFE, DE SAFE
@@ -67,7 +76,7 @@ decode_name:
 @not_string:
         iny                             ; Restore Y to where it previously was, past the end of the name
         lda     (decode_name_ptr),y     ; See if the next character is '('
-        cmp     #'('
+        cmp     #TOK_LPAREN
         bne     @not_array
         dec     decode_name_arity       ; Remember it was an array (will figure out real arity later)
         inc     line_pos                ; Skip past the '('

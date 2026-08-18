@@ -40,4 +40,8 @@ The coding style is consistent throughout the code base. Follow this style.
 
 Comment lines starting a column 41. About half of lines should have comments. Branches usually have comments describing what the code is testing. Non-obvious arithmetic and logical expressions have comments. A common use of comments is to describe likely/possible values for variables and how the code is using the flags.
 
+Retain all existing comments and line spacing unless you are actually changing the code in a way that makes the existing comments and line spacing no longer valid or appropriate.
+
 Add blank lines after JMP and unconditional branches, if followed by a cheap label (beginning with `@`). It's okay to add a blank line ahead of a cheap label to break up long functions. Add blank lines around comment blocks. But otherwise keep the code compact.
+
+Spaces around operators in expressions follow a semantic convention. Simple address and offset adjustments have **no spaces**: `var_ptr+1`, `Line::num+1`, `stack+Control::next_line_ptr,x`, `.word exec_print-1`, `#'A'-1`. Value computations have **spaces**: `#.sizeof(Line) + 2`, `1 | PROLOG_POP_FP`, `* - ready_message`, `fp_scratch + .sizeof(Float) * 2`, `.if fp_format = 5`. The distinction is whether the expression represents a location in memory (tight) or computes a value (spaced).

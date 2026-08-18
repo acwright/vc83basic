@@ -44,13 +44,13 @@ void test_one_op(char op, const Float* expected00, const Float* expected01, cons
 
     Float value;
     // Terminate expression with 0.
-    char line_data[] = { '0', 0 /* op */, '0', 0 };
+    char line_data[] = { TOK_NUM, '0' | EOT, 0 /* op */, TOK_NUM, '0' | EOT, 0 };
 
     DEBUG(op);
 
-    line_data[1] = TOKEN_OP | op;
-    line_data[0] = '0';
-    line_data[2] = '0';
+    line_data[2] = op;
+    line_data[1] = '0' | EOT;
+    line_data[4] = '0' | EOT;
     set_line(0, line_data, sizeof line_data);
     evaluate_expression();
     ASSERT_EQ(err, 0);
@@ -58,16 +58,16 @@ void test_one_op(char op, const Float* expected00, const Float* expected01, cons
     store_fp0(&value);
     ASSERT_FLOAT_EQ(value, *expected00);
 
-    line_data[0] = '0';
-    line_data[2] = '1';
+    line_data[1] = '0' | EOT;
+    line_data[4] = '1' | EOT;
     set_line(0, line_data, sizeof line_data);
     evaluate_expression();
     ASSERT_EQ(err, 0);
     store_fp0(&value);
     ASSERT_FLOAT_EQ(value, *expected01);
 
-    line_data[0] = '1';
-    line_data[2] = '0';
+    line_data[1] = '1' | EOT;
+    line_data[4] = '0' | EOT;
     set_line(0, line_data, sizeof line_data);
     evaluate_expression();
     ASSERT_EQ(err, 0);
@@ -75,8 +75,8 @@ void test_one_op(char op, const Float* expected00, const Float* expected01, cons
     store_fp0(&value);
     ASSERT_FLOAT_EQ(value, *expected10);
 
-    line_data[0] = '1';
-    line_data[2] = '1';
+    line_data[1] = '1' | EOT;
+    line_data[4] = '1' | EOT;
     set_line(0, line_data, sizeof line_data);
     evaluate_expression();
     ASSERT_EQ(err, 0);
@@ -88,13 +88,13 @@ void test_one_op(char op, const Float* expected00, const Float* expected01, cons
 void test_one_unary_op(char op, const Float* expected0, const Float* expected1) {
 
     // Terminate expression with 0.
-    char line_data[] = { 0 /* op */, '0', 0 };
+    char line_data[] = { 0 /* op */, TOK_NUM, '0' | EOT, 0 };
     Float value;
 
     DEBUG(op);
 
-    line_data[0] = TOKEN_UNARY_OP | op;
-    line_data[1] = '0';
+    line_data[0] = op;
+    line_data[2] = '0' | EOT;
     set_line(0, line_data, sizeof line_data);
     evaluate_expression();
     ASSERT_EQ(err, 0);
@@ -102,7 +102,7 @@ void test_one_unary_op(char op, const Float* expected0, const Float* expected1) 
     store_fp0(&value);
     ASSERT_FLOAT_EQ(value, *expected0);
 
-    line_data[1] = '1';
+    line_data[2] = '1' | EOT;
     set_line(0, line_data, sizeof line_data);
     evaluate_expression();
     ASSERT_EQ(err, 0);
@@ -121,21 +121,22 @@ void test_evaluate_expression_op(void) {
 
     initialize_program();
 
-    test_one_op(OP_ADD, &value_0, &value_1, &value_1, &value_2);
-    test_one_op(OP_SUB, &value_0, &value_negative_1, &value_1, &value_0);
+    test_one_op(TOK_ADD, &value_0, &value_1, &value_1, &value_2);
+    test_one_op(TOK_SUB, &value_0, &value_negative_1, &value_1, &value_0);
 
-    test_one_op(OP_EQ, &value_1, &value_0, &value_0, &value_1);
-    test_one_op(OP_NE, &value_0, &value_1, &value_1, &value_0);
-    test_one_op(OP_LT, &value_0, &value_1, &value_0, &value_0);
-    test_one_op(OP_LE, &value_1, &value_1, &value_0, &value_1);
-    test_one_op(OP_GT, &value_0, &value_0, &value_1, &value_0);
-    test_one_op(OP_GE, &value_1, &value_0, &value_1, &value_1);
+    test_one_op(TOK_EQ, &value_1, &value_0, &value_0, &value_1);
+    test_one_op(TOK_NE, &value_0, &value_1, &value_1, &value_0);
+    test_one_op(TOK_LT, &value_0, &value_1, &value_0, &value_0);
+    test_one_op(TOK_LE, &value_1, &value_1, &value_0, &value_1);
+    test_one_op(TOK_GT, &value_0, &value_0, &value_1, &value_0);
+    test_one_op(TOK_GE, &value_1, &value_0, &value_1, &value_1);
 
-    test_one_op(OP_AND, &value_0, &value_0, &value_0, &value_1);
-    test_one_op(OP_OR, &value_0, &value_1, &value_1, &value_1);
+    test_one_op(TOK_AND, &value_0, &value_0, &value_0, &value_1);
+    test_one_op(TOK_OR, &value_0, &value_1, &value_1, &value_1);
 
-    test_one_unary_op(UNARY_OP_MINUS, &value_0, &value_negative_1);
-    test_one_unary_op(UNARY_OP_NOT, &value_1, &value_0);
+    test_one_unary_op(TOK_ADD, &value_0, &value_1);
+    test_one_unary_op(TOK_SUB, &value_0, &value_negative_1);
+    test_one_unary_op(TOK_NOT, &value_1, &value_0);
 }
 
 void test_evaluate_expression_op_precedence(void) {
@@ -143,10 +144,10 @@ void test_evaluate_expression_op_precedence(void) {
 
     // Terminate each expression with 0.
     // 2-1-1 = 0
-    char line_data_1[] = { '2', TOKEN_OP | OP_SUB, '1', TOKEN_OP | OP_SUB, '1', 0 };
+    char line_data_1[] = { TOK_NUM, '2' | EOT, TOK_SUB, TOK_NUM, '1' | EOT, TOK_SUB, TOK_NUM, '1' | EOT, 0 };
     Float result_1 = { 0x00000000, 0 };
     // 2-(1-1) = 2
-    char line_data_2[] = { '2', TOKEN_OP | OP_SUB, '(', '1', TOKEN_OP | OP_SUB, '1', ')', 0 };
+    char line_data_2[] = { TOK_NUM, '2' | EOT, TOK_SUB, TOK_LPAREN, TOK_NUM, '1' | EOT, TOK_SUB, TOK_NUM, '1' | EOT, TOK_RPAREN, 0 };
     Float result_2 = { 0x00000000, 129 };
 
     PRINT_TEST_NAME();
@@ -180,15 +181,17 @@ void test_one_string_comparison(char op, const char* s1, const char* s2, const F
     s2_length = strlen(s2);
 
     i = 0;
-    line_data[i++] = '"';
+    line_data[i++] = TOK_STRING;
+    line_data[i++] = s1_length;
     memcpy(line_data + i, s1, s1_length);
     i += s1_length;
-    line_data[i++] = '"';
-    line_data[i++] = TOKEN_OP | op;
-    line_data[i++] = '"';
+    line_data[i++] = '"' | EOT;
+    line_data[i++] = op;
+    line_data[i++] = TOK_STRING;
+    line_data[i++] = s2_length;
     memcpy(line_data + i, s2, s2_length);
     i += s2_length;
-    line_data[i++] = '"';
+    line_data[i++] = '"' | EOT;
     line_data[i++] = 0;
     set_line(0, line_data, i);
 
@@ -205,45 +208,45 @@ void test_string_comparison(void) {
 
     PRINT_TEST_NAME();
 
-    test_one_string_comparison(OP_EQ, "HELLO", "HELLO", &value_1, __LINE__);
-    test_one_string_comparison(OP_EQ, "HELLO", "HELLOX", &value_0, __LINE__);
-    test_one_string_comparison(OP_EQ, "HELLOX", "HELLO", &value_0, __LINE__);
-    test_one_string_comparison(OP_EQ, "ABC", "XYZ", &value_0, __LINE__);
-    test_one_string_comparison(OP_EQ, "", "", &value_1, __LINE__);
+    test_one_string_comparison(TOK_EQ, "HELLO", "HELLO", &value_1, __LINE__);
+    test_one_string_comparison(TOK_EQ, "HELLO", "HELLOX", &value_0, __LINE__);
+    test_one_string_comparison(TOK_EQ, "HELLOX", "HELLO", &value_0, __LINE__);
+    test_one_string_comparison(TOK_EQ, "ABC", "XYZ", &value_0, __LINE__);
+    test_one_string_comparison(TOK_EQ, "", "", &value_1, __LINE__);
 
-    test_one_string_comparison(OP_NE, "HELLO", "HELLO", &value_0, __LINE__);
-    test_one_string_comparison(OP_NE, "HELLO", "HELLOX", &value_1, __LINE__);
-    test_one_string_comparison(OP_NE, "HELLOX", "HELLO", &value_1, __LINE__);
-    test_one_string_comparison(OP_NE, "ABC", "XYZ", &value_1, __LINE__);
-    test_one_string_comparison(OP_NE, "", "", &value_0, __LINE__);
+    test_one_string_comparison(TOK_NE, "HELLO", "HELLO", &value_0, __LINE__);
+    test_one_string_comparison(TOK_NE, "HELLO", "HELLOX", &value_1, __LINE__);
+    test_one_string_comparison(TOK_NE, "HELLOX", "HELLO", &value_1, __LINE__);
+    test_one_string_comparison(TOK_NE, "ABC", "XYZ", &value_1, __LINE__);
+    test_one_string_comparison(TOK_NE, "", "", &value_0, __LINE__);
 
-    test_one_string_comparison(OP_LT, "HELLO", "HELLO", &value_0, __LINE__);
-    test_one_string_comparison(OP_LT, "HELLO", "HELLOX", &value_1, __LINE__);
-    test_one_string_comparison(OP_LT, "HELLOX", "HELLO", &value_0, __LINE__);
-    test_one_string_comparison(OP_LT, "ABC", "XYZ", &value_1, __LINE__);
-    test_one_string_comparison(OP_LT, "", "", &value_0, __LINE__);
+    test_one_string_comparison(TOK_LT, "HELLO", "HELLO", &value_0, __LINE__);
+    test_one_string_comparison(TOK_LT, "HELLO", "HELLOX", &value_1, __LINE__);
+    test_one_string_comparison(TOK_LT, "HELLOX", "HELLO", &value_0, __LINE__);
+    test_one_string_comparison(TOK_LT, "ABC", "XYZ", &value_1, __LINE__);
+    test_one_string_comparison(TOK_LT, "", "", &value_0, __LINE__);
 
-    test_one_string_comparison(OP_LE, "HELLO", "HELLO", &value_1, __LINE__);
-    test_one_string_comparison(OP_LE, "HELLO", "HELLOX", &value_1, __LINE__);
-    test_one_string_comparison(OP_LE, "HELLOX", "HELLO", &value_0, __LINE__);
-    test_one_string_comparison(OP_LE, "ABC", "XYZ", &value_1, __LINE__);
-    test_one_string_comparison(OP_LE, "", "", &value_1, __LINE__);
+    test_one_string_comparison(TOK_LE, "HELLO", "HELLO", &value_1, __LINE__);
+    test_one_string_comparison(TOK_LE, "HELLO", "HELLOX", &value_1, __LINE__);
+    test_one_string_comparison(TOK_LE, "HELLOX", "HELLO", &value_0, __LINE__);
+    test_one_string_comparison(TOK_LE, "ABC", "XYZ", &value_1, __LINE__);
+    test_one_string_comparison(TOK_LE, "", "", &value_1, __LINE__);
 
-    test_one_string_comparison(OP_GT, "HELLO", "HELLO", &value_0, __LINE__);
-    test_one_string_comparison(OP_GT, "HELLO", "HELLOX", &value_0, __LINE__);
-    test_one_string_comparison(OP_GT, "HELLOX", "HELLO", &value_1, __LINE__);
-    test_one_string_comparison(OP_GT, "ABC", "XYZ", &value_0, __LINE__);
-    test_one_string_comparison(OP_GT, "", "", &value_0, __LINE__);
+    test_one_string_comparison(TOK_GT, "HELLO", "HELLO", &value_0, __LINE__);
+    test_one_string_comparison(TOK_GT, "HELLO", "HELLOX", &value_0, __LINE__);
+    test_one_string_comparison(TOK_GT, "HELLOX", "HELLO", &value_1, __LINE__);
+    test_one_string_comparison(TOK_GT, "ABC", "XYZ", &value_0, __LINE__);
+    test_one_string_comparison(TOK_GT, "", "", &value_0, __LINE__);
 
-    test_one_string_comparison(OP_GE, "HELLO", "HELLO", &value_1, __LINE__);
-    test_one_string_comparison(OP_GE, "HELLO", "HELLOX", &value_0, __LINE__);
-    test_one_string_comparison(OP_GE, "HELLOX", "HELLO", &value_1, __LINE__);
-    test_one_string_comparison(OP_GE, "ABC", "XYZ", &value_0, __LINE__);
-    test_one_string_comparison(OP_GE, "", "", &value_1, __LINE__);
+    test_one_string_comparison(TOK_GE, "HELLO", "HELLO", &value_1, __LINE__);
+    test_one_string_comparison(TOK_GE, "HELLO", "HELLOX", &value_0, __LINE__);
+    test_one_string_comparison(TOK_GE, "HELLOX", "HELLO", &value_1, __LINE__);
+    test_one_string_comparison(TOK_GE, "ABC", "XYZ", &value_0, __LINE__);
+    test_one_string_comparison(TOK_GE, "", "", &value_1, __LINE__);
 }
 
 void test_evaluate_argument_list(void) {
-    const char line_data[] = { '(', '1', '2', '8', ',', '1', TOKEN_OP | OP_ADD, '2', ')', 0 };
+    const char line_data[] = { TOK_LPAREN, TOK_NUM, '1', '2', '8' | EOT, TOK_COMMA, TOK_NUM, '1' | EOT, TOK_ADD, TOK_NUM, '2' | EOT, TOK_RPAREN, 0 };
     const Float value_128 = { 0x00000000, 135 };
     const Float value_3 = { 0x40000000, 129 };
 

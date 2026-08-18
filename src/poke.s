@@ -5,8 +5,6 @@
 ; POKE
 
 exec_poke:
-        jsr     evaluate_argument_list
-        jsr     pop_int_fp0             ; Pop the value
         stax    DE                      ; Save
         jsr     pop_int_fp0             ; Pop the address
         stax    BC                      ; Park it
@@ -14,6 +12,7 @@ exec_poke:
         lda     D
         sta     (BC),y                  ; Store it
         rts
+
 
 exec_dpoke:
         jsr     exec_poke               ; Leaves high byte in E and Y=0

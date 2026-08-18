@@ -21,11 +21,15 @@ main:
         jsr     initialize_program
 
 raise_ps_ready:
-        lda     #PS_READY               ; As we pass into on_raise, initialize program state to running
+        raise   PS_READY
 
-; Exception handler: control reaches here following "raise" or JMP to on_raise.
+; Exception handler: control reaches here following "raise."
 
 on_raise:
+        plsta   B                       ; Return address on stack points to the last byte of JSR
+        plsta   C
+        ldy     #1                      ; The error byte follows the JSR instruction
+        lda     (BC),y
         ldx     #$FF                    ; Reset the stack pointer
         txs
         tax                             ; Update flags for new program state since STA won't do it
@@ -54,9 +58,10 @@ get_command:
 
 immediate_mode:
         lda     line_buffer+Line::next_line_offset  ; See if there is any data in the buffer
-        cmp     #.sizeof(Line)          ; Does the "next line" start at the beginning of *this* line?
-        beq     get_command             ; Yes, just ignore input
+        cmp     #.sizeof(Line) + 2      ; Less than minimum line length with statement?
+        bcc     get_command             ; Yes, just ignore input
         ldx     #>line_buffer           ; High byte of the address for the the null line
+
         jsr     append_null_line
 
 raise_ps_running:
@@ -79,7 +84,7 @@ run:
         mva     next_line_pos, line_pos
         jsr     decode_byte             ; The next byte is the next statement offset
         sta     next_line_pos           ; By default the "next line" is the next statement on this line
-        jsr     exec_statement
+        jsr     dispatch_statement
         jmp     run                     ; Keep on truckin'
 
 handle_error:

@@ -8,7 +8,6 @@
 ; sim65 vectors
 .import _read, _write
 
-
 ; Reads a string from the console into the buffer and adds a terminating NUL.
 ; Returns the length of the line in A.
 

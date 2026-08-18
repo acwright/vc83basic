@@ -13,9 +13,9 @@ exec_print:
         jsr     peek_byte               ; Peek at next character
         beq     @newline                ; Found 0
 @continue:
-        cmp     #';'
+        cmp     #TOK_SEMI
         beq     @empty_space
-        cmp     #','
+        cmp     #TOK_COMMA
         beq     @tab
         jsr     evaluate_expression     ; Leaves value on stack
         ldx     stack_pos               ; Get the current stack pointer
@@ -36,7 +36,7 @@ exec_print:
         inc     line_pos                ; Skip over the empty space or tab token
         jsr     peek_byte               ; Peek at next character
         bne     @continue               ; It's not the end of the PRINT so continue
-        beq     @done                   ; Unconditional
+        rts
         
 @newline:
         jsr     newline

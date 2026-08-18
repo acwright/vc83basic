@@ -4,6 +4,14 @@
 
 ; Macros
 
+; Invokes a macro if it is defined.
+
+.macro invoke_if_defined mac
+    .if .definedmacro(mac)
+        mac
+    .endif
+.endmacro
+
 ; Inserts a BRK instruction followed by a value.
 ; On the sim6502 platform the BRK will print the value followed by the 6502 registers.
 
@@ -197,10 +205,8 @@
 ; Raises an error.
 
 .macro raise error
-    .if (.not .match({error}, A))
-        lda     #error
-    .endif
-        jmp     on_raise
+        jsr     on_raise
+        .byte   error
 .endmacro
 
 ; Raises an error if carry is clear.

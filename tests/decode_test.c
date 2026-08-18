@@ -27,10 +27,11 @@ void test_decode_byte(void) {
 }
 
 void test_decode_number(void) {
-    const char line_data[] = { '1', '0', '0', ',', '4', '1', '1', '2', ',', '3', '.', '1', '4', '1', '5', '9', ',' };
+    const char line_data[] = { '1', '0', '0', ',', '4', '1', '1', '2', ',', '3', '.', '1', '4', '1', '5', '9', ',', '1', 'E', '5' | EOT };
     Float result_1 = { 0x48000000, 134 };
     Float result_2 = { 0x00800000, 140 };
     Float result_3 = { 0x490FCF81, 129 };
+    Float result_4 = { 0x43500000, 144 };
     Float result;
 
     PRINT_TEST_NAME();
@@ -51,11 +52,15 @@ void test_decode_number(void) {
     decode_byte();
     store_fp0(&result);
     ASSERT_FLOAT_EQ(result, result_3);
+
+    decode_number();
+    store_fp0(&result);
+    ASSERT_FLOAT_EQ(result, result_4);
 }
 
 void test_decode_string(void) {
     const char line_data[] = {
-        '"', 'H', 'E', 'L', 'L', 'O', '"'
+        5, 'H', 'E', 'L', 'L', 'O', '"' | EOT
     };
 
     PRINT_TEST_NAME();
@@ -64,11 +69,7 @@ void test_decode_string(void) {
 
     set_line(0, line_data, sizeof line_data);
 
-    HEXDUMP(&line_buffer, 32);
-    HEXDUMP(line_ptr, 32);
-
     decode_string();
-    HEXDUMP(string_ptr, 32);
     ASSERT_EQ(string_ptr->length, 5);
     ASSERT_EQ(memcmp(string_ptr->data, "HELLO", 5), 0);
     ASSERT_EQ(line_pos, 10);
@@ -79,8 +80,8 @@ void test_decode_name(void) {
         'X' | EOT,
         'T', 'H', 'I', 'N', 'G', '3' | EOT,
         'A', '$' | EOT,
-        'X' | EOT, '(',
-        'A', '$' | EOT, '(',
+        'X' | EOT, TOK_LPAREN,
+        'A', '$' | EOT, TOK_LPAREN,
      };
 
     PRINT_TEST_NAME();

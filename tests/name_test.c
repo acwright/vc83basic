@@ -262,9 +262,9 @@ void test_imul_16(void) {
 }
 
 void test_dimension_array() {
-    const char line_data_1[] = { 'X' | EOT, '(', '3', ')' };
-    const char line_data_2[] = { 'Y' | EOT, '(', '2', '5', ',', '5', ')' };
-    const char line_data_3[] = { 'A', '$' | EOT, '(', '5', ')' };
+    const char line_data_1[] = { 'X' | EOT, TOK_LPAREN, TOK_NUM, '3' | EOT, TOK_RPAREN };
+    const char line_data_2[] = { 'Y' | EOT, TOK_LPAREN, TOK_NUM, '2', '5' | EOT, TOK_COMMA, TOK_NUM, '5' | EOT, TOK_RPAREN };
+    const char line_data_3[] = { 'A', '$' | EOT, TOK_LPAREN, TOK_NUM, '5' | EOT, TOK_RPAREN };
     const char expect_array_data_1[] = {
         0x80, 0x1A,     // size (26 bytes)
         'X' | EOT,      // name
@@ -429,15 +429,15 @@ void call_find_array_element(const char* line_data, size_t line_data_length, cha
 }
 
 void test_find_array_element() {
-    const char line_data_1[] = { 'X' | EOT, '(', '3', ')' };
-    const char line_data_2[] = { 'Y' | EOT, '(', '2', '5', ',', '5', ')' };
-    const char line_data_x_0[] = { 'X' | EOT, '(', '0', ')' };
-    const char line_data_x_1[] = { 'X' | EOT, '(', '1', ')' };
-    const char line_data_x_3[] = { 'X' | EOT, '(', '3', ')' };
-    const char line_data_x_4[] = { 'X' | EOT, '(', '3', ')' };
-    const char line_data_y_0_0[] = { 'Y' | EOT, '(', '0', ',', '0', ')' };
-    const char line_data_y_1_1[] = { 'Y' | EOT, '(', '1', ',', '1', ')' };
-    const char line_data_y_26_1[] = { 'Y' | EOT, '(', '2', '6', ',', '1', ')' };
+    const char line_data_1[] = { 'X' | EOT, TOK_LPAREN, TOK_NUM, '3' | EOT, TOK_RPAREN };
+    const char line_data_2[] = { 'Y' | EOT, TOK_LPAREN, TOK_NUM, '2', '5' | EOT, TOK_COMMA, TOK_NUM, '5' | EOT, TOK_RPAREN };
+    const char line_data_x_0[] = { 'X' | EOT, TOK_LPAREN, TOK_NUM, '0' | EOT, TOK_RPAREN };
+    const char line_data_x_1[] = { 'X' | EOT, TOK_LPAREN, TOK_NUM, '1' | EOT, TOK_RPAREN };
+    const char line_data_x_3[] = { 'X' | EOT, TOK_LPAREN, TOK_NUM, '3' | EOT, TOK_RPAREN };
+    const char line_data_x_4[] = { 'X' | EOT, TOK_LPAREN, TOK_NUM, '4' | EOT, TOK_RPAREN };
+    const char line_data_y_0_0[] = { 'Y' | EOT, TOK_LPAREN, TOK_NUM, '0' | EOT, TOK_COMMA, TOK_NUM, '0' | EOT, TOK_RPAREN };
+    const char line_data_y_1_1[] = { 'Y' | EOT, TOK_LPAREN, TOK_NUM, '1' | EOT, TOK_COMMA, TOK_NUM, '1' | EOT, TOK_RPAREN };
+    const char line_data_y_26_1[] = { 'Y' | EOT, TOK_LPAREN, TOK_NUM, '2', '6' | EOT, TOK_COMMA, TOK_NUM, '1' | EOT, TOK_RPAREN };
     char index;
 
     PRINT_TEST_NAME();

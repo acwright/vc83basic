@@ -68,7 +68,7 @@ read_string_2:
         bne     @finish                 ; Nope; we're finished
         inc     D                       ; Always skip over this quote
         iny                             ; Increment Y in order to check the next character
-        cmp     (read_ptr),y            ; Check second double quote (if present cannot have EOT set)
+        cmp     (read_ptr),y            ; Check second double quote
         bne     @finish                 ; Nope, just finish; D points to character after double quote
 @not_terminator:
         ldy     E                       ; Write offset
@@ -148,23 +148,19 @@ string_alloc_memory:
 
 @insufficient_memory:
         jsr     compact                 ; Try to compact the string heap
-        ldax    line_number             ; Recover size for retry
 @try:
-        eor     #$FF                    ; Invert length and set carry in order to do string_ptr - AX
-        sec                             ; This calculates proposed new value for string_ptr
-        adc     string_ptr
+        sec                             ; Calculate proposed new value for string_ptr as string_ptr - size
+        lda     string_ptr
+        sbc     line_number
         tay                             ; Store low byte of proposed value in Y
-        txa                             ; Do the same thing with the high byte
-        eor     #$FF
-        adc     string_ptr+1
+        lda     string_ptr+1
+        sbc     line_number+1
         tax                             ; Store high byte of proposed value in X
-        cpx     free_ptr+1              ; Compare high byte vs. free_ptr
-        bcc     @done                   ; New string_ptr high byte < free_ptr; it's definitely an error
-        bne     @string_ptr_ok          ; If it's greater then it's definitely okay
-        cpy     free_ptr
-        bcc     @done                   ; Less than free_ptr is an error, but >= is okay
-@string_ptr_ok:
-        sty     string_ptr              ; Proposed string_ptr >= free_ptr; go update it
+        cpy     free_ptr                ; Compare proposed string_ptr >= free_ptr
+        txa
+        sbc     free_ptr+1
+        bcc     @done                   ; Borrowed -> proposed string_ptr < free_ptr, allocation failed
+        sty     string_ptr              ; Proposed string_ptr >= free_ptr; update it
         stx     string_ptr+1
 @done:
         rts

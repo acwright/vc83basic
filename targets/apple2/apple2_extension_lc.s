@@ -2,44 +2,104 @@
 ;
 ; SPDX-License-Identifier: MIT
 
-.segment "PARSER"
+TOK_AT    = $15
 
-ex_statement_name_table:
-        name_table_entry "GR"
+TOK_GR    = $5A
+TOK_TEXT  = $5B
+TOK_HOME  = $5C
+TOK_COLOR = $5D
+TOK_PLOT  = $5E
+TOK_HLIN  = $5F
+TOK_VLIN  = $60
+
+TOK_PDL   = $98
+TOK_SCRN  = $99
+
+.macro extension_custom_keywords
+:       name_table_entry "AT"
+.endmacro
+
+.macro extension_statement_keywords
+:       name_table_entry "GR"
 :       name_table_entry "TEXT"
 :       name_table_entry "HOME"
 :       name_table_entry "COLOR"
-            JUMP pvm_expression
 :       name_table_entry "PLOT"
-            JUMP pvm_arg_2
 :       name_table_entry "HLIN"
-            CALL pvm_arg_2
-            MATCH "AT"
-            JUMP pvm_expression
+KEYWORD_BLOCK_6_OFFSET = keyword_counter
 :       name_table_entry "VLIN"
-            CALL pvm_arg_2
-            MATCH "AT"
-            JUMP pvm_expression
-:       name_table_end
+:       name_table_entry ""             ; Padding for even statement count
+.endmacro
 
-ex_function_name_table:
-        name_table_entry "PDL"
+.macro extension_function_keywords
+:       name_table_entry "PDL"
 :       name_table_entry "SCRN"
-:       name_table_end
+.endmacro
 
-.segment "XVEC"
+.macro extension_pvm_statements
+        BRANCH_IF_RANGE TOK_GR, 3, @done       ; GR, TEXT, HOME
+        BRANCH_IF TOK_COLOR, pvm_expression
+        BRANCH_IF TOK_PLOT, pvm_arg_2
+        BRANCH_IF TOK_HLIN, pvm_hlin_vlin
+        BRANCH_IF TOK_VLIN, pvm_hlin_vlin
+.endmacro
 
-ex_statement_vectors:
-        .word   SETGR-1
-        .word   SETTXT-1
-        .word   HOME-1
-        .word   exec_color-1
-        .word   exec_plot-1
-        .word   exec_hlin-1
-        .word   exec_vlin-1
-        
-.code
+.macro extension_pvm_functions
+        BRANCH_IF TOK_PDL, pvm_fun_1
+        BRANCH_IF TOK_SCRN, pvm_fun_2
+.endmacro
 
+.macro extension_statement_vectors_l
+        .byte   <(SETGR-1)
+        .byte   <(SETTXT-1)
+        .byte   <(HOME-1)
+        .byte   <(exec_color-1)
+        .byte   <(exec_plot-1)
+        .byte   <(exec_hlin-1)
+        .byte   <(exec_vlin-1)
+        .byte   0
+.endmacro
+
+.macro extension_statement_vectors_h
+        .byte   >(SETGR-1)
+        .byte   >(SETTXT-1)
+        .byte   >(HOME-1)
+        .byte   >(exec_color-1)
+        .byte   >(exec_plot-1)
+        .byte   >(exec_hlin-1)
+        .byte   >(exec_vlin-1)
+        .byte   0
+.endmacro
+
+.macro extension_statement_flags
+        .byte   0                       ; GR, TEXT
+        .byte   0                       ; HOME, COLOR
+        .byte   0                       ; PLOT, HLIN
+        .byte   0                       ; VLIN, padding
+.endmacro
+
+.macro extension_function_vectors_l
+        .byte   <(fun_pdl-1)
+        .byte   <(fun_scrn-1)
+.endmacro
+
+.macro extension_function_vectors_h
+        .byte   >(fun_pdl-1)
+        .byte   >(fun_scrn-1)
+.endmacro
+
+.macro extension_function_flags
+        .byte   (PROLOG_POP_INT | EPILOG_PUSH_INT) | ((PROLOG_POP_INT | EPILOG_PUSH_INT) << 4)
+.endmacro
+
+.macro extension_parser_code
+pvm_hlin_vlin:
+        CALL    pvm_arg_2
+        MATCH   TOK_AT
+        JUMP    pvm_expression
+.endmacro
+
+.macro extension_code
 exec_color:
         jsr     evaluate_expression
         jsr     pop_int_fp0             ; Pop the color value
@@ -60,12 +120,17 @@ exec_hlin:
 
 exec_vlin:
         jsr     get_hlin_vlin_arguments
+        tax                             ; Swap A (column) and Y (start row)
+        tya
+        pha
+        txa
+        tay
+        pla
         jmp     VLINE
 
 get_hlin_vlin_arguments:
         jsr     evaluate_argument_list  ; Evaluate start and end
-        inc     line_pos                ; Skip "AT"
-        inc     line_pos
+        inc     line_pos                ; Skip TOK_AT
         jsr     evaluate_expression
         jsr     pop_int_fp0             ; Get coordinate (Row for HLIN, Column for VLIN)
         pha                             ; Save on hardware stack
@@ -77,18 +142,7 @@ get_hlin_vlin_arguments:
         pla                             ; Coordinate into A
         rts
 
-.segment "XFUNC"
-
-ex_function_table:
-        .word   fun_pdl-1
-        .byte   1 | PROLOG_POP_INT | EPILOG_PUSH_INT
-        .word   fun_scrn-1
-        .byte   2 | PROLOG_POP_INT | EPILOG_PUSH_INT
-
-.code
-
 fun_pdl:
-        jsr     pop_int_fp0             ; Get paddle index
         tax
         jsr     PREAD                   ; Returns result in Y
         tya
@@ -96,11 +150,11 @@ fun_pdl:
         rts
 
 fun_scrn:
-        jsr     pop_int_fp0             ; Pop the Y value (second arg)
-        pha                             ; Save it
-        jsr     pop_int_fp0             ; Pop the X value (first arg)
+        pha                             ; Save Y value (second arg)
+        jsr     pop_int_fp0             ; Pop X value (first arg)
         tay                             ; Move X into Y
         pla                             ; Get back Y into A
         jsr     SCRN
         ldx     #0                      ; Make sure high byte is 0
         rts
+.endmacro

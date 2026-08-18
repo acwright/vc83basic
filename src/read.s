@@ -31,7 +31,7 @@ exec_read:
         raieq   ERR_OUT_OF_DATA
         ldy     #.sizeof(Line) + 1      ; Check for DATA (add 1 to skip next statement offset)
         lda     (data_line_ptr),y
-        cmp     #ST_DATA
+        cmp     #TOK_DATA
         bne     exec_read_next_line     ; Not DATA; go to next line and try again (case 4)
         ldy     data_line_pos
         lda     (data_line_ptr),y       ; Check if we're pointing at the 0 at the end of the DATA line
@@ -39,6 +39,7 @@ exec_read:
 
 ; Now we're left with case 1 or case 2: somewhere on a DATA line
 
+        inc     line_pos                ; Skip TOK_NAME
         jsr     decode_name             ; Read the variable name
         jsr     find_or_add_variable
         lda     decode_name_type        ; Is it a number or a string?
@@ -52,7 +53,7 @@ exec_read:
 @assign:
         jsr     assign_variable         ; Store the value
         jsr     peek_byte               ; Check if more variables
-        cmp     #','
+        cmp     #TOK_COMMA
         bne     @done                   ; Nope
         inc     line_pos
         bne     exec_read               ; Unconditional

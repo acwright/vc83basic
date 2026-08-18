@@ -31,7 +31,7 @@ exec_goto:
 exec_on_goto_gosub:
         jsr     evaluate_expression     ; Evaluate the "ON" expression
         jsr     decode_byte             ; Next byte tells us if it's GOTO or GOSUB
-        cmp     #TOKEN_CLAUSE | CLAUSE_GOTO     ; If Z flag then we're GOTO, else GOSUB
+        cmp     #TOK_GOTO               ; If Z flag then we're GOTO, else GOSUB
         php                             ; Remember what we learned
         jsr     pop_int_fp0             ; FP0 -> integer in AX
         sta     B
@@ -46,10 +46,10 @@ exec_on_goto_gosub:
         lda     (line_ptr),y
         beq     @out_of_range           ; Found the terminator instead
         iny
-        cmp     #','
+        cmp     #TOK_COMMA
         bne     @next_byte
         sty     line_pos                ; Update line_pos with the position after the next ','
-        beq     @loop                   ; Unconditional
+        jmp     @loop                   ; Unconditional
 
 @found:
         plp                             ; Recover the flags from the GOSUB check
@@ -83,11 +83,11 @@ exec_return:
 
 exec_for:
         jsr     push_next_line_ptr      ; Save return address
+        inc     line_pos                ; Skip TOK_NAME
         jsr     decode_name             ; Get the name (now in decode_name_ptr)
-        lda     decode_name_type        ; No string variables please
+        lda     decode_name_type        ; No string variables or arrays
+        ora     decode_name_arity
         bne     raise_invalid_variable
-        lda     decode_name_arity       ; Or arrays
-        bmi     raise_invalid_variable
         inc     line_pos                ; Skip terminator following name
         jsr     evaluate_expression     ; Start value
         inc     line_pos                ; Skip terminator
@@ -108,7 +108,7 @@ exec_for:
         ldy     #>stack                 ; Stack page
         jsr     store_fp0               ; Store FP0 there
         jsr     peek_byte               ; Check for STEP
-        cmp     #TOKEN_CLAUSE | CLAUSE_STEP
+        cmp     #TOK_STEP
         bne     @no_step
         inc     line_pos
         jsr     evaluate_expression
@@ -132,6 +132,7 @@ exec_next:
 
 ; Decode the variable name and see if it matches the one at the top of the stack.
 
+        inc     line_pos                ; Skip TOK_NAME
         jsr     decode_name             ; Sets decode_name_ptr
         ldx     stack_pos               ; Load stack position
         cpx     #PRIMARY_STACK_SIZE     ; Check if stack empty
@@ -200,7 +201,13 @@ exec_if:
         jsr     pop_fp0
         lda     FP0e                    ; Check if zero
         beq     @next_line              ; If zero then don't execute the THEN or any other statements on this line
-        jmp     exec_statement          ; Otherwise execute the THEN
+        jsr     peek_byte
+        cmp     #TOK_NUM
+        beq     @goto
+        jmp     dispatch_statement      ; Otherwise execute the THEN
+
+@goto:
+        jmp     exec_goto
 
 @next_line:
         jmp     advance_next_line_ptr   ; Unconditionally go to the next line
@@ -217,9 +224,9 @@ push_next_line_ptr:
         sta     stack+Control::next_line_pos,x
         lda     #TYPE_CONTROL           ; Identify this as Control not Value
         sta     stack+Control::type,x
-        txa                             ; Move stack pointer back to A
         rts
 
 get_line_number:
+        inc     line_pos                ; Skip TOK_NUM
         jsr     decode_number
         jmp     truncate_fp_to_int

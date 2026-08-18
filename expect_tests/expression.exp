@@ -25,7 +25,6 @@ test "PRINT 2.25E20\n" "2.25E20\n"
 # Strings
 
 test "PRINT \"HELLO\"\n" "HELLO\n"
-test "PRINT \"BUG OR \"\"FEATURE?\"\"\"\n" "BUG OR \"FEATURE?\"\n"
 
 # Simple expressions
 

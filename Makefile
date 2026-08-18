@@ -18,7 +18,7 @@ LDFLAGS = -m $@.map -vm
 GIT_VERSION := .byte "$(shell git describe --always --dirty 2>/dev/null || echo unknown)"
 
 PRINT_SIZE = @sum=0; \
-	for size in $$(awk '/^(CODE|PARSER|VEC|XVEC|FUNC|XFUNC) / { print $$4 }' $@.map); do \
+	for size in $$(awk '/^(CODE|PARSER) / { print $$4 }' $@.map); do \
 		sum=$$(($$sum + 0x$$size)); \
 	done; \
 	printf "Code size: \$$%X (%d)\n" $$sum $$sum
@@ -33,6 +33,9 @@ LDFLAGS += -Wl --dbgfile,$@.dbg
 endif
 
 all: $(addprefix build/basic_,$(TARGETS))
+
+run: build/basic_sim6502
+	sim65 build/basic_sim6502
 
 # Goal: basic_sim6502
 build/basic_sim6502.o: targets/sim6502/basic_sim6502.s src/basic.s $(GENERATED_ASM_SOURCES)

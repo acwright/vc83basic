@@ -188,7 +188,7 @@ void test_compact(void) {
 }
 
 void test_compact_with_array(void) {
-    const char line_data[] = { 'A', '$' | EOT, '(', '5', ')' };
+    const char line_data[] = { 'A', '$' | EOT, TOK_LPAREN, TOK_NUM, '5' | EOT, TOK_RPAREN };
     const String* hello;
     const String* world;
     char index;

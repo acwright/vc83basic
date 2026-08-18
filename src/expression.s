@@ -9,138 +9,80 @@
 .assert Value::number_value = 0, error
 .assert Value::string_value_ptr = 0, error
 
-.assert TOKEN_EXTENSION = $80, error
+.assert TOK_ADD = $20, error
+.assert TOK_LEN = $80, error
 
-.assert EPILOG_PUSH_FP = (1 << 4), error
-.assert EPILOG_PUSH_INT = (2 << 4), error
-.assert EPILOG_PUSH_STRING = (3 << 4), error
-.assert PROLOG_POP_FP = (1 << 6), error
-.assert PROLOG_POP_INT = (2 << 6), error
-.assert PROLOG_POP_STRING = (3 << 6), error
-
-.assert ex_function_table_offset >= function_table_offset, error
-
-function_prologs:
-        .word   pop_fp0-1
-        .word   pop_int_fp0-1
-        .word   pop_string_s0-1
-
-function_epilogs:
-        .word   push_fp0-1
-        .word   push_int_fp0-1
-        .word   push_string-1
-
-evaluate_function:
-        inc     line_pos                ; Skip over the function token
-        jsr     decode_byte             ; Return the function number in A
-        bpl     @core                   ; It's a core function not extension
-        sec
-        sbc     #(TOKEN_EXTENSION - ex_function_table_offset + function_table_offset)
-@core:
-        sta     B                       ; Save in B
-        asl     A                       ; Multiply vector number by 2; clears carry
-        adc     B                       ; Add back B to multiply by 3
-        tax                             ; Set up as index
-        lda     __FUNC_RUN__+2,x        ; Arity and flags
-        lsr     A                       ; Move epilog bits 4-5 to positions 1-2
-        lsr     A
-        lsr     A
-        sta     C                       ; Save shifted value
-        and     #$06                    ; Mask out the prolog bits; ensure bit 0 is clear
-        beq     @skip_epilog
-        tay                             ; Make it an index
-        lda     function_epilogs-1,y    ; Push epilog
-        pha
-        lda     function_epilogs-2,y
-        pha
-@skip_epilog:
-        lda     __FUNC_RUN__+1,x        ; High byte of function address
-        pha
-        lda     __FUNC_RUN__,x          ; Low byte 
-        pha
-        lda     C                       ; Get back the shifted value
-        lsr     A                       ; Shift prolog bits 6-7 from original to positions 1-2
-        lsr     A
-        and     #$06                    ; If bit 0 was set from epilog bits, clear them
-        beq     @skip_prolog
-        tay                             ; Make it an index
-        lda     function_prologs-1,y    ; Push epilog
-        pha
-        lda     function_prologs-2,y
-        pha
-@skip_prolog:
-
-; The stack now looks like this:
-;     SP+8      evaluate_function return address high byte
-;     SP+7      evaluate_function return address low byte
-;     SP+6      Epilog function high byte (if present)
-;     SP+5      Epilog function low byte (if present)
-;     SP+4      Function handler high byte
-;     SP+3      Function handler low byte
-;     SP+2      Prolog function high byte (if present)
-;     SP+1      Prolog function low byte (if present)
-;     SP        Current stack pointer       
-
-        lda     __FUNC_RUN__+2,x        ; Reload arity and flags
-        and     #$07                    ; Limit to 7 args: ensures bit 3 is always 0
-        inc     line_pos                ; Skip '('
-        jsr     evaluate_argument_list
-        bne     raise_arity_mismatch
-        inc     line_pos                ; Skip ')'
-        rts                             ; Jumps to prolog or function handler
-
-raise_arity_mismatch:
-        raise   ERR_ARITY_MISMATCH
-
-.assert TOKEN_EXTENSION = $80, error
+; Evaluates an expression and leaves the result on the stack.
+; An expression is a primary expression, optionally followed by a binary operator and another expression.
+; If we're here, there *must* be an expression. The expression ends when we don't find a binary operator
+; after the primary expression.
 
 evaluate_expression:
         phzp    DECODE_NAME_STATE, DECODE_NAME_STATE_SIZE   ; Remember the decoded name
         lda     #PR_OPEN_PAREN          ; Push the open paren, which will never be removed by process_operators
+after_operator:
         jsr     push_operator
-
-@next:
+next_expression:
+        jsr     decode_byte                     ; Get the next thing
+        cmp     #TOK_ADD                        ; Check for unary op cases
+        beq     next_expression                 ; Unary + does nothing
+        ldx     #PR_UNARY_OP | TOK_UNARY_MINUS
+        cmp     #TOK_SUB
+        beq     @unary_operator
+        ldx     #PR_UNARY_OP | TOK_UNARY_NOT
+        cmp     #TOK_NOT
+        beq     @unary_operator
         jsr     @dispatch               ; JSR to dispatcher so we can just RTS from handlers
-        jmp     @next
-
-@dispatch:
-        jsr     peek_byte
-        beq     @done                   ; Short circuit to end if we're at the end of the line
-        and     #<~EOT                  ; Clear EOT if it's set
-        cmp     #TOKEN_FUNCTION         ; First check for a function
-        beq     evaluate_function
-        sec                             ; Otherwise, prepare for subtract-o-rama
-        sbc     #'A'
-        cmp     #<('(' - 'A')           ; Start of subexpression
-        beq     evaluate_paren
-        cmp     #<('"' - 'A')           ; Check if it's a string
-        beq     evaluate_string
-        cmp     #26                     ; Is it one of 26 letters starting with 'A'?
-        bcc     evaluate_variable
-        sbc     #<('0' - 'A')           ; Check for number: digits, '.', or '-'
-        cmp     #<('.' - '0')
-        beq     evaluate_number
-        cmp     #<('-' - '0')
-        beq     evaluate_number
-        cmp     #10
-        bcc     evaluate_number
-        sbc     #<(TOKEN_UNARY_OP - '0')
-        cmp     #4
-        bcc     evaluate_unary_operator
-        sbc     #<(TOKEN_OP - TOKEN_UNARY_OP)
-        cmp     #16
-        bcc     evaluate_operator
-
-; None of the above; probably end of line or ')' or ',' or ';' so just return.
-; Pop the @dispatch address off the stack so we return from evaluate_expression not @dispatch.
-
-@done:
-        pla
-        pla
+        jsr     peek_byte               ; Check if an operator follows
+        and     #$F0
+        cmp     #TOK_ADD
+        beq     @operator
         lda     #PR_CLOSE_PAREN         ; Process any operators not yet processed (except open paren)
         jsr     process_operators
         inc     op_stack_pos            ; Pop the open paren
         plzp    DECODE_NAME_STATE, DECODE_NAME_STATE_SIZE   ; Recover the decoded name
+        rts
+
+@unary_operator:
+        txa                             ; The operator is in X; move it to A
+        bne     after_operator          ; Unconditional
+
+@operator:
+        jsr     decode_byte             ; Return the operator in A
+        and     #$0F                    ; Get the operator number
+        pha                             ; Keep on the stack while we process higher-precedence operators
+        lsr     A                       ; Divide by 2        
+        tax                             ; Move into X to use as index
+        lda     operator_precedence_table,x ; Look up the precedence value
+        jsr     process_operators       ; Handle operators >= the precedence of this operator
+        pla                             ; Get the operator value again
+        tay                             ; Hold in Y
+        lsr     A                       ; Divide by 2 (again)
+        tax                             ; Move into X to use as index (again)
+        tya                             ; Operator value back into A
+        ora     operator_precedence_table,x ; OR the precedence value
+        jmp     after_operator
+
+@dispatch:
+        cmp     #TOK_LPAREN
+        beq     evaluate_paren
+        cmp     #TOK_NUM
+        beq     evaluate_number
+        cmp     #TOK_STRING
+        beq     evaluate_string
+        cmp     #TOK_NAME
+        beq     evaluate_variable
+        inc     line_pos                ; None of the above; assume it's a function and skip '('
+        jsr     dispatch_function
+        inc     line_pos                ; Skip ')'
+        rts
+
+evaluate_paren:
+        lda     #PR_OPEN_PAREN          ; Push the open paren, which will never be removed by process_operators
+        jsr     push_operator
+        jsr     evaluate_expression     ; Evaluate the subexpression; may fail
+        inc     op_stack_pos            ; Pop the open paren (even if evaluate_expression failed)
+        inc     line_pos                ; Consume the ')'
         rts
 
 evaluate_number:
@@ -150,15 +92,6 @@ evaluate_number:
 evaluate_string:
         jsr     decode_string           ; Sets string_ptr
         jmp     push_string
-
-evaluate_paren:
-        inc     line_pos                ; Consume the '('
-        lda     #PR_OPEN_PAREN          ; Push the open paren, which will never be removed by process_operators
-        jsr     push_operator
-        jsr     evaluate_expression     ; Evaluate the subexpression; may fail
-        inc     op_stack_pos            ; Pop the open paren (even if evaluate_expression failed)
-        inc     line_pos                ; Consume the ')'
-        rts
 
 evaluate_variable:
         jsr     decode_name
@@ -193,28 +126,6 @@ operator_precedence_table:
         .byte   PR_RELATIONAL           ; >=, >
         .byte   PR_LOGICAL              ; AND, OR
 
-evaluate_operator:
-        jsr     decode_byte             ; Return the operator in A
-        and     #<~TOKEN_OP
-        pha                             ; Keep on the stack while we process higher-precedence operators
-        lsr     A                       ; Divide by 2        
-        tax                             ; Move into X to use as index
-        lda     operator_precedence_table,x ; Look up the precedence value
-        jsr     process_operators       ; Handle operators >= the precedence of this operator
-        pla                             ; Get the operator value again
-        tay                             ; Hold in Y
-        lsr     A                       ; Divide by 2 (again)
-        tax                             ; Move into X to use as index (again)
-        tya                             ; Operator value back into A
-        ora     operator_precedence_table,x ; OR the precedence value
-        jmp     push_operator           ; Push this operator onto the stack
-
-evaluate_unary_operator:
-        jsr     decode_byte             ; Get the unary operator
-        and     #<~TOKEN_UNARY_OP
-        ora     #PR_UNARY_OP            ; Unary ops have highest precedence and are right-assoc so don't do anything
-        jmp     push_operator           ; Except push the operator onto the stack
-
 ; Evaluate a number of arguments. The argument list will either end in a 0 (as in a series of arguments for a
 ; statement) or in a close paren (as in a DIM statement, array reference, or function call).
 ; A = the number of arguments expected
@@ -223,14 +134,14 @@ evaluate_unary_operator:
 evaluate_argument_list:
         pha                             ; Save expected count
         jsr     peek_byte
-        cmp     #')'
+        cmp     #TOK_RPAREN
         beq     @done
 @loop:
         jsr     evaluate_expression
         tsx
         dec     $101,x                  ; Decrement remaining
         jsr     peek_byte
-        cmp     #','
+        cmp     #TOK_COMMA
         bne     @done                   ; No comma, stop
         inc     line_pos                ; Skip comma
         jmp     @loop                   ; And continue
@@ -251,8 +162,6 @@ push_operator:
 ; operator stack, and open parens have such a low precedence that they will never be evaluated.
 ; A = minimum precedence
 
-.assert operator_vectors_offset = 0, error
-
 process_operators:
         sta     min_precedence          ; Store the minimum precedence
 @next:
@@ -260,19 +169,23 @@ process_operators:
         lda     op_stack,x              ; Get whatever operator it is
         cmp     min_precedence          ; Compare with minimum precedence
         bcc     @done                   ; If carry clear (we had to borrow) then op prec < min prec; stop
+        jsr     @dispatch               ; JSR to operator evaluator so RTS takes us back here
+        jmp     @next
+
+@dispatch:
         inc     op_stack_pos            ; Move stack position to next operator
-        and     #$1F                    ; Keep lower 5 bits
-        jsr     invoke_indexed_vector   ; Invoke the vector; don't need to adjust b/c we assert op vector offet is 0
-        jmp     @next                   ; Continue processing operators
+        and     #$0F                    ; Keep lower 4 bits
+        tax                             ; Set up operator vector index
+        lda     operator_vectors_h,x    ; Invoke vector
+        pha
+        lda     operator_vectors_l,x
+        pha
+
 @done:
-        rts
+        rts                             ; This is either RTS from process_operators or JMP to operator handler
 
 op_concat:
-        jsr     pop_string              ; Get the second string
-        jsr     load_s1                 ; Load into S1
-        sta     E                       ; Length of second string in E
-        jsr     pop_string_s0           ; Get first string
-        sta     D                       ; Length of first string in D
+        jsr     pop_two_strings
         clc
         adc     E                       ; Get total length of string
         bcs     @out_of_range           ; Combined string is too long
@@ -294,11 +207,7 @@ op_concat:
 ; C=1 (not borrow) if s1 len >= s2 len
 
 compare_string_values:
-        jsr     pop_string              ; Get second string
-        jsr     load_s1                 ; Second string into S1
-        sta     E                       ; Length of second string in E
-        jsr     pop_string_s0           ; Get first string
-        sta     D                       ; Length of first string in D
+        jsr     pop_two_strings
         cmp     E                       ; Compare first string length to second
         bcc     @use_first_string_length
         lda     E                       ; Replace length in A with the shorter second string length 
@@ -317,6 +226,14 @@ compare_string_values:
 @compare_lengths:
         lda     D                       ; Characters are the same, so shorter string is lesser or equal
         cmp     E
+        rts
+
+pop_two_strings:
+        jsr     pop_string              ; Get the second string
+        jsr     load_s1                 ; Load into S1
+        sta     E                       ; Length of second string in E
+        jsr     pop_string_s0           ; Get first string
+        sta     D                       ; Length of first string in D
         rts
 
 op_eq:
@@ -571,26 +488,45 @@ set_up_logical_op:
         stax    DE                      ; Store returned value in DE
         jmp     pop_int_fp0
 
-.segment "VEC"
+operator_vectors_l:
+        .byte   <(op_add-1)
+        .byte   <(op_sub-1)
+        .byte   <(op_mul-1)
+        .byte   <(op_div-1)
+        .byte   <(op_pow-1)
+        .byte   <(op_concat-1)
+        .byte   <(op_eq-1)
+        .byte   <(op_lt-1)
+        .byte   <(op_gt-1)
+        .byte   <(op_ne-1)
+        .byte   <(op_le-1)
+        .byte   <(op_ge-1)
+        .byte   <(op_and-1)
+        .byte   <(op_or-1)
+        .byte   <(unary_op_minus-1)
+        .byte   <(unary_op_not-1)
 
-operator_vectors:
-        .word   op_add-1
-        .word   op_sub-1
-        .word   op_mul-1
-        .word   op_div-1
-        .word   op_pow-1
-        .word   op_concat-1
-        .word   op_eq-1
-        .word   op_lt-1
-        .word   op_gt-1
-        .word   op_ne-1
-        .word   op_le-1
-        .word   op_ge-1
-        .word   op_and-1
-        .word   op_or-1
-        .word   0
-        .word   0
-        .word   unary_op_minus-1
-        .word   unary_op_not-1
+operator_count = * - operator_vectors_l
 
-.code
+; We can only handle 16 operators (14 binary + 2 unary).
+.assert operator_count <= 16, error
+
+operator_vectors_h:
+        .byte   >(op_add-1)
+        .byte   >(op_sub-1)
+        .byte   >(op_mul-1)
+        .byte   >(op_div-1)
+        .byte   >(op_pow-1)
+        .byte   >(op_concat-1)
+        .byte   >(op_eq-1)
+        .byte   >(op_lt-1)
+        .byte   >(op_gt-1)
+        .byte   >(op_ne-1)
+        .byte   >(op_le-1)
+        .byte   >(op_ge-1)
+        .byte   >(op_and-1)
+        .byte   >(op_or-1)
+        .byte   >(unary_op_minus-1)
+        .byte   >(unary_op_not-1)
+
+.assert (* - operator_vectors_h) = operator_count, error

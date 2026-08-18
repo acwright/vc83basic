@@ -43,9 +43,6 @@ exception_handler: .res 2
 
 .export _pvm_statement = pvm_statement;
 .export _pvm_expression = pvm_expression;
-.export _pvm_number = pvm_number
-.export _pvm_string = pvm_string
-.export _pvm_name = pvm_name
 
 ; Sets the err variable to 1 if carry is set, 0 otherwise.
 set_err:
@@ -76,7 +73,7 @@ set_err:
 
 ; Installs an exception handler.
 ; The exception handler itself is the code after the call to this function. Whenever the program performs
-; "raise n" (or loads n into A and jumps to on_raise), this function will appear to return with that value in A.
+; "raise n," this function will appear to return with that value in A.
 ; The caller can check if it is handling an exception, or just returning from the initial call, by checking the carry.
 ; If carry is clear, then it is the initial call, and if set, then handling an exception.
 ; The caller should not return while there is still a chance that the program will jump to on_raise, in order to avoid
@@ -92,8 +89,12 @@ install_exception_handler:
         bcc     on_raise_2              ; Unconditional; execute on_raise code but with carry clear
 
 on_raise:
-        sec                             ; Signal this was caused by raise invocation
+        plsta   B                       ; Pop return address into BC
+        plsta   C
+        ldy     #1                      ; The error byte follows the JSR instruction
+        lda     (BC),y
         tay                             ; Save the exception value
+        sec                             ; Signal this was caused by raise invocation
 on_raise_2:
         ldx     on_raise_sp             ; Restore the stack pointer that we saved in install_exception_handler
         txs
@@ -226,11 +227,6 @@ _round:
 .export _round
         startwrap
         jmp     round
-
-_char_to_digit:
-.export _char_to_digit
-        jsr     char_to_digit
-        jmp     set_err
 
 _adjust_exponent:
 .export _adjust_exponent
@@ -540,10 +536,6 @@ _clear_memory:
         ldy     B      
         jmp     clear_memory
 
-_invoke_indexed_vector:
-.export _invoke_indexed_vector
-        jmp     invoke_indexed_vector
-
 _read_argument_separator:
 .export _read_argument_separator
         tay
@@ -557,24 +549,3 @@ _skip_whitespace:
         jsr     skip_whitespace
         sty     _Y
         jmp     set_err
-
-.segment "VEC"
-
-; Used by test_invoke_indexed_vector
-
-.export _test_vectors
-_test_vectors:
-        .word   return_31415-1
-        .word   return_7771-1
-        .word   return_7771-1
-        .word   return_31415-1
-
-.code
-
-return_31415:
-        ldax    #31415
-        rts
-
-return_7771:
-        ldax    #7771
-        rts

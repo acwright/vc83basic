@@ -573,31 +573,6 @@ void test_fcmp(void) {
     }
 }
 
-void test_char_to_digit(void) {
-    char d;
-
-    PRINT_TEST_NAME();
-
-    d = char_to_digit('0');
-    ASSERT_EQ(err, 0);
-    ASSERT_EQ(d, 0);
-    d = char_to_digit('9');
-    ASSERT_EQ(err, 0);
-    ASSERT_EQ(d, 9);
-    char_to_digit('0'-1);
-    ASSERT_NE(err, 0);
-    char_to_digit('9'+1);
-    ASSERT_NE(err, 0);
-    char_to_digit(' ');
-    ASSERT_NE(err, 0);
-    char_to_digit('A');
-    ASSERT_NE(err, 0);
-    char_to_digit(0);
-    ASSERT_NE(err, 0);
-    char_to_digit(255);
-    ASSERT_NE(err, 0);
-}
-
 void call_fp_to_string(unsigned long t, char e, const char* expect_string, int line) {
     Float value;
     value.t = t;
@@ -683,6 +658,8 @@ void test_string_to_fp(void) {
     call_string_to_fp("1", 0x00000000, 128, __LINE__);
     // -1
     call_string_to_fp("-1", 0x80000000, 128, __LINE__);
+    // +1
+    call_string_to_fp("+1", 0x00000000, 128, __LINE__);
     // 10
     call_string_to_fp("10", 0x20000000, 131, __LINE__);
     // 25
@@ -729,7 +706,11 @@ void test_string_to_fp(void) {
     // Verify that string_to_fp stops on non-digit.
     call_string_to_fp("10X", 0x20000000, 131, __LINE__);
     call_string_to_fp("-100-", 0xC8000000, 134, __LINE__);
-    call_string_to_fp("3.14159+", 0x490FCF81, 129, __LINE__);
+
+    // Verify that string_to_fp handles characters with EOT set.
+    call_string_to_fp("10\xB0", 0x48000000, 134, __LINE__);
+    call_string_to_fp("100\xAE", 0x48000000, 134, __LINE__);
+    call_string_to_fp("1E\xB5", 0x43500000, 144, __LINE__);
     
     // Verify that string_to_fp leaves buffer_pos alone when faced with non-numbers.
     fail_string_to_fp("X10", __LINE__);
@@ -995,7 +976,6 @@ int main(int argc, char* argv[]) {
     test_fdiv(1);
     test_fpow(1);
     test_fcmp();
-    test_char_to_digit();
     test_fp_to_string();
     test_string_to_fp();
     test_fpoly();

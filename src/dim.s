@@ -5,6 +5,7 @@
 ; DIM statement:
 
 exec_dim:
+        inc     line_pos                ; Skip TOK_NAME
         jsr     decode_name             ; Get the name and type
         lda     decode_name_arity       ; See if it's an array name
         bpl     @invalid_variable       ; Nope
@@ -17,7 +18,7 @@ exec_dim:
         bcc     @already_dimensioned
         jsr     dimension_array         ; Go do it
         jsr     peek_byte               ; Check for comma (more arrays)
-        cmp     #','
+        cmp     #TOK_COMMA
         bne     @done                   ; No more arrays
         inc     line_pos                ; Skip ','
         bne     exec_dim                ; Unconditional: loop for next array

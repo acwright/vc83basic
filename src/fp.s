@@ -90,9 +90,6 @@ load_fp:
 ; AY = destination address
 ; DE SAFE, also does not alter carry
 
-store_fp1:
-        ldx     #FP1
-        bne     store_fp
 store_fp0:
         ldx     #FP0
 store_fp:
@@ -120,7 +117,7 @@ store_fp:
 ; BC SAFE, DE SAFE
 
 swap_fp0_fp1:
-        ldy     #.sizeof(UnpackedFloat)-1
+        ldy     #.sizeof(UnpackedFloat) - 1
 @next_byte:
         lda     FP1,y
         ldx     FP0,y
@@ -302,53 +299,22 @@ shift_right_from_fpx:
         inc     FP0e
         rts
 
-; Multiplies the FP0 significand by 10. Copies the FP0 value into FP1.
-; Y SAFE, BC SAFE, DE SAFE
-
-mul10_significand:
-        ldx     #FP1t
-        jsr     copy_significand_fp0_fp
-        jsr     shift_left              ; *2
-        jsr     rotate_left             ; *4
-        jsr     add_significands        ; *5
-        jmp     rotate_left             ; *10
-
-; Divides the FP0 significand by 10.
-; Returns the remainder in FPX.
-; Uses X to keep track of the shift count.
-; Y SAFE, BC SAFE, DE SAFE
-
-div10_significand:
-        mva     #0, FPX                 ; Initialize remainder to 0
-        ldx     #32                     ; 32 bits
-@next_bit:
-        jsr     shift_left              ; LSB of FP0 significand is now 0
-        lda     FPX                     ; Bits from significand move into FPX
-        sec
-        sbc     #10                     ; C ("don't borrow") set if FPX>=10
-        bcc     @not_10                 ; It's <10
-        inc     FP0t                    ; Increment quotient
-        sta     FPX                     ; Write updated value back
-@not_10:
-        dex
-        bne     @next_bit               ; More bits to shift
-        rts
-
 ; Accepts a 16-bit int in AX and converts it into a float in FP0.
 ; AX = the input value
 ; DE SAFE
 
 int_to_fp:
         sta     FP0t+2                  ; Low byte
-        txa                             ; Move high byte into A
-        sta     FP0t+3
+        stx     FP0t+3                  ; High byte
+        lda     #0
+        sta     FP0t                    ; Clear two low bytes
+        sta     FP0t+1
+        txa
         and     #$80                    ; Isolate and store sign bit
         sta     FP0s
         bpl     @positive               ; Flags set by AND
         jsr     negate_significand
 @positive:
-        mva     #0, FP0t                ; Clear two low bytes
-        sta     FP0t+1
         lda     #143                    ; Starting exponent = 15
         bne     int_to_fp_common        ; Unconditional
         
@@ -446,8 +412,6 @@ round:
 ; determine if the result needs floor adjustment.
 
 floor:
-        lda     FP0e                    ; Calculate the number of fractional bits that we need to clear
-        beq     @done                   ; If number was already zero, nothing to do
         jsr     truncate_fp_to_int32
         bmi     @adjust_negative        ; Exponent < 0. Value is purely fractional, meaning int part is 0. Skip converting back.
         cmp     #32
@@ -474,12 +438,12 @@ floor:
 ; buffer_pos = the write position in buffer
 
 fp_to_string:
+        ldx     buffer_pos              ; Write index
         lda     FP0s                    ; Check for negative value
         bpl     @positive               ; Nope
-        ldx     buffer_pos              ; Write index
         lda     #'-'                    ; Minus sign
         sta     buffer,x
-        inc     buffer_pos              ; Update index
+        inx
 
 ; Handle 0 as a special case.
 ; The number is 0 if the significand is zero regardless of exponent.
@@ -488,13 +452,15 @@ fp_to_string:
         mva     #0, E                   ; E keeps track of how much we have scaled up or down
         sta     FP0s                    ; Also set sign to positive since we already printed '-'
         lda     FP0e                    ; Test if FP0 is zero
-        bne     @maybe_scale_up
-        ldx     buffer_pos              ; Write index
+        bne     @not_zero
         lda     #'0'
         sta     buffer,x
-        inc     buffer_pos              ; Update index
+        inx
+        stx     buffer_pos              ; Update index
         rts
 
+@not_zero:
+        stx     buffer_pos              ; Update index
 @scale_up:
         lday    #fp_ten
         jsr     fmul                    ; Multiply FP0 by 10
@@ -513,7 +479,6 @@ fp_to_string:
         jsr     fcmp                    ; Carry set (borrow clear) means FP0 >= FP1 so we have to scale down
         bcs     @scale_down
         jsr     truncate_fp_to_int32    ; Make into a 32-bit integer
-        mva     #0, D                   ; D is the number of generated digits
         jsr     generate_digits
 
 ; There are D generated digits.
@@ -548,9 +513,7 @@ fp_to_string:
         jsr     output_y_zeros          ; Output (possibly zero) leading zeros
         ldy     D
         jsr     output_y_digits
-@done:
-        stx     buffer_pos
-        rts
+        jmp     @done
 
 @initial_zero:
         eor     #$FF                    ; A is E - D but we need D - E so negate
@@ -561,24 +524,10 @@ fp_to_string:
         inx
         jmp     @decimal
 
-@digits_before_decimal:
-        eor     #$FF                    ; A is E - D but we need D - E so negate
-        tay
-        iny                             ; +1 to complete negation
-        jsr     output_y_digits
-        mva     E, D                    ; E is the number of digits remaining after decimal point
-        ldy     #0                      ; Number of zeros after decimal point
-        jmp     @decimal
-
 @whole:
         adc     D                       ; Add in D
         cmp     #10                     ; Check if more than 9 digits
-        bcs     @scientific             ; More than 9 digits; print in scientific notation
-        ldy     D                       ; Output D digits
-        jsr     output_y_digits
-        ldy     E                       ; Followed by E zeros
-        jsr     output_y_zeros
-        jmp     @done
+        bcc     @output_d_and_e         ; Less than 10 digits; print integer with trailing zeros
 
 @scientific:
         ldy     #1                      ; Print 1 digit before the decimal point
@@ -616,16 +565,18 @@ fp_to_string:
         mva     #0, FP0t+1
         sta     FP0t+2
         sta     FP0t+3
-        sta     D                       ; Reset number of digits and scaling factor
-        sta     E
+        sta     E                       ; Reset scaling factor
         stx     buffer_pos              ; generate_digits will clobber X so save it
         jsr     generate_digits
         ldx     buffer_pos              ; Recover X
+@output_d_and_e:
         ldy     D
         jsr     output_y_digits
         ldy     E
         jsr     output_y_zeros
-        jmp     @done        
+@done:
+        stx     buffer_pos
+        rts        
 
 ; Generate digits. Repeatedly divide FP0 by 10, generate remainder in A.
 ; Will always generate at least one digit, which cannot be zero because we
@@ -633,11 +584,24 @@ fp_to_string:
 ; Ignore any initial zeros and increment E instead.
 
 generate_digits:
+        mva     #0, D                   ; D is the number of generated digits
         plstaa  BC                      ; Save return address
 @next_digit:
         jsr     fp0_significand_is_zero ; Check if FP0 significand zero; this will never be true the first time
         beq     @no_more_digits         ; If zero then done generating digits; go to output
-        jsr     div10_significand       ; The remainder in FPX is the digit
+        mva     #0, FPX                 ; Divide FP0t by 10; initialize remainder to 0
+        ldx     #32                     ; 32 bits
+@div_next_bit:
+        jsr     shift_left              ; LSB of FP0 significand is now 0
+        lda     FPX                     ; Bits from significand move into FPX
+        sec
+        sbc     #10                     ; C ("don't borrow") set if FPX>=10
+        bcc     @div_not_10             ; It's <10
+        inc     FP0t                    ; Increment quotient
+        sta     FPX                     ; Write updated value back
+@div_not_10:
+        dex
+        bne     @div_next_bit           ; More bits to shift
         lda     FPX
         ora     D                       ; Or with number of digits; tests if both are zero
         beq     @skip_zero              ; If so then skip this zero
@@ -660,7 +624,6 @@ generate_digits:
 ; The digits are on the stack, behind the JSR return address, so we pop the return address off, stash it in BC, 
 ; and then restore it before returning.
 ; X = the current buffer position (updated)
-; BC SAFE
 
 output_y_digits:
         plstaa  BC                      ; Save return address in BC
@@ -697,6 +660,13 @@ output_y_zeros:
 ; The caller should skip whitespace (if necessary) before calling this function.
 ; AX = the buffer address (stored in read_ptr)
 ; Y = the starting offset
+; Converts a decimal string into a floating-point number.
+; We ignore EOT on input characters. Termination relies on encountering the first
+; character that is not a valid number continuation (not a digit, '.', or 'E').
+; Because token values that can legally follow a numeric literal (delimiters,
+; operators) never overlap with ASCII digits ($30-$39), decimal point ($2E), or 'E' ($45),
+; numbers in the token stream terminate unambiguously without needing explicit EOT checks.
+;
 ; Returns the number in FP0 and the last read position in Y, carry clear if ok, carry set if error.
 
 string_to_fp_x = fp_scratch
@@ -706,179 +676,143 @@ string_to_fp:
 string_to_fp_2:
         jsr     skip_whitespace         ; Skip any whitespace        
         sty     E                       ; Save starting position in E
-        jsr     clear_fp0               ; Reset to zero (including sign)
-        sta     FPX                     ; Also clear FPX in order to detect overflows
         mva     #$80, D                 ; D counts digits after '.'; starts at -128 and jumps to 0 on '.'
+        jsr     parse_signed_digits     ; Phase 1: Pre-decimal digits
         lda     (read_ptr),y
-        cmp     #'-'                    ; Check if it's negative; note that '-' will never have EOT set
-        bne     @not_negative
-        ror     FP0s                    ; If equal then carry will have been set; roll into sign
-@next_character:
-        iny                             ; Skip past negative sign
-@not_negative:
-        lda     (read_ptr),y            ; Get the next character
+        and     #<~EOT
         cmp     #'.'                    ; Is it the decimal point?
-        bne     @not_decimal_point      ; No
-        lda     D                       ; Check if we've already seen a decimal
-        bpl     @err_multiple_decimals
+        bne     @check_e
         mva     #0, D                   ; Set D to 0 to count digits after '.'
-        beq     @check_eot              ; Unconditional
-
-@not_decimal_point:
-        cmp     #'E'                    ; Is it 'E'?
-        bne     @not_e
-        jmp     @parse_e
-@not_e:
-        jsr     char_to_digit           ; Try to make it into a digit
-        bcs     @not_digit              ; Character was not a digit, '.', or 'E'
-        
-; Multiply FP0 by 10 and add in new digit.
-
-        pha                             ; Park digit on stack
-        jsr     mul10_significand
-        pla                             ; Recover digit from stack (does not affect carry)
-        inc     D                       ; Increment digits after '.'
-        adc     FP0t                    ; Add digit to LSB (carry will be clear)
-        sta     FP0t
-        bcc     @check_overflow         ; If no carry then next character
-        inc     FP0t+1                  ; Otherwise increment next byte
-        bne     @check_overflow         ; etc,
-        inc     FP0t+2
-        bne     @check_overflow
-        inc     FP0t+3
-        bne     @check_overflow
-        inc     FPX
-
-@check_overflow:
-        lda     FPX                     ; If there's anything in FPX then we overflowed
-        beq     @check_eot
-
-@err_multiple_decimals:
-@err_overflow:
-@err_not_digit:
-        ldy     E                       ; Reset position to start for return
-        sec                             ; Signal error
-        rts
-
-@check_eot:
-        lda     (read_ptr),y            ; Reload the original character
-        bpl     @next_character         ; If EOT not set then carry on
-        iny                             ; EOT was set to increment past this character
-
-@not_digit:
-        lda     D                       ; Has D changed at all?
-        cmp     #$80                    
-        beq     @err_not_digit          ; No, so this is an error: we wanted a number and didn't find one
-
-; There was at least one digit character followed by a non-digit character that isn't E, so treat this as
-; the end of the number. The number is now a 32-bit integer in FP0, so convert it into FP.
-
-        sty     E                       ; Y points to the first non-digit; save in E
-        lda     D                       ; Load D to test its sign
-        bpl     @calc_fp
-        mva     #0, D                   ; Clear D if negative so we don't do unwanted scaling
-@calc_fp:
+        iny                             ; Consume '.'
+        jsr     parse_digits            ; Phase 2: Post-decimal digits
+@check_e:
+        lda     D
+        bpl     @has_dot                ; D >= 0 means decimal point was seen
+        cmp     #$80
+        beq     @err                    ; If D is still $80, no digits were parsed
+        mva     #0, D                   ; D = 0 if no decimal point seen
+@has_dot:
+        sty     E                       ; Save text position Y in E
         jsr     int32_to_fp
         lday    #string_to_fp_x
-        jsr     store_fp0               ; Save FP0 in scratch so we can get it back later
+        jsr     store_fp0               ; Save mantissa in scratch
+        ldy     E                       ; Restore text position Y
+        lda     (read_ptr),y
+        and     #<~EOT
+        cmp     #'E'                    ; Is it 'E'?
+        bne     @do_scale               ; No 'E', go directly to scaling
+        iny                             ; Skip 'E'
+        lda     D
+        pha                             ; Save decimal count on stack
+        jsr     parse_signed_digits     ; Phase 3: Exponent digits
+        sty     E                       ; Save Y at end of exponent
+        pla                             ; Pop mantissa D
+        bit     FP0s                    ; Was exponent negative?
+        bpl     @exp_pos
+        clc
+        adc     FP0t
+        bcc     @exp_done               ; Unconditional (sum < 256)
+
+@exp_pos:
+        sec
+        sbc     FP0t
+@exp_done:
+        sta     D
+@do_scale:
         lda     D                       ; Test number of digits
-        beq     @whole                  ; If zero then no scaling
-        bmi     @multiply
-        
+        bne     @scale_needed
+        lday    #string_to_fp_x
+        jsr     load_fp0
+        jmp     @whole
+
+@scale_needed:
+        pha                             ; Save signed D on stack
+        bpl     @d_pos                  ; If positive, D is already the count
+        eor     #$FF                    ; Negate A
+        sec
+        adc     #0
+        sta     D                       ; D = -D
+@d_pos:
         jsr     load_ten_fp0            ; Set FP0 to 10
-@scale_divisor:
+@scale_loop:
         dec     D                       ; Decrement number of digits after decimal
-        beq     @scale_div
+        beq     @scale_apply
         lday    #fp_ten
         jsr     fmul                    ; Multiply FP0 by 10
-        jmp     @scale_divisor          ; Do it again until E is 0
-@scale_div:
-        jsr     copy_fp0_fp1            ; Move divisor into FP1
+        jmp     @scale_loop
+
+@scale_apply:
+        jsr     copy_fp0_fp1            ; Move scale factor into FP1
         lday    #string_to_fp_x
         jsr     load_fp0                ; Reload result saved earlier
+        pla                             ; Retrieve original signed D
+        bmi     @multiply               ; If negative, multiply
         jsr     fdiv_2                  ; Divide
+        jmp     @whole
 
+@multiply:
+        jsr     fmul_2                  ; Multiply by FP1
 @whole:
         ldy     E                       ; Return buffer read position in Y
         clc                             ; Signal success
         rts
 
-@multiply:
-        jsr     load_ten_fp0            ; Set FP0 to 10
-@scale_multiplier:
-        inc     D                       ; Increment number of digits after decimal
-        beq     @scale_mul
-        lday    #fp_ten
-        jsr     fmul                    ; Multiply FP0 by 10
-        jmp     @scale_multiplier       ; Do it again until E is 0
-@scale_mul:
-        jsr     copy_fp0_fp1            ; Move multiplier into FP1
-        lday    #string_to_fp_x
-        jsr     load_fp0                ; Reload result saved earlier
-        jsr     fmul_2                  ; Multiply by FP1
-        jmp     @whole
+@err:
+        ldy     E                       ; Reset position to start for return
+        sec                             ; Signal error
+        rts
 
-@parse_e:
-        lda     D                       ; Check if we had any digits
-        cmp     #$80
-        bne     @e_start
-        jmp     @err_not_digit
-@e_start:
-        mva     #0, C                   ; C = exponent accumulator
-        iny                             ; Skip 'E'
+; Clears FP0 and FPX, parses an optional sign ('+' or '-'), setting bit 7 of FP0s if negative,
+; then falls through to parse_digits.
+
+parse_signed_digits:
+        jsr     clear_fp0               ; Reset FP0 to zero (including sign); returns A = 0
+        sta     FPX                     ; Clear FPX for overflow detection
         lda     (read_ptr),y
-        cmp     #'-'
-        php                             ; Save Z flag (if '-', Z is set)
-        beq     @e_sign
+        cmp     #'-'                    ; Check if negative
+        beq     @negative
         cmp     #'+'
-        bne     @e_digit
-@e_sign:
-        iny                             ; Skip sign
-@e_digit:
-        lda     (read_ptr),y
-        jsr     char_to_digit
-        bcs     @e_done
-        pha
-        lda     C
-        asl     A
-        sta     C
-        asl     A
-        asl     A
-        adc     C       
-        sta     C
-        pla
-        clc
-        adc     C
-        sta     C
-        iny
-        bne     @e_digit                ; Loop
-@e_done:
-        plp                             ; Restore sign flag
-        bne     @apply_e                ; If not '-', Z=0, branch taken
-        lda     C
-        eor     #$FF
-        clc
-        adc     #1
-        sta     C
-@apply_e:
-        sty     E                       ; Save Y in E
-        lda     D
-        bpl     @e_d_pos
-        lda     #0
-@e_d_pos:
-        sec
-        sbc     C
-        sta     D
-        jmp     @calc_fp
+        bne     parse_digits            ; Not a sign, parse digits
+        iny                             ; Consume '+'
+        bne     parse_digits            ; Unconditional
 
-; Converts the character in A into a digit.
-; Returns the digit in A, carry clear if ok, carry set if error.
-; X SAFE, Y SAFE, BC SAFE, DE SAFE
+@negative:
+        ror     FP0s                    ; Roll carry into sign (sets bit 7)
+        iny                             ; Consume '-'
 
-char_to_digit:
+; Consumes contiguous digits and accumulates into 32-bit FP0t.
+; Increments D for each digit. Returns with Y at the first non-digit.
+
+parse_digits:
+        lda     (read_ptr),y            ; Load next character
+        and     #<~EOT                  ; Mask out EOT if it's set
         sec                             ; Set carry
         sbc     #'0'                    ; Subtract '0'; maps valid values to range 0-9 and other values to 10-255
         cmp     #10                     ; Sets carry if it's in the 10-255 range
+        bcs     @done                   ; Not a digit, return
+        pha                             ; Save digit
+        ldx     #FP1t                   ; Multiply FP0t by 10
+        jsr     copy_significand_fp0_fp
+        jsr     shift_left              ; *2
+        jsr     rotate_left             ; *4
+        jsr     add_significands        ; *5
+        jsr     rotate_left             ; *10
+        pla                             ; Recover digit
+        inc     D                       ; Increment digit count
+        adc     FP0t                    ; Add digit to FP0t
+        sta     FP0t
+        bcc     @check_overflow
+        inc     FP0t+1
+        bne     @check_overflow
+        inc     FP0t+2
+        bne     @check_overflow
+        inc     FP0t+3
+        bne     @check_overflow
+        inc     FPX
+@check_overflow:
+        iny                             ; Advance to next character
+        bne     parse_digits            ; Loop
+@done:
         rts
 
 ; Adjusts the 16-bit signed biased exponent of FP0 (zero-extended from FP0e to C) by first adding the value in A
@@ -978,8 +912,6 @@ normalize:
         bcc     @out_of_range           ; If subtracting required a borrow then underflow
         beq     @out_of_range           ; Going to zero is also a fail
         sta     FP0e                    ; Otherwise update exponent
-        lda     FP0t+3
-        sta     FPX
         lda     FP0t+2
         sta     FP0t+3                  ; Store new high byte
         lda     FP0t+1                  ; Shift other bytes
@@ -1045,9 +977,8 @@ fadd_2:
 @shift_fp1:
         cmp     #<(-39)
         bcc     @finish                 ; FP0 is much larger, addition has no effect, return FP0
-        eor     #$FF                    ; Negate exponent diff
-        clc
-        adc     #1
+        eor     #$FF                    ; Negate exponent diff (Carry is 1: ~A + 0 + 1 = -A)
+        adc     #0
         ldx     #(FP1 - FP0)
         jsr     shift_right             ; FP1 exponent is less; shift FP1 right
         lda     FP0e
@@ -1127,7 +1058,7 @@ fpoly_2:
         bcc     @skip_inc
         inc     src_ptr+1
 @skip_inc:
-        lday    src_ptr                 ; Add the next coefficient
+        ldy     src_ptr+1               ; Add next coefficient (A already holds src_ptr low byte)
         jsr     fadd
         jmp     @next
         
@@ -1567,20 +1498,13 @@ fsin:
         jsr     load_fp1
         dec     FP1e
         jsr     fcmp_2                  ; Compare |remainder| with pi/2
-        bcc     @no_fold                ; If |remainder| < pi/2, don't fold
-@fold:
         pla
-        sta     FP0s                    ; Restore original sign
+        sta     FP0s                    ; Restore original sign (Carry flag preserved)
+        bcc     @apply_poly             ; If |remainder| < pi/2, don't fold
         inc     FP1e                    ; FP1 is now pi
-        lda     FP0s
-        sta     FP1s                    ; FP1 is now sign(x') * pi
+        sta     FP1s                    ; FP1 is now sign(x') * pi (A still contains FP0s)
         jsr     fneg                    ; FP0 = -remainder
         jsr     fadd_2                  ; FP0 = sign(x') * pi - remainder
-        jmp     @apply_poly
-
-@no_fold:
-        pla
-        sta     FP0s                    ; Restore original sign
 
 @apply_poly:
         ldax    #fp_sin_coefficients    ; Apply Chebyshev series

@@ -22,48 +22,46 @@ void test_list_statement(void) {
     // The test cases here should mirror the ones in parser_test.c.
     // The next statement offset bytes are 0 because list_statement doesn't use them (it always lists everything).
 
-    const char simple_line_data_1[] = { 0, ST_RUN, 0 };
-    const char number_line_data_1[] = { 0, ST_PRINT, '1', 0 };
-    const char number_line_data_2[] = { 0, ST_PRINT, '2', '5', 0 };
-    const char number_line_data_3[] = { 0, ST_PRINT, '3', '.', '1', '4', '1', '5', '9', 0 };
-    const char number_line_data_4[] = { 0, ST_PRINT, '1', '0', '.', 0 };
-    const char number_line_data_5[] = { 0, ST_PRINT, '.', '1', '2', '5', 0 };
-    const char string_line_data_1[] = { 0, ST_PRINT, '"', 'H', 'E', 'L', 'L', 'O', '"', 0 };
-    const char string_line_data_2[] = { 0, ST_PRINT, '"', 'B', 'U', 'G', ' ', 'O', 'R', ' ', '"', '"', 
-        'F', 'E', 'A', 'T', 'U', 'R', 'E', '?', '"', '"', '"', 0 };
-    const char string_line_data_3[] = { 0, ST_PRINT, '"', 'l', 'o', 'w', 'e', 'r', 'c', 'a', 's', 'e', '"', 0 };
-    const char variable_line_data_1[] = { 0, ST_PRINT, 'I', 'D', 'X', '_', '2' | EOT, 0 };
-    const char variable_line_data_2[] = { 0, ST_PRINT, 'A', '$' | EOT, 0 };
-    const char variable_line_data_3[] = { 0, ST_PRINT, 'X' | EOT, '(', '5', ')', 0 };
-    const char variable_line_data_4[] = { 0, ST_PRINT, 'X', 'Y', 'Z', 'Z', 'Y', '$' | EOT, '(', '1', ',', '1', '0', ')', 0 };
-    const char function_line_data_1[] = { 0, ST_PRINT, TOKEN_FUNCTION, 0, '(', '"', 'H', 'E', 'L', 'L', 'O', '"', ')', 0 };
-    const char function_line_data_2[] = { 0, ST_PRINT, TOKEN_FUNCTION, 6, '(', '"', 'H', 'E', 'L', 'L', 'O', '"', ',', '2', ',', '3', ')', 0 };
-    const char function_line_data_3[] = { 0, ST_PRINT, TOKEN_FUNCTION, TOKEN_EXTENSION | 0, '(', '0', ')', 0 };
-    const char expression_line_data_1[] = { 0, ST_PRINT, '1', TOKEN_OP | OP_ADD, '1', TOKEN_OP | OP_ADD, '1', 0 };
-    const char expression_line_data_2[] = { 0, ST_PRINT, '1', TOKEN_OP | OP_ADD, '(', '1', TOKEN_OP | OP_ADD, '1', ')', 0 };
-    const char expression_line_data_3[] = { 0, ST_PRINT, '3', '1', '4', '.', '1', '5', TOKEN_OP | OP_DIV, '1', '0', TOKEN_OP | OP_POW, '2', TOKEN_OP | OP_MUL, 'X', 0 };
-    const char expression_line_data_4[] = { 0, ST_PRINT, '"', 'H', 'E', 'L', 'L', 'O', '"', TOKEN_OP | OP_CONCAT, '"', ',', ' ', 'W', 'O', 'R', 'L', 'D', '"', 0 };
-    const char print_line_data_1[] = { 0, ST_PRINT, 'X' | EOT, ',', 'Y' | EOT, ';', 'Z' | EOT, 0 };
-    const char print_line_data_2[] = { 0, ST_ALT_PRINT, 'X' | EOT, ',', 'Y' | EOT, ';', 'Z' | EOT, 0 };
-    const char for_line_data_1[] = { 0, ST_FOR, 'X' | EOT, '=', '1', TOKEN_CLAUSE | CLAUSE_TO, '5', 0 };
-    const char for_line_data_2[] = { 0, ST_FOR, 'X' | EOT, '=', '1', TOKEN_CLAUSE | CLAUSE_TO, '2', '0', TOKEN_CLAUSE | CLAUSE_STEP, '2', 0 };
-    const char let_line_data_1[] = { 0, ST_LET, 'X' | EOT, '=', '1', '0', '0', 0 };
-    const char let_line_data_2[] = { 0, ST_IMPL_LET, 'X' | EOT, '=', '1', '0', '0', 0 };
-    const char if_line_data_1[] = { 0, ST_IF_THEN, 'X' | EOT, TOKEN_OP | OP_EQ, '1', TOKEN_CLAUSE | CLAUSE_THEN, ST_GOTO, '1', '0', 0 };
-    const char if_line_data_2[] = { 0, ST_IF_THEN, 'X' | EOT, TOKEN_OP | OP_EQ, '1', TOKEN_CLAUSE | CLAUSE_THEN, ST_IMPL_GOTO, '1', '0', 0 };
-    const char if_line_data_3[] = { 0, ST_IF_THEN, 'X' | EOT, TOKEN_OP | OP_EQ, '1', TOKEN_CLAUSE | CLAUSE_THEN, ST_LET, 'X' | EOT, '=', 'X' | EOT, TOKEN_OP | OP_ADD, '1', 0 };
-    const char if_line_data_4[] = { 0, ST_IF_THEN, 'X' | EOT, TOKEN_OP | OP_EQ, '1', TOKEN_CLAUSE | CLAUSE_THEN, ST_IMPL_LET, 'X' | EOT, '=', 'X' | EOT, TOKEN_OP | OP_ADD, '1', 0 };
-    const char input_line_data_1[] = { 0, ST_INPUT, 'A' | EOT, 0 };
-    const char input_line_data_2[] = { 0, ST_INPUT, 'A' | EOT, ',', 'B' | EOT, ',', 'C' | EOT, 0 };
-    const char on_line_data_1[] = { 0, ST_ON, '1', TOKEN_CLAUSE | CLAUSE_GOTO, '1', '0', 0 };
-    const char on_line_data_2[] = { 0, ST_ON, '1', TOKEN_CLAUSE | CLAUSE_GOSUB, '1', '0', 0 };
-    const char on_line_data_3[] = { 0, ST_ON, 'X' | EOT, TOKEN_CLAUSE | CLAUSE_GOSUB, '1', '0', ',', '2', '0', ',', '3', '0', 0 };
-    const char next_line_data_1[] = { 0, ST_NEXT, 'X' | EOT, 0 };
-    const char list_line_data_1[] = { 0, ST_LIST, 0 };
-    const char list_line_data_2[] = { 0, ST_LIST, '1', '0', '0', 0 };
-    const char list_line_data_3[] = { 0, ST_LIST, '1', '0', '0', ',', '5', '0', '0', 0 };
-    const char data_line_data_1[] = { 0, ST_DATA, 'H', 'E', 'L', 'L', 'O', ',', '\"', 'X', ',', 'Y', '\"', ',', '5', 0 };
-    const char extension_line_data_1[] = { 0, TOKEN_EXTENSION | 0, 0 };
+    const char simple_line_data_1[] = { 0, TOK_RUN, 0 };
+    const char number_line_data_1[] = { 0, TOK_PRINT, TOK_NUM, '1' | EOT, 0 };
+    const char number_line_data_2[] = { 0, TOK_PRINT, TOK_NUM, '2', '5' | EOT, 0 };
+    const char number_line_data_3[] = { 0, TOK_PRINT, TOK_NUM, '3', '.', '1', '4', '1', '5', '9' | EOT, 0 };
+    const char number_line_data_4[] = { 0, TOK_PRINT, TOK_NUM, '1', '0', '.' | EOT, 0 };
+    const char number_line_data_5[] = { 0, TOK_PRINT, TOK_NUM, '.', '1', '2', '5' | EOT, 0 };
+    const char string_line_data_1[] = { 0, TOK_PRINT, TOK_STRING, 5, 'H', 'E', 'L', 'L', 'O', '"' | EOT, 0 };
+    const char string_line_data_2[] = { 0, TOK_PRINT, TOK_STRING, 9, 'l', 'o', 'w', 'e', 'r', 'c', 'a', 's', 'e', '"' | EOT, 0 };
+    const char variable_line_data_1[] = { 0, TOK_PRINT, TOK_NAME, 'I', 'D', 'X', '_', '2' | EOT, 0 };
+    const char variable_line_data_2[] = { 0, TOK_PRINT, TOK_NAME, 'A', '$' | EOT, 0 };
+    const char variable_line_data_3[] = { 0, TOK_PRINT, TOK_NAME, 'X' | EOT, TOK_LPAREN, TOK_NUM, '5' | EOT, TOK_RPAREN, 0 };
+    const char variable_line_data_4[] = { 0, TOK_PRINT, TOK_NAME, 'X', 'Y', 'Z', 'Z', 'Y', '$' | EOT, TOK_LPAREN, TOK_NUM, '1' | EOT, TOK_COMMA, TOK_NUM, '1', '0' | EOT, TOK_RPAREN, 0 };
+    const char function_line_data_1[] = { 0, TOK_PRINT, TOK_LEN, TOK_LPAREN, TOK_STRING, 5, 'H', 'E', 'L', 'L', 'O', '"' | EOT, TOK_RPAREN, 0 };
+    const char function_line_data_2[] = { 0, TOK_PRINT, TOK_MID_S, TOK_LPAREN, TOK_STRING, 5, 'H', 'E', 'L', 'L', 'O', '"' | EOT, TOK_COMMA, TOK_NUM, '2' | EOT, TOK_COMMA, TOK_NUM, '3' | EOT, TOK_RPAREN, 0 };
+    const char function_line_data_3[] = { 0, TOK_PRINT, TOK_VER_S, TOK_LPAREN, TOK_NUM, '0' | EOT, TOK_RPAREN, 0 };
+    const char expression_line_data_1[] = { 0, TOK_PRINT, TOK_NUM, '1' | EOT, TOK_ADD, TOK_NUM, '1' | EOT, TOK_ADD, TOK_NUM, '1' | EOT, 0 };
+    const char expression_line_data_2[] = { 0, TOK_PRINT, TOK_NUM, '1' | EOT, TOK_ADD, TOK_LPAREN, TOK_NUM, '1' | EOT, TOK_ADD, TOK_NUM, '1' | EOT, TOK_RPAREN, 0 };
+    const char expression_line_data_3[] = { 0, TOK_PRINT, TOK_NUM, '3', '1', '4', '.', '1', '5' | EOT, TOK_DIV, TOK_NUM, '1', '0' | EOT, TOK_POW, TOK_NUM, '2' | EOT, TOK_MUL, TOK_NAME, 'X' | EOT, 0 };
+    const char expression_line_data_4[] = { 0, TOK_PRINT, TOK_STRING, 5, 'H', 'E', 'L', 'L', 'O', '"' | EOT, TOK_CONCAT, TOK_STRING, 7, ',', ' ', 'W', 'O', 'R', 'L', 'D', '"' | EOT, 0 };
+    const char print_line_data_1[] = { 0, TOK_PRINT, TOK_NAME, 'X' | EOT, TOK_COMMA, TOK_NAME, 'Y' | EOT, TOK_SEMI, TOK_NAME, 'Z' | EOT, 0 };
+    const char print_line_data_2[] = { 0, TOK_ALT_PRINT, TOK_NAME, 'X' | EOT, TOK_COMMA, TOK_NAME, 'Y' | EOT, TOK_SEMI, TOK_NAME, 'Z' | EOT, 0 };
+    const char for_line_data_1[] = { 0, TOK_FOR, TOK_NAME, 'X' | EOT, TOK_EQ, TOK_NUM, '1' | EOT, TOK_TO, TOK_NUM, '5' | EOT, 0 };
+    const char for_line_data_2[] = { 0, TOK_FOR, TOK_NAME, 'X' | EOT, TOK_EQ, TOK_NUM, '1' | EOT, TOK_TO, TOK_NUM, '2', '0' | EOT, TOK_STEP, TOK_NUM, '2' | EOT, 0 };
+    const char let_line_data_1[] = { 0, TOK_LET, TOK_NAME, 'X' | EOT, TOK_EQ, TOK_NUM, '1', '0', '0' | EOT, 0 };
+    const char let_line_data_2[] = { 0, TOK_NAME, 'X' | EOT, TOK_EQ, TOK_NUM, '1', '0', '0' | EOT, 0 };
+    const char if_line_data_1[] = { 0, TOK_IF, TOK_NAME, 'X' | EOT, TOK_EQ, TOK_NUM, '1' | EOT, TOK_THEN, TOK_GOTO, TOK_NUM, '1', '0' | EOT, 0 };
+    const char if_line_data_2[] = { 0, TOK_IF, TOK_NAME, 'X' | EOT, TOK_EQ, TOK_NUM, '1' | EOT, TOK_THEN, TOK_NUM, '1', '0' | EOT, 0 };
+    const char if_line_data_3[] = { 0, TOK_IF, TOK_NAME, 'X' | EOT, TOK_EQ, TOK_NUM, '1' | EOT, TOK_THEN, TOK_LET, TOK_NAME, 'X' | EOT, TOK_EQ, TOK_NAME, 'X' | EOT, TOK_ADD, TOK_NUM, '1' | EOT, 0 };
+    const char if_line_data_4[] = { 0, TOK_IF, TOK_NAME, 'X' | EOT, TOK_EQ, TOK_NUM, '1' | EOT, TOK_THEN, TOK_NAME, 'X' | EOT, TOK_EQ, TOK_NAME, 'X' | EOT, TOK_ADD, TOK_NUM, '1' | EOT, 0 };
+    const char input_line_data_1[] = { 0, TOK_INPUT, TOK_NAME, 'A' | EOT, 0 };
+    const char input_line_data_2[] = { 0, TOK_INPUT, TOK_NAME, 'A' | EOT, TOK_COMMA, TOK_NAME, 'B' | EOT, TOK_COMMA, TOK_NAME, 'C' | EOT, 0 };
+    const char on_line_data_1[] = { 0, TOK_ON, TOK_NUM, '1' | EOT, TOK_GOTO, TOK_NUM, '1', '0' | EOT, 0 };
+    const char on_line_data_2[] = { 0, TOK_ON, TOK_NUM, '1' | EOT, TOK_GOSUB, TOK_NUM, '1', '0' | EOT, 0 };
+    const char on_line_data_3[] = { 0, TOK_ON, TOK_NAME, 'X' | EOT, TOK_GOSUB, TOK_NUM, '1', '0' | EOT, TOK_COMMA, TOK_NUM, '2', '0' | EOT, TOK_COMMA, TOK_NUM, '3', '0' | EOT, 0 };
+    const char next_line_data_1[] = { 0, TOK_NEXT, TOK_NAME, 'X' | EOT, 0 };
+    const char list_line_data_1[] = { 0, TOK_LIST, 0 };
+    const char list_line_data_2[] = { 0, TOK_LIST, TOK_NUM, '1', '0', '0' | EOT, 0 };
+    const char list_line_data_3[] = { 0, TOK_LIST, TOK_NUM, '1', '0', '0' | EOT, TOK_COMMA, TOK_NUM, '5', '0', '0' | EOT, 0 };
+    const char data_line_data_1[] = { 0, TOK_DATA, 'H', 'E', 'L', 'L', 'O', ',', '\"', 'X', ',', 'Y', '\"', ',', '5', 0 };
+    const char extension_line_data_1[] = { 0, TOK_BYE, 0 };
 
     PRINT_TEST_NAME();
 
@@ -76,8 +74,7 @@ void test_list_statement(void) {
     call_list_statement(number_line_data_4, sizeof number_line_data_4, "PRINT 10.", __LINE__);
     call_list_statement(number_line_data_5, sizeof number_line_data_5, "PRINT .125", __LINE__);
     call_list_statement(string_line_data_1, sizeof string_line_data_1, "PRINT \"HELLO\"", __LINE__);
-    call_list_statement(string_line_data_2, sizeof string_line_data_2, "PRINT \"BUG OR \"\"FEATURE?\"\"\"", __LINE__);
-    call_list_statement(string_line_data_3, sizeof string_line_data_3, "PRINT \"lowercase\"", __LINE__);
+    call_list_statement(string_line_data_2, sizeof string_line_data_2, "PRINT \"lowercase\"", __LINE__);
     call_list_statement(variable_line_data_1, sizeof variable_line_data_1, "PRINT IDX_2", __LINE__);
     call_list_statement(variable_line_data_2, sizeof variable_line_data_2, "PRINT A$", __LINE__);
     call_list_statement(variable_line_data_3, sizeof variable_line_data_3, "PRINT X(5)", __LINE__);
@@ -123,11 +120,11 @@ void call_list_line(const Line* test_line, const char* expect_buffer, int line) 
 
 void test_list_line(void) {
 
-    const Line print_line_1 = { 11, 10, { 9, ST_PRINT, 'X' | EOT, ',', 'Y' | EOT, ';', 'Z' | EOT, 0 } };
-    const Line print_line_2 = { 11, 10, { 9, ST_ALT_PRINT, 'X' | EOT, ',', 'Y' | EOT, ';', 'Z' | EOT, 0 } };
-    const Line multi_line_1 = { 11, 10, { 11, ST_LET, 'X' | EOT, '=', '1', '0', '0', 0 } };
-    const Line multi_line_2 = { 15, 1000, { 11, ST_LET, 'X' | EOT, '=', '1', '0', '0', 0, 15, ST_PRINT, 'X' | EOT, 0 } };
-    const Line multi_line_3 = { 10, 32767, { 7, ST_PRINT, '1', 0, 10, ST_END, 0 } };
+    const Line print_line_1 = { 14, 10, { 14, TOK_PRINT, TOK_NAME, 'X' | EOT, TOK_COMMA, TOK_NAME, 'Y' | EOT, TOK_SEMI, TOK_NAME, 'Z' | EOT, 0 } };
+    const Line print_line_2 = { 14, 10, { 14, TOK_ALT_PRINT, TOK_NAME, 'X' | EOT, TOK_COMMA, TOK_NAME, 'Y' | EOT, TOK_SEMI, TOK_NAME, 'Z' | EOT, 0 } };
+    const Line multi_line_1 = { 13, 10, { 13, TOK_LET, TOK_NAME, 'X' | EOT, TOK_EQ, TOK_NUM, '1', '0', '0' | EOT, 0 } };
+    const Line multi_line_2 = { 18, 1000, { 13, TOK_LET, TOK_NAME, 'X' | EOT, TOK_EQ, TOK_NUM, '1', '0', '0' | EOT, 0, 18, TOK_PRINT, TOK_NAME, 'X' | EOT, 0 } };
+    const Line multi_line_3 = { 11, 32767, { 8, TOK_PRINT, TOK_NUM, '1' | EOT, 0, 11, TOK_END, 0 } };
 
     PRINT_TEST_NAME();
 

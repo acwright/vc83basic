@@ -96,9 +96,6 @@ byte(line_pos)
 comment The next value of line_pos (analogous to next_line_ptr)
 byte(next_line_pos)
 
-comment Position of current statement
-byte(statement_line_pos)
-
 comment DECODE_NAME_STATE is the set of zero page fields that describe a name decoded from a program line
 block(DECODE_NAME_STATE, 5)
 

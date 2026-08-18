@@ -15,6 +15,9 @@
 
 #include "../src/constants.h"
 
+#define TOK_BYE   0x5A
+#define TOK_VER_S 0x98
+
 // Types
 // These are not the actual types used by the interpeter! They are C structs that mirror the structures used in
 // the assembly language code in order to make unit testing easier.
@@ -116,7 +119,6 @@ void round(void);
 void floor(void);
 void fp_to_string(void);
 void string_to_fp(/* AX */ const char* ptr, /* Y */ char pos);
-char char_to_digit(/* A */ char c);
 void adjust_exponent(/* A */ char add, /* Y */ char subtract);
 void normalize(void);
 void fadd(/* AY */ const Float* value);
@@ -177,7 +179,6 @@ void compact(void);
 void copy(/* AX */ size_t size);
 void reverse_copy(/* AX */ size_t size);
 void clear_memory(/* AX */ void* ptr, /* Y */ char size);
-int invoke_indexed_vector(/* Y */ char index);
 void read_argument_separator(char pos);
 void skip_whitespace(char pos);
 
