@@ -505,7 +505,13 @@ works when the "swallowed" instruction is exactly 2 bytes long, and the BIT inst
 cause harmful side effects (e.g., reading a hardware register at the swallowed address).
 
 > **Caution:** This trick is clever but obscure. Comment it clearly. It can cause confusion during
-> debugging and may trigger warnings in some assemblers or analysis tools.
+> debugging and may trigger warnings in some assemblers or analysis tools. More importantly, the
+> `BIT` instruction performs a real read from the address formed by the two swallowed bytes. On
+> some platforms, reading certain addresses has side effects (e.g., clearing a UART receive
+> register, triggering a bank switch, or acknowledging an interrupt). **Only use this trick in
+> platform-specific code** where you can verify that the swallowed bytes don't form an address
+> that maps to a hardware register with read side effects. Do not use it in cross-platform core
+> code.
 
 ---
 
