@@ -68,22 +68,23 @@ The `basic_apple1` binary targets the original Apple 1 and compatible hardware i
 and most Apple 1 emulators. All of these use the original Apple 1 PIA I/O at `$D010–$D013`. The binary
 loads at `$4000`.
 
-1.  Build the binary:
+1.  Build the binary and WozMon text file:
     ```bash
-    make build/basic_apple1
+    make build/basic_apple1.txt
     ```
+    This creates `build/basic_apple1.txt` containing WozMon-formatted hex load text at address `$4000`.
 
-2.  Convert the raw binary to WozMon-formatted text using [bin2woz](https://github.com/acwright/bin2woz):
+    Alternatively, you can build `build/basic_apple1` and convert the raw binary using [bin2woz](https://github.com/acwright/bin2woz):
     ```bash
-    bin2woz -a 0x4000 build/basic_apple1 > build/basic_apple1.woz
+    bin2woz -a 0x4000 build/basic_apple1 > build/basic_apple1.txt
     ```
     Each line of the output contains a 4-digit hex address followed by up to 16 bytes, ready
     to be pasted into WozMon or sent via the APL1 Terminal's Send Program panel.
 
-3.  Load the program into your Apple 1 (or emulator) using WozMon by pasting or typing the
-    contents of `basic_apple1.woz`.
+2.  Load the program into your Apple 1 (or emulator) using WozMon by pasting the contents
+    of `build/basic_apple1.txt`.
 
-4.  Run it:
+3.  Run it:
     ```
     4000R
     ```
