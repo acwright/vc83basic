@@ -19,6 +19,13 @@ To build and test the project, you need the following tools in your `PATH`:
 *   **make**: For automating the build process.
 *   **m4**: A macro processor used to generate constants and zero-page definitions.
 *   **expect**: Used for running automated integration tests.
+*   **python**: For running the script that generates the lexer data, and other project utilities.
+
+In addition, the project requires a Python environment in `.venv`. To create, run:
+
+`python -m venv .venv`
+
+Sometimes the local Python might be called `python3` instead of `python`.
 
 ## How to Build and Test
 
