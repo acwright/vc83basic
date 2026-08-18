@@ -182,123 +182,103 @@ exec_xio:
 
 ; SAVE {name} and LOAD {name}
 
-vbas_header:
-        .byte   "VBAS"
-VBAS_HEADER_LEN = 4
-
-exec_save:
-        mva     #7, channel             ; Save uses Channel 7
+save_load_open:
+        pha                             ; Save mode
+        mva     #7, channel             ; Save/Load uses Channel 7
         jsr     evaluate_expression     ; Filename
         jsr     pop_string
         jsr     copy_s0_to_buffer_nul
-        ldy     #2                      ; Mode 2 (Write)
+        pla                             ; Mode in A
+        tay                             ; Mode in Y (1 or 2)
         ldax    #buffer
         jsr     io_open
-        bcs     @error_close
-
-        ; Write "VBAS" header
-        mva     #0, DE+1
-        mva     #VBAS_HEADER_LEN, DE
-        ldax    #vbas_header
-        jsr     io_write
-        bcs     @error_close
-
-        ; Calculate program size = variable_name_table_ptr - program_ptr
-        sec
-        lda     variable_name_table_ptr
-        sbc     program_ptr
-        sta     DE
-        lda     variable_name_table_ptr+1
-        sbc     program_ptr+1
-        sta     DE+1
-
-        ; Write program memory
-        ldax    program_ptr
-        jsr     io_write
-        bcs     @error_close
-
-        jsr     io_close
+        bcs     @open_error
         rts
 
-@error_close:
+@open_error:
+        jmp     raise_io_error
+
+save_load_close_error:
         jsr     io_close
         jmp     raise_io_error
+
+exec_save:
+        lda     #2                      ; Mode 2 (Write)
+        jsr     save_load_open
+
+        ; Calculate save length = variable_name_table_ptr - (__BSS_RUN__ + __BSS_SIZE__)
+        sec
+        lda     variable_name_table_ptr
+        sbc     #<(__BSS_RUN__ + __BSS_SIZE__)
+        sta     DE
+        lda     variable_name_table_ptr+1
+        sbc     #>(__BSS_RUN__ + __BSS_SIZE__)
+        sta     DE+1
+
+        ; Write program binary starting from "VBAS" header
+        ldax    #(__BSS_RUN__ + __BSS_SIZE__)
+        jsr     io_write
+        bcs     save_load_close_error
+
+        jmp     io_close
 
 exec_load:
         ldy     #Line::next_line_offset
         lda     (program_ptr),y
         raine   ERR_ALREADY_DIMENSIONED ; Program exists: user must do NEW first!
 
-        mva     #7, channel             ; Load uses Channel 7
-        jsr     evaluate_expression     ; Filename
-        jsr     pop_string
-        jsr     copy_s0_to_buffer_nul
-        ldy     #1                      ; Mode 1 (Read)
-        ldax    #buffer
-        jsr     io_open
-        bcs     @error_close
+        lda     #1                      ; Mode 1 (Read)
+        jsr     save_load_open
 
-        ; Read 4-byte header into buffer
-        mva     #0, DE+1
-        mva     #VBAS_HEADER_LEN, DE
-        ldax    #buffer
+        ; Calculate max size to read = himem_ptr - (__BSS_RUN__ + __BSS_SIZE__)
+        sec
+        lda     himem_ptr
+        sbc     #<(__BSS_RUN__ + __BSS_SIZE__)
+        sta     DE
+        lda     himem_ptr+1
+        sbc     #>(__BSS_RUN__ + __BSS_SIZE__)
+        sta     DE+1
+
+        ; Read single continuous block directly into memory
+        ldx     #7                      ; Channel 7
+        ldax    #(__BSS_RUN__ + __BSS_SIZE__)
         jsr     io_read
-        bcs     @error_close
-        cpx     #0
-        bne     @format_close
-        cmp     #VBAS_HEADER_LEN
-        bne     @format_close
+        bcs     save_load_close_error
+        stax    io_bytes                ; Save bytes read
 
-        ; Check "VBAS" header
+        ; Check that at least 7 bytes were read (4 bytes "VBAS" + 3 bytes null Line)
+        cpx     #0
+        bne     @check_magic
+        cmp     #4 + .sizeof(Line)
+        bcc     @format_close
+
+@check_magic:
+        ; Check 4-byte "VBAS" header in memory
         ldy     #3
-@check_hdr:
-        lda     buffer,y
+@check_loop:
+        lda     __BSS_RUN__ + __BSS_SIZE__,y
         cmp     vbas_header,y
         bne     @format_close
         dey
-        bpl     @check_hdr
+        bpl     @check_loop
 
-        ; Calculate max size = himem_ptr - program_ptr
-        sec
-        lda     himem_ptr
-        sbc     program_ptr
-        sta     DE
-        lda     himem_ptr+1
-        sbc     program_ptr+1
-        sta     DE+1
-
-        ; Read program data into program_ptr
-        ldx     #7
-        ldax    program_ptr
-        jsr     io_read
-        bcs     @error_close
-
-        ; Check that at least null line was read (.sizeof(Line) = 3)
-        cpx     #0
-        bne     @len_ok
-        cmp     #.sizeof(Line)
-        bcc     @format_close
-@len_ok:
-        ; variable_name_table_ptr = program_ptr + bytes_read (in AX)
+        ; variable_name_table_ptr = (__BSS_RUN__ + __BSS_SIZE__) + bytes_read (in io_bytes)
         clc
-        adc     program_ptr
+        lda     io_bytes
+        adc     #<(__BSS_RUN__ + __BSS_SIZE__)
         sta     variable_name_table_ptr
-        txa
-        adc     program_ptr+1
+        lda     io_bytes+1
+        adc     #>(__BSS_RUN__ + __BSS_SIZE__)
         sta     variable_name_table_ptr+1
 
         jsr     io_close
         jsr     clear_variables
-        jsr     reset_program
-        rts
+        jmp     reset_program
 
 @format_close:
         jsr     io_close
+        jsr     initialize_program      ; Clear memory back to a valid state
         raise   ERR_FORMAT_ERROR
-
-@error_close:
-        jsr     io_close
-        jmp     raise_io_error
 
 ; INKEY$() function
 

@@ -7,12 +7,22 @@
 ; Does not set next_line_ptr since the program is not running.
 ; Inserts an empty zero-length line -1 into the program space.
 
+.export vbas_header
+vbas_header:
+        .byte   "VBAS"
+
 initialize_program:
         mvax    #(__MAIN_START__ + __MAIN_SIZE__), himem_ptr
-        mvax    #(__BSS_RUN__ + __BSS_SIZE__), program_ptr  ; Set program_ptr to start of program space
-        jsr     append_null_line                            ; Build a null line at program_ptr
+        ldy     #3
+@vbas_loop:
+        lda     vbas_header,y
+        sta     __BSS_RUN__ + __BSS_SIZE__,y                    ; Store "VBAS" in memory right before program_ptr
+        dey
+        bpl     @vbas_loop
+        mvax    #(__BSS_RUN__ + __BSS_SIZE__ + 4), program_ptr  ; Set program_ptr to start of program space (leaves in AX)
+        jsr     append_null_line                                ; Build a null line at program_ptr
         jsr     reset_program
-        mvax    #(__BSS_RUN__ + __BSS_SIZE__ + .sizeof(Line)), variable_name_table_ptr
+        mvax    #(__BSS_RUN__ + __BSS_SIZE__ + 4 + .sizeof(Line)), variable_name_table_ptr
 
 ; Fall through to clear_variables
 

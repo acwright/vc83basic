@@ -31,7 +31,7 @@ display_startup_banner:
         ldax    #startup_message
         ldy     #startup_message_length
         jsr     write
-        ldax    #((__MAIN_START__ + __MAIN_SIZE__) - (__BSS_RUN__ + __BSS_SIZE__) - 5)
+        ldax    #((__MAIN_START__ + __MAIN_SIZE__) - (__BSS_RUN__ + __BSS_SIZE__ + 4) - 5)
         jsr     int_to_fp               ; Load into FP0
         lda     FP0s                    ; Check if it was negative
         bpl     @positive
