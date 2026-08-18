@@ -19,7 +19,6 @@ startup_message:  .byte "VC83 BASIC "
 .if .defined(__APPLE2__)
                 .popcharmap
 .endif
-                .byte " <> "
 startup_message_length = * - startup_message
 
 free_message:   .byte " BYTES FREE"
@@ -31,6 +30,7 @@ display_startup_banner:
         ldax    #startup_message
         ldy     #startup_message_length
         jsr     write
+        jsr     newline
         ldax    #((__MAIN_START__ + __MAIN_SIZE__) - (__BSS_RUN__ + __BSS_SIZE__) - 5)
         jsr     int_to_fp               ; Load into FP0
         lda     FP0s                    ; Check if it was negative
