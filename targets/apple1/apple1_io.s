@@ -43,7 +43,7 @@ putch:
 ; Reads a line of input from the Apple 1 keyboard via the 6820 PIA.
 ; Characters are echoed to the display as they are typed.
 ; Backspace (BS/$08) and Delete ($7F) erase the previous character.
-; Returns when CR is entered.  The line is null-terminated in buffer.
+; Returns when CR is entered. The line is null-terminated in buffer.
 ; Returns the line length in A.
 
 readline:
@@ -64,7 +64,7 @@ readline:
         bcc     @loop
         cpx     #MAX_LINE_LENGTH        ; Ignore if buffer is full
         bcs     @loop
-        sta     buffer,x               ; Store before echoing (putch clobbers A via ora #$80)
+        sta     buffer,x                ; Store before echoing (putch clobbers A via ora #$80)
         jsr     putch                   ; Echo the character
         inx
         jmp     @loop

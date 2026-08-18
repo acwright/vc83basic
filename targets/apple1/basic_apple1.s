@@ -2,10 +2,10 @@
 ;
 ; SPDX-License-Identifier: MIT
 
+.include "apple1.inc"
+.include "apple1_extension.s"
 .include "basic.s"
 .include "main.s"
-.include "apple1.inc"
 .include "apple1_startup.s"
 .include "apple1_init.s"
 .include "apple1_io.s"
-.include "apple1_extension.s"

@@ -57,6 +57,10 @@ build/basic_apple1: build/basic_apple1.o
 	cl65 -t none -C targets/apple1/apple1.cfg $(LDFLAGS) -o $@ $<
 	$(PRINT_SIZE)
 
+build/basic_apple1.txt: build/basic_apple1
+	@mkdir -p $(@D)
+	xxd -g 1 -c 16 -o 0x4000 $< | awk '{ addr = substr($$1, 5, 4); sub(/^[^:]*:[ ]*/, ""); sub(/[ ]{2,}.*$$/, ""); print toupper(addr ": " $$0); }' > $@
+
 # Goal: basic_apple2
 build/basic_apple2.o: targets/apple2/basic_apple2.s src/basic.s $(GENERATED_ASM_SOURCES)
 	@mkdir -p $(@D)
