@@ -167,10 +167,7 @@ def(ERR_FORMAT_ERROR,               hex(8F))
 def(ERR_ARITY_MISMATCH,             hex(90))
 def(ERR_SYNTAX_ERROR,               hex(91))
 def(ERR_DIVIDE_BY_ZERO,             hex(92))
-def(ERR_NOT_OPEN,                   hex(93))
-def(ERR_ALREADY_OPEN,               hex(94))
-def(ERR_IO_ERROR,                   hex(95))
-def(ERR_END_OF_FILE,                hex(96))
+def(ERR_IO_ERROR,                   hex(93))
 
 comment Parse virtual machine (PVM) constants and instruction codes
 

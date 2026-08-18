@@ -159,7 +159,7 @@ word(pvm_program_ptr, const char*)
 comment True if we're parsing or LISTing a string
 byte(string_flag)
 
-comment Active I/O channel for current statement (bit 7 set if explicit #channel specified)
+comment Active I/O channel for current statement (bit 7 set if default console channel 0)
 byte(channel)
 
 comment Number of bytes transferred in the most recent I/O operation

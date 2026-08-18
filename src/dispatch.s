@@ -13,7 +13,20 @@ dispatch_statement:
         jsr     decode_byte                     ; Get statement number
         cmp     #TOK_NAME
         beq     exec_impl_let
-        sbc     #TOK_PRINT                      ; C is set from CMP; convert token to unified index
+        pha                                     ; Save statement token
+        ldx     #$80                            ; Default channel = $80 (bit 7 set = default)
+        jsr     peek_byte
+        sec
+        sbc     #TOK_CHANNEL_0
+        cmp     #8                              ; Channel in range 0..7?
+        bcs     @not_channel                    ; If taken, C is already set!
+        inc     line_pos                        ; Consume channel token
+        tax                                     ; Channel index 0..7 into X (bit 7 clear)
+        sec                                     ; Set C for sbc when branch was not taken
+@not_channel:
+        stx     channel                         ; Store final channel (default $80 or explicit 0..7)
+        pla                                     ; Restore statement token
+        sbc     #TOK_PRINT                      ; Convert token to unified index
         bpl     dispatch                        ; Unconditional (index < 128)
 
 ; LET statement:

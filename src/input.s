@@ -7,8 +7,8 @@
 .assert TYPE_NUMBER = $00, error
 
 exec_input:
-        jsr     get_channel             ; Sets channel (bit 7 set if explicit channel)
-        bmi     @get_input              ; Skip prompt if explicit channel
+        bit     channel                 ; Bit 7 is clear if explicit channel was given
+        bpl     @get_input              ; Skip prompt if explicit channel
         jsr     peek_byte
         cmp     #TOK_STRING
         bne     @default_prompt
@@ -55,12 +55,12 @@ exec_input:
         rts
 
 @more_input:
-        lda     channel
-        bmi     @get_input
-        bpl     @default_prompt
+        bit     channel
+        bpl     @get_input              ; Explicit channel: skip prompt
+        bmi     @default_prompt         ; Default console: print '?' prompt
 
 @eof_error:
-        raise   ERR_END_OF_FILE
+        jmp     raise_io_error
 
 @string:
         ldax    #buffer

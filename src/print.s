@@ -7,7 +7,6 @@
 .assert TYPE_NUMBER = $00, error
 
 exec_print:
-        jsr     get_channel             ; Set channel at start of statement
 @loop:
         jsr     peek_byte               ; Peek at next character
         beq     @newline                ; Found 0

@@ -4,31 +4,6 @@
 
 ; I/O statements and functions
 
-; Parses and sets the active channel for the current statement.
-; Checks if the next token is a channel token ($30..$37).
-; If so, consumes it and sets channel = (token - $30) | $80.
-; If not, sets channel = 0.
-; Returns channel in A, channel index (0..7) in X.
-; DE SAFE
-
-get_channel:
-        jsr     peek_byte
-        sec
-        sbc     #TOK_CHANNEL_0
-        cmp     #8                      ; In range $30..$37?
-        bcs     @default
-        inc     line_pos                ; Consume channel token
-        tax
-        ora     #$80                    ; Set explicit flag
-        sta     channel
-        rts
-
-@default:
-        lda     #0
-        sta     channel
-        tax
-        rts
-
 ; Copies the string currently described in AY to buffer with a null terminator.
 
 copy_s0_to_buffer_nul:
@@ -51,7 +26,6 @@ copy_s0_to_buffer_nul:
 ; OPEN [#channel] {name} [,{mode}]
 
 exec_open:
-        jsr     get_channel             ; Sets channel (0..7 in X)
         jsr     evaluate_expression     ; Evaluates filename -> on stack
         lda     #1                      ; Default mode = 1 (Read)
         pha
@@ -74,8 +48,11 @@ exec_open:
         tay                             ; Mode in Y (1..4)
         ldax    #buffer
         jsr     io_open
-        raics   ERR_IO_ERROR
+        bcs     @open_error
         rts
+
+@open_error:
+        jmp     raise_io_error
 
 @range_error:
         pla                             ; Clean stack
@@ -84,18 +61,16 @@ exec_open:
 ; CLOSE [#channel]
 
 exec_close:
-        jsr     get_channel
-        txa
+        lda     channel
         and     #$07
         tax
         jsr     io_close
-        raics   ERR_NOT_OPEN
+        bcs     raise_io_error
         rts
 
 ; GET [#channel] {numeric_variable}
 
 exec_get:
-        jsr     get_channel
         inc     line_pos                ; Skip TOK_NAME
         jsr     decode_name
         jsr     find_or_add_variable
@@ -123,7 +98,6 @@ exec_get:
 ; PUT [#channel] {expression}
 
 exec_put:
-        jsr     get_channel
         jsr     evaluate_expression
         jsr     pop_int_fp0             ; Byte in A
         pha
@@ -132,14 +106,13 @@ exec_put:
         tax
         pla
         jsr     io_put
-        raics   ERR_IO_ERROR
+        bcs     raise_io_error
         mvaa    #1, io_bytes
         rts
 
 ; BGET [#channel] {address},{length}
 
 exec_bget:
-        jsr     get_channel
         jsr     evaluate_expression     ; Address -> on stack
         inc     line_pos                ; Skip comma
         jsr     evaluate_expression     ; Length -> on stack
@@ -149,14 +122,16 @@ exec_bget:
         stax    dst_ptr
         ldax    dst_ptr
         jsr     io_read
-        raics   ERR_IO_ERROR
+        bcs     raise_io_error
         stax    io_bytes                ; Store actual bytes read
         rts
+
+raise_io_error:
+        raise   ERR_IO_ERROR
 
 ; BPUT [#channel] {address},{length}
 
 exec_bput:
-        jsr     get_channel
         jsr     evaluate_expression     ; Address -> on stack
         inc     line_pos                ; Skip comma
         jsr     evaluate_expression     ; Length -> on stack
@@ -166,14 +141,13 @@ exec_bput:
         stax    src_ptr
         ldax    src_ptr
         jsr     io_write
-        raics   ERR_IO_ERROR
+        bcs     raise_io_error
         stax    io_bytes                ; Store actual bytes written
         rts
 
 ; XIO [#channel] {command}[,{arg1}[,{arg2}]]
 
 exec_xio:
-        jsr     get_channel
         jsr     evaluate_expression     ; Command
         jsr     pop_int_fp0
         sta     B                       ; Command in B
@@ -203,7 +177,7 @@ exec_xio:
         tax
         lda     B                       ; Command in A
         jsr     io_xio
-        raics   ERR_IO_ERROR
+        bcs     raise_io_error
         rts
 
 ; SAVE {name} and LOAD {name}
@@ -220,7 +194,7 @@ exec_save:
         ldy     #2                      ; Mode 2 (Write)
         ldax    #buffer
         jsr     io_open
-        raics   ERR_IO_ERROR
+        bcs     @error_close
 
         ; Write "VBAS" header
         mva     #0, DE+1
@@ -248,7 +222,7 @@ exec_save:
 
 @error_close:
         jsr     io_close
-        raise   ERR_IO_ERROR
+        jmp     raise_io_error
 
 exec_load:
         ldy     #Line::next_line_offset
@@ -262,7 +236,7 @@ exec_load:
         ldy     #1                      ; Mode 1 (Read)
         ldax    #buffer
         jsr     io_open
-        raics   ERR_IO_ERROR
+        bcs     @error_close
 
         ; Read 4-byte header into buffer
         mva     #0, DE+1
@@ -324,7 +298,7 @@ exec_load:
 
 @error_close:
         jsr     io_close
-        raise   ERR_IO_ERROR
+        jmp     raise_io_error
 
 ; INKEY$() function
 

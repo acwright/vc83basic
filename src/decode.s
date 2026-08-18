@@ -85,6 +85,7 @@ decode_name:
 
 ; Decodes a single byte and returns it in A.
 ; The last instruction loads A, so this function will return with the Z and N flags set accordingly.
+; X SAFE, BC SAFE, DE SAFE
 
 decode_byte:
         ldy     line_pos                ; Read line_pos into Y and increment
@@ -93,6 +94,7 @@ decode_byte:
         rts
 
 ; EORs the next byte from the stream with a value in A, which sets the Z flag if the values were the same.
+; X SAFE, BC SAFE, DE SAFE
 
 peek_byte:
         ldy     line_pos                ; Read line_pos into Y and increment
