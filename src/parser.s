@@ -321,8 +321,6 @@ pvm_statement:
         BRANCH_IF TOK_CLOSE, pvm_close
         BRANCH_IF TOK_GET, pvm_get
         BRANCH_IF TOK_PUT, pvm_put
-        BRANCH_IF TOK_BGET, pvm_bget_bput
-        BRANCH_IF TOK_BPUT, pvm_bget_bput
         BRANCH_IF TOK_XIO, pvm_xio
         BRANCH_IF TOK_SAVE, pvm_save_load
         BRANCH_IF TOK_LOAD, pvm_save_load
@@ -356,11 +354,6 @@ pvm_get:
 pvm_put:
         CALL pvm_channel
         JUMP pvm_expression
-
-pvm_bget_bput:
-        CALL pvm_channel
-        CALL pvm_arg_2
-        RETURN
 
 pvm_xio:
         CALL pvm_channel
@@ -480,7 +473,7 @@ pvm_primary_expression:
         BRANCH_IF_RANGE TOK_SGN, 3, pvm_fun_1       ; 1-arg functions ($90..$92)
         BRANCH_IF_RANGE TOK_LEFT_S, 3, pvm_fun_2    ; 2-arg functions ($93..$95)
         BRANCH_IF TOK_MID_S, pvm_fun_3              ; 3-arg function ($96)
-        BRANCH_IF_RANGE TOK_FRE, 3, pvm_fun_0       ; 0-arg functions ($97..$99: FRE, INKEY$, COUNT)
+        BRANCH_IF_RANGE TOK_FRE, 2, pvm_fun_0       ; 0-arg functions ($97..$98: FRE, INKEY$)
         invoke_if_defined extension_pvm_functions
         BRANCH_IF TOK_NUM, @done
         MATCH TOK_STRING

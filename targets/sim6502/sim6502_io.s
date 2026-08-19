@@ -9,8 +9,8 @@
 .import _open, _close, _read, _write
 
 .export io_open, io_close, io_close_all, io_get, io_put
-.export io_read, io_write, io_readline, io_xio
-.export readline, write, newline, putch
+.export io_read_record, io_end_record, io_end_field
+.export io_save, io_load, io_xio
 .export channel_fds
 
 ; Mode flag constants for cc65 / POSIX open()
@@ -32,32 +32,51 @@ channel_fds:
 
 .bss
 
-open_channel:     .res 1
 open_mode:        .res 1
-get_nonblocking:  .res 1
 get_byte_buf:     .res 1
 put_byte_buf:     .res 1
+console_column:   .res 1
+save_load_fd:     .res 1
 
 .code
 
+; Copies string currently described in S0 (length in BC) to buffer with a null terminator.
+
+copy_s0_to_buffer_nul:
+        ldy     #0
+        lda     (BC),y                  ; Length byte of string in S0
+        tay
+        beq     @empty
+        tax                             ; Length in X
+        ldy     #0
+@loop:
+        lda     (S0),y
+        sta     buffer,y
+        iny
+        dex
+        bne     @loop
+@empty:
+        lda     #0
+        sta     buffer,y
+        rts
+
 ; Opens a file on channel.
-; AX = pointer to null-terminated filename
-; Y = mode (1..4)
+; S0 = filename string
+; A = mode (1..4)
 ; channel = channel index (0..7)
 ; Returns carry clear if ok, carry set if error.
 
 io_open:
-        stax    src_ptr                 ; Save filename pointer immediately
-        sty     open_mode               ; Save mode (1..4)
+        sta     open_mode               ; Save mode (1..4)
         lda     channel
         and     #$07
-        sta     open_channel            ; Save channel index (0..7)
         tax
         lda     channel_fds,x           ; Check if already open
         cmp     #$FF
         bne     @error                  ; Already open -> fail
 
-        ldax    src_ptr
+        jsr     copy_s0_to_buffer_nul
+        ldax    #buffer
         jsr     pushax                  ; Push filename pointer
         ldx     open_mode
         lda     mode_flags_table-1,x    ; Get open flags
@@ -120,10 +139,10 @@ io_close_all:
         lda     channel_fds,x
         cmp     #$FF
         beq     @skip
-        tay                             ; Save fd in Y
+        tay
         lda     #$FF
         sta     channel_fds,x
-        tya                             ; Pass fd in A
+        tya
         ldx     #0
         jsr     _close
 @skip:
@@ -138,10 +157,15 @@ io_close_all:
 ; A = non-blocking flag: 0 = blocking, 1 = non-blocking (INKEY$)
 ; channel = channel (0..7)
 ; Returns byte in A and carry clear if ok, carry set if EOF / error.
+; X SAFE, Y SAFE
 
 io_get:
         cmp     #1                      ; Non-blocking requested?
         beq     @nonblock
+        txa
+        pha
+        tya
+        pha
         lda     channel
         and     #$07
         tax
@@ -168,16 +192,23 @@ io_get:
         cpx     #0
         beq     @error                  ; 0 bytes read = EOF
 @got_byte:
+        pla
+        tay
+        pla
+        tax
         lda     get_byte_buf            ; Load byte read
         clc
         rts
 
 @nonblock:
-        ; On headless sim6502, non-blocking keyboard poll returns no key (carry set)
         sec
         rts
 
 @error:
+        pla
+        tay
+        pla
+        tax
         sec
         rts
 
@@ -185,9 +216,14 @@ io_get:
 ; A = byte to put
 ; channel = channel (0..7)
 ; Returns carry clear if ok, carry set if error.
+; X SAFE, Y SAFE
 
 io_put:
         sta     put_byte_buf            ; Store byte in put_byte_buf
+        txa
+        pha
+        tya
+        pha
         lda     channel
         and     #$07
         tax
@@ -199,6 +235,16 @@ io_put:
         jmp     @write_fd
 
 @stdout:
+        lda     put_byte_buf
+        cmp     #$0A                    ; LF
+        beq     @reset_col
+        cmp     #$0D                    ; CR
+        beq     @reset_col
+        inc     console_column
+        bne     @do_stdout
+@reset_col:
+        mva     #0, console_column
+@do_stdout:
         lda     #1                      ; fd 1 (stdout)
 
 @write_fd:
@@ -211,87 +257,28 @@ io_put:
         jsr     _write                  ; Call C write()
         cpx     #$80
         bcs     @error
+        pla
+        tay
+        pla
+        tax
         clc
         rts
 
 @error:
-        sec
-        rts
-
-
-
-
-; Binary block read into memory.
-; AX = target buffer pointer (dst_ptr)
-; DE = length
-; Returns actual bytes read in AX and carry clear if ok, carry set on error.
-
-io_read:
-        stax    dst_ptr                 ; Save buffer pointer immediately
-        lda     channel
-        and     #$07
+        pla
+        tay
+        pla
         tax
-        cpx     #0
-        bne     @check_open
-        lda     #0                      ; fd 0 (stdin)
-        bne     @do_push
-@check_open:
-        lda     channel_fds,x           ; Get fd
-        cmp     #$FF
-        beq     @read_err
-@do_push:
-        ldx     #0
-        jsr     pushax                  ; Push fd
-        ldax    dst_ptr
-        jsr     pushax                  ; Push buffer pointer
-        ldax    DE                      ; Length in AX
-        jsr     _read                   ; Call C read()
-        cpx     #$80
-        bcs     @read_err
-        clc
-        rts
-@read_err:
         sec
         rts
 
-; Binary block write from memory.
-; AX = source buffer pointer (src_ptr)
-; DE = length
-; Returns actual bytes written in AX and carry clear if ok, carry set on error.
-
-io_write:
-        stax    src_ptr                 ; Save buffer pointer immediately
-        lda     channel
-        and     #$07
-        tax
-        cpx     #0
-        bne     @check_open
-        lda     #1                      ; fd 1 (stdout)
-        bne     @do_push
-@check_open:
-        lda     channel_fds,x           ; Get fd
-        cmp     #$FF
-        beq     @write_err
-@do_push:
-        ldx     #0
-        jsr     pushax                  ; Push fd
-        ldax    src_ptr
-        jsr     pushax                  ; Push buffer pointer
-        ldax    DE                      ; Length in AX
-        jsr     _write                  ; Call C write()
-        cpx     #$80
-        bcs     @write_err
-        clc
-        rts
-@write_err:
-        sec
-        rts
-
-; Reads a text line from channel X into buffer and adds a terminating NUL.
-; X = channel (0..7)
+; Reads a text record (line) from channel into buffer.
 ; Returns line length in A and carry clear if ok, carry set on EOF / error.
 
-io_readline:
+io_read_record:
+        lda     channel
+        and     #$07
+        tax
         cpx     #0
         bne     @file_channel
         ; Channel 0 (console stdin)
@@ -305,8 +292,13 @@ io_readline:
         cpx     #$80
         bcs     @fc_err
         tax                             ; Length in X
-        lda     #0
-        sta     buffer-1,x              ; Overwrite LF with NUL
+        beq     @fc_err                 ; 0 bytes read = EOF
+        lda     buffer-1,x
+        cmp     #$0A                    ; Trailing newline?
+        bne     @no_strip
+        dex                             ; Strip trailing newline
+@no_strip:
+        mva     #0, console_column
         txa                             ; Return length in A
         clc
         rts
@@ -340,11 +332,8 @@ io_readline:
         cpy     #BUFFER_SIZE-1
         bcc     @read_loop
 @line_done:
-        tsx
-        ldy     $101,x                  ; Buffer offset
-        lda     #0
-        sta     buffer,y                ; Null terminate
         pla                             ; Pop buffer offset
+        tay                             ; Buffer length in Y
         pla                             ; Pop channel index
         tya                             ; Return length in A
         clc
@@ -361,40 +350,160 @@ io_readline:
         sec
         rts
 
+; Emits record delimiter (newline) on channel.
+
+io_end_record:
+        lda     #$0A
+        jmp     io_put
+
+; Emits field separator (tabs to next 16-column boundary).
+
+io_end_field:
+        lda     #' '
+        jsr     io_put
+        lda     console_column
+        and     #$0F
+        bne     io_end_field
+        rts
+
+; Saves program memory to file.
+; S0 = filename string
+
+io_save:
+        jsr     copy_s0_to_buffer_nul
+        ldax    #buffer
+        jsr     pushax                  ; Filename
+        lda     #$32                    ; O_WRONLY | O_CREAT | O_TRUNC
+        ldx     #0
+        jsr     pushax
+        lda     #$FF                    ; 0777
+        ldx     #$01
+        jsr     pushax
+        ldy     #6
+        jsr     _open
+        cpx     #$80
+        bcs     @err
+        sta     save_load_fd            ; Save fd
+
+        ldx     #0
+        jsr     pushax                  ; Push fd
+        lda     #<(__BSS_RUN__ + __BSS_SIZE__)
+        ldx     #>(__BSS_RUN__ + __BSS_SIZE__)
+        jsr     pushax                  ; Push buffer pointer
+        sec
+        lda     variable_name_table_ptr
+        sbc     #<(__BSS_RUN__ + __BSS_SIZE__)
+        pha
+        lda     variable_name_table_ptr+1
+        sbc     #>(__BSS_RUN__ + __BSS_SIZE__)
+        tax
+        pla                             ; Length in AX
+        jsr     _write                  ; Call write(fd, ptr, len)
+        cpx     #$80
+        bcs     @close_err
+
+        lda     save_load_fd
+        ldx     #0
+        jsr     _close
+        clc
+        rts
+
+@close_err:
+        lda     save_load_fd
+        ldx     #0
+        jsr     _close
+@err:
+        sec
+        rts
+
+; Loads program memory from file.
+; S0 = filename string
+
+io_load:
+        jsr     copy_s0_to_buffer_nul
+        ldax    #buffer
+        jsr     pushax                  ; Filename
+        lda     #$01                    ; O_RDONLY
+        ldx     #0
+        jsr     pushax
+        lda     #$FF                    ; 0777
+        ldx     #$01
+        jsr     pushax
+        ldy     #6
+        jsr     _open
+        cpx     #$80
+        bcs     @err
+        sta     save_load_fd
+
+        ldx     #0
+        jsr     pushax                  ; Push fd
+        lda     #<(__BSS_RUN__ + __BSS_SIZE__)
+        ldx     #>(__BSS_RUN__ + __BSS_SIZE__)
+        jsr     pushax                  ; Push buffer pointer
+        sec
+        lda     himem_ptr
+        sbc     #<(__BSS_RUN__ + __BSS_SIZE__)
+        pha
+        lda     himem_ptr+1
+        sbc     #>(__BSS_RUN__ + __BSS_SIZE__)
+        tax
+        pla                             ; Max length in AX
+        jsr     _read                   ; Returns bytes read in AX
+        cpx     #$80
+        bcs     @close_err
+        stax    src_ptr                 ; Save bytes read
+
+        cpx     #0
+        bne     @check_magic
+        cmp     #4 + .sizeof(Line)
+        bcc     @format_err
+
+@check_magic:
+        ldy     #3
+@check_loop:
+        lda     __BSS_RUN__ + __BSS_SIZE__,y
+        cmp     vbas_header,y
+        bne     @format_err
+        dey
+        bpl     @check_loop
+
+        clc
+        lda     src_ptr
+        adc     #<(__BSS_RUN__ + __BSS_SIZE__)
+        sta     variable_name_table_ptr
+        lda     src_ptr+1
+        adc     #>(__BSS_RUN__ + __BSS_SIZE__)
+        sta     variable_name_table_ptr+1
+
+        lda     save_load_fd
+        ldx     #0
+        jsr     _close
+
+        jsr     clear_variables
+        jsr     reset_program
+        clc
+        rts
+
+@format_err:
+        lda     save_load_fd
+        ldx     #0
+        jsr     _close
+        jsr     initialize_program      ; Restore valid empty program
+        sec
+        rts
+
+@close_err:
+        lda     save_load_fd
+        ldx     #0
+        jsr     _close
+@err:
+        sec
+        rts
+
 ; Device-specific control operation.
-; X = channel (0..7), A = command
+; channel = channel (0..7), A = command, BC = arg1, DE = arg2
 ; Returns carry clear if ok, carry set if error.
 
 io_xio:
         clc
         rts
-
-; --- Legacy Bridge Entry Points ---
-
-readline:
-        lda     channel
-        and     #$07
-        tax
-        jmp     io_readline
-
-write:
-        stax    src_ptr                 ; Save buffer address immediately
-        mva     #0, DE+1
-        sty     DE                      ; Length in DE
-        lda     channel
-        and     #$07
-        tax                             ; Channel in X
-        ldax    src_ptr                 ; Buffer address in AX
-        jmp     io_write
-
-newline:
-        lda     #$0A
-        jmp     putch
-
-putch:
-        pha                             ; Save character
-        lda     channel
-        and     #$07
-        tax                             ; Channel in X
-        pla                             ; Restore character in A
-        jmp     io_put

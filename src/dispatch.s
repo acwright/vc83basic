@@ -149,13 +149,14 @@ dispatch_vectors_l:
         .byte   <(exec_close-1)
         .byte   <(exec_get-1)
         .byte   <(exec_put-1)
-        .byte   <(exec_bget-1)
-        .byte   <(exec_bput-1)
         .byte   <(exec_xio-1)
         .byte   <(exec_save-1)
         .byte   <(exec_load-1)
+.if .definedmacro(extension_statement_vectors_l)
+        extension_statement_vectors_l
+.else
         .byte   0
-        invoke_if_defined extension_statement_vectors_l
+.endif
 
 statement_count = * - dispatch_vectors_l
 
@@ -185,8 +186,11 @@ statement_count = * - dispatch_vectors_l
         .byte   <(fun_mid_s-1)
         .byte   <(fun_fre-1)
         .byte   <(fun_inkey_s-1)
-        .byte   <(fun_count-1)
-        invoke_if_defined extension_function_vectors_l
+.if .definedmacro(extension_function_vectors_l)
+        extension_function_vectors_l
+.else
+        .byte   0
+.endif
 
 dispatch_count = * - dispatch_vectors_l
 function_count = dispatch_count - statement_count
@@ -223,13 +227,14 @@ dispatch_vectors_h:
         .byte   >(exec_close-1)
         .byte   >(exec_get-1)
         .byte   >(exec_put-1)
-        .byte   >(exec_bget-1)
-        .byte   >(exec_bput-1)
         .byte   >(exec_xio-1)
         .byte   >(exec_save-1)
         .byte   >(exec_load-1)
+.if .definedmacro(extension_statement_vectors_h)
+        extension_statement_vectors_h
+.else
         .byte   0
-        invoke_if_defined extension_statement_vectors_h
+.endif
 
         ; --- Functions ---
         .byte   >(fun_len-1)
@@ -257,16 +262,21 @@ dispatch_vectors_h:
         .byte   >(fun_mid_s-1)
         .byte   >(fun_fre-1)
         .byte   >(fun_inkey_s-1)
-        .byte   >(fun_count-1)
-        invoke_if_defined extension_function_vectors_h
+.if .definedmacro(extension_function_vectors_h)
+        extension_function_vectors_h
+.else
+        .byte   0
+.endif
 
 .assert (* - dispatch_vectors_h) = dispatch_count, error
 
 dispatch_flags:
         ; --- Statements ---
-        .byte   PROLOG_POP_INT | (PROLOG_POP_INT << 4)  ; POKE, DPOKE
-        .byte   0, 0, 0, 0                              ; RUN..POP
-        .byte   0, 0, 0, 0, 0                           ; OPEN..LOAD + padding
+        .byte   PROLOG_POP_INT | (PROLOG_POP_INT << 4)                                                  ; POKE, DPOKE
+        .byte   0, 0, 0, 0                                                                              ; RUN..POP
+        .byte   0, 0                                                                                    ; OPEN..PUT
+        .byte   PROLOG_NONE | (PROLOG_POP_STRING << 4)                                                  ; XIO, SAVE
+        .byte   PROLOG_POP_STRING | (PROLOG_NONE << 4)                                                  ; LOAD + BYE/padding
         invoke_if_defined extension_statement_flags
 
         ; --- Functions ---
@@ -282,7 +292,10 @@ dispatch_flags:
         .byte   (PROLOG_POP_FP | EPILOG_PUSH_FP) | ((PROLOG_POP_INT | EPILOG_PUSH_STRING) << 4)       ; RND, LEFT$
         .byte   (PROLOG_POP_INT | EPILOG_PUSH_STRING) | ((PROLOG_POP_INT | EPILOG_PUSH_INT) << 4)     ; RIGHT$, USR
         .byte   (PROLOG_POP_INT | EPILOG_PUSH_STRING) | ((PROLOG_NONE | EPILOG_PUSH_INT) << 4)        ; MID$, FRE
-        .byte   (PROLOG_NONE | EPILOG_PUSH_STRING) | ((PROLOG_NONE | EPILOG_PUSH_INT) << 4)           ; INKEY$, COUNT
-        invoke_if_defined extension_function_flags
+.if .definedmacro(extension_function_vectors_l)
+        .byte   (PROLOG_NONE | EPILOG_PUSH_STRING) | ((PROLOG_NONE | EPILOG_PUSH_STRING) << 4)        ; INKEY$, VER$
+.else
+        .byte   (PROLOG_NONE | EPILOG_PUSH_STRING) | (0 << 4)                                           ; INKEY$ + padding
+.endif
 
 .assert (* - dispatch_flags) = ((dispatch_count - 16 + 1) / 2), error

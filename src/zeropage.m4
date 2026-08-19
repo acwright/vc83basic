@@ -143,10 +143,6 @@ word(data_line_ptr, Line*)
 comment Position we're reading within the DATA line
 byte(data_line_pos)
 
-comment Tracks how many characters have been printed so tabs work correctly.
-comment Is reset to 0 by printing the banner message and/or READY.
-byte(print_column)
-
 comment The size of the array element. Used to calculate array offsets.
 word(array_element_size)
 
@@ -161,8 +157,5 @@ byte(string_flag)
 
 comment Active I/O channel for current statement (bit 7 set if default console channel 0)
 byte(channel)
-
-comment Number of bytes transferred in the most recent I/O operation
-word(io_bytes)
 
 finalize()

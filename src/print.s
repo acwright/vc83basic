@@ -29,12 +29,7 @@ exec_print:
         jmp     @loop
 
 @tab:
-        lda     #' '
-        jsr     putch
-        inc     print_column
-        lda     print_column
-        and     #$0F                    ; Is column evenly divisible by 16?
-        bne     @tab                    ; Not yet
+        jsr     io_end_field
 @empty_space:
         inc     line_pos                ; Skip over the empty space or tab token
         jsr     peek_byte               ; Peek at next character
@@ -42,10 +37,7 @@ exec_print:
         rts
         
 @newline:
-        jsr     newline
-        mva     #0, print_column
-@done:
-        rts
+        jmp     io_end_record
 
 ; Prints the value in FP0 to standard output.
 
@@ -57,14 +49,20 @@ print_number:
         stx     buffer                  ; Store the length in the first character of buffer; it is now a string
         lday    #buffer                 ; Load the address in AY and fall through to print_string
 
-; Prints the string pointed to by AY to the standard output.
+; Prints the string pointed to by AY to standard output.
 ; DE SAFE
 
 print_string:
-        jsr     load_s0                 ; Get string address and length
-        tay                             ; Transfer length into Y for write
-        clc
-        adc     print_column            ; Increase print_column by the size of the printed string
-        sta     print_column
-        ldax    S0                      ; Load string address into AX
-        jmp     write
+        jsr     load_s0                 ; Get string address into S0 and length into A
+print_s0:
+        tax                             ; Length in X
+        beq     @done
+        ldy     #0
+@loop:
+        lda     (S0),y
+        jsr     io_put
+        iny
+        dex
+        bne     @loop
+@done:
+        rts

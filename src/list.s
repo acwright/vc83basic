@@ -44,11 +44,16 @@ exec_list:
 @print:
         mvaa    next_line_ptr, line_ptr
         jsr     list_line
-        ldax    #buffer
         ldy     buffer_pos              ; buffer_pos will be the amount of data written to the buffer
         beq     @done                   ; If it was zero bytes then no more lines
-        jsr     write
-        jsr     newline
+        ldy     #0
+@list_loop:
+        lda     buffer,y
+        jsr     io_put
+        iny
+        cpy     buffer_pos
+        bcc     @list_loop
+        jsr     io_end_record
         jsr     advance_next_line_ptr
         jmp     @next_line
 

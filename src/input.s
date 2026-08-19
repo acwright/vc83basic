@@ -21,10 +21,13 @@ exec_input:
 
 @default_prompt:
         lda     #'?'                    ; Prepare to print '?' prompt
-        jsr     putch
+        jsr     io_put
 @get_input:
-        jsr     readline
-        bcs     @eof_error              ; If readline returns carry set -> EOF
+        jsr     io_read_record
+        bcs     @eof_error              ; If io_read_record returns carry set -> EOF
+        tay
+        lda     #0
+        sta     buffer,y                ; NUL-terminate based on length in A
         mva     #0, buffer_pos          ; Reset the read position
 @next_var:
         inc     line_pos                ; Skip TOK_NAME

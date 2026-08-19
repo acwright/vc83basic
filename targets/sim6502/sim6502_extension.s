@@ -2,12 +2,11 @@
 ;
 ; SPDX-License-Identifier: MIT
 
-TOK_BYE   = $64
-TOK_VER_S = $9A
+TOK_BYE   = $61
+TOK_VER_S = $99
 
 .macro extension_statement_keywords
 :       name_table_entry "BYE"
-:       name_table_entry ""
 .endmacro
 
 .macro extension_function_keywords
@@ -24,16 +23,10 @@ TOK_VER_S = $9A
 
 .macro extension_statement_vectors_l
         .byte   <(exec_bye-1)
-        .byte   0
 .endmacro
 
 .macro extension_statement_vectors_h
         .byte   >(exec_bye-1)
-        .byte   0
-.endmacro
-
-.macro extension_statement_flags
-        .byte   0
 .endmacro
 
 .macro extension_function_vectors_l
@@ -45,7 +38,6 @@ TOK_VER_S = $9A
 .endmacro
 
 .macro extension_function_flags
-        .byte   PROLOG_NONE | EPILOG_PUSH_STRING
 .endmacro
 
 .macro extension_code

@@ -93,11 +93,9 @@ def(TOK_OPEN,           hex(5A))
 def(TOK_CLOSE,          hex(5B))
 def(TOK_GET,            hex(5C))
 def(TOK_PUT,            hex(5D))
-def(TOK_BGET,           hex(5E))
-def(TOK_BPUT,           hex(5F))
-def(TOK_XIO,            hex(60))
-def(TOK_SAVE,           hex(61))
-def(TOK_LOAD,           hex(62))
+def(TOK_XIO,            hex(5E))
+def(TOK_SAVE,           hex(5F))
+def(TOK_LOAD,           hex(60))
 
 def(TOK_LEN,            hex(80))
 def(TOK_STR_S,          hex(81))
@@ -124,7 +122,6 @@ def(TOK_USR,            hex(95))
 def(TOK_MID_S,          hex(96))
 def(TOK_FRE,            hex(97)) 
 def(TOK_INKEY_S,        hex(98))
-def(TOK_COUNT,          hex(99))
 
 comment Types
 
