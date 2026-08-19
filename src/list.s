@@ -21,18 +21,11 @@ exec_list:
         sta     line_number+1
         jsr     peek_byte               ; Look to see if there are arguments
         beq     @next_line              ; Nothing after LIST, just go
-        cmp     #TOK_NUM
-        bne     @next_line
         jsr     get_line_number         ; Go get start line number
         jsr     find_line               ; Stores the line number in line_number
         jsr     peek_byte               ; Anything else?
         beq     @next_line              ; Nope: the value in line_number becomes the terminating line number
-        cmp     #TOK_COMMA
-        bne     @next_line
         inc     line_pos                ; There's another arg, so skip over the ','
-        jsr     peek_byte
-        cmp     #TOK_NUM
-        bne     @next_line
         jsr     get_line_number         ; Save the ending line number in line_number
         stax    line_number
 

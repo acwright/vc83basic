@@ -11,15 +11,10 @@ exec_open:
         lda     #1                      ; Default mode = 1 (Read)
         pha
         jsr     peek_byte
-        cmp     #TOK_COMMA
-        bne     @no_mode
+        beq     @no_mode
         inc     line_pos
         jsr     evaluate_expression     ; Evaluates mode
         jsr     pop_int_fp0             ; Mode in A
-        cmp     #1
-        bcc     @range_error
-        cmp     #5
-        bcs     @range_error
         tsx
         sta     $101,x                  ; Replace default mode on stack
 @no_mode:
@@ -28,10 +23,6 @@ exec_open:
         jsr     io_open
         bcs     raise_io_error
         rts
-
-@range_error:
-        pla                             ; Clean stack
-        raise   ERR_OUT_OF_RANGE
 
 ; CLOSE [#channel]
 
@@ -61,10 +52,9 @@ exec_get:
         jmp     assign_variable
 
 ; PUT [#channel] {expression}
+; PROLOG_POP_INT has already evaluated the expression and popped the byte into A!
 
 exec_put:
-        jsr     evaluate_expression
-        jsr     pop_int_fp0             ; Byte in A
         jsr     io_put
         bcs     raise_io_error
         rts
@@ -84,15 +74,13 @@ exec_xio:
         sta     DE                      ; Default arg2 = 0
         sta     DE+1
         jsr     peek_byte
-        cmp     #TOK_COMMA
-        bne     @do_xio
+        beq     @do_xio
         inc     line_pos
         jsr     evaluate_expression     ; Arg1
         jsr     pop_int_fp0
         stax    BC
         jsr     peek_byte
-        cmp     #TOK_COMMA
-        bne     @do_xio
+        beq     @do_xio
         inc     line_pos
         jsr     evaluate_expression     ; Arg2
         jsr     pop_int_fp0
@@ -141,5 +129,5 @@ fun_inkey_s:
         rts
 
 @no_key:
-        lda     #0
-        jmp     string_alloc_for_copy
+        mvaa    #0, string_ptr          ; Return null pointer for empty string
+        rts

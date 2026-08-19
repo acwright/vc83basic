@@ -108,8 +108,7 @@ exec_for:
         ldy     #>stack                 ; Stack page
         jsr     store_fp0               ; Store FP0 there
         jsr     peek_byte               ; Check for STEP
-        cmp     #TOK_STEP
-        bne     @no_step
+        beq     @no_step
         inc     line_pos
         jsr     evaluate_expression
         jsr     pop_fp0

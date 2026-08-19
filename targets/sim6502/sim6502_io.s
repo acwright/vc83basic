@@ -19,12 +19,6 @@
 ; Mode 3 (Update): O_RDWR | O_CREAT = $03 | $10 = $13
 ; Mode 4 (Append): O_WRONLY | O_CREAT | O_APPEND = $02 | $10 | $40 = $52
 
-mode_flags_table:
-        .byte   $01                     ; Mode 1: Read
-        .byte   $32                     ; Mode 2: Write
-        .byte   $13                     ; Mode 3: Update
-        .byte   $52                     ; Mode 4: Append
-
 .data
 
 channel_fds:
@@ -33,6 +27,7 @@ channel_fds:
 .bss
 
 open_mode:        .res 1
+open_flags:       .res 1
 get_byte_buf:     .res 1
 put_byte_buf:     .res 1
 console_column:   .res 1
@@ -62,12 +57,12 @@ copy_s0_to_buffer_nul:
 
 ; Opens a file on channel.
 ; S0 = filename string
-; A = mode (1..4)
+; A = mode bits (1 = read, 2 = write, 3 = both, 6/7 = append)
 ; channel = channel index (0..7)
 ; Returns carry clear if ok, carry set if error.
 
 io_open:
-        sta     open_mode               ; Save mode (1..4)
+        sta     open_mode
         lda     channel
         and     #$07
         tax
@@ -75,11 +70,35 @@ io_open:
         cmp     #$FF
         bne     @error                  ; Already open -> fail
 
+        lda     open_mode
+        and     #$03                    ; Access mode: 1 (RDONLY), 2 (WRONLY), 3 (RDWR)
+        sta     open_flags
+        lda     open_mode
+        and     #$02                    ; Is write bit (bit 1) set?
+        beq     @call_open              ; If write bit not set -> read only
+        lda     open_flags
+        ora     #$10                    ; Add O_CREAT ($10)
+        sta     open_flags
+        lda     open_mode
+        and     #$04                    ; Check bit 2 (append)
+        beq     @check_trunc
+        lda     open_flags
+        ora     #$40                    ; Add O_APPEND ($40)
+        sta     open_flags
+        bne     @call_open              ; Unconditional
+@check_trunc:
+        lda     open_mode
+        and     #$01                    ; Is read bit set (update mode)?
+        bne     @call_open              ; If update, do not truncate
+        lda     open_flags
+        ora     #$20                    ; Add O_TRUNC ($20)
+        sta     open_flags
+
+@call_open:
         jsr     copy_s0_to_buffer_nul
         ldax    #buffer
         jsr     pushax                  ; Push filename pointer
-        ldx     open_mode
-        lda     mode_flags_table-1,x    ; Get open flags
+        lda     open_flags
         ldx     #0
         jsr     pushax                  ; Push open flags
         lda     #$FF                    ; Mode 0777 permission ($01FF)
@@ -104,53 +123,35 @@ io_open:
 
 ; Closes channel.
 ; channel = channel (0..7)
-; Returns carry clear if ok, carry set if error.
+; Returns carry clear.
 
 io_close:
         lda     channel
         and     #$07
         tax
+        beq     @done                   ; Channel 0 (console) is never closed
         lda     channel_fds,x           ; Get fd
         cmp     #$FF
-        beq     @not_open
-        cpx     #0                      ; Channel 0 (console) is never closed
-        beq     @ok
+        beq     @done                   ; If already closed, leave it closed
         pha
         lda     #$FF                    ; Mark closed
         sta     channel_fds,x
         pla
         ldx     #0
         jsr     _close
-@ok:
+@done:
         clc
-        rts
-
-@not_open:
-        sec
         rts
 
 ; Closes all open channels (1..7). Called by NEW / CLR.
 
 io_close_all:
-        lda     #1
+        lda     #7
+        sta     channel
 @loop:
-        pha
-        tax
-        lda     channel_fds,x
-        cmp     #$FF
-        beq     @skip
-        tay
-        lda     #$FF
-        sta     channel_fds,x
-        tya
-        ldx     #0
-        jsr     _close
-@skip:
-        pla
-        clc
-        adc     #1
-        cmp     #8
-        bcc     @loop
+        jsr     io_close
+        dec     channel
+        bne     @loop
         rts
 
 ; Gets a single byte from channel.

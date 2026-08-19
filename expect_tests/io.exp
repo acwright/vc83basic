@@ -54,4 +54,38 @@ LINE TWO        123
 READY
 }
 
+# Test OPEN (append mode 6), PRINT #, CLOSE
+test {
+NEW
+10 OPEN #1 "/tmp/vc83_test_1.txt", 6
+20 PRINT #1 "LINE THREE"
+30 CLOSE #1
+RUN
+} {
+READY
+}
+
+# Test reading back all four lines
+test {
+NEW
+10 OPEN #1 "/tmp/vc83_test_1.txt", 1
+20 INPUT #1 A$
+30 PRINT A$
+40 INPUT #1 B$, N
+50 PRINT B$, N
+60 INPUT #1 C$
+70 PRINT C$
+80 INPUT #1 D$
+90 PRINT D$
+100 CLOSE #1
+RUN
+} {
+LINE ONE
+LINE TWO        123
+A
+LINE THREE
+
+READY
+}
+
 exec rm -f /tmp/vc83_test_1.txt /tmp/vc83_test_bin.dat

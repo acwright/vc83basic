@@ -274,7 +274,8 @@ dispatch_flags:
         ; --- Statements ---
         .byte   PROLOG_POP_INT | (PROLOG_POP_INT << 4)                                                  ; POKE, DPOKE
         .byte   0, 0, 0, 0                                                                              ; RUN..POP
-        .byte   0, 0                                                                                    ; OPEN..PUT
+        .byte   0                                                                                       ; OPEN, CLOSE
+        .byte   PROLOG_NONE | (PROLOG_POP_INT << 4)                                                    ; GET, PUT
         .byte   PROLOG_NONE | (PROLOG_POP_STRING << 4)                                                  ; XIO, SAVE
         .byte   PROLOG_POP_STRING | (PROLOG_NONE << 4)                                                  ; LOAD + BYE/padding
         invoke_if_defined extension_statement_flags
