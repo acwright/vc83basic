@@ -293,8 +293,8 @@ dispatch_flags:
         .byte   (PROLOG_POP_FP | EPILOG_PUSH_FP) | ((PROLOG_POP_INT | EPILOG_PUSH_STRING) << 4)       ; RND, LEFT$
         .byte   (PROLOG_POP_INT | EPILOG_PUSH_STRING) | ((PROLOG_POP_INT | EPILOG_PUSH_INT) << 4)     ; RIGHT$, USR
         .byte   (PROLOG_POP_INT | EPILOG_PUSH_STRING) | ((PROLOG_NONE | EPILOG_PUSH_INT) << 4)        ; MID$, FRE
-.if .definedmacro(extension_function_vectors_l)
-        .byte   (PROLOG_NONE | EPILOG_PUSH_STRING) | ((PROLOG_NONE | EPILOG_PUSH_STRING) << 4)        ; INKEY$, VER$
+.if .definedmacro(extension_function_flags)
+        extension_function_flags
 .else
         .byte   (PROLOG_NONE | EPILOG_PUSH_STRING) | (0 << 4)                                           ; INKEY$ + padding
 .endif

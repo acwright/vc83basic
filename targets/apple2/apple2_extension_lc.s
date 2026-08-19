@@ -4,16 +4,16 @@
 
 TOK_AT    = $15
 
-TOK_GR    = $5A
-TOK_TEXT  = $5B
-TOK_HOME  = $5C
-TOK_COLOR = $5D
-TOK_PLOT  = $5E
-TOK_HLIN  = $5F
-TOK_VLIN  = $60
+TOK_GR    = $61
+TOK_TEXT  = $62
+TOK_HOME  = $63
+TOK_COLOR = $64
+TOK_PLOT  = $65
+TOK_HLIN  = $66
+TOK_VLIN  = $67
 
-TOK_PDL   = $98
-TOK_SCRN  = $99
+TOK_PDL   = $99
+TOK_SCRN  = $9A
 
 .macro extension_custom_keywords
 :       name_table_entry "AT"
@@ -26,9 +26,7 @@ TOK_SCRN  = $99
 :       name_table_entry "COLOR"
 :       name_table_entry "PLOT"
 :       name_table_entry "HLIN"
-KEYWORD_BLOCK_6_OFFSET = keyword_counter
 :       name_table_entry "VLIN"
-:       name_table_entry ""             ; Padding for even statement count
 .endmacro
 
 .macro extension_function_keywords
@@ -57,7 +55,6 @@ KEYWORD_BLOCK_6_OFFSET = keyword_counter
         .byte   <(exec_plot-1)
         .byte   <(exec_hlin-1)
         .byte   <(exec_vlin-1)
-        .byte   0
 .endmacro
 
 .macro extension_statement_vectors_h
@@ -68,28 +65,29 @@ KEYWORD_BLOCK_6_OFFSET = keyword_counter
         .byte   >(exec_plot-1)
         .byte   >(exec_hlin-1)
         .byte   >(exec_vlin-1)
-        .byte   0
 .endmacro
 
 .macro extension_statement_flags
-        .byte   0                       ; GR, TEXT
-        .byte   0                       ; HOME, COLOR
-        .byte   0                       ; PLOT, HLIN
-        .byte   0                       ; VLIN, padding
+        .byte   0                       ; TEXT, HOME
+        .byte   0                       ; COLOR, PLOT
+        .byte   0                       ; HLIN, VLIN
 .endmacro
 
 .macro extension_function_vectors_l
         .byte   <(fun_pdl-1)
         .byte   <(fun_scrn-1)
+        .byte   0
 .endmacro
 
 .macro extension_function_vectors_h
         .byte   >(fun_pdl-1)
         .byte   >(fun_scrn-1)
+        .byte   0
 .endmacro
 
 .macro extension_function_flags
-        .byte   (PROLOG_POP_INT | EPILOG_PUSH_INT) | ((PROLOG_POP_INT | EPILOG_PUSH_INT) << 4)
+        .byte   (PROLOG_NONE | EPILOG_PUSH_STRING) | ((PROLOG_POP_INT | EPILOG_PUSH_INT) << 4)        ; INKEY$, PDL
+        .byte   (PROLOG_POP_INT | EPILOG_PUSH_INT) | (0 << 4)                                           ; SCRN, padding
 .endmacro
 
 .macro extension_parser_code

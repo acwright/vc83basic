@@ -38,6 +38,7 @@ TOK_VER_S = $99
 .endmacro
 
 .macro extension_function_flags
+        .byte   (PROLOG_NONE | EPILOG_PUSH_STRING) | ((PROLOG_NONE | EPILOG_PUSH_STRING) << 4)
 .endmacro
 
 .macro extension_code
