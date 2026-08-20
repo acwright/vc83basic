@@ -50,29 +50,14 @@ io_get:
 
 ; Puts a single character on channel.
 ; channel = channel (0..7), A = ASCII character
-; Preserves X and Y registers across ROM COUT
 
 io_put:
-        pha                             ; Save character ($103,x)
-        txa
-        pha                             ; Save X ($102,x)
-        tya
-        pha                             ; Save Y ($101,x)
-        tsx
-        lda     $103,x                  ; Load character from stack
         cmp     #10                     ; Line feed?
         bne     @not_lf
         lda     #$8D                    ; Apple II CR
 @not_lf:
         ora     #$80
-        jsr     COUT
-        pla
-        tay                             ; Restore Y
-        pla
-        tax                             ; Restore X
-        pla                             ; Restore character in A
-        clc
-        rts
+        jmp     COUT
 
 ; Reads a text record (line) from console into buffer.
 ; Suppresses prompt, strips bit 7, NUL-terminates at CR, returns length in A.
@@ -95,39 +80,17 @@ io_read_record:
         rts
 
 ; Emits record delimiter (newline).
-; Preserves X and Y
 
-io_end_record:
-        txa
-        pha
-        tya
-        pha
-        jsr     CROUT
-        pla
-        tay
-        pla
-        tax
-        clc
-        rts
+io_end_record = CROUT
 
 ; Emits field separator (tabs to next 16-column boundary).
-; Preserves X and Y
 
 io_end_field:
-        txa
-        pha
-        tya
-        pha
-@loop:
-        lda     #' ' | $80
+:       lda     #' ' | $80
         jsr     COUT
         lda     $24                     ; Cursor horizontal position CH
         and     #$0F                    ; 16-column tab zones
-        bne     @loop
-        pla
-        tay
-        pla
-        tax
+        bne     :-
         clc
         rts
 
@@ -136,28 +99,20 @@ io_end_field:
 print_s0_cout:
         ldy     #0
         lda     (BC),y                  ; Length byte
-        beq     @done
-        tax                             ; Length in X
-        ldy     #0
-@loop:
-        lda     (S0),y
-        jsr     io_put
-        iny
-        dex
-        bne     @loop
-@done:
-        rts
+        jmp     print_s0
 
 ; Prints NUL-terminated string to COUT.
 
 print_string_cout:
         stax    src_ptr
-        ldy     #0
 @loop:
+        ldy     #0
         lda     (src_ptr),y
         beq     @done
         jsr     io_put
-        iny
+        inc     src_ptr
+        bne     @loop
+        inc     src_ptr+1
         bne     @loop
 @done:
         rts

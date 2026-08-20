@@ -96,20 +96,14 @@ handle_error:
         jsr     print_string
         pla     
 @not_error:
-        tay                             ; Prepare to look up the program_state message
+        tay
         ldax    #error_message_table
         jsr     get_name
+        mvaa    name_ptr, S0
         sec
-        lda     next_name_ptr           ; Length of message is next_name_ptr - name_ptr
+        lda     next_name_ptr
         sbc     name_ptr
-        tax
-        ldy     #0
-@err_loop:
-        lda     (name_ptr),y
-        jsr     io_put
-        iny
-        dex
-        bne     @err_loop
+        jsr     print_s0
         ldy     #Line::number+1         ; Print line number if >= 0, else we're in immediate mode
         lda     (line_ptr),y
         bmi     @no_line_number

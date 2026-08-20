@@ -50,19 +50,21 @@ print_number:
         lday    #buffer                 ; Load the address in AY and fall through to print_string
 
 ; Prints the string pointed to by AY to standard output.
-; DE SAFE
 
 print_string:
         jsr     load_s0                 ; Get string address into S0 and length into A
 print_s0:
-        tax                             ; Length in X
+        sta     B                       ; Save length in B
         beq     @done
-        ldy     #0
 @loop:
-        lda     (S0),y
+        ldy     #0
+        lda     (S0),y                  ; Load next character
         jsr     io_put
-        iny
-        dex
+        inc     S0                      ; Advance S0 pointer
+        bne     @no_inc
+        inc     S0+1
+@no_inc:
+        dec     B
         bne     @loop
 @done:
         rts
