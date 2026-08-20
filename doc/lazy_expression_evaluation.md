@@ -4,15 +4,20 @@
 
 The expression evaluator currently pushes every value onto the value stack immediately, including
 simple values that are consumed by the very next operation. This causes unnecessary push/pop
-round-trips that cost ~168 cycles each (push: ~83 cycles, pop: ~85 cycles).
+round-trips that cost ~168 cycles each for numeric values (push: ~83 cycles for `store_fp0`,
+pop: ~85 cycles for `load_fp0`).
 
 This plan describes an optimization where primary expressions leave their result in FP0 (for
-numbers) or S0 (for strings) and only push to the stack when the value must be preserved across
-a sub-evaluation — i.e., when a binary operator requires evaluating a right operand.
+numbers) or S0 (for strings) and only push to the stack when the value must be preserved — i.e.,
+when a binary operator requires holding the left operand while evaluating the right.
+
+The main performance target is numeric values, since the FP0 pack/unpack conversions in
+`store_fp0`/`load_fp0` are expensive. String pushes are cheap (just 2 bytes + type), so we push
+strings whenever GC safety requires it.
 
 ## New Zero Page Variable
 
-Add one new zero page byte:
+Add one byte:
 
 ```
 ; The type of the most recently evaluated expression value.
@@ -21,39 +26,60 @@ Add one new zero page byte:
 expr_type: .res 1
 ```
 
-This variable is set by every primary expression handler and by every operator that produces a
-result. Consumers use it to determine how to handle the pending value.
+### `expr_type` Lifecycle
+
+1. Set to TYPE_NUMBER (= 0 = PR_OPEN_PAREN) at the top of `evaluate_expression`, piggybacking
+   on the existing `lda #PR_OPEN_PAREN`:
+
+   ```
+   .assert PR_OPEN_PAREN = TYPE_NUMBER, error
+
+   evaluate_expression:
+           phzp    DECODE_NAME_STATE, DECODE_NAME_STATE_SIZE
+           lda     #PR_OPEN_PAREN
+           sta     expr_type               ; Default to TYPE_NUMBER
+   after_operator:
+           jsr     push_operator
+   ```
+
+   Cost: **+2 bytes** (`sta expr_type`).
+
+2. Number primaries do NOT set `expr_type` — it's already 0.
+
+3. String primaries do `inc expr_type` (2 bytes, changes 0→1). This is cheaper than
+   `lda #TYPE_STRING; sta expr_type` (4 bytes).
+
+4. `push_pending` resets `expr_type` to 0 after pushing strings, ensuring it's always 0 when the
+   next primary is entered.
+
+5. Operator handlers set `expr_type` as needed:
+   - `call_binary_operator` sets to TYPE_NUMBER (all arithmetic operators).
+   - `compare_values` sets to TYPE_NUMBER (both numeric and string comparison results are
+     numbers).
+   - `op_concat` sets to TYPE_STRING.
+   - `finish_logical_op` sets to TYPE_NUMBER.
 
 ## S0 as Pending String Header Pointer
 
-In the new scheme, S0 has a dual role depending on context:
+S0 has a dual role depending on context:
 
 1. **After expression evaluation** (pending value): S0 holds the string *header* pointer (the
-   address of the length byte). This is the same format as the 2-byte pointer stored in string
-   variables and pushed onto the value stack.
+   address of the length byte). This is the same 2-byte pointer format stored in string
+   variables and on the value stack.
 
 2. **After `load_s0`** (ready for use): S0 holds the string *data* pointer (header + 1), and
    the length has been returned in A.
 
 The transition from state 1 to state 2 happens by calling `load_s0` with the header address.
-Since `load_s0` reads the length from BC (set from its input AY) and writes the data pointer
-to S0, it is safe to call `load_s0` with S0's own value as input:
+Since `load_s0` reads the length from BC (set from its input AY before writing S0), it is
+safe to call `load_s0` with S0's own value as input.
 
-```
-lday    S0              ; A = S0 low (header), Y = S0+1 high (header)
-jsr     load_s0         ; S0 now holds data pointer, A = length
-```
-
-This works because `load_s0` copies AY into BC first, then reads the length from `(BC),y`
-before writing the incremented address to S0.
-
-**Important**: `string_ptr` is NOT used as the pending string pointer. `string_ptr` retains
-its existing meaning: the boundary of the string heap (start of string space in memory). It
-only coincidentally equals the header address of a freshly allocated string.
+**Important**: `string_ptr` is NOT used as the pending string pointer. It retains its existing
+meaning as the string heap boundary.
 
 ### `load_s0_from_s0` Helper
 
-Add this to string.s, placed immediately before `load_s0`:
+Add to string.s, placed immediately before `load_s0` so it falls through:
 
 ```
 load_s0_from_s0:
@@ -66,132 +92,20 @@ load_s:
         ...
 ```
 
-Cost: 4 bytes (two ZP loads; the fall-through is free).
+Cost: **+4 bytes** (two ZP loads).
 
-Each call site that would otherwise do `lday S0; jsr load_s0` (7 bytes) can instead do
-`jsr load_s0_from_s0` (3 bytes), saving 4 bytes per site. The routine pays for itself at 2+
-call sites.
+Each call site that would otherwise do `lday S0; jsr load_s0` (7 bytes) can use
+`jsr load_s0_from_s0` (3 bytes), saving 4 bytes per site. Break-even at 2 call sites.
 
-Expected call sites in the new scheme:
-- `exec_print` string path (converting pending S0 for printing)
-- `pop_two_strings` rewrite (loading right operand)
-- `op_concat` result setup
-- Possibly `assign_variable` string path
+### `push_string` → `push_string_s0` Unification
 
-With 3-4 sites, net savings: **8-12 bytes**.
-
-## Changes Within `evaluate_expression`
-
-### Primary Expression Handlers
-
-Each primary handler leaves its result in FP0 or S0, and sets `expr_type`, instead of pushing
-to the stack.
-
-#### `evaluate_number` (line 88)
-
-Currently:
-```
-evaluate_number:
-        jsr     decode_number           ; Returns number in FP0
-        jmp     push_fp0                ; Push number
-```
-
-New (shared tail — see below):
-```
-evaluate_number:
-        jsr     decode_number           ; Returns number in FP0
-set_expr_type_number:
-        lda     #TYPE_NUMBER            ; (= 0)
-        sta     expr_type
-        rts
-```
-
-#### `evaluate_string` (line 93)
-
-Currently:
-```
-evaluate_string:
-        jsr     decode_string           ; Sets string_ptr (allocates new string)
-        jmp     push_string
-```
-
-New:
-```
-evaluate_string:
-        jsr     decode_string           ; Sets string_ptr (= header of new string)
-        mvax    string_ptr, S0          ; S0 = header pointer
-set_expr_type_string:
-        lda     #TYPE_STRING
-        sta     expr_type
-        rts
-```
-
-#### `evaluate_variable` (line 96)
-
-Currently copies variable data onto the stack via a generic loop. New version loads into
-FP0 or S0 directly:
+Restructure `push_string` so it copies `string_ptr` into S0 and falls through to a new
+`push_string_s0`:
 
 ```
-evaluate_variable:
-        jsr     decode_name
-evaluate_decoded_variable:
-        jsr     find_or_add_variable    ; name_ptr → variable data
-        lda     decode_name_type
-        sta     expr_type
-        bne     @string
-        lday    name_ptr                ; Number: load directly into FP0
-        jmp     load_fp0
-@string:
-        ldy     #0                      ; String: read 2-byte header pointer from variable
-        lda     (name_ptr),y            ; Low byte
-        sta     S0
-        iny
-        lda     (name_ptr),y            ; High byte
-        sta     S0+1
-        rts
-```
-
-The string path reads the 2-byte string header pointer from the variable's data area (at
-name_ptr) into S0. This replaces the current 15-byte copy loop with ~14 bytes of targeted
-code.
-
-**Estimated size change for primary handlers: roughly neutral** (within ±5 bytes).
-
-### Operator Dispatch (the core change)
-
-Currently (lines 35-64), after `@dispatch` evaluates a primary (which pushes to the stack),
-the code checks for an operator. In the new scheme, the primary leaves its value in FP0/S0,
-and we only push when a binary operator requires preserving the left operand:
-
-```
-        jsr     @dispatch               ; Evaluate primary → FP0 or S0 (NOT pushed)
-        jsr     peek_byte               ; Check if an operator follows
-        and     #$F0
-        cmp     #TOK_ADD
-        beq     @operator
-        lda     #PR_CLOSE_PAREN         ; No operator: process remaining operators
-        jsr     process_operators       ; FP0/S0 cascades through
-        inc     op_stack_pos            ; Pop the open paren
-        plzp    DECODE_NAME_STATE, DECODE_NAME_STATE_SIZE
-        rts                             ; Return with value in FP0/S0 + expr_type
-
-@operator:
-        jsr     push_pending            ; Push FP0 or S0 to stack now
-        jsr     decode_byte             ; Get the operator
-        ; ... (precedence lookup, process_operators, push new operator — as before)
-        jmp     after_operator
-```
-
-### `push_pending` Subroutine
-
-Pushes the pending value (FP0 or S0) onto the value stack based on `expr_type`:
-
-```
-push_pending:
-        lda     expr_type
-        bne     push_string_s0
-        jmp     push_fp0
-
+push_string:
+        mvax    string_ptr, S0          ; Set S0 from string_ptr
+; fall through
 push_string_s0:
         jsr     stack_alloc_value
         tay
@@ -204,103 +118,217 @@ push_string_s0:
         rts
 ```
 
-`push_string_s0` is analogous to `push_string` but pushes from S0 instead of `string_ptr`.
-The existing `push_string` (which pushes from `string_ptr`) remains unchanged for callers
-that still need it (INPUT, READ, function epilogs).
+Cost: **+4 bytes** (`mvax string_ptr, S0` added to `push_string`; `push_string_s0` replaces
+the original body which read from `string_ptr`, so it's the same size).
 
-Cost: ~18 bytes for `push_pending` + `push_string_s0`.
+Benefits:
+- `push_string` still works for all existing callers (INPUT, READ, function epilogs).
+- `push_string` now sets S0 as a side effect, which means function epilogs that use it
+  automatically leave S0 in the correct state.
+- `push_string_s0` is available for `push_pending` and `op_concat` (see below).
+
+## Changes Within `evaluate_expression`
+
+### Primary Expression Handlers
+
+Each primary handler leaves its result in FP0 or S0 and sets `expr_type` as needed. Number
+primaries rely on the default `expr_type` = 0.
+
+#### `evaluate_number` (line 88)
+
+```
+evaluate_number:
+        jmp     decode_number           ; Returns number in FP0; expr_type already 0
+```
+
+Saves the `jmp push_fp0` (3 bytes). The `jsr decode_number; rts` can be simplified to
+`jmp decode_number`. **Savings: 3 bytes.**
+
+#### `evaluate_string` (line 92)
+
+```
+evaluate_string:
+        jsr     decode_string           ; Allocates new string; sets string_ptr
+        mvax    string_ptr, S0          ; S0 = string header pointer
+        inc     expr_type               ; TYPE_STRING
+        rts
+```
+
+Changes: `jmp push_string` (3 bytes) → `mvax` (4) + `inc` (2) + `rts` (1) = 7 bytes.
+**Cost: +4 bytes.**
+
+#### `evaluate_variable` (line 96)
+
+```
+evaluate_variable:
+        jsr     decode_name
+evaluate_decoded_variable:
+        jsr     find_or_add_variable    ; name_ptr → variable data
+        lda     decode_name_type
+        beq     @number
+        inc     expr_type               ; TYPE_STRING
+        ldy     #0                      ; Read 2-byte header pointer from variable
+        lda     (name_ptr),y
+        sta     S0
+        iny
+        lda     (name_ptr),y
+        sta     S0+1
+        rts
+@number:
+        lday    name_ptr                ; Load directly into FP0
+        jmp     load_fp0
+```
+
+The current version is 20 bytes (lines 96-115: `jsr decode_name`, `jsr find_or_add_variable`,
+`jsr stack_alloc_value`, loop setup + 7-byte copy loop). The new version is ~22 bytes.
+**Cost: +2 bytes.**
+
+#### `evaluate_paren` (line 80)
+
+Calls `evaluate_expression` recursively. The recursive call sets `expr_type` and returns with
+the subexpression result in FP0/S0. No change needed — `evaluate_paren` just returns, passing
+through `expr_type` and FP0/S0 to the outer evaluator.
+
+#### Function dispatch (line 75-78)
+
+```
+        inc     line_pos                ; Skip '('
+        jsr     dispatch_function       ; Epilog leaves result in FP0/S0 + sets expr_type
+        inc     line_pos                ; Skip ')'
+        rts
+```
+
+See "Function Epilog Changes" below.
+
+### Operator Dispatch (the core change)
+
+**Critical ordering**: `push_pending` goes AFTER `process_operators`, not before. The reason:
+`process_operators` cascades results through FP0 — each operator takes the left operand from
+the stack and the right from FP0, leaving the result in FP0 for the next operator. Only after
+all higher-precedence operators have been processed do we push the result to the stack (to
+preserve it while we evaluate the next primary for the new operator).
+
+Current flow:
+```
+primary → push to stack → see operator → process_operators → push operator → next primary
+```
+
+New flow:
+```
+primary → FP0/S0 → see operator → process_operators (FP0 cascades) → push_pending → push operator → next primary
+```
+
+```
+@operator:
+        jsr     decode_byte
+        and     #$0F
+        pha
+        lsr     A
+        tax
+        lda     operator_precedence_table,x
+        jsr     process_operators       ; Higher-prec operators cascade through FP0
+        jsr     push_pending            ; NOW push the result for the new operator ← NEW
+        pla
+        tay
+        lsr     A
+        tax
+        tya
+        ora     operator_precedence_table,x
+        jmp     after_operator
+```
+
+For the "no operator" path (line 40-44): no change — `process_operators` leaves the final
+result in FP0/S0, which is returned to the caller.
+
+**Cost: +3 bytes** (`jsr push_pending`).
+
+### `push_pending` Subroutine
+
+```
+push_pending:
+        lda     expr_type
+        bne     @string
+        jmp     push_fp0
+@string:
+        stz     expr_type               ; Reset for next primary (0 = TYPE_NUMBER)
+        jmp     push_string_s0
+```
+
+On 6502 (no `stz`): `lda #0; sta expr_type` instead.
+
+**Cost: +10 bytes** (65C02) or **+11 bytes** (6502).
+
+Note: the number path does NOT reset `expr_type` (it's already 0). The string path resets it
+to 0 so the next primary finds `expr_type` = 0 and can use `inc expr_type` if it's a string.
 
 ### `call_binary_operator` Simplification
 
-Currently (lines 303-312), `call_binary_operator` pops the right operand into FP0 from the
-stack. In the new scheme, FP0 already has the right operand:
+FP0 already has the right operand. Remove `pop_fp0`:
 
-Currently:
 ```
 call_binary_operator:
-        phax                            ; Push operator handler address -1
+        phax                            ; Push handler address -1
         lda     #TYPE_NUMBER
-        jsr     stack_free_value_with_type
-        txa                             ; Original stack_pos
-        pha                             ; Save on stack
-        jsr     pop_fp0                 ; Second value into FP0
-        pla                             ; Get stack address of first value
-        ldy     #>stack
-        rts                             ; JMP to operator handler
-```
-
-New:
-```
-call_binary_operator:
-        phax                            ; Push operator handler address -1
-        lda     #TYPE_NUMBER
+        sta     expr_type               ; Result is always TYPE_NUMBER
         jsr     stack_free_value_with_type
         txa                             ; Address of left operand
         ldy     #>stack
-        rts                             ; JMP to handler; FP0 already has right operand
+        rts                             ; JMP to handler
 ```
 
-**Savings: 7 bytes, ~100 cycles per binary numeric operator.**
+The `sta expr_type` (2 bytes) replaces `txa; pha; jsr pop_fp0; pla` (7 bytes).
+**Savings: 5 bytes.**
 
 ### `call_binary_operator_push` Elimination
 
-Currently (lines 344-346):
+Currently:
 ```
 call_binary_operator_push:
         jsr     call_binary_operator
         jmp     push_fp0
 ```
 
-This is eliminated. Operator handlers (`op_add`, `op_sub`, `op_mul`, `op_div`, `op_pow`)
-branch to `call_binary_operator` directly instead of `call_binary_operator_push`. Results
-stay in FP0 for the next iteration of `process_operators` or for the caller.
+Eliminated. All callers (`op_mul`, `op_div`, `op_pow`, `op_sub`, `op_add`) branch to
+`call_binary_operator` directly. Results stay in FP0.
 
 **Savings: 5 bytes.**
 
 ### Unary Operator Simplification
 
-Currently:
-```
-unary_op_minus:
-        jsr     pop_fp0                 ; Get value at top of stack
-        jsr     fneg                    ; Negate it
-        jmp     push_fp0               ; Return to stack
+**Unary minus**: Replace the `unary_op_minus` wrapper with `fneg` directly in the operator
+vector tables:
 
+```
+operator_vectors_l:
+        ...
+        .byte   <(fneg-1)               ; Was unary_op_minus
+        .byte   <(unary_op_not-1)
+operator_vectors_h:
+        ...
+        .byte   >(fneg-1)               ; Was unary_op_minus
+        .byte   >(unary_op_not-1)
+```
+
+The `unary_op_minus` routine (3 lines, ~9 bytes) is eliminated entirely.
+**Savings: 9 bytes.**
+
+**Unary NOT**: Remove `pop_fp0` and use `clear_fp0`/`load_one_fp0` directly (per point 3):
+
+```
 unary_op_not:
-        jsr     pop_fp0                 ; Get value
-        lda     FP0e
-        bne     push_value_0
-        beq     push_value_1
+        lda     FP0e                    ; FP0 already loaded
+        bne     @false
+        jmp     load_one_fp0            ; 0 → 1
+@false:
+        jmp     clear_fp0               ; nonzero → 0
 ```
 
-New — FP0 already has the value, leave result in FP0:
-```
-unary_op_minus:
-        jmp     fneg                    ; Negate FP0 in place
+**Savings: 3 bytes** (`jsr pop_fp0` eliminated).
 
-unary_op_not:
-        lda     FP0e
-        bne     set_value_0             ; Nonzero → return 0
-        beq     set_value_1             ; Zero → return 1
-```
+### `push_value_0` / `push_value_1` → Direct Calls
 
-**Savings: ~8 bytes** (eliminate pop and push calls).
+Eliminate `push_value_0` and `push_value_1`. Replace with thin wrappers:
 
-### `push_value_0` / `push_value_1` → `set_value_0` / `set_value_1`
-
-Currently these load a value into FP0 and push it. In the new scheme, just load FP0 (no push):
-
-Currently:
-```
-push_value_0:
-        jsr     clear_fp0
-        jmp     push_fp0
-push_value_1:
-        jsr     load_one_fp0
-        jmp     push_fp0
-```
-
-New:
 ```
 set_value_0:
         jmp     clear_fp0
@@ -308,24 +336,34 @@ set_value_1:
         jmp     load_one_fp0
 ```
 
-**Savings: 4 bytes** (two `jmp push_fp0` eliminated, one `jmp` changed to `jmp`).
+Each is 3 bytes, vs the current 6 bytes (JSR + JMP push_fp0). Comparison operators continue
+using short branches to reach them:
 
-Note: `expr_type` is already TYPE_NUMBER for comparison/logical operators since both operands
-are numeric (or the type was already set during the left operand's evaluation).
+```
+op_eq:
+        jsr     compare_values
+        beq     set_value_1
+        bne     set_value_0
+```
+
+**Savings: 6 bytes** (two `jmp push_fp0` eliminated).
 
 ### Comparison Operators and Type Checking
 
-Currently `compare_values` (line 284) checks types of both operands on the stack. In the new
-scheme, the right operand's type is in `expr_type` and the left operand's type is on the stack:
+`compare_values` checks types. In the new scheme, the right operand's type is in `expr_type`
+and the left is on the stack:
 
 ```
 compare_values:
-        lda     expr_type               ; Type of right operand (in FP0/S0)
+        lda     expr_type               ; Right operand type
         ldx     stack_pos
-        cmp     stack+Value::type,x     ; Type of left operand (on stack)
+        cmp     stack+Value::type,x     ; Left operand type
         beq     @match
         jmp     raise_type_mismatch
 @match:
+        lda     #TYPE_NUMBER            ; Comparison result is always a number
+        sta     expr_type
+        lda     stack+Value::type,x     ; Reload the type
         cmp     #TYPE_STRING
         beq     compare_string_values
         lda     #>(fcmp-1)
@@ -333,142 +371,230 @@ compare_values:
         ; fall through to call_binary_operator
 ```
 
-**Size change: roughly neutral** (±2 bytes).
+Actually, `call_binary_operator` already sets `expr_type` = TYPE_NUMBER (added above). So for
+the numeric path, we don't need to set it here. Only for the string comparison path (which
+doesn't go through `call_binary_operator`):
 
-### String Comparison and Concatenation
+```
+compare_values:
+        lda     expr_type               ; Right operand type
+        ldx     stack_pos
+        cmp     stack+Value::type,x     ; Left operand type
+        beq     @match
+        jmp     raise_type_mismatch
+@match:
+        cmp     #TYPE_STRING
+        beq     @string
+        lda     #>(fcmp-1)
+        ldx     #<(fcmp-1)
+        ; fall through to call_binary_operator (sets expr_type = TYPE_NUMBER)
+@string:
+        stz     expr_type               ; Result type = TYPE_NUMBER
+        jmp     compare_string_values
+```
+
+The `stz expr_type` before `compare_string_values` ensures comparisons of strings produce
+`expr_type` = TYPE_NUMBER.
+
+**Size change: ~+3 bytes** (add `stz expr_type` in string path; lose the old stack-based
+type check, gain the new `expr_type`-based check).
+
+### String Comparison
 
 `pop_two_strings` currently pops both strings from the stack. In the new scheme, the right
-operand is in S0 (header pointer) and the left operand is on the stack:
+operand is in S0 (header) and the left is on the stack. String comparisons do not allocate,
+so no GC concern:
 
 ```
 pop_two_strings:
-        ; Right operand: S0 holds header pointer. Convert to data pointer + get length.
-        jsr     load_s0_from_s0         ; S0 now holds data pointer, A = length
+        jsr     load_s0_from_s0         ; Convert S0 header → data, A = right string length
         sta     E                       ; Right string length in E
-        lda     S0                      ; Move S0 → S1 (right operand data pointer)
-        sta     S1
-        lda     S0+1
-        sta     S1+1
-        jsr     pop_string_s0           ; Left operand from stack → S0, A = length
-        sta     D                       ; Left string length in D
-        rts
-```
-
-Wait — we need to move the right string to S1 before loading the left string into S0. But
-we just converted S0 from header to data pointer via `load_s0_from_s0`. Now we copy S0 → S1
-before popping the left operand into S0.
-
-Actually, we can do this more efficiently. `pop_string_s0` calls `pop_string` (which returns
-the header address in AY) then `jmp load_s0`. So it will overwrite S0. We need S1 set first:
-
-```
-pop_two_strings:
-        jsr     load_s0_from_s0         ; Convert S0 header → data pointer, A = length
-        sta     E                       ; Right string length in E
-        mvax    S0, S1                  ; Copy right string data pointer to S1
+        mvax    S0, S1                  ; Right string data → S1
         jsr     pop_string_s0           ; Left string from stack → S0, A = length
         sta     D                       ; Left string length in D
         rts
 ```
 
-Hmm, but the current code puts the first (left) string in S0 and second (right) in S1. That's
-used by `compare_string_values` which does `lda (S0),y` vs `cmp (S1),y` and by `op_concat`
-which copies S0 first then S1. Let me check the ordering...
+This preserves the current convention: left in S0 (length in D), right in S1 (length in E).
+**Size change: +1 byte.**
 
-Current `pop_two_strings`:
-```
-        jsr     pop_string              ; Get the second string (right, top of stack)
-        jsr     load_s1                 ; Load into S1
-        sta     E                       ; Length of second string in E
-        jsr     pop_string_s0           ; Get first string (left)
-        sta     D                       ; Length of first string in D
-```
+### String Concatenation and GC Safety
 
-So: right → S1 (length in E), left → S0 (length in D). The new code preserves this mapping:
-
-```
-pop_two_strings:
-        jsr     load_s0_from_s0         ; S0 header → S0 data, A = right string length
-        sta     E                       ; Right string length in E
-        mvax    S0, S1                  ; Right string data pointer → S1
-        jsr     pop_string_s0           ; Left string from stack → S0, A = length
-        sta     D                       ; Left string length in D
-        rts
-```
-
-The `mvax` is 4 bytes. Total: `jsr`(3) + `sta`(2) + `mvax`(4) + `jsr`(3) + `sta`(2) + `rts`(1)
-= 15 bytes. Current version: `jsr`(3) + `jsr`(3) + `sta`(2) + `jsr`(3) + `sta`(2) + `rts`(1)
-= 14 bytes. **Size: +1 byte.**
-
-For `op_concat`, the result is a new string allocated via `string_alloc`. After concatenation,
-set S0 to the new string's header (which IS `string_ptr` since it was just allocated):
+`op_concat` allocates a new string, which may trigger GC. The right operand is in S0 (not on
+the stack). To ensure GC safety, push the right operand to the stack first, then proceed as
+the current code does:
 
 ```
 op_concat:
-        jsr     pop_two_strings
-        ...                             ; (concat logic unchanged)
-        mvax    string_ptr, S0          ; Result string header → S0
+        jsr     push_string_s0          ; Push right operand for GC safety
+        jsr     pop_two_strings_current ; Pop both (uses current stack-based pop_two_strings)
+        clc
+        adc     E
+        bcs     @out_of_range
+        jsr     string_alloc_for_copy
+        ldax    S0
+        ldy     D
+        jsr     copy_y_from
+        ldax    S1
+        ldy     E
+        jsr     copy_y_from
+        mvax    string_ptr, S0          ; Result header → S0
         lda     #TYPE_STRING
         sta     expr_type
         rts
 ```
 
-This replaces the current `jmp push_string` tail.
+Wait — with this approach, we push S0 so both operands are on the stack, then pop both via the
+OLD (current) `pop_two_strings`. But `pop_two_strings` is being changed for the comparison
+path (where the right operand is in S0). We need two variants, or restructure.
+
+Simpler approach: since `op_concat` needs GC safety, it pushes the right operand first, making
+both operands on the stack. Then it uses the CURRENT `pop_two_strings` behavior. We can achieve
+this by keeping a `pop_two_strings_from_stack` that pops both from the stack:
+
+```
+pop_two_strings_from_stack:
+        jsr     pop_string              ; Right operand → AY
+        jsr     load_s1                 ; → S1, length in A
+        sta     E
+        jsr     pop_string_s0           ; Left operand → S0, length in A
+        sta     D
+        rts
+```
+
+This is the same as the current `pop_two_strings`. For comparisons, use the new version that
+reads the right operand from S0. For concat, push S0 first then use the stack-based version.
+
+Alternatively, just keep one `pop_two_strings` (the S0-based version for comparisons) and have
+`op_concat` do its own setup:
+
+```
+op_concat:
+        jsr     push_string_s0          ; Push right operand for GC safety
+        jsr     pop_string              ; Pop right operand back → AY
+        jsr     load_s1                 ; → S1, length in A
+        sta     E
+        jsr     pop_string_s0           ; Pop left operand → S0, length in A
+        sta     D
+        ; Now proceed with allocation and copy
+        lda     D
+        clc
+        adc     E
+        bcs     @out_of_range
+        jsr     string_alloc_for_copy
+        ...
+        mvax    string_ptr, S0          ; Result header → S0
+        lda     #TYPE_STRING
+        sta     expr_type
+        rts
+```
+
+The `push_string_s0` + `pop_string` round-trip for the right operand is a small overhead
+(~30 cycles for push, ~25 cycles for pop — both just move 2 bytes + type). This is far cheaper
+than the FP push/pop round-trip (~168 cycles) that we're optimizing away.
+
+**Size change: +6 bytes** (`jsr push_string_s0` + extra setup, minus the old `jmp push_string`
+tail).
 
 ### Logical Operators
 
-Currently:
-```
-set_up_logical_op:
-        jsr     pop_int_fp0             ; Right operand from stack
-        stax    DE
-        jmp     pop_int_fp0             ; Left operand from stack
-```
+FP0 already has the right operand:
 
-New — FP0 already has the right operand:
 ```
 set_up_logical_op:
         jsr     truncate_fp_to_int      ; FP0 right operand → int in AX
         stax    DE
-        jsr     pop_fp0                 ; Left operand from stack → FP0
+        jsr     pop_fp0                 ; Left operand → FP0
         jmp     truncate_fp_to_int      ; → int in AX
-```
 
-And `finish_logical_op` currently ends with `jmp push_int_fp0`. New:
-```
 finish_logical_op:
         tax
         pla
-        jmp     int_to_fp               ; AX → FP0, no push
+        stz     expr_type               ; Result is TYPE_NUMBER
+        jmp     int_to_fp               ; AX → FP0 (no push)
 ```
 
-Note: `set_expr_type_number` should be called (or `expr_type` is already TYPE_NUMBER since both
-operands of AND/OR must be numbers). Since `expr_type` was set during the left operand's
-evaluation and logical operators only apply to numbers, it will already be TYPE_NUMBER. Confirm
-this during implementation.
+`set_up_logical_op`: `jsr pop_int_fp0` (3 bytes, which is `jsr pop_fp0; jmp truncate`) becomes
+`jsr truncate_fp_to_int` (3 bytes — same size but skips the pop for the right operand).
+The second `jmp pop_int_fp0` becomes `jsr pop_fp0; jmp truncate_fp_to_int` (same as the
+current `pop_int_fp0` body).
 
-**Size change: roughly neutral** (±2 bytes).
+`finish_logical_op`: `jmp push_int_fp0` (3 bytes) becomes `stz expr_type; jmp int_to_fp`
+(5 bytes). **Cost: +2 bytes.**
+
+## Function Epilog Changes
+
+The dispatch system (dispatch.s) uses epilog vectors that currently push results onto the stack.
+In the new scheme, function results must be left in FP0/S0 with `expr_type` set.
+
+The current epilog vectors point to `push_fp0-1`, `push_int_fp0-1`, `push_string-1`. Replace
+with new routines:
+
+```
+epilog_set_fp0:
+        rts                             ; FP0 already has the result; expr_type already 0
+
+epilog_set_int_fp0:
+        jmp     int_to_fp               ; AX → FP0; expr_type already 0
+
+epilog_set_string:
+        mvax    string_ptr, S0          ; Result header → S0
+        inc     expr_type               ; TYPE_STRING
+        rts
+```
+
+`epilog_set_fp0` is 1 byte (just RTS — FP0 has the result, `expr_type` is already TYPE_NUMBER
+from the initial `sta expr_type` at the top of `evaluate_expression`).
+
+`epilog_set_int_fp0` is 3 bytes (JMP).
+
+`epilog_set_string` is 7 bytes (mvax + inc + rts).
+
+Update `dispatch_epilogs`:
+```
+dispatch_epilogs:
+        .word   epilog_set_fp0-1
+        .word   epilog_set_int_fp0-1
+        .word   epilog_set_string-1
+```
+
+The original `push_fp0`, `push_int_fp0`, and `push_string` remain for other callers (INPUT,
+READ, `push_pending`). **Cost: +11 bytes** for the new epilog routines.
+
+Note: `epilog_set_string` sets S0 from `string_ptr`, which is correct because string-producing
+functions always allocate a new string (setting `string_ptr`). For the `push_string` epilog
+path — we restructured `push_string` to copy `string_ptr` → S0 and fall through to
+`push_string_s0`. So even if some future path uses `push_string` as an epilog, S0 is set.
+
+Wait — we could use `push_string` AS the epilog and then pop_string the result. No, that
+defeats the purpose. The epilog routines are correct as written above.
 
 ## Changes to Callers of `evaluate_expression`
 
 ### Contract
 
-`evaluate_expression` now returns with the result in FP0 (if `expr_type` = TYPE_NUMBER) or in
-S0 as a string header pointer (if `expr_type` = TYPE_STRING). The value is NOT on the stack.
+`evaluate_expression` returns with the result in FP0 (if `expr_type` = TYPE_NUMBER) or in S0
+as a string header pointer (if `expr_type` = TYPE_STRING). The value is NOT on the stack.
 
-### `exec_impl_let` / `assign_variable` (dispatch.s)
+Update the function's documentation comment from "evaluates an expression and leaves the result
+on the stack" to "evaluates an expression and leaves the result in FP0 (number) or S0 (string),
+with the type in expr_type."
 
-Rewrite `assign_variable` to copy from FP0 or S0 directly to the variable:
+### `assign_variable` (dispatch.s)
+
+Key insight: `assign_variable` already uses `decode_name_type` (the target variable's type),
+NOT `expr_type`. This means we can rewrite it to read from FP0/S0 based on `decode_name_type`
+without requiring callers (INPUT, READ) to set `expr_type`:
 
 ```
 assign_variable:
-        lda     expr_type
+        lda     decode_name_type
         bne     @string
         lday    name_ptr
-        jmp     store_fp0               ; FP0 directly to variable
+        jmp     store_fp0               ; FP0 → variable
 @string:
         ldy     #0
-        lda     S0                      ; Copy S0 (header pointer) to variable
+        lda     S0                      ; S0 header pointer → variable
         sta     (name_ptr),y
         iny
         lda     S0+1
@@ -476,24 +602,37 @@ assign_variable:
         rts
 ```
 
-~18 bytes, vs the current ~18 bytes. **Size: neutral. Speed: saves ~168 cycles per assignment.**
+The type mismatch check (`stack_free_value_with_type`) is lost here. Add an explicit check in
+`exec_impl_let` (the only path where a type mismatch is possible):
+
+```
+exec_impl_let:
+        jsr     decode_name
+        jsr     find_or_add_variable
+        inc     line_pos
+        ldphaa  name_ptr
+        jsr     evaluate_expression
+        plstaa  name_ptr
+        lda     decode_name_type        ; Check types match
+        cmp     expr_type
+        bne     raise_type_mismatch     ; ← NEW check
+; fall through to assign_variable
+```
+
+**Size change: ~neutral.** The copy loop (~12 bytes) is replaced by the branching store (~16
+bytes), but `stack_free_value_with_type` call is removed (–3 bytes) and type check added in
+exec_impl_let (+4 bytes).
 
 ### `exec_for` (control.s)
 
-Start value: goes through `assign_variable` — covered above.
-
-End value (line 104-109): skip `pop_fp0` since FP0 already has the value.
+Skip `pop_fp0` for the end and step values:
 ```
         jsr     evaluate_expression     ; End value — now in FP0
         ; jsr     pop_fp0              ; REMOVED
-        lda     stack_pos
-        ...
 ```
-**Savings: 3 bytes, ~85 cycles.**
+**Savings: 3 bytes × 2 = 6 bytes, ~170 cycles.**
 
-Step value (line 114-116): same. **Savings: 3 bytes, ~85 cycles.**
-
-### `exec_if` (control.s line 199)
+### `exec_if` (control.s)
 
 ```
         jsr     evaluate_expression     ; Result in FP0
@@ -503,26 +642,12 @@ Step value (line 114-116): same. **Savings: 3 bytes, ~85 cycles.**
 ```
 **Savings: 3 bytes, ~85 cycles.**
 
-### `exec_on_goto_gosub` (control.s line 32)
+### `exec_on_goto_gosub` (control.s)
 
-```
-        jsr     evaluate_expression     ; Result in FP0
-        jsr     decode_byte
-        ...
-        ; jsr     pop_int_fp0          ; REMOVED
-        jsr     truncate_fp_to_int      ; FP0 → int in AX (skip pop)
-```
-**Savings: ~0 bytes** (pop_int_fp0 = pop_fp0 + truncate; replace with just truncate, but
-pop_int_fp0 is a `jsr pop_fp0 / jmp truncate` so the save is 3 bytes for the pop_fp0 call,
-minus nothing).
-
-Actually: `pop_int_fp0` is defined as `jsr pop_fp0; jmp truncate_fp_to_int`. So the caller
-currently does `jsr pop_int_fp0` (3 bytes). New: `jsr truncate_fp_to_int` (3 bytes).
-**Size: neutral. Speed: saves ~85 cycles.**
+Replace `jsr pop_int_fp0` with `jsr truncate_fp_to_int` (skips the pop):
+**Size: neutral, saves ~85 cycles.**
 
 ### `exec_print` (print.s)
-
-Currently checks type on the stack. New version uses `expr_type`:
 
 ```
 exec_print_number:
@@ -530,267 +655,175 @@ exec_print_number:
         jsr     print_number
 exec_print:
         jsr     peek_byte
-        beq     @newline
-@continue:
-        cmp     #TOK_SEMI
-        beq     @empty_space
-        cmp     #TOK_COMMA
-        beq     @tab
-        jsr     evaluate_expression     ; Result in FP0 or S0
-        lda     expr_type
+        ...
+        jsr     evaluate_expression
+        lda     expr_type               ; Check type (was stack-based)
         beq     exec_print_number       ; TYPE_NUMBER
-        lday    string_ptr              ; *** See note below
-        jsr     print_string            ; (calls load_s0 internally)
+        lday    S0                      ; String header pointer
+        jsr     print_string            ; print_string calls load_s0 (safe/idempotent)
         jmp     exec_print
 ```
 
-**Note on printing strings**: `print_string` takes the string header address in AY and calls
-`load_s0`. We need to pass the header address, which is in S0. So:
-
-```
-        jsr     load_s0_from_s0         ; Convert S0 header → data, A = length
-        ; ... but print_string calls load_s0 again, which would be redundant.
-```
-
-Better: just pass S0's value to `print_string`:
-```
-        lday    S0                      ; Header pointer
-        jsr     print_string            ; print_string calls load_s0 (safe, idempotent)
-        jmp     exec_print
-```
-
-Or use `load_s0_from_s0` and then call the print logic directly:
-```
-        jsr     load_s0_from_s0         ; S0 = data pointer, A = length
-        tay                             ; Length into Y for write
-        clc
-        adc     print_column
-        sta     print_column
-        ldax    S0
-        jsr     write
-        jmp     exec_print
-```
-
-But inlining `print_string` wastes code space. Passing `lday S0; jsr print_string` is simpler
-(7 bytes). Or use `jsr load_s0_from_s0; ...` but then print_string would re-load S0.
-
-Simplest approach: `lday S0; jsr print_string`. The double `load_s0` (once here implicitly,
-once inside `print_string`) is wasteful at runtime but correct and saves code space.
-
-**Savings: 3 bytes** (remove `pop_fp0` from `exec_print_number`, change type check from
-stack-based to `expr_type`-based). **Speed: ~85 cycles** per PRINT expression.
+**Savings: 3 bytes** (remove `pop_fp0`), ~neutral for the type check change.
 
 ### `evaluate_argument_list` (expression.s)
 
-Add `jsr push_pending` after each `evaluate_expression`:
+Add `jsr push_pending` after each expression evaluation:
 
 ```
-evaluate_argument_list:
-        pha
-        jsr     peek_byte
-        cmp     #TOK_RPAREN
-        beq     @done
 @loop:
         jsr     evaluate_expression
-        jsr     push_pending            ; Push result onto the stack
+        jsr     push_pending            ; Push result for function prolog ← NEW
         tsx
         dec     $101,x
-        jsr     peek_byte
-        cmp     #TOK_COMMA
-        bne     @done
-        inc     line_pos
-        jmp     @loop
-@done:
-        pla
-        rts
+        ...
 ```
 
-**Cost: +3 bytes** (the `jsr push_pending`).
+**Cost: +3 bytes.**
 
 ### INPUT and READ (input.s, read.s)
 
-These parse values and call `push_fp0`/`push_string` before `assign_variable`. With the new
-`assign_variable` that reads from FP0/S0 directly:
+These parse values and currently call `push_fp0`/`push_string` before `assign_variable`. Since
+the new `assign_variable` uses `decode_name_type` (not `expr_type`), and INPUT/READ always
+parse the correct type for the target variable, we just need FP0/S0 set correctly:
 
-INPUT numbers (input.s line 38): replace `jsr push_fp0` with `stz expr_type` (or
-`lda #0; sta expr_type` on 6502). **Size: +1 byte (6502) or –1 byte (65C02).**
+**INPUT numbers** (input.s line 38): Replace `jsr push_fp0` with nothing — `string_to_fp`
+already leaves the result in FP0, and `assign_variable` reads FP0 based on `decode_name_type`.
+**Savings: 3 bytes.**
 
-INPUT strings (input.s line 60): replace `jsr push_string` with
-`mvax string_ptr, S0; lda #TYPE_STRING; sta expr_type`. **Size: +4 bytes.**
+**INPUT strings** (input.s line 60): Replace `jsr push_string` with
+`mvax string_ptr, S0` — sets S0 from the just-allocated string. `assign_variable` reads S0.
+**Cost: +1 byte** (mvax=4 vs jsr=3).
 
-Similarly for READ (read.s lines 51, 69). **Size: +5 bytes per site × 2 = +10 bytes.**
+**READ numbers** (read.s line 51): Replace `jsr push_fp0` with nothing. **Savings: 3 bytes.**
 
-### Function Prologs and Epilogs (dispatch.s)
+**READ strings** (read.s line 69): Replace `jsr push_string` with `mvax string_ptr, S0`.
+**Cost: +1 byte.**
 
-The dispatch system uses a prolog/epilog mechanism. Prologs pop from the stack (e.g.,
-`pop_fp0`, `pop_string_s0`). Epilogs push results back (`push_fp0`, `push_string`).
-
-Since `evaluate_argument_list` now calls `push_pending` for every argument, the prolog/epilog
-system continues to work unchanged — arguments are on the stack when the prolog runs, and
-epilog results are pushed for the caller.
-
-**However**, function epilogs push results to the stack, but the new `evaluate_expression`
-contract expects the result in FP0/S0 (not on stack). The epilog runs *within*
-`evaluate_expression` — it's called from `dispatch_function` which is called from `@dispatch`.
-The flow is:
-
-1. `@dispatch` calls `dispatch_function`
-2. `dispatch_function` sets up epilog → handler → prolog chain, then calls
-   `evaluate_argument_list`
-3. After `evaluate_argument_list` pushes args, the prolog pops the arg, handler runs,
-   epilog pushes the result
-4. Control returns to `@dispatch`, which returns to `evaluate_expression`
-
-At step 4, the result is on the stack (pushed by epilog). But `evaluate_expression` now
-expects results in FP0/S0. So the epilog needs to change: instead of pushing to the stack,
-it should leave the result in FP0/S0 and set `expr_type`.
-
-The epilog vectors (dispatch.s line 102-105) currently point to:
-- `push_fp0-1`
-- `push_int_fp0-1`
-- `push_string-1`
-
-Change to routines that set FP0/S0 + `expr_type` instead of pushing:
-
-For `push_fp0` epilog: FP0 already has the result. Just set `expr_type = TYPE_NUMBER`. Use
-`set_expr_type_number` (defined in the primary handler section).
-
-For `push_int_fp0` epilog: `int_to_fp` converts AX → FP0. Then set `expr_type = TYPE_NUMBER`.
-Define `epilog_push_int_fp0: jsr int_to_fp; jmp set_expr_type_number`.
-
-For `push_string` epilog: `string_ptr` has the newly allocated string. Copy to S0 and set
-`expr_type = TYPE_STRING`. Define
-`epilog_push_string: mvax string_ptr, S0; jmp set_expr_type_string`.
-
-These epilog replacements add ~12 bytes but the originals are no longer needed as epilogs
-(they still exist for other callers).
-
-Wait — the existing `push_fp0`, `push_int_fp0`, and `push_string` routines are still called
-from other places (INPUT, READ, `push_pending`, `evaluate_argument_list`'s `push_pending`).
-They remain. The epilog vectors just point to new, smaller routines. Net cost: ~12 bytes.
+Net for INPUT/READ: **Savings: 4 bytes.**
 
 ## String GC Safety
 
-The string garbage collector scans variables, arrays, and the value stack for string references
-(string.s `for_all_referenced_strings`). In the new scheme, a string value may be pending in S0
-rather than on the stack.
+The GC does NOT scan S0. Instead, we ensure temporary strings are on the stack before any
+operation that might trigger string allocation (and thus GC). This is acceptable because string
+push/pop is cheap (~30 cycles round-trip, just copying 2 bytes + type byte), unlike FP push/pop
+(~168 cycles with pack/unpack conversions).
 
-### When Can GC Trigger While S0 Holds a Pending String?
+### When Can GC Trigger?
 
-GC triggers during `string_alloc_memory` → `compact`. This happens during any string
-allocation. The dangerous scenario is:
+Only during `string_alloc_memory` → `compact`. This happens when:
+- `decode_string` allocates (evaluating a string literal)
+- `string_alloc_for_copy` (string concatenation, LEFT$/RIGHT$/MID$, CHR$, STR$)
+- `read_string` (INPUT, READ)
 
-1. A string expression is evaluated, leaving the result in S0 (not on stack)
-2. Before S0 is consumed, another operation triggers string allocation (and thus GC)
-3. GC doesn't find the S0 string referenced anywhere, so it collects it
+### Analysis of Each Case
 
-Example: `CHR$(65) & "hello"`
-1. `CHR$(65)` allocates "A", S0 = header of "A"
-2. `&` operator: push S0 → "A" on stack (safe)
-3. `"hello"` allocates string, S0 = header of "hello"
-4. `op_concat`: must allocate result string. GC triggers. "hello" is in S0 but NOT on the
-   stack and NOT in any variable. If the string heap is full enough to trigger compaction,
-   "hello" could be relocated but S0 wouldn't be updated, or worse, collected.
+**Primary handlers that allocate** (`evaluate_string`): The allocation happens inside
+`decode_string`, before S0 is set. There is no pending string value in S0 during the
+allocation. Safe.
 
-Actually, wait: step 3 is `decode_string` which allocates the "hello" string. At this point
-the earlier "A" is already pushed to the stack (step 2). Then `op_concat` runs — the right
-operand "hello" is in S0, the left operand "A" is on the stack. `op_concat` calls
-`string_alloc_for_copy` which might trigger GC. At that point, "hello" is referenced only by
-S0.
+**Binary operators**: When a binary operator follows a primary, `push_pending` pushes the value
+to the stack BEFORE evaluating the next primary (which might allocate). Safe.
 
-### Solution: Mark S0's String During GC
+**String concatenation** (`op_concat`): The right operand is in S0 (not on stack). Allocation
+happens inside `string_alloc_for_copy`. Solution: push S0 to the stack at the start of
+`op_concat` before doing anything that allocates. See the `op_concat` section above.
 
-Add S0 scanning to `for_all_referenced_strings`, after the stack scan section. S0 is a 2-byte
-ZP location containing a string header pointer — exactly the format that
-`load_src_ptr_handle_string` expects when name_ptr points to it:
+**Function calls**: `evaluate_argument_list` calls `push_pending` for each argument, so all args
+are on the stack when the function handler runs. Function handlers that allocate strings
+internally are safe because their args are on the stack. Safe.
 
-```
-@stack_done:
-        plsta   stack_pos               ; Restore stack_pos
+**Assignment, PRINT, IF, FOR**: These consume the value without allocating strings. Safe.
 
-        ; Mark the pending string in S0 (if any)
-        lda     expr_type
-        beq     @no_pending             ; TYPE_NUMBER — no string to mark
-        lda     #S0                     ; S0's ZP address
-        sta     name_ptr
-        lda     #0                      ; High byte is 0 (zero page)
-        sta     name_ptr+1
-        jsr     load_src_ptr_handle_string
-@no_pending:
-        rts
-```
-
-Cost: **~14 bytes**. This ensures that the string referenced by S0 is always marked as
-referenced during GC, preventing it from being collected or relocated without updating S0.
-
-Note: During GC phase 4 (`phase_4_update_string`), the string pointer stored at name_ptr is
-updated in place. Since name_ptr points to S0, this means S0 itself will be updated to reflect
-the string's new location after compaction. This is exactly what we want.
+**INPUT/READ strings**: `read_string` allocates internally. There is no pending string in S0
+during the allocation (S0 is set AFTER `read_string` returns). Safe.
 
 ## Summary of Code Size Impact
 
 | Change | Bytes |
 |---|---|
 | New ZP variable `expr_type` | +1 (ZP, not code) |
-| `load_s0_from_s0` (string.s) | +4 |
-| `push_pending` + `push_string_s0` | +18 |
-| Primary handlers (set expr_type instead of push) | ~0 |
-| `call_binary_operator` simplification | –7 |
+| `evaluate_expression` top: `sta expr_type` | +2 |
+| `load_s0_from_s0` (string.s, falls through) | +4 |
+| `push_string` restructure (add `mvax` to S0) | +4 |
+| `push_pending` + string path reset | +11 |
+| `evaluate_number` (jmp decode_number) | –3 |
+| `evaluate_string` (set S0 + inc expr_type) | +4 |
+| `evaluate_variable` (direct load FP0/S0) | +2 |
+| `@operator` path: `jsr push_pending` | +3 |
+| `call_binary_operator` simplification | –5 |
 | `call_binary_operator_push` elimination | –5 |
-| Unary operator simplification | –8 |
-| `set_value_0` / `set_value_1` (no push) | –4 |
-| `compare_values` rewrite | ~0 |
+| Unary minus: `fneg` in vector table | –9 |
+| Unary NOT: remove `pop_fp0` | –3 |
+| `push_value_0/1` → `set_value_0/1` | –6 |
+| `compare_values` rewrite | +3 |
 | `pop_two_strings` rewrite | +1 |
-| `op_concat` result setup | ~0 |
+| `op_concat` (push + GC safety + expr_type) | +6 |
+| Logical operators (`set_up`, `finish`) | +2 |
+| Function epilog routines | +11 |
+| `exec_impl_let` type check | +4 |
 | `assign_variable` rewrite | ~0 |
-| Caller changes (IF, FOR ×2, PRINT, ON) | –12 |
-| `evaluate_argument_list` (add push_pending) | +3 |
-| Function epilog replacements | +12 |
-| INPUT/READ changes (4 sites) | +10 |
-| GC S0 protection | +14 |
-| `load_s0_from_s0` call site savings (×3-4 sites) | –12 |
-| **Total estimate** | **+14 bytes** |
+| Caller changes (IF, FOR ×2, PRINT) | –9 |
+| `evaluate_argument_list` | +3 |
+| INPUT/READ changes | –4 |
+| `load_s0_from_s0` call site savings (×3 sites) | –9 |
+| **Total estimate** | **+7 bytes** |
 
-The optimization adds roughly 14 bytes of code, well within the ~196 bytes of headroom in the
-apple2 binary (currently 7996 of 8192). The estimate has uncertainty of ±10 bytes depending on
-implementation details and opportunities for code sharing.
+Well within the ~196 bytes of headroom in the apple2 binary (currently 7996 of 8192). Estimate
+uncertainty: ±10 bytes.
 
 ## Summary of Performance Impact
 
 | Pattern | Cycles Saved | Frequency |
 |---|---|---|
 | Each binary numeric operator | ~168 | Very high |
-| Each unary operator | ~168 | Medium |
-| Each comparison operator | ~168 | High |
+| Each numeric comparison | ~168 | High |
+| Unary minus | ~168 | Medium |
+| Unary NOT | ~85 | Medium |
 | Simple assignment (`X=1`) | ~168 | Very high |
 | IF statement | ~85 | High |
-| FOR end/step values | ~170 | High (in loops) |
+| FOR end/step values | ~85 each | High (in loops) |
 | PRINT expression | ~85 | Medium |
 | ON...GOTO/GOSUB | ~85 | Low |
+| INPUT/READ numbers | ~85 | Low |
+| String operations | ~0 | N/A (push for GC) |
 
 Estimated overall speedup: **15-25%** in typical BASIC programs. Programs heavy on arithmetic
-and assignments (tight loops, calculations) will see the largest improvement.
+and assignments (tight numeric loops, calculations) will see the largest improvement.
 
 ## Implementation Order
 
-1. Add `expr_type` to zero page.
-2. Add `load_s0_from_s0` to string.s.
-3. Add `push_pending` / `push_string_s0` / `set_expr_type_number` / `set_expr_type_string`.
-4. Modify primary expression handlers to set FP0/S0 + `expr_type` instead of pushing.
-5. Modify operator dispatch: push before operator, not in primary handler.
-6. Simplify `call_binary_operator` (remove `pop_fp0`).
-7. Eliminate `call_binary_operator_push`.
-8. Simplify unary operators.
-9. Change `push_value_0`/`push_value_1` to `set_value_0`/`set_value_1`.
-10. Rewrite `compare_values` to use `expr_type`.
-11. Rewrite `pop_two_strings` / string operations.
-12. Update `assign_variable` to use FP0/S0 directly.
-13. Update callers: `exec_if`, `exec_for`, `exec_print`, `exec_on_goto_gosub`.
-14. Update `evaluate_argument_list` to call `push_pending`.
-15. Update function epilog vectors.
-16. Update INPUT and READ.
-17. Add GC S0 protection to `for_all_referenced_strings`.
-18. Run `make test && make expect_test` to verify.
+**Phase 1: Core infrastructure** (do together)
 
-Steps 1-9 form the core change and should be done together. Steps 10-17 are incremental
-improvements that can be done one at a time with testing between each.
+1. Add `expr_type` to zeropage.s. Add assert `PR_OPEN_PAREN = TYPE_NUMBER`.
+2. Add `load_s0_from_s0` to string.s (before `load_s0`).
+3. Restructure `push_string` → `push_string_s0` (add `mvax` + fall-through).
+4. Add `push_pending` subroutine.
+5. Add `set_value_0`/`set_value_1` (jmp clear_fp0 / jmp load_one_fp0).
+6. Add `sta expr_type` at top of `evaluate_expression`.
+7. Modify primary handlers (evaluate_number, evaluate_string, evaluate_variable).
+8. Add `jsr push_pending` in `@operator` path (AFTER process_operators).
+9. Simplify `call_binary_operator` (remove `pop_fp0`, add `sta expr_type`).
+10. Eliminate `call_binary_operator_push`; update `op_add`..`op_pow` callers.
+11. Replace `unary_op_minus` vector with `fneg`.
+12. Simplify `unary_op_not`.
+13. Replace `push_value_0`/`push_value_1` with `set_value_0`/`set_value_1`.
+14. Update `evaluate_expression` docstring.
+15. Run `make test && make expect_test`.
+
+**Phase 2: Operator type handling**
+
+16. Rewrite `compare_values` to use `expr_type`.
+17. Rewrite `pop_two_strings` for comparison path.
+18. Rewrite `op_concat` with GC push.
+19. Update `finish_logical_op` / `set_up_logical_op`.
+20. Run `make test && make expect_test`.
+
+**Phase 3: Callers**
+
+21. Rewrite `assign_variable`; add type check in `exec_impl_let`.
+22. Update function epilog vectors (dispatch_epilogs).
+23. Update `evaluate_argument_list`.
+24. Update callers: `exec_if`, `exec_for`, `exec_print`, `exec_on_goto_gosub`.
+25. Update INPUT and READ.
+26. Run `make test && make expect_test`.
