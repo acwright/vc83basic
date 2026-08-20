@@ -2,12 +2,16 @@
 ;
 ; SPDX-License-Identifier: MIT
 
-.export io_open, io_close, io_close_all, io_get, io_put
+.ifdef enable_io_channels
+.export io_open, io_close, io_close_all, io_xio
+.endif
+.export io_get, io_put
 .export io_read_record, io_end_record, io_end_field
-.export io_save, io_load, io_xio
+.export io_save, io_load
 
 .code
 
+.ifdef enable_io_channels
 ; Opens a file on channel.
 ; channel = channel (0..7), A = mode, S0 = filename string
 ; Returns carry clear if ok, carry set if error.
@@ -28,6 +32,7 @@ io_close:
 
 io_close_all:
         rts
+.endif
 
 ; Gets a single byte/key from channel.
 ; channel = channel (0..7), A = mode (0 = blocking, 1 = non-blocking)
@@ -207,11 +212,13 @@ io_load:
         sec
         rts
 
+.ifdef enable_io_channels
 ; Device-specific control operation.
 
 io_xio:
         clc
         rts
+.endif
 
 bsave_cmd:      .asciiz "BSAVE "
 bload_cmd:      .asciiz "BLOAD "

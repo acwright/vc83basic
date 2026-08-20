@@ -13,6 +13,7 @@ dispatch_statement:
         jsr     decode_byte                     ; Get statement number
         cmp     #TOK_NAME
         beq     exec_impl_let
+.ifdef enable_io_channels
         pha                                     ; Save statement token
         ldx     #$80                            ; Default channel = $80 (bit 7 set = default)
         jsr     peek_byte
@@ -26,6 +27,8 @@ dispatch_statement:
 @not_channel:
         stx     channel                         ; Store final channel (default $80 or explicit 0..7)
         pla                                     ; Restore statement token
+.endif
+        sec
         sbc     #TOK_PRINT                      ; Convert token to unified index
         bpl     dispatch                        ; Unconditional (index < 128)
 
@@ -145,17 +148,21 @@ dispatch_vectors_l:
         .byte   <(clear_variables-1)
         .byte   <(exec_return-1)
         .byte   <(exec_pop-1)
-        .byte   <(exec_open-1)
-        .byte   <(exec_close-1)
         .byte   <(exec_get-1)
         .byte   <(exec_put-1)
-        .byte   <(exec_xio-1)
         .byte   <(exec_save-1)
         .byte   <(exec_load-1)
+.ifdef enable_io_channels
+        .byte   <(exec_open-1)
+        .byte   <(exec_close-1)
+        .byte   <(exec_xio-1)
+.endif
 .if .definedmacro(extension_statement_vectors_l)
         extension_statement_vectors_l
 .else
+  .ifdef enable_io_channels
         .byte   0
+  .endif
 .endif
 
 statement_count = * - dispatch_vectors_l
@@ -223,17 +230,21 @@ dispatch_vectors_h:
         .byte   >(clear_variables-1)
         .byte   >(exec_return-1)
         .byte   >(exec_pop-1)
-        .byte   >(exec_open-1)
-        .byte   >(exec_close-1)
         .byte   >(exec_get-1)
         .byte   >(exec_put-1)
-        .byte   >(exec_xio-1)
         .byte   >(exec_save-1)
         .byte   >(exec_load-1)
+.ifdef enable_io_channels
+        .byte   >(exec_open-1)
+        .byte   >(exec_close-1)
+        .byte   >(exec_xio-1)
+.endif
 .if .definedmacro(extension_statement_vectors_h)
         extension_statement_vectors_h
 .else
+  .ifdef enable_io_channels
         .byte   0
+  .endif
 .endif
 
         ; --- Functions ---
@@ -274,10 +285,12 @@ dispatch_flags:
         ; --- Statements ---
         .byte   PROLOG_POP_INT | (PROLOG_POP_INT << 4)                                                  ; POKE, DPOKE
         .byte   0, 0, 0, 0                                                                              ; RUN..POP
-        .byte   0                                                                                       ; OPEN, CLOSE
         .byte   PROLOG_NONE | (PROLOG_POP_INT << 4)                                                    ; GET, PUT
-        .byte   PROLOG_NONE | (PROLOG_POP_STRING << 4)                                                  ; XIO, SAVE
-        .byte   PROLOG_POP_STRING | (PROLOG_NONE << 4)                                                  ; LOAD + BYE/padding
+        .byte   PROLOG_POP_STRING | (PROLOG_POP_STRING << 4)                                            ; SAVE, LOAD
+.ifdef enable_io_channels
+        .byte   0                                                                                       ; OPEN, CLOSE
+        .byte   0                                                                                       ; XIO + padding
+.endif
         invoke_if_defined extension_statement_flags
 
         ; --- Functions ---

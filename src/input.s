@@ -7,8 +7,10 @@
 .assert TYPE_NUMBER = $00, error
 
 exec_input:
+.ifdef enable_io_channels
         bit     channel                 ; Bit 7 is clear if explicit channel was given
         bpl     @get_input              ; Skip prompt if explicit channel
+.endif
         jsr     peek_byte
         cmp     #TOK_STRING
         bne     @default_prompt
@@ -58,9 +60,11 @@ exec_input:
         rts
 
 @more_input:
+.ifdef enable_io_channels
         bit     channel
         bpl     @get_input              ; Explicit channel: skip prompt
-        bmi     @default_prompt         ; Default console: print '?' prompt
+.endif
+        jmp     @default_prompt
 
 @eof_error:
         jmp     raise_io_error

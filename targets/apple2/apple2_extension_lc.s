@@ -4,13 +4,13 @@
 
 TOK_AT    = $15
 
-TOK_GR    = $61
-TOK_TEXT  = $62
-TOK_HOME  = $63
-TOK_COLOR = $64
-TOK_PLOT  = $65
-TOK_HLIN  = $66
-TOK_VLIN  = $67
+TOK_GR    = $60
+TOK_TEXT  = $61
+TOK_HOME  = $62
+TOK_COLOR = $63
+TOK_PLOT  = $64
+TOK_HLIN  = $65
+TOK_VLIN  = $66
 
 TOK_PDL   = $99
 TOK_SCRN  = $9A
@@ -27,6 +27,7 @@ TOK_SCRN  = $9A
 :       name_table_entry "PLOT"
 :       name_table_entry "HLIN"
 :       name_table_entry "VLIN"
+:       name_table_entry ""             ; Padding for even statement count
 .endmacro
 
 .macro extension_function_keywords
@@ -55,6 +56,7 @@ TOK_SCRN  = $9A
         .byte   <(exec_plot-1)
         .byte   <(exec_hlin-1)
         .byte   <(exec_vlin-1)
+        .byte   0
 .endmacro
 
 .macro extension_statement_vectors_h
@@ -65,12 +67,14 @@ TOK_SCRN  = $9A
         .byte   >(exec_plot-1)
         .byte   >(exec_hlin-1)
         .byte   >(exec_vlin-1)
+        .byte   0
 .endmacro
 
 .macro extension_statement_flags
-        .byte   0                       ; TEXT, HOME
-        .byte   0                       ; COLOR, PLOT
-        .byte   0                       ; HLIN, VLIN
+        .byte   0                       ; GR, TEXT
+        .byte   0                       ; HOME, COLOR
+        .byte   0                       ; PLOT, HLIN
+        .byte   0                       ; VLIN, padding
 .endmacro
 
 .macro extension_function_vectors_l

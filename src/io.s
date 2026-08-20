@@ -4,6 +4,7 @@
 
 ; I/O statements and functions
 
+.ifdef enable_io_channels
 ; OPEN [#channel] {name} [,{mode}]
 
 exec_open:
@@ -30,6 +31,7 @@ exec_close:
         jsr     io_close
         bcs     raise_io_error
         rts
+.endif
 
 ; GET [#channel] {numeric_variable}
 
@@ -59,6 +61,7 @@ exec_put:
 raise_io_error:
         raise   ERR_IO_ERROR
 
+.ifdef enable_io_channels
 ; XIO [#channel] {command}[,{arg1}[,{arg2}]]
 
 exec_xio:
@@ -88,6 +91,7 @@ exec_xio:
         jsr     io_xio
         bcs     raise_io_error
         rts
+.endif
 
 ; SAVE {name}
 ; PROLOG_POP_STRING has already evaluated the filename and loaded S0!

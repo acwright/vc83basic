@@ -2,6 +2,8 @@
 ;
 ; SPDX-License-Identifier: MIT
 
+enable_io_channels = 1
+
 .include "sim6502_extension.s"
 .include "basic.s"
 .include "main.s"

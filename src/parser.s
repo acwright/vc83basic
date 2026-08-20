@@ -317,13 +317,15 @@ pvm_statement:
         BRANCH_IF TOK_REM, pvm_rem
         BRANCH_IF TOK_RESTORE, pvm_restore
         BRANCH_IF_RANGE TOK_RUN, 8, @done       ; Any other no-arg statement (RUN..POP, $52..$59)
-        BRANCH_IF TOK_OPEN, pvm_open
-        BRANCH_IF TOK_CLOSE, pvm_close
         BRANCH_IF TOK_GET, pvm_get
         BRANCH_IF TOK_PUT, pvm_put
-        BRANCH_IF TOK_XIO, pvm_xio
         BRANCH_IF TOK_SAVE, pvm_save_load
         BRANCH_IF TOK_LOAD, pvm_save_load
+.ifdef enable_io_channels
+        BRANCH_IF TOK_OPEN, pvm_open
+        BRANCH_IF TOK_CLOSE, pvm_close
+        BRANCH_IF TOK_XIO, pvm_xio
+.endif
         invoke_if_defined extension_pvm_statements
         FAIL
 @done:
@@ -331,6 +333,7 @@ pvm_statement:
 
 ; Statements
 
+.ifdef enable_io_channels
 pvm_channel:
         BRANCH_IF_RANGE TOK_CHANNEL_0, 8, @done
 @done:
@@ -346,15 +349,6 @@ pvm_close:
         CALL pvm_channel
         RETURN
 
-pvm_get:
-        CALL pvm_channel
-        MATCH TOK_NAME
-        JUMP pvm_optional_array
-
-pvm_put:
-        CALL pvm_channel
-        JUMP pvm_expression
-
 pvm_xio:
         CALL pvm_channel
         CALL pvm_expression
@@ -364,12 +358,28 @@ pvm_xio:
         CALL pvm_expression
         BRANCH_IF TOK_COMMA, pvm_expression
         RETURN
+.endif
+
+pvm_get:
+.ifdef enable_io_channels
+        CALL pvm_channel
+.endif
+        MATCH TOK_NAME
+        JUMP pvm_optional_array
+
+pvm_put:
+.ifdef enable_io_channels
+        CALL pvm_channel
+.endif
+        JUMP pvm_expression
 
 pvm_save_load:
         JUMP pvm_expression
 
 pvm_print:
+.ifdef enable_io_channels
         CALL pvm_channel
+.endif
 @loop:
         BRANCH_IF TOK_SEMI, @loop
         BRANCH_IF TOK_COMMA, @loop
@@ -411,7 +421,9 @@ pvm_if:
         RETURN
 
 pvm_input:
+.ifdef enable_io_channels
         CALL pvm_channel
+.endif
         BRANCH_IF TOK_STRING, @prompt
         JUMP pvm_read
 @prompt:
