@@ -28,29 +28,29 @@ expr_type: .res 1
 
 ### `expr_type` Lifecycle
 
-1. Set to TYPE_NUMBER (= 0 = PR_OPEN_PAREN) at the top of `evaluate_expression`, piggybacking
-   on the existing `lda #PR_OPEN_PAREN`:
+1. Set to 0 (= TYPE_NUMBER) at the top of `@dispatch`, the primary expression dispatch point.
+   This is the single entry point for all primary handlers. Since A holds the decoded token at
+   this point and must not be clobbered, use Y:
 
    ```
-   .assert PR_OPEN_PAREN = TYPE_NUMBER, error
-
-   evaluate_expression:
-           phzp    DECODE_NAME_STATE, DECODE_NAME_STATE_SIZE
-           lda     #PR_OPEN_PAREN
-           sta     expr_type               ; Default to TYPE_NUMBER
-   after_operator:
-           jsr     push_operator
+   @dispatch:
+           ldy     #TYPE_NUMBER            ; = 0
+           sty     expr_type               ; Reset before every primary
+           cmp     #TOK_LPAREN
+           beq     evaluate_paren
+           ...
    ```
 
-   Cost: **+2 bytes** (`sta expr_type`).
+   Y is free here (`decode_byte` sets it to the old `line_pos` but nothing uses that value
+   afterward). Cost: **+4 bytes** (`ldy #0; sty expr_type`).
 
 2. Number primaries do NOT set `expr_type` — it's already 0.
 
 3. String primaries do `inc expr_type` (2 bytes, changes 0→1). This is cheaper than
    `lda #TYPE_STRING; sta expr_type` (4 bytes).
 
-4. `push_pending` resets `expr_type` to 0 after pushing strings, ensuring it's always 0 when the
-   next primary is entered.
+4. `push_pending` does NOT reset `expr_type`. The reset happens at `@dispatch` before the
+   next primary.
 
 5. Operator handlers set `expr_type` as needed:
    - `call_binary_operator` sets to TYPE_NUMBER (all arithmetic operators).
@@ -250,16 +250,10 @@ push_pending:
         bne     @string
         jmp     push_fp0
 @string:
-        stz     expr_type               ; Reset for next primary (0 = TYPE_NUMBER)
         jmp     push_string_s0
 ```
 
-On 6502 (no `stz`): `lda #0; sta expr_type` instead.
-
-**Cost: +10 bytes** (65C02) or **+11 bytes** (6502).
-
-Note: the number path does NOT reset `expr_type` (it's already 0). The string path resets it
-to 0 so the next primary finds `expr_type` = 0 and can use `inc expr_type` if it's a string.
+**Cost: +8 bytes.**
 
 ### `call_binary_operator` Simplification
 
@@ -743,10 +737,10 @@ during the allocation (S0 is set AFTER `read_string` returns). Safe.
 | Change | Bytes |
 |---|---|
 | New ZP variable `expr_type` | +1 (ZP, not code) |
-| `evaluate_expression` top: `sta expr_type` | +2 |
+| `@dispatch`: `ldy #0; sty expr_type` | +4 |
 | `load_s0_from_s0` (string.s, falls through) | +4 |
 | `push_string` restructure (add `mvax` to S0) | +4 |
-| `push_pending` + string path reset | +11 |
+| `push_pending` | +8 |
 | `evaluate_number` (jmp decode_number) | –3 |
 | `evaluate_string` (set S0 + inc expr_type) | +4 |
 | `evaluate_variable` (direct load FP0/S0) | +2 |
@@ -767,7 +761,7 @@ during the allocation (S0 is set AFTER `read_string` returns). Safe.
 | `evaluate_argument_list` | +3 |
 | INPUT/READ changes | –4 |
 | `load_s0_from_s0` call site savings (×3 sites) | –9 |
-| **Total estimate** | **+7 bytes** |
+| **Total estimate** | **+6 bytes** |
 
 Well within the ~196 bytes of headroom in the apple2 binary (currently 7996 of 8192). Estimate
 uncertainty: ±10 bytes.
@@ -800,7 +794,7 @@ and assignments (tight numeric loops, calculations) will see the largest improve
 3. Restructure `push_string` → `push_string_s0` (add `mvax` + fall-through).
 4. Add `push_pending` subroutine.
 5. Add `set_value_0`/`set_value_1` (jmp clear_fp0 / jmp load_one_fp0).
-6. Add `sta expr_type` at top of `evaluate_expression`.
+6. Add `ldy #0; sty expr_type` at top of `@dispatch`.
 7. Modify primary handlers (evaluate_number, evaluate_string, evaluate_variable).
 8. Add `jsr push_pending` in `@operator` path (AFTER process_operators).
 9. Simplify `call_binary_operator` (remove `pop_fp0`, add `sta expr_type`).
