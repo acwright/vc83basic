@@ -43,7 +43,7 @@ exec_list:
         jsr     print_s0
         jsr     io_end_record
         jsr     advance_next_line_ptr
-        jmp     @next_line
+        bne     @next_line              ; Unconditional: advance_next_line_ptr leaves Y=3 (Z=0)
 
 @done:
         plsta   next_line_pos

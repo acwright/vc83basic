@@ -39,14 +39,11 @@ exec_get:
         jsr     find_or_add_variable
         lda     #0                      ; Blocking
         jsr     io_get
-        bcc     @got_byte
-        ldax    #$FFFF                  ; -1 in AX on EOF
-        jsr     int_to_fp
-        jsr     push_fp0
-        jmp     assign_variable
-
+        ldx     #0                      ; High byte 0
+        bcc     @got_byte               ; If not EOF then byte is in A
+        lda     #$FF                    ; -1 in AX on EOF ($FFFF)
+        dex
 @got_byte:
-        ldx     #0                      ; Byte in A, high byte 0 in X
         jsr     int_to_fp
         jsr     push_fp0
         jmp     assign_variable

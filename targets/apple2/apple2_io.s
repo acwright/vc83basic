@@ -65,17 +65,19 @@ io_put:
 io_read_record:
         mva     #$80, PROMPT            ; Suppress prompt character in GETLN
         jsr     GETLN                   ; Apple II ROM GETLN reads into buffer ($0200), length in X
-        ldx     #$FF
-@find_cr:
-        inx
+        lda     #0
+        sta     buffer,x                ; Replace CR with NUL
+        txa                             ; Save length in A
+        pha
+@loop:
+        dex
+        bmi     @done
         lda     buffer,x
         and     #$7F                    ; Strip high bit
         sta     buffer,x
-        cmp     #$0D
-        bne     @find_cr
-        lda     #0
-        sta     buffer,x                ; Replace CR with NUL
-        txa                             ; Return length in A
+        bpl     @loop                   ; Unconditional
+@done:
+        pla                             ; Restore length in A
         clc
         rts
 

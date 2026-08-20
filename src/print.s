@@ -21,12 +21,12 @@ exec_print:
         beq     @print_num
         jsr     pop_string
         jsr     print_string
-        jmp     @loop
+        beq     @loop                   ; Unconditional: Z=1 from print_s0
 
 @print_num:
         jsr     pop_fp0                 ; Get the value
         jsr     print_number            ; Print the number
-        jmp     @loop
+        beq     @loop                   ; Unconditional: Z=1 from print_s0
 
 @tab:
         jsr     io_end_field
