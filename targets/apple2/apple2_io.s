@@ -101,76 +101,59 @@ io_end_field:
         clc
         rts
 
-; Prints filename from S0 to COUT (with high bit set).
+; Prints 16-bit word in AX as 4 hex digits (high byte first) using ROM PRBYTE.
+; A = low byte, X = high byte
 
-print_s0_cout:
-        ldy     #0
-        lda     (BC),y                  ; Length byte
-        jmp     print_s0
+print_ax_hex:
+        pha                             ; Save low byte
+        txa                             ; High byte into A
+        jsr     PRBYTE                  ; Print high byte hex
+        pla                             ; Restore low byte
+        jmp     PRBYTE                  ; Print low byte hex
 
-; Prints NUL-terminated string to COUT.
+; Emits CROUT, Ctrl-D, command string, filename, ",A$", and start address.
+; AY = pointer to length-prefixed command string, BC = filename string pointer
 
-print_string_cout:
-        stax    src_ptr
-@loop:
-        ldy     #0
-        lda     (src_ptr),y
-        beq     @done
-        jsr     io_put
-        inc     src_ptr
-        bne     @loop
-        inc     src_ptr+1
-        bne     @loop
-@done:
-        rts
+emit_dos_command_and_addr:
+        stay    src_ptr                 ; Save command string pointer
+        mvaa    BC, dst_ptr             ; Save filename pointer in zero page
+        jsr     CROUT
+        lday    src_ptr
+        jsr     print_string            ; Prints Ctrl-D + "BSAVE " or "BLOAD "
+        lday    dst_ptr
+        jsr     print_string            ; Prints filename
+        lday    #addr_cmd
+        jsr     print_string            ; Prints ",A$"
+        ldax    #(__BSS_RUN__ + __BSS_SIZE__)
+        jmp     print_ax_hex            ; Prints address and returns
 
 ; Saves program memory to file via DOS CHR$(4) BSAVE.
-; S0 = filename string
+; BC = filename string pointer
 
 io_save:
-        jsr     CROUT
-        lda     #4 | $80                ; Ctrl-D
-        jsr     COUT
-        ldax    #bsave_cmd
-        jsr     print_string_cout
-        jsr     print_s0_cout
-        ldax    #addr_cmd
-        jsr     print_string_cout
-        lda     #>(__BSS_RUN__ + __BSS_SIZE__)
-        jsr     PRBYTE
-        lda     #<(__BSS_RUN__ + __BSS_SIZE__)
-        jsr     PRBYTE
-        ldax    #len_cmd
-        jsr     print_string_cout
+        lday    #bsave_cmd
+        jsr     emit_dos_command_and_addr
+        lday    #len_cmd
+        jsr     print_string            ; Prints ",L$"
         sec
         lda     variable_name_table_ptr
         sbc     #<(__BSS_RUN__ + __BSS_SIZE__)
         pha
         lda     variable_name_table_ptr+1
         sbc     #>(__BSS_RUN__ + __BSS_SIZE__)
-        jsr     PRBYTE
+        tax
         pla
-        jsr     PRBYTE
+        jsr     print_ax_hex            ; Prints hex length
         jsr     CROUT
         clc
         rts
 
 ; Loads program memory from file via DOS CHR$(4) BLOAD.
-; S0 = filename string
+; BC = filename string pointer
 
 io_load:
-        jsr     CROUT
-        lda     #4 | $80                ; Ctrl-D
-        jsr     COUT
-        ldax    #bload_cmd
-        jsr     print_string_cout
-        jsr     print_s0_cout
-        ldax    #addr_cmd
-        jsr     print_string_cout
-        lda     #>(__BSS_RUN__ + __BSS_SIZE__)
-        jsr     PRBYTE
-        lda     #<(__BSS_RUN__ + __BSS_SIZE__)
-        jsr     PRBYTE
+        lday    #bload_cmd
+        jsr     emit_dos_command_and_addr
         jsr     CROUT
 
         ; Validate and re-index loaded program
@@ -203,9 +186,7 @@ io_load:
         sta     variable_name_table_ptr+1
 
         jsr     clear_variables
-        jsr     reset_program
-        clc
-        rts
+        jmp     reset_program           ; Tail call: reset_program ends in RTS with C=0
 
 @format_err:
         jsr     initialize_program
@@ -220,8 +201,9 @@ io_xio:
         rts
 .endif
 
-bsave_cmd:      .asciiz "BSAVE "
-bload_cmd:      .asciiz "BLOAD "
-addr_cmd:       .asciiz ",A$"
-len_cmd:        .asciiz ",L$"
+bsave_cmd:      .byte 7, 4, "BSAVE "
+bload_cmd:      .byte 7, 4, "BLOAD "
+addr_cmd:       .byte 3, ",A$"
+len_cmd:        .byte 3, ",L$"
+
         
