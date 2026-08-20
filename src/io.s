@@ -129,5 +129,5 @@ fun_inkey_s:
         rts
 
 @no_key:
-        mvaa    #0, string_ptr          ; Return null pointer for empty string
-        rts
+        lda     #0
+        jmp     string_alloc

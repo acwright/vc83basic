@@ -38,7 +38,7 @@ io_get:
 @wait_key:
         lda     $C000                   ; Read Apple II keyboard
         bpl     @no_key                 ; Bit 7 clear -> no key pressed
-        sta     $C010                   ; Clear keyboard strobe
+        bit     $C010                   ; Clear keyboard strobe
         and     #$7F                    ; Convert to standard ASCII
         clc
         rts
@@ -50,14 +50,29 @@ io_get:
 
 ; Puts a single character on channel.
 ; channel = channel (0..7), A = ASCII character
+; Preserves X and Y registers across ROM COUT
 
 io_put:
+        pha                             ; Save character ($103,x)
+        txa
+        pha                             ; Save X ($102,x)
+        tya
+        pha                             ; Save Y ($101,x)
+        tsx
+        lda     $103,x                  ; Load character from stack
         cmp     #10                     ; Line feed?
         bne     @not_lf
-        jmp     CROUT
+        lda     #$8D                    ; Apple II CR
 @not_lf:
         ora     #$80
-        jmp     COUT
+        jsr     COUT
+        pla
+        tay                             ; Restore Y
+        pla
+        tax                             ; Restore X
+        pla                             ; Restore character in A
+        clc
+        rts
 
 ; Reads a text record (line) from console into buffer.
 ; Suppresses prompt, strips bit 7, NUL-terminates at CR, returns length in A.
@@ -80,18 +95,39 @@ io_read_record:
         rts
 
 ; Emits record delimiter (newline).
+; Preserves X and Y
 
 io_end_record:
-        jmp     CROUT
+        txa
+        pha
+        tya
+        pha
+        jsr     CROUT
+        pla
+        tay
+        pla
+        tax
+        clc
+        rts
 
 ; Emits field separator (tabs to next 16-column boundary).
+; Preserves X and Y
 
 io_end_field:
-:       lda     #' ' | $80
+        txa
+        pha
+        tya
+        pha
+@loop:
+        lda     #' ' | $80
         jsr     COUT
         lda     $24                     ; Cursor horizontal position CH
         and     #$0F                    ; 16-column tab zones
-        bne     :-
+        bne     @loop
+        pla
+        tay
+        pla
+        tax
         clc
         rts
 
@@ -105,8 +141,7 @@ print_s0_cout:
         ldy     #0
 @loop:
         lda     (S0),y
-        ora     #$80
-        jsr     COUT
+        jsr     io_put
         iny
         dex
         bne     @loop
@@ -121,8 +156,7 @@ print_string_cout:
 @loop:
         lda     (src_ptr),y
         beq     @done
-        ora     #$80
-        jsr     COUT
+        jsr     io_put
         iny
         bne     @loop
 @done:
