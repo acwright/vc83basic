@@ -696,6 +696,97 @@ already leaves the result in FP0, and `assign_variable` reads FP0 based on `deco
 
 Net for INPUT/READ: **Savings: 4 bytes.**
 
+### I/O Commands (io.s)
+
+#### `exec_open`
+
+Currently evaluates the filename expression (pushes to stack), then optionally evaluates a mode
+expression (pushes to stack), then pops both. In the new scheme, the first expression result
+must be explicitly pushed before evaluating the second:
+
+```
+exec_open:
+        jsr     evaluate_expression     ; Filename → S0 + expr_type = TYPE_STRING
+        jsr     push_pending            ; Push filename to stack ← NEW
+        lda     #1                      ; Default mode = 1
+        pha
+        jsr     peek_byte
+        beq     @no_mode
+        inc     line_pos
+        jsr     evaluate_expression     ; Mode → FP0
+        jsr     truncate_fp_to_int      ; FP0 → int AX (was pop_int_fp0)
+        tsx
+        sta     $101,x
+@no_mode:
+        jsr     pop_string_s0           ; Pop filename from stack
+        pla
+        jsr     io_open
+        bcs     raise_io_error
+        rts
+```
+
+**Cost: +3 bytes** (`jsr push_pending`).
+
+#### `exec_get`
+
+Currently does `jsr int_to_fp; jsr push_fp0; jmp assign_variable`. Since the new
+`assign_variable` reads directly from FP0 based on `decode_name_type`, the `push_fp0` is
+eliminated:
+
+```
+exec_get:
+        ...
+        jsr     int_to_fp               ; Byte → FP0
+        jmp     assign_variable         ; Reads FP0 directly (was push_fp0 + assign_variable)
+```
+
+**Savings: 3 bytes.**
+
+#### `exec_xio`
+
+Three sequential `evaluate_expression` → `pop_int_fp0` patterns, each consuming the result
+into a variable before the next evaluation. Replace `pop_int_fp0` with `truncate_fp_to_int`:
+
+```
+exec_xio:
+        jsr     evaluate_expression     ; Command → FP0
+        jsr     truncate_fp_to_int      ; (was pop_int_fp0)
+        sta     B
+        ...
+        jsr     evaluate_expression     ; Arg1 → FP0
+        jsr     truncate_fp_to_int      ; (was pop_int_fp0)
+        stax    BC
+        ...
+        jsr     evaluate_expression     ; Arg2 → FP0
+        jsr     truncate_fp_to_int      ; (was pop_int_fp0)
+        stax    DE
+```
+
+**Size: neutral.**
+
+#### `exec_close`
+
+No arguments evaluated. **No change.**
+
+### Target Extension Callers
+
+#### apple2_extension_lc.s
+
+Two patterns:
+
+1. `jsr evaluate_expression; jsr pop_int_fp0` — in `exec_color` and
+   `get_hlin_vlin_arguments`. Replace `pop_int_fp0` with `truncate_fp_to_int`.
+   **Size: neutral.**
+
+2. `jsr evaluate_argument_list; jsr pop_int_fp0` — in `exec_plot`, `get_hlin_vlin_arguments`
+   (additional args), `fun_scrn`. These values are on the stack (pushed by `push_pending`
+   inside `evaluate_argument_list`), so `pop_int_fp0` is still correct. **No change.**
+
+#### ac6502_extension.s
+
+All `pop_int_fp0` calls are inside statement/function handlers that receive args via prolog or
+pop additional args pushed by `evaluate_argument_list`. **No change.**
+
 ## String GC Safety
 
 The GC does NOT scan S0. Instead, we ensure temporary strings are on the stack before any
@@ -760,11 +851,14 @@ during the allocation (S0 is set AFTER `read_string` returns). Safe.
 | Caller changes (IF, FOR ×2, PRINT) | –9 |
 | `evaluate_argument_list` | +3 |
 | INPUT/READ changes | –4 |
+| `exec_open` (`jsr push_pending`) | +3 |
+| `exec_get` (remove `jsr push_fp0`) | –3 |
+| `exec_xio` (`pop_int_fp0` → `truncate_fp_to_int`) | 0 |
+| Target extensions (`pop_int_fp0` → `truncate_fp_to_int`) | 0 |
 | `load_s0_from_s0` call site savings (×3 sites) | –9 |
 | **Total estimate** | **+6 bytes** |
 
-Well within the ~196 bytes of headroom in the apple2 binary (currently 7996 of 8192). Estimate
-uncertainty: ±10 bytes.
+Estimate uncertainty: ±10 bytes.
 
 ## Summary of Performance Impact
 
@@ -820,4 +914,6 @@ and assignments (tight numeric loops, calculations) will see the largest improve
 23. Update `evaluate_argument_list`.
 24. Update callers: `exec_if`, `exec_for`, `exec_print`, `exec_on_goto_gosub`.
 25. Update INPUT and READ.
-26. Run `make test && make expect_test`.
+26. Update I/O commands: `exec_open`, `exec_get`, `exec_xio` (io.s).
+27. Update target extensions: `apple2_extension_lc.s` (`exec_color`, `get_hlin_vlin_arguments`).
+28. Run `make test && make expect_test`.
