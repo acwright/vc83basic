@@ -186,7 +186,7 @@ VC83 BASIC does not support for DEF FN or ON ERROR. Let me know if these are imp
 
 To add support for a new hardware platform:
 1.  **Linker config**: Create an `ld65` configuration file (e.g., `{platform}/{platform}.cfg`).
-2.  **Initialization**: Implement platform-specific startup and mandatory I/O (`io_get`, `io_put`, `io_read_record`, `io_end_record`, `io_end_field`, `io_save`, `io_load`) in its own directory.
+2.  **Initialization**: Implement platform-specific startup and mandatory I/O (`io_get`, `io_put`, `io_inkey`, `io_read_record`, `io_end_record`, `io_end_field`, `io_save`, `io_load`) in its own directory.
 3.  **Master assembly file**: Create a `basic_{platform}.s` file that `.include`s `basic.inc` and all your platform-specific assembly files.
 4.  **Makefile**: Add the new target to the `TARGETS` list in the `Makefile` and define the build rules.
 5.  **Extensions (optional)**: Implement platform-specific extensions via macros (`extension_statement_keywords`, `extension_pvm_statements`, split vectors `extension_statement_vectors_l/h`, and `extension_statement_flags`). See `ac6502_extension.s` or `apple2_extension_lc.s` for examples.

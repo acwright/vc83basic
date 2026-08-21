@@ -39,7 +39,6 @@ exec_get:
         inc     line_pos                ; Skip TOK_NAME
         jsr     decode_name
         jsr     find_or_add_variable
-        lda     #0                      ; Blocking
         jsr     io_get
         ldx     #0                      ; High byte 0
         bcc     @got_byte               ; If not EOF then byte is in A
@@ -117,9 +116,7 @@ exec_load:
 ; EPILOG_PUSH_STRING pushes string returned in S0 / string_ptr
 
 fun_inkey_s:
-        mva     #$80, channel           ; Console channel
-        lda     #1                      ; Non-blocking
-        jsr     io_get
+        jsr     io_inkey
         bcs     @no_key
         pha                             ; Save character
         lda     #1

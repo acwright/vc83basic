@@ -5,7 +5,7 @@
 .ifdef enable_io_channels
 .export io_open, io_close, io_close_all, io_xio
 .endif
-.export io_get, io_put
+.export io_get, io_put, io_inkey
 .export io_read_record, io_end_record, io_end_field
 .export io_save, io_load
 
@@ -34,13 +34,19 @@ io_close_all:
         rts
 .endif
 
-; Gets a single byte/key from channel.
-; channel = channel (0..7), A = mode (0 = blocking, 1 = non-blocking)
-; Returns carry clear and byte in A if ok, carry set if no byte / error.
+; Gets a single byte/key from channel (blocking).
+; channel = channel (0..7)
+; Returns carry clear and byte in A if ok, carry set if error.
 
 io_get:
-        tax                             ; Save mode in X (0 = blocking, 1 = non-blocking)
-@wait_key:
+        jsr     io_inkey
+        bcs     io_get
+        rts
+
+; Polls for a key from console without blocking.
+; Returns carry clear and ASCII char in A if key available, carry set if no key.
+
+io_inkey:
         lda     $C000                   ; Read Apple II keyboard
         bpl     @no_key                 ; Bit 7 clear -> no key pressed
         bit     $C010                   ; Clear keyboard strobe
@@ -48,8 +54,6 @@ io_get:
         clc
         rts
 @no_key:
-        cpx     #0                      ; Blocking mode?
-        beq     @wait_key
         sec
         rts
 

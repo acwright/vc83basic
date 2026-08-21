@@ -2,27 +2,25 @@
 ;
 ; SPDX-License-Identifier: MIT
 
-.export io_get, io_put
+.export io_get, io_put, io_inkey
 .export io_read_record, io_end_record, io_end_field
 .export io_save, io_load
 .export putch, newline
 
 .code
 
-; Gets a single byte/key from console.
-; A = mode (0 = blocking, 1 = non-blocking)
-; Returns carry clear and byte in A if ok, carry set if no byte / error.
+; Gets a single byte/key from console (blocking).
+; Returns carry clear and byte in A if ok, carry set if error.
 
 io_get:
-        cmp     #1                      ; Non-blocking mode (INKEY$)?
-        beq     @non_blocking
-@wait_key:
-        jsr     Chrin                   ; Non-blocking poll (C=1 if char available)
-        bcc     @wait_key               ; Keep polling until key pressed
-        clc
+        jsr     io_inkey
+        bcs     io_get
         rts
 
-@non_blocking:
+; Polls for a key from console without blocking.
+; Returns carry clear and ASCII char in A if key available, carry set if no key.
+
+io_inkey:
         jsr     Chrin                   ; C=1 if char available
         bcs     @got_key
         sec

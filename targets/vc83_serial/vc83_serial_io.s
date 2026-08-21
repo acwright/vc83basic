@@ -2,27 +2,24 @@
 ;
 ; SPDX-License-Identifier: MIT
 
-.export io_get, io_put
+.export io_get, io_put, io_inkey
 .export io_read_record, io_end_record, io_end_field
 .export io_save, io_load
 
 .code
 
-; Gets a single byte/key from serial UART.
-; A = mode (0 = blocking, 1 = non-blocking)
-; Returns carry clear and byte in A if ok, carry set if no byte / error.
+; Gets a single byte/key from serial UART (blocking).
+; Returns carry clear and byte in A if ok, carry set if error.
 
 io_get:
-        cmp     #1                      ; Non-blocking mode (INKEY$)?
-        beq     @non_blocking
-@wait_rx:
-        lda     UART_RX_LEVEL
-        beq     @wait_rx
-        lda     UART_RX_DATA
-        clc
+        jsr     io_inkey
+        bcs     io_get
         rts
 
-@non_blocking:
+; Polls for a key from serial UART without blocking.
+; Returns carry clear and byte in A if available, carry set if no byte.
+
+io_inkey:
         lda     UART_RX_LEVEL
         beq     @no_key
         lda     UART_RX_DATA

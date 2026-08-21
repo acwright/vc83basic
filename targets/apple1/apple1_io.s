@@ -2,29 +2,25 @@
 ;
 ; SPDX-License-Identifier: MIT
 
-.export io_get, io_put
+.export io_get, io_put, io_inkey
 .export io_read_record, io_end_record, io_end_field
 .export io_save, io_load
 
 .code
 
-; Gets a single byte/key from keyboard.
-; A = mode (0 = blocking, 1 = non-blocking)
-; Returns carry clear and byte in A if ok, carry set if no byte / error.
+; Gets a single byte/key from keyboard (blocking).
+; Returns carry clear and byte in A if ok, carry set if error.
 
 io_get:
-        cmp     #1                      ; Non-blocking mode (INKEY$)?
-        beq     @non_blocking
-@wait_key:
-        bit     KBDCR                   ; Bit 7 = key strobe
-        bpl     @wait_key
-        lda     KBD
-        and     #$7F
-        clc
+        jsr     io_inkey
+        bcs     io_get
         rts
 
-@non_blocking:
-        bit     KBDCR
+; Polls for a key from keyboard without blocking.
+; Returns carry clear and ASCII char in A if key available, carry set if no key.
+
+io_inkey:
+        bit     KBDCR                   ; Bit 7 = key strobe
         bpl     @no_key
         lda     KBD
         and     #$7F

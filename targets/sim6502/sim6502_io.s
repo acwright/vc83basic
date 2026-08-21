@@ -8,7 +8,7 @@
 ; sim65 POSIX vectors
 .import _open, _close, _read, _write
 
-.export io_open, io_close, io_close_all, io_get, io_put
+.export io_open, io_close, io_close_all, io_get, io_put, io_inkey
 .export io_read_record, io_end_record, io_end_field
 .export io_save, io_load, io_xio
 .export channel_fds
@@ -155,14 +155,11 @@ io_close_all:
         rts
 
 ; Gets a single byte from channel.
-; A = non-blocking flag: 0 = blocking, 1 = non-blocking (INKEY$)
 ; channel = channel (0..7)
 ; Returns byte in A and carry clear if ok, carry set if EOF / error.
 ; X SAFE, Y SAFE
 
 io_get:
-        cmp     #1                      ; Non-blocking requested?
-        beq     @nonblock
         txa
         pha
         tya
@@ -201,15 +198,19 @@ io_get:
         clc
         rts
 
-@nonblock:
-        sec
-        rts
-
 @error:
         pla
         tay
         pla
         tax
+        sec
+        rts
+
+; Polls for a key from console without blocking.
+; sim65 simulator does not support non-blocking keyboard polling.
+; Returns carry set (no key).
+
+io_inkey:
         sec
         rts
 
@@ -316,7 +317,6 @@ io_read_record:
         tsx
         lda     $102,x                  ; Channel index
         sta     channel
-        lda     #0                      ; Blocking
         jsr     io_get                  ; Read 1 byte
         bcs     @eof_check
         tsx

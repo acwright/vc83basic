@@ -2,7 +2,7 @@
 ;
 ; SPDX-License-Identifier: MIT
 
-.export io_open, io_close, io_close_all, io_get, io_put
+.export io_open, io_close, io_close_all, io_get, io_put, io_inkey
 .export io_read_record, io_end_record, io_end_field
 .export io_save, io_load, io_xio
 
@@ -134,23 +134,11 @@ init_k_vector:
         sta     k_get_vec+1
         rts
 
-; Gets a single byte/key from channel.
-; channel = channel (0..7 or $80), A = mode (0 = blocking, 1 = non-blocking)
+; Gets a single byte/key from channel (blocking).
+; channel = channel (0..7 or $80)
 ; Returns carry clear and byte in A if ok, carry set if error / EOF.
 
 io_get:
-        cmp     #1                      ; Non-blocking (INKEY$)?
-        bne     @channel_get
-        lda     CH                      ; Hardware key code register
-        cmp     #$FF
-        beq     @no_key
-        lda     k_get_vec+1             ; Push high byte of K: get-byte vector
-        pha
-        lda     k_get_vec               ; Push low byte of K: get-byte vector
-        pha
-        rts                             ; Dispatches to K: handler, returns character in A with CLC
-
-@channel_get:
         jsr     get_iocb_index          ; Sets IOCB index in X based on channel
         lda     #0
         sta     ICBLL,x
@@ -159,9 +147,25 @@ io_get:
         sta     ICCOM,x
         jsr     CIOV
         cpy     #128
-        bcs     @no_key
+        bcs     @error
         clc
         rts
+@error:
+        sec
+        rts
+
+; Polls for a key from keyboard without blocking.
+; Returns carry clear and ASCII char in A if key available, carry set if no key.
+
+io_inkey:
+        lda     CH                      ; Hardware key code register
+        cmp     #$FF
+        beq     @no_key
+        lda     k_get_vec+1             ; Push high byte of K: get-byte vector
+        pha
+        lda     k_get_vec               ; Push low byte of K: get-byte vector
+        pha
+        rts                             ; Dispatches to K: handler, returns character in A with CLC
 @no_key:
         sec
         rts
