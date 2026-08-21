@@ -112,9 +112,11 @@ The interpreter manages memory using several zero-page pointers:
 
 ## General Structure of the Interpreter
 
-### Parser Virtual Machine
-The parser converts user input into a tokenized program. It is controlled by a **Parser Virtual Machine (PVM)** that uses a domain-specific language (DSL) defined in `parser.s`.
-*   **Objective**: Detect syntax errors up-front and replace keywords with 1-byte tokens for efficient execution.
+### Lexer & Parser Virtual Machine
+The parser converts user input into a tokenized program in two stages:
+1.  **DFA Lexer**: A dedicated lexer (`lexer.s`) processes raw input using DFA state tables generated from regexes by `generate_lexer_data.py`. It handles case folding and converts keywords into single-byte tokens.
+2.  **Parser Virtual Machine (PVM)**: An **LL(1) predictive recursive-descent parser** (`parser.s`) that validates statement and expression grammar deterministically with single-token lookahead and without backtracking.
+*   **Objective**: Detect syntax errors up-front and replace keywords with 1-byte tokens for compact storage and efficient execution.
 *   **Type checking**: Notably, the parser does *not* perform type checking; this is handled at runtime.
 *   **LIST command**: Handles the reverse process, expanding tokens back into human-readable code.
 
@@ -184,10 +186,10 @@ VC83 BASIC does not support for DEF FN or ON ERROR. Let me know if these are imp
 
 To add support for a new hardware platform:
 1.  **Linker config**: Create an `ld65` configuration file (e.g., `{platform}/{platform}.cfg`).
-2.  **Initialization**: Implement platform-specific startup and mandatory I/O (`readline`, `write`, `putch`) in its own directory.
+2.  **Initialization**: Implement platform-specific startup and mandatory I/O (`io_get`, `io_put`, `io_read_record`, `io_end_record`, `io_end_field`, `io_save`, `io_load`) in its own directory.
 3.  **Master assembly file**: Create a `basic_{platform}.s` file that `.include`s `basic.inc` and all your platform-specific assembly files.
 4.  **Makefile**: Add the new target to the `TARGETS` list in the `Makefile` and define the build rules.
-5.  **Extensions (optional)**: You can implement platform-specific extensions. See `apple2_extension.s` for an example.
+5.  **Extensions (optional)**: Implement platform-specific extensions via macros (`extension_statement_keywords`, `extension_pvm_statements`, split vectors `extension_statement_vectors_l/h`, and `extension_statement_flags`). See `ac6502_extension.s` or `apple2_extension_lc.s` for examples.
 
 ## License
 
