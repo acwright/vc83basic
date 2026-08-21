@@ -13,35 +13,34 @@
 
 .setcpu "65C02"
 
-TOK_CLS     = $5A
-TOK_LOCATE  = $5B
-TOK_COLOR   = $5C
-TOK_SOUND   = $5D
-TOK_VOL     = $5E
-TOK_PAUSE   = $5F
+TOK_CLS     = $5E
+TOK_LOCATE  = $5F
+TOK_COLOR   = $60
+TOK_SOUND   = $61
+TOK_VOL     = $62
+TOK_PAUSE   = $63
+TOK_WAIT    = $64
+TOK_TIME    = $65
+TOK_DATE    = $66
+TOK_SETTIME = $67
+TOK_SETDATE = $68
+TOK_NVRAM_W = $69
+TOK_BANK    = $6A
+TOK_MEM     = $6B
+TOK_SYS     = $6C
 
-TOK_WAIT    = $60
-TOK_TIME    = $61
-TOK_DATE    = $62
-TOK_SETTIME = $63
-TOK_SETDATE = $64
-TOK_NVRAM_W = $65
-TOK_BANK    = $66
-TOK_MEM     = $67
-TOK_SYS     = $68
-
-TOK_JOY     = $98
-TOK_INKEY   = $99
-TOK_NVRAM_F = $9A
+TOK_JOY     = $99
+TOK_INKEY   = $9A
+TOK_NVRAM_F = $9B
 
 .macro extension_statement_keywords
 :       name_table_entry "CLS"
 :       name_table_entry "LOCATE"
+KEYWORD_BLOCK_6_OFFSET = keyword_counter
 :       name_table_entry "COLOR"
 :       name_table_entry "SOUND"
 :       name_table_entry "VOL"
 :       name_table_entry "PAUSE"
-KEYWORD_BLOCK_6_OFFSET = keyword_counter
 :       name_table_entry "WAIT"
 :       name_table_entry "TIME"
 :       name_table_entry "DATE"
@@ -58,7 +57,6 @@ KEYWORD_BLOCK_6_OFFSET = keyword_counter
 :       name_table_entry "JOY"
 :       name_table_entry "INKEY"
 :       name_table_entry "NVRAM"
-:       name_table_entry ""             ; Padding for even function count
 .endmacro
 
 .macro extension_pvm_statements
@@ -143,19 +141,17 @@ pvm_arg_4:
         .byte   <(fun_joy-1)
         .byte   <(fun_inkey-1)
         .byte   <(fun_nvram-1)
-        .byte   0
 .endmacro
 
 .macro extension_function_vectors_h
         .byte   >(fun_joy-1)
         .byte   >(fun_inkey-1)
         .byte   >(fun_nvram-1)
-        .byte   0
 .endmacro
 
 .macro extension_function_flags
-        .byte   (PROLOG_POP_INT | EPILOG_PUSH_INT) | ((PROLOG_POP_INT | EPILOG_PUSH_INT) << 4) ; JOY, INKEY
-        .byte   (PROLOG_POP_INT | EPILOG_PUSH_INT)                                              ; NVRAM, padding
+        .byte   (PROLOG_NONE | EPILOG_PUSH_STRING) | ((PROLOG_POP_INT | EPILOG_PUSH_INT) << 4) ; INKEY$, JOY
+        .byte   (PROLOG_POP_INT | EPILOG_PUSH_INT) | ((PROLOG_POP_INT | EPILOG_PUSH_INT) << 4) ; INKEY, NVRAM
 .endmacro
 
 .macro extension_code

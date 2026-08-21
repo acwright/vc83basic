@@ -156,13 +156,10 @@ dispatch_vectors_l:
         .byte   <(exec_open-1)
         .byte   <(exec_close-1)
         .byte   <(exec_xio-1)
+        .byte   0                       ; Pad core statements to even count
 .endif
 .if .definedmacro(extension_statement_vectors_l)
         extension_statement_vectors_l
-.else
-  .ifdef enable_io_channels
-        .byte   0
-  .endif
 .endif
 
 statement_count = * - dispatch_vectors_l
@@ -238,13 +235,10 @@ dispatch_vectors_h:
         .byte   >(exec_open-1)
         .byte   >(exec_close-1)
         .byte   >(exec_xio-1)
+        .byte   0                       ; Pad core statements to even count
 .endif
 .if .definedmacro(extension_statement_vectors_h)
         extension_statement_vectors_h
-.else
-  .ifdef enable_io_channels
-        .byte   0
-  .endif
 .endif
 
         ; --- Functions ---

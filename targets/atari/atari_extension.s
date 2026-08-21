@@ -2,10 +2,11 @@
 ;
 ; SPDX-License-Identifier: MIT
 
-TOK_DOS   = $61
+TOK_DOS   = $62
 
 .macro extension_statement_keywords
 :       name_table_entry "DOS"
+:       name_table_entry ""             ; Padding for even statement count
 .endmacro
 
 .macro extension_pvm_statements
@@ -14,10 +15,16 @@ TOK_DOS   = $61
 
 .macro extension_statement_vectors_l
         .byte   <(exec_dos-1)
+        .byte   0
 .endmacro
 
 .macro extension_statement_vectors_h
         .byte   >(exec_dos-1)
+        .byte   0
+.endmacro
+
+.macro extension_statement_flags
+        .byte   0                       ; DOS + padding
 .endmacro
 
 

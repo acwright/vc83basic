@@ -15,7 +15,7 @@
 
 #include "../src/constants.h"
 
-#define TOK_BYE   0x61
+#define TOK_BYE   0x62
 #define TOK_VER_S 0x99
 
 // Types

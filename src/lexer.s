@@ -131,17 +131,14 @@ KEYWORD_BLOCK_5_OFFSET = keyword_counter
 ; Block 6 ($60..$6F)
 KEYWORD_BLOCK_6_OFFSET = keyword_counter
 :       name_table_entry "XIO"
-.endif
-; Block 6 ($60..$6F)
-.ifndef KEYWORD_BLOCK_6_OFFSET
-KEYWORD_BLOCK_6_OFFSET = keyword_counter
+:       name_table_entry ""             ; Pad core statements to even count
 .endif
 .if .definedmacro(extension_statement_keywords)
         extension_statement_keywords
-.else
-  .ifdef enable_io_channels
-:       name_table_entry ""             ; Padding for even statement count
-  .endif
+.endif
+; Block 6 ($60..$6F) - unused unless defined by target or enable_io_channels
+.ifndef KEYWORD_BLOCK_6_OFFSET
+KEYWORD_BLOCK_6_OFFSET = keyword_counter
 .endif
 ; Block 7 ($70..$7F) - unused unless defined by target
 .ifndef KEYWORD_BLOCK_7_OFFSET

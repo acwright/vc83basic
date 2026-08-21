@@ -71,8 +71,14 @@ IRQ_PTR             := $0300
 BRK_PTR             := $0302
 NMI_PTR             := $0304
 IO_MODE             := $0306
+VID_CURSOR_X        := $0307
+VID_CURSOR_Y        := $0308
+RTC_BUF_CENT        := $030B             ; Century register for RTC read/write
 HW_PRESENT          := $030D
+FS_FILE_SIZE        := $034A             ; 2 bytes - File size in bytes
 BOOT_VECTOR         := $035B
+FS_IO_ADDR          := $037F             ; 2 bytes - Load/save transfer address
+RAM_BANK_L          := $83FF             ; Write-only bank latch for low RAM card
 
 ; Legacy aliases used by earlier ac6502 code.
 CHROUT              := Chrout
@@ -88,6 +94,10 @@ HW_GPIO             = %00100000
 HW_SID              = %01000000
 HW_VID              = %10000000
 
-; --- RTC / storage RAM variables used by kernal routines ---
-RTC_BUF_CENT        := $030B             ; Century register for RTC read/write
-RAM_BANK_L          := $83FF             ; Write-only bank latch for low RAM card
+; --- Extended BIOS jump table entries ---
+FsLoadFileAddr      := $A07E             ; Load named file to FS_IO_ADDR
+FsSaveFileAddr      := $A081             ; Save FS_FILE_SIZE bytes from FS_IO_ADDR
+FsFormatDisk        := $A084
+FsSetDisk           := $A087
+FsGetDisk           := $A08A
+FsPrintDisk         := $A08D
