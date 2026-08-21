@@ -2,6 +2,8 @@
 ;
 ; SPDX-License-Identifier: MIT
 
+enable_io_channels = 1
+
 .include "atari.inc"
 .include "atari_extension.s"
 .include "basic.s"
