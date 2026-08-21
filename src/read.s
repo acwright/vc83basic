@@ -48,7 +48,6 @@ exec_read:
         ldy     data_line_pos
         jsr     string_to_fp            ; Parse the number
         jsr     @post_read
-        jsr     push_fp0                ; Push FP0 onto the value stack
 
 @assign:
         jsr     assign_variable         ; Store the value
@@ -65,7 +64,7 @@ exec_read:
         ldy     data_line_pos
         jsr     read_string
         jsr     @post_read
-        jsr     push_string             ; Push result string onto the stack
+        mvax    string_ptr, S0          ; S0 = string header pointer
         jmp     @assign
 
 @post_read:

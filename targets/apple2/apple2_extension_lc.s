@@ -105,7 +105,7 @@ pvm_hlin_vlin:
 .macro extension_code
 exec_color:
         jsr     evaluate_expression
-        jsr     pop_int_fp0             ; Pop the color value
+        jsr     truncate_fp_to_int      ; Color value in AX
         jmp     SETCOL
 
 exec_plot:
@@ -135,7 +135,7 @@ get_hlin_vlin_arguments:
         jsr     evaluate_argument_list  ; Evaluate start and end
         inc     line_pos                ; Skip TOK_AT
         jsr     evaluate_expression
-        jsr     pop_int_fp0             ; Get coordinate (Row for HLIN, Column for VLIN)
+        jsr     truncate_fp_to_int      ; Get coordinate (Row for HLIN, Column for VLIN)
         pha                             ; Save on hardware stack
         jsr     pop_int_fp0             ; Get end point (H2/V2)
         sta     H2

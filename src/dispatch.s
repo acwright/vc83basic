@@ -41,28 +41,28 @@ exec_impl_let:
         jsr     find_or_add_variable
         inc     line_pos                ; Skip terminator
         ldphaa  name_ptr                ; Remember name_ptr 
-        jsr     evaluate_expression     ; Value is now on the evaluation stack
+        jsr     evaluate_expression     ; Result in FP0 or S0
         plstaa  name_ptr                ; Restore name so we can assign it
+        lda     decode_name_type        ; Check types match
+        cmp     expr_type
+        beq     assign_variable
+        jmp     raise_type_mismatch
 
-; Fall through
-
-; Pops a value from the stack and copies it into the variable identified by name_ptr.
+; Copies a value from FP0/S0 into the variable identified by name_ptr.
 ; name_ptr = pointer to the variable's data in the variable name table
 
 assign_variable:
-        ldy     decode_name_type        ; Load the target variable type index
-        tya                             ; Pass type in A
-        jsr     stack_free_value_with_type  ; Drop the actively evaluated item from top of stack and yield X (preserves Y)
-        lda     type_size_table,y       ; Fetch structural footprint directly mapping index (5 for numeric, 2 for string offset)
-        sta     B                       ; Save loop delimiter threshold inside B locally
-        ldy     #0                      ; Init sequence relative iteration pointer to exactly 0 to offset naturally up
-@copy_loop:
-        lda     stack,x                 ; Pull byte directly mapping baseline evaluation layer
-        sta     (name_ptr),y            ; Bind into memory aligned table space
-        inx                             ; Traverse source footprint
-        iny                             ; Traverse destination footprint
-        cpy     B                       ; Evaluate alignment matching our explicitly retained structural delimiter
-        bne     @copy_loop
+        lda     decode_name_type
+        bne     @string
+        lday    name_ptr
+        jmp     store_fp0
+@string:
+        ldy     #0
+        lda     S0
+        sta     (name_ptr),y
+        iny
+        lda     S0+1
+        sta     (name_ptr),y
         rts
 
 dispatch_function:
@@ -115,10 +115,24 @@ dispatch_prologs:
         .word   pop_int_fp0-1
         .word   pop_string_s0-1
 
+epilog_set_fp0:
+        mva     #TYPE_NUMBER, expr_type
+        rts
+
+epilog_set_int_fp0:
+        ldy     #TYPE_NUMBER
+        sty     expr_type
+        jmp     int_to_fp
+
+epilog_set_string:
+        mvax    string_ptr, S0
+        mva     #TYPE_STRING, expr_type
+        rts
+
 dispatch_epilogs:
-        .word   push_fp0-1
-        .word   push_int_fp0-1
-        .word   push_string-1
+        .word   epilog_set_fp0-1
+        .word   epilog_set_int_fp0-1
+        .word   epilog_set_string-1
 
 dispatch_vectors_l:
         ; --- Statements ---

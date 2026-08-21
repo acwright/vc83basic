@@ -8,14 +8,15 @@
 ; OPEN [#channel] {name} [,{mode}]
 
 exec_open:
-        jsr     evaluate_expression     ; Evaluates filename -> on stack
+        jsr     evaluate_expression     ; Evaluates filename -> S0
+        jsr     push_pending            ; Push filename onto stack
         lda     #1                      ; Default mode = 1 (Read)
         pha
         jsr     peek_byte
         beq     @no_mode
         inc     line_pos
-        jsr     evaluate_expression     ; Evaluates mode
-        jsr     pop_int_fp0             ; Mode in A
+        jsr     evaluate_expression     ; Evaluates mode -> FP0
+        jsr     truncate_fp_to_int      ; Mode in AX
         tsx
         sta     $101,x                  ; Replace default mode on stack
 @no_mode:
@@ -39,6 +40,8 @@ exec_get:
         inc     line_pos                ; Skip TOK_NAME
         jsr     decode_name
         jsr     find_or_add_variable
+        lda     decode_name_type
+        bne     @type_mismatch
         jsr     io_get
         ldx     #0                      ; High byte 0
         bcc     @got_byte               ; If not EOF then byte is in A
@@ -46,8 +49,10 @@ exec_get:
         dex
 @got_byte:
         jsr     int_to_fp
-        jsr     push_fp0
         jmp     assign_variable
+
+@type_mismatch:
+        jmp     raise_type_mismatch
 
 ; PUT [#channel] {expression}
 ; PROLOG_POP_INT has already evaluated the expression and popped the byte into A!
@@ -64,8 +69,8 @@ raise_io_error:
 ; XIO [#channel] {command}[,{arg1}[,{arg2}]]
 
 exec_xio:
-        jsr     evaluate_expression     ; Command
-        jsr     pop_int_fp0
+        jsr     evaluate_expression     ; Command -> FP0
+        jsr     truncate_fp_to_int
         sta     B                       ; Command in B
         lda     #0
         sta     BC                      ; Default arg1 = 0
@@ -75,14 +80,14 @@ exec_xio:
         jsr     peek_byte
         beq     @do_xio
         inc     line_pos
-        jsr     evaluate_expression     ; Arg1
-        jsr     pop_int_fp0
+        jsr     evaluate_expression     ; Arg1 -> FP0
+        jsr     truncate_fp_to_int
         stax    BC
         jsr     peek_byte
         beq     @do_xio
         inc     line_pos
-        jsr     evaluate_expression     ; Arg2
-        jsr     pop_int_fp0
+        jsr     evaluate_expression     ; Arg2 -> FP0
+        jsr     truncate_fp_to_int
         stax    DE
 
 @do_xio:

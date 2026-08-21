@@ -25,6 +25,7 @@ BIAS = 128
 ; Allocate some scratch space needed for the higher-level functions.
 
 fp_scratch: .res .sizeof(Float) * 5
+fpow_exponent: .res .sizeof(Float)
 
 .code
 
@@ -90,6 +91,9 @@ load_fp:
 ; AY = destination address
 ; DE SAFE, also does not alter carry
 
+store_fp1:
+        ldx     #FP1
+        bne     store_fp
 store_fp0:
         ldx     #FP0
 store_fp:
@@ -1278,9 +1282,12 @@ fpow:
 ; Negates the sign of FP0.
 
 fneg:
+        lda     FP0e
+        beq     @done
         lda     FP0s
         eor     #$80
         sta     FP0s
+@done:
         rts
 
 ; Compares FP0 with the value referenced by the pointer AY.

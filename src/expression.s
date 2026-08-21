@@ -11,8 +11,9 @@
 
 .assert TOK_ADD = $20, error
 .assert TOK_LEN = $80, error
+.assert PR_OPEN_PAREN = TYPE_NUMBER, error
 
-; Evaluates an expression and leaves the result on the stack.
+; Evaluates an expression and leaves the result in FP0 (number) or S0 (string header), with type in expr_type.
 ; An expression is a primary expression, optionally followed by a binary operator and another expression.
 ; If we're here, there *must* be an expression. The expression ends when we don't find a binary operator
 ; after the primary expression.
@@ -55,6 +56,7 @@ next_expression:
         tax                             ; Move into X to use as index
         lda     operator_precedence_table,x ; Look up the precedence value
         jsr     process_operators       ; Handle operators >= the precedence of this operator
+        jsr     push_pending            ; Push result for the new operator
         pla                             ; Get the operator value again
         tay                             ; Hold in Y
         lsr     A                       ; Divide by 2 (again)
@@ -64,6 +66,8 @@ next_expression:
         jmp     after_operator
 
 @dispatch:
+        ldy     #TYPE_NUMBER            ; Default expr_type to TYPE_NUMBER (0)
+        sty     expr_type
         cmp     #TOK_LPAREN
         beq     evaluate_paren
         cmp     #TOK_NUM
@@ -86,33 +90,31 @@ evaluate_paren:
         rts
 
 evaluate_number:
-        jsr     decode_number           ; Returns number in FP0
-        jmp     push_fp0                ; Push number
+        jmp     decode_number           ; Returns number in FP0; expr_type already 0
 
 evaluate_string:
         jsr     decode_string           ; Sets string_ptr
-        jmp     push_string
+        mvax    string_ptr, S0          ; S0 = string header pointer
+        inc     expr_type               ; TYPE_STRING
+        rts
 
 evaluate_variable:
         jsr     decode_name
 evaluate_decoded_variable:
         jsr     find_or_add_variable
-        jsr     stack_alloc_value
-        tax                             ; Stack position into X
-        lda     decode_name_type        ; Set type of value on stack
-        sta     stack+Value::type,x
-        tay                             ; Setup type index inside Y
-        lda     type_size_table,y       ; Get copy size locally
-        sta     B                       ; Store size bound in B
-        ldy     #0                      ; Reset iterator
-@copy_loop:
-        lda     (name_ptr),y            ; Copy from variable data incrementing
-        sta     stack,x                 ; Copy to stack incrementing
-        inx
+        lda     decode_name_type
+        beq     @number
+        inc     expr_type               ; TYPE_STRING
+        ldy     #0
+        lda     (name_ptr),y
+        sta     S0
         iny
-        cpy     B
-        bne     @copy_loop
+        lda     (name_ptr),y
+        sta     S0+1
         rts
+@number:
+        lday    name_ptr                ; Load directly into FP0
+        jmp     load_fp0
 
 ; Operator precedence table
 ; We index this by the operator index divided by 2.
@@ -138,6 +140,7 @@ evaluate_argument_list:
         beq     @done
 @loop:
         jsr     evaluate_expression
+        jsr     push_pending            ; Push result for function prolog / statement
         tsx
         dec     $101,x                  ; Decrement remaining
         jsr     peek_byte
@@ -185,10 +188,15 @@ process_operators:
         rts                             ; This is either RTS from process_operators or JMP to operator handler
 
 op_concat:
-        jsr     pop_two_strings
+        jsr     push_string_s0          ; Push right operand for GC safety
+        jsr     pop_string              ; Pop right operand -> AY
+        jsr     load_s1                 ; -> S1, length in A
+        sta     E
+        jsr     pop_string_s0           ; Pop left operand -> S0, length in A
+        sta     D
         clc
-        adc     E                       ; Get total length of string
-        bcs     @out_of_range           ; Combined string is too long
+        adc     E                       ; Total length
+        bcs     @out_of_range
         jsr     string_alloc_for_copy
         ldax    S0                      ; Copy S0 to dst_ptr
         ldy     D
@@ -196,12 +204,15 @@ op_concat:
         ldax    S1                      ; Copy S1
         ldy     E
         jsr     copy_y_from
-        jmp     push_string             ; Happily, string_ptr is still the address of the new string
+        mvax    string_ptr, S0
+        mva     #TYPE_STRING, expr_type
+        rts
 
 @out_of_range:
         jmp     raise_out_of_range
 
-; Compares two strings from the stack returns flags based on the comparison.
+; Compares two strings: right operand in S0, left on stack.
+; Returns flags based on comparison.
 ; CMP s1 len, s2 len
 ; C=0 (borrow) if s1 len < s2 len
 ; C=1 (not borrow) if s1 len >= s2 len
@@ -229,85 +240,83 @@ compare_string_values:
         rts
 
 pop_two_strings:
-        jsr     pop_string              ; Get the second string
-        jsr     load_s1                 ; Load into S1
+        jsr     load_s0_from_s0         ; Convert S0 header -> data, A = right string length
         sta     E                       ; Length of second string in E
-        jsr     pop_string_s0           ; Get first string
+        mvax    S0, S1                  ; Second string data in S1
+        jsr     pop_string_s0           ; Get first string from stack into S0
         sta     D                       ; Length of first string in D
         rts
 
 op_eq:
         jsr     compare_values
 op_eq_tail:
-        beq     push_value_1            ; A = B
-        bne     push_value_0            ; A <> B
+        beq     set_value_1             ; A = B
+        bne     set_value_0             ; A <> B
 
 op_ne:
         jsr     compare_values
 op_ne_tail:
-        bne     push_value_1            ; A <> B
-        beq     push_value_0            ; A = B
+        bne     set_value_1             ; A <> B
+        beq     set_value_0             ; A = B
 
 op_le:
         jsr     compare_values
-        bcc     push_value_1            ; A < B
+        bcc     set_value_1             ; A < B
         bcs     op_eq_tail              ; A >= B
 
 op_lt:
         jsr     compare_values
-        bcc     push_value_1            ; A < B
-        bcs     push_value_0            ; A >= B
+        bcc     set_value_1             ; A < B
+        bcs     set_value_0             ; A >= B
 
 op_ge:
         jsr     compare_values
-        bcc     push_value_0            ; A < B
-        bcs     push_value_1            ; A >= B
+        bcc     set_value_0             ; A < B
+        bcs     set_value_1             ; A >= B
 
 op_gt:
         jsr     compare_values
-        bcc     push_value_0            ; A < B
+        bcc     set_value_0             ; A < B
         bcs     op_ne_tail              ; A >= B
 
-; Compares two values from the stack returns flags based on the comparison.
-; On return, C ("not borrow") will be or clear if the second value is greater than the first (B > A or A < B)
-; or set if the second value is less than or equal to the first (B <= A or A >= B).
-; If carry is set, then Z will be also be set if the values are equal or clear if they are not.
+set_value_0:
+        jmp     clear_fp0
 
-push_value_0:
-        jsr     clear_fp0
-        jmp     push_fp0
+set_value_1:
+        jmp     load_one_fp0
 
-push_value_1:
-        jsr     load_one_fp0
-        jmp     push_fp0
+compare_num_values:
+        jsr     load_fp1
+        jsr     swap_fp0_fp1
+        jmp     fcmp_2
 
 compare_values:
-        ldy     stack_pos               ; Get stack pointer
-        lda     stack+Value::type,y                 ; Type of first argument
-        cmp     stack+.sizeof(Value)+Value::type,y  ; Type of second argument
+        lda     expr_type               ; Right operand type
+        ldx     stack_pos               ; Get stack pointer
+        cmp     stack+Value::type,x     ; Type of first argument
         beq     @match
         jmp     raise_type_mismatch
 @match:
         cmp     #TYPE_STRING            ; Is it a string?
-        beq     compare_string_values   ; Yes
-        lda     #>(fcmp-1)
-        ldx     #<(fcmp-1)
-
-; Fall through
+        beq     @string
+        lda     #>(compare_num_values-1)
+        ldx     #<(compare_num_values-1)
+        jmp     call_binary_operator
+@string:
+        mva     #TYPE_NUMBER, expr_type ; Comparison result is always a number
+        jmp     compare_string_values
 
 ; Take the two values from the top of the stack and invoke a binary operator.
 ; The operator handler address -1 is passed in XA (note least-significant byte is in X).
-; Given an expression like 3/2, we will push 3 onto the stack, then 2, so 2 is at top of stack, and therefore the
-; value we pop second goes into FP0, and the value we pop first is the argument.
+; Right operand is already in FP0.
+; Left operand is popped from value stack and its address passed in AY.
 
 call_binary_operator:
         phax                            ; Push operator handler address -1 onto the stack so we can RTS to it
         lda     #TYPE_NUMBER            ; Make sure that the first value is a number
+        sta     expr_type               ; Result is always TYPE_NUMBER
         jsr     stack_free_value_with_type
         txa                             ; Original value of stack_pos, returned in X
-        pha                             ; Save on stack
-        jsr     pop_fp0                 ; Second value into FP0
-        pla                             ; Get stack address of first value
         ldy     #>stack                 ; Stack page
         rts                             ; JMP to the operator handler
 
@@ -317,44 +326,49 @@ call_binary_operator:
 op_mul:
         ldx     #<(fmul-1)
         lda     #>(fmul-1)
-        bne     call_binary_operator_push
+        bne     call_binary_operator
+
+op_div_handler:
+        jsr     load_fp1
+        jsr     swap_fp0_fp1
+        jmp     fdiv_2
 
 op_div:
-        ldx     #<(fdiv-1)
-        lda     #>(fdiv-1)
-        bne     call_binary_operator_push
+        ldx     #<(op_div_handler-1)
+        lda     #>(op_div_handler-1)
+        bne     call_binary_operator
+
+op_pow_handler:
+        stay    DE                      ; Save pointer to base in DE
+        lday    #fpow_exponent
+        jsr     store_fp0               ; Store exponent in fpow_exponent
+        lday    DE
+        jsr     load_fp0                ; Load base into FP0
+        lday    #fpow_exponent          ; Pointer to exponent in AY
+        jmp     fpow                    ; fpow(base in FP0, exponent in AY)
 
 op_pow:
-        ldx     #<(fpow-1)
-        lda     #>(fpow-1)
-        bne     call_binary_operator_push
+        ldx     #<(op_pow_handler-1)
+        lda     #>(op_pow_handler-1)
+        bne     call_binary_operator
 
 op_sub:
-        ldx     #<(fsub-1)
-        lda     #>(fsub-1)
-        bne     call_binary_operator_push
+        jsr     fneg                    ; FP0 = -right
+        ldx     #<(fadd-1)              ; (-right) + left = left - right
+        lda     #>(fadd-1)
+        bne     call_binary_operator
         
 op_add:
         ldx     #<(fadd-1)
         lda     #>(fadd-1)
-
-; Fall through
-; Invokes a binary operator and pushes the result back.
-
-call_binary_operator_push:
-        jsr     call_binary_operator
-        jmp     push_fp0
-
-unary_op_minus:
-        jsr     pop_fp0                 ; Get value at top of stack
-        jsr     fneg                    ; Negate it
-        jmp     push_fp0                ; Return to stack
+        bne     call_binary_operator
 
 unary_op_not:
-        jsr     pop_fp0                 ; Get value
         lda     FP0e
-        bne     push_value_0            ; Value was not zero so we should return 0
-        beq     push_value_1
+        bne     @false
+        jmp     load_one_fp0
+@false:
+        jmp     clear_fp0
 
 ; Push the value in FP0 onto the value stack.
 ; FP0 = the value to push
@@ -394,14 +408,30 @@ pop_fp0:
 ; we have generated a new string.
 ; DE SAFE
 
+; Pushes the pending value (FP0 or S0 based on expr_type) onto the value stack.
+push_pending:
+        lda     expr_type
+        bne     @string
+        jmp     push_fp0
+@string:
+        jmp     push_string_s0
+
+; Pushes the string referenced by string_ptr onto the stack. This works because this function is only called after
+; we have generated a new string.
+; S0 is updated to string_ptr.
+; DE SAFE
+
 push_string:
+        mvax    string_ptr, S0
+; Fall through
+push_string_s0:
         jsr     stack_alloc_value
         tay
         lda     #TYPE_STRING            ; Assign the string type
         sta     stack+Value::type,y
-        lda     string_ptr              ; Copy low byte of string address
+        lda     S0                      ; Copy low byte of string address
         sta     stack+Value::string_value_ptr,y     ; Save low and high byte of string address
-        lda     string_ptr+1            ; High byte
+        lda     S0+1                    ; High byte
         sta     stack+Value::string_value_ptr+1,y   ; Carry still clear for return
         rts
 
@@ -472,8 +502,9 @@ op_and:
 
 finish_logical_op:
         tax
+        mva     #TYPE_NUMBER, expr_type ; Result is TYPE_NUMBER
         pla                             ; Recover low byte
-        jmp     push_int_fp0            ; Back onto stack
+        jmp     int_to_fp
 
 op_or:
         jsr     set_up_logical_op
@@ -484,9 +515,10 @@ op_or:
         jmp     finish_logical_op
 
 set_up_logical_op:
-        jsr     pop_int_fp0
+        jsr     truncate_fp_to_int      ; FP0 right operand -> int in AX
         stax    DE                      ; Store returned value in DE
-        jmp     pop_int_fp0
+        jsr     pop_fp0                 ; Left operand -> FP0
+        jmp     truncate_fp_to_int
 
 operator_vectors_l:
         .byte   <(op_add-1)
@@ -503,7 +535,7 @@ operator_vectors_l:
         .byte   <(op_ge-1)
         .byte   <(op_and-1)
         .byte   <(op_or-1)
-        .byte   <(unary_op_minus-1)
+        .byte   <(fneg-1)
         .byte   <(unary_op_not-1)
 
 operator_count = * - operator_vectors_l
@@ -526,7 +558,7 @@ operator_vectors_h:
         .byte   >(op_ge-1)
         .byte   >(op_and-1)
         .byte   >(op_or-1)
-        .byte   >(unary_op_minus-1)
+        .byte   >(fneg-1)
         .byte   >(unary_op_not-1)
 
 .assert (* - operator_vectors_h) = operator_count, error

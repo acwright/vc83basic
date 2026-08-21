@@ -131,6 +131,9 @@ byte(reset_stack_pos)
 comment Minimum operator precedence used in process_operators
 byte(min_precedence)
 
+comment The type of the most recently evaluated expression value (0=number, 1=string)
+byte(expr_type)
+
 comment Where to resume execution after STOP
 word(resume_line_ptr, Line*)
 

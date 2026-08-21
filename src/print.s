@@ -15,17 +15,15 @@ exec_print:
         beq     @empty_space
         cmp     #TOK_COMMA
         beq     @tab
-        jsr     evaluate_expression     ; Leaves value on stack
-        ldx     stack_pos               ; Get the current stack pointer
-        lda     stack+Value::type,x     ; Get the type of the variable
+        jsr     evaluate_expression     ; Leaves value in FP0 or S0
+        lda     expr_type               ; Get the type of the expression
         beq     @print_num
-        jsr     pop_string
+        lday    S0
         jsr     print_string
         beq     @loop                   ; Unconditional: Z=1 from print_s0
 
 @print_num:
-        jsr     pop_fp0                 ; Get the value
-        jsr     print_number            ; Print the number
+        jsr     print_number            ; Print the number (already in FP0)
         beq     @loop                   ; Unconditional: Z=1 from print_s0
 
 @tab:

@@ -43,7 +43,6 @@ exec_input:
         jsr     string_to_fp            ; Parse the number
         bcs     @format_error           ; Failed to read a number
         sty     buffer_pos              ; Update buffer_pos
-        jsr     push_fp0                ; Push FP0 onto the value stack
 
 @assign:
         jsr     assign_variable         ; Store the value
@@ -75,7 +74,7 @@ exec_input:
         jsr     read_string
         bcs     @format_error
         sty     buffer_pos              ; Update buffer_pos to next read position
-        jsr     push_string             ; Push result string onto the stack
+        mvax    string_ptr, S0          ; S0 = string header pointer
         jmp     @assign
 
 @format_error:

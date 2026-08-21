@@ -54,7 +54,6 @@ void test_one_op(char op, const Float* expected00, const Float* expected01, cons
     set_line(0, line_data, sizeof line_data);
     evaluate_expression();
     ASSERT_EQ(err, 0);
-    pop_fp0();
     store_fp0(&value);
     ASSERT_FLOAT_EQ(value, *expected00);
 
@@ -71,7 +70,6 @@ void test_one_op(char op, const Float* expected00, const Float* expected01, cons
     set_line(0, line_data, sizeof line_data);
     evaluate_expression();
     ASSERT_EQ(err, 0);
-    pop_fp0();
     store_fp0(&value);
     ASSERT_FLOAT_EQ(value, *expected10);
 
@@ -80,7 +78,6 @@ void test_one_op(char op, const Float* expected00, const Float* expected01, cons
     set_line(0, line_data, sizeof line_data);
     evaluate_expression();
     ASSERT_EQ(err, 0);
-    pop_fp0();
     store_fp0(&value);
     ASSERT_FLOAT_EQ(value, *expected11);
 }
@@ -98,7 +95,6 @@ void test_one_unary_op(char op, const Float* expected0, const Float* expected1) 
     set_line(0, line_data, sizeof line_data);
     evaluate_expression();
     ASSERT_EQ(err, 0);
-    pop_fp0();
     store_fp0(&value);
     ASSERT_FLOAT_EQ(value, *expected0);
 
@@ -106,7 +102,6 @@ void test_one_unary_op(char op, const Float* expected0, const Float* expected1) 
     set_line(0, line_data, sizeof line_data);
     evaluate_expression();
     ASSERT_EQ(err, 0);
-    pop_fp0();
     store_fp0(&value);
     ASSERT_FLOAT_EQ(value, *expected1);
 }
@@ -157,14 +152,12 @@ void test_evaluate_expression_op_precedence(void) {
     set_line(0, line_data_1, sizeof line_data_1);
     evaluate_expression();
     ASSERT_EQ(err, 0);
-    pop_fp0();
     store_fp0(&value);
     ASSERT_FLOAT_EQ(value, result_1);
 
     set_line(0, line_data_2, sizeof line_data_2);
     evaluate_expression();
     ASSERT_EQ(err, 0);
-    pop_fp0();
     store_fp0(&value);
     ASSERT_FLOAT_EQ(value, result_2);
 }
@@ -197,7 +190,6 @@ void test_one_string_comparison(char op, const char* s1, const char* s2, const F
 
     evaluate_expression();
     ASSERT_EQ(err, 0);
-    pop_fp0();
     store_fp0(&value);
     ASSERT_FLOAT_EQ(value, *expected);
 }
