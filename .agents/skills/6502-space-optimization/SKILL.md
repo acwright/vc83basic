@@ -371,7 +371,6 @@ If you need to move bit 7 (the N bit) to the carry flag without affecting the va
 If you need to clear bit 7 but remember whether it was set, use the sequence `CMP #$80` followed by `AND #$7F`. Because `AND` (along with `ORA` and `EOR`) does not affect the carry flag:
 - `A` has bit 7 cleared.
 - The carry flag preserves the original state of bit 7 ($C=1$ if it was set, $C=0$ if clear), enabling conditional branching (`BCC`/`BCS`) or arithmetic without needing `PHA`/`PLA` stack operations.
-
 ---
 
 ## 9. Restructure Static Data for Cheaper Access

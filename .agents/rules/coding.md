@@ -54,5 +54,6 @@ Repeated command permission checks slow down work significantly. Minimize intera
 2. **Batch Verification**: Only run test commands (such as `make test && make expect_test`) once an implementation, refactor, or fix is completely in place, rather than executing partial runs after every micro-edit.
 3. **Use Debug Instrumentation in Assembly**: Insert `debug $xx` statements (which trigger the target's BRK handler to dump all 6502 registers and zero-page state) to diagnose issues directly during standard test runs.
 4. **Makefile Test Targets**: When focused testing is needed during debugging, add a target to the `Makefile` (such as `dummy: build/basic_sim6502` to run a specific test) and run `make dummy` instead of constructing complex ad-hoc shell one-liners.
+<<<<<<< HEAD
 5. **Don't `rm` Before `make`**: You should never have to `rm` a target before building it. The `Makefile` should enable `make` to correctly build all targets whenever the dependencies change. If `make` isn't working, either fix the `Makefile` or run `make clean`. 
 6. **Upstream Git Operations**: Permission checks are still appropriate and required for any operations that affect the upstream Git repository (such as pushing commits, branch manipulation, or modifying remote tracking).
