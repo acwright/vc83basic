@@ -394,16 +394,6 @@ fun_joy:
         tax
         rts
 
-; INKEY(x) -- return ASCII code of a pending key, or 0 if none.
-; The argument is ignored (vc83 functions require at least one arg).
-fun_inkey:
-        jsr     get_key                 ; Raw, non-echoing (C=1 if char available)
-        bcs     @got
-        lda     #0
-@got:
-        ldx     #0
-        rts
-
 ; NVRAM(addr) -- read RTC NVRAM byte; returns 0 if RTC absent.
 fun_nvram:
         sta     D                       ; D = address (from prolog)

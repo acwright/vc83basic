@@ -142,8 +142,7 @@ TOK_MEM     = $6B
 TOK_SYS     = $6C
 
 TOK_JOY     = $99
-TOK_INKEY   = $9A
-TOK_NVRAM_F = $9B
+TOK_NVRAM_F = $9A
 
 .macro extension_statement_keywords
 :       name_table_entry "CLS"
@@ -167,7 +166,6 @@ KEYWORD_BLOCK_6_OFFSET = keyword_counter
 
 .macro extension_function_keywords
 :       name_table_entry "JOY"
-:       name_table_entry "INKEY"
 :       name_table_entry "NVRAM"
 .endmacro
 
@@ -197,7 +195,7 @@ pvm_arg_4:
 .endmacro
 
 .macro extension_pvm_functions
-        BRANCH_IF_RANGE TOK_JOY, 3, pvm_fun_1
+        BRANCH_IF_RANGE TOK_JOY, 2, pvm_fun_1
 .endmacro
 
 .macro extension_statement_vectors_l
@@ -251,19 +249,14 @@ pvm_arg_4:
 
 .macro extension_function_vectors_l
         .byte   <(fun_joy-1)
-        .byte   <(fun_inkey-1)
         .byte   <(fun_nvram-1)
-        .byte   0
 .endmacro
 
 .macro extension_function_vectors_h
         .byte   >(fun_joy-1)
-        .byte   >(fun_inkey-1)
         .byte   >(fun_nvram-1)
-        .byte   0
 .endmacro
 
 .macro extension_function_flags
-        .byte   (PROLOG_POP_INT | EPILOG_PUSH_INT) | ((PROLOG_POP_INT | EPILOG_PUSH_INT) << 4) ; JOY, INKEY
-        .byte   (PROLOG_POP_INT | EPILOG_PUSH_INT) | (0 << 4)                                   ; NVRAM, padding
+        .byte   (PROLOG_POP_INT | EPILOG_PUSH_INT) | ((PROLOG_POP_INT | EPILOG_PUSH_INT) << 4) ; JOY, NVRAM
 .endmacro
