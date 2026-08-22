@@ -159,12 +159,11 @@ expand_tokenized_name:
 
 @next_name_byte:
         lda     (name_ptr),y
-        pha                             ; Remember if EOT bit was set
-        and     #<~EOT                  ; Clear if it was
-        jsr     append_buffer
-        iny
-        pla
-        bpl     @next_name_byte
+        cmp     #EOT                    ; Sets C=1 if EOT bit was set
+        and     #<~EOT                  ; Clear if it was (preserves C)
+        jsr     append_buffer           ; Preserves C
+        iny                             ; Preserves C
+        bcc     @next_name_byte         ; Loop if EOT was not set
 
 @done:
         rts
