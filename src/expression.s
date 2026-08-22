@@ -189,13 +189,16 @@ process_operators:
 
 op_concat:
         jsr     push_string_s0          ; Push right operand for GC safety
-        jsr     pop_string              ; Pop right operand -> AY
-        jsr     load_s1                 ; -> S1, length in A
+        lday    S0                      ; Right string header
+        jsr     load_s1                 ; Convert to data pointer in S1, A = right length
         sta     E
-        jsr     pop_string_s0           ; Pop left operand -> S0, length in A
+        ldx     stack_pos               ; Get stack pointer
+        lda     stack+.sizeof(Value)+Value::string_value_ptr,x
+        ldy     stack+.sizeof(Value)+Value::string_value_ptr+1,x
+        jsr     load_s0                 ; Convert to data pointer in S0, A = left length
         sta     D
         clc
-        adc     E                       ; Total length
+        adc     E                       ; Total length = D + E
         bcs     @out_of_range
         jsr     string_alloc_for_copy
         ldax    S0                      ; Copy S0 to dst_ptr
@@ -204,6 +207,8 @@ op_concat:
         ldax    S1                      ; Copy S1
         ldy     E
         jsr     copy_y_from
+        lda     #2 * .sizeof(Value)
+        jsr     stack_free              ; Pop both strings from the stack
         mvax    string_ptr, S0
         mva     #TYPE_STRING, expr_type
         rts
@@ -218,7 +223,11 @@ op_concat:
 ; C=1 (not borrow) if s1 len >= s2 len
 
 compare_string_values:
-        jsr     pop_two_strings
+        lday    S0                      ; Right string header pointer
+        jsr     load_s1                 ; Convert to data pointer in S1, A = right string length
+        sta     E                       ; Length of second string in E
+        jsr     pop_string_s0           ; Get first string from stack into S0
+        sta     D                       ; Length of first string in D
         cmp     E                       ; Compare first string length to second
         bcc     @use_first_string_length
         lda     E                       ; Replace length in A with the shorter second string length 
@@ -237,14 +246,6 @@ compare_string_values:
 @compare_lengths:
         lda     D                       ; Characters are the same, so shorter string is lesser or equal
         cmp     E
-        rts
-
-pop_two_strings:
-        jsr     load_s0_from_s0         ; Convert S0 header -> data, A = right string length
-        sta     E                       ; Length of second string in E
-        mvax    S0, S1                  ; Second string data in S1
-        jsr     pop_string_s0           ; Get first string from stack into S0
-        sta     D                       ; Length of first string in D
         rts
 
 op_eq:

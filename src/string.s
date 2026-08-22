@@ -12,12 +12,6 @@ load_s1:
         ldx     #S1
         bne     load_s        
 
-load_s0_from_s0:
-        lda     S0
-        ldy     S0+1
-
-; Fall through
-
 load_s0:
         ldx     #S0
 load_s:
