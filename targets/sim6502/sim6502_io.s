@@ -157,7 +157,6 @@ io_close_all:
 ; Gets a single byte from channel.
 ; channel = channel (0..7)
 ; Returns byte in A and carry clear if ok, carry set if EOF / error.
-; X SAFE, Y SAFE
 
 io_get:
         txa
@@ -218,7 +217,6 @@ io_inkey:
 ; A = byte to put
 ; channel = channel (0..7)
 ; Returns carry clear if ok, carry set if error.
-; X SAFE, Y SAFE
 
 io_put:
         sta     put_byte_buf            ; Store byte in put_byte_buf
