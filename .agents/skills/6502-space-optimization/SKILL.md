@@ -548,6 +548,80 @@ unmatched JSR/RTS, PHA/PLA in between).
 
 ---
 
+## 17. 16-Bit Byte Adjustments with BCC/INC and BCS/DEC
+
+When adding or subtracting an 8-bit offset to/from a 16-bit pointer or integer, adjusting the high byte with conditional branching saves 2 to 4 bytes compared to using `ADC #0` or `SBC #0`.
+
+### Adding an 8-bit offset to a 16-bit memory location
+
+The standard approach loads the high byte, adds carry with `#0`, and stores it back (6–8 bytes depending on addressing mode):
+
+```assembly
+; CONVENTIONAL (8 bytes for high-byte propagation)
+        clc
+        lda     ptr
+        adc     offset
+        sta     ptr
+        lda     ptr+1           ; 2-3 bytes
+        adc     #0              ; 2 bytes
+        sta     ptr+1           ; 2-3 bytes
+
+; OPTIMIZED (4 bytes, saves 2-4 bytes)
+        clc
+        lda     ptr
+        adc     offset
+        sta     ptr
+        bcc     @no_carry       ; 2 bytes
+        inc     ptr+1           ; 2-3 bytes
+@no_carry:
+```
+
+### Subtracting an 8-bit offset from a 16-bit memory location
+
+When subtracting, borrow is indicated by Carry being clear (`C=0`). Use `BCS` to skip `DEC`:
+
+```assembly
+; CONVENTIONAL (8 bytes for high-byte propagation)
+        sec
+        lda     ptr
+        sbc     offset
+        sta     ptr
+        lda     ptr+1           ; 2-3 bytes
+        sbc     #0              ; 2 bytes
+        sta     ptr+1           ; 2-3 bytes
+
+; OPTIMIZED (4 bytes, saves 2-4 bytes)
+        sec
+        lda     ptr
+        sbc     offset
+        sta     ptr
+        bcs     @no_borrow      ; 2 bytes
+        dec     ptr+1           ; 2-3 bytes
+@no_borrow:
+```
+
+### Adjusting 16-bit values in AX registers
+
+When the 16-bit value is held in the `AX` register pair (low byte in A, high byte in X):
+
+```assembly
+; Adding 8-bit offset in A to AX:
+        clc
+        adc     offset
+        bcc     @no_carry       ; 2 bytes
+        inx                     ; 1 byte (vs. pha / txa / adc #0 / tax / pla = 5 bytes)
+@no_carry:
+
+; Subtracting 8-bit offset from AX:
+        sec
+        sbc     offset
+        bcs     @no_borrow      ; 2 bytes
+        dex                     ; 1 byte (vs. pha / txa / sbc #0 / tax / pla = 5 bytes)
+@no_borrow:
+```
+
+---
+
 ## Summary Checklist
 
 When reviewing code for space savings, check each of these in order:
@@ -568,3 +642,4 @@ When reviewing code for space savings, check each of these in order:
 14. **Dead checks:** Can provably-unreachable checks be removed?
 15. **BIT trick:** Can $2C skip over a 2-byte instruction?
 16. **Stack scratch:** Can PHA/PLA replace STA/LDA for temporaries?
+17. **16-bit adjustments:** Can BCC/INC or BCS/DEC replace ADC #0 / SBC #0 for high bytes?
