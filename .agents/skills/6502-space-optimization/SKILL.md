@@ -361,6 +361,16 @@ array_element_size` / `TXA` / `SBC array_element_size+1` just to check if the re
 negative. Replaced the low byte with `CMP array_element_size` since only the carry into the
 high byte mattered, saving 1 byte.
 
+### Move bit 7 to carry or clear bit 7 with CMP #$80
+
+If you need to move bit 7 (the N bit) to the carry flag without affecting the value in A, use `CMP #$80`:
+- If bit 7 was set ($A \ge \$80$), carry is set ($C=1$).
+- If bit 7 was clear ($A < \$80$), carry is clear ($C=0$).
+- The accumulator value `A` is preserved.
+
+If you need to clear bit 7 but remember whether it was set, use the sequence `CMP #$80` followed by `AND #$7F`. Because `AND` (along with `ORA` and `EOR`) does not affect the carry flag:
+- `A` has bit 7 cleared.
+- The carry flag preserves the original state of bit 7 ($C=1$ if it was set, $C=0$ if clear), enabling conditional branching (`BCC`/`BCS`) or arithmetic without needing `PHA`/`PLA` stack operations.
 ---
 
 ## 9. Restructure Static Data for Cheaper Access

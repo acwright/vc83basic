@@ -2,12 +2,12 @@
 ;
 ; SPDX-License-Identifier: MIT
 
-TOK_BYE   = $5A
-TOK_VER_S = $98
+TOK_BYE   = $62
+TOK_VER_S = $99
 
 .macro extension_statement_keywords
 :       name_table_entry "BYE"
-:       name_table_entry ""
+:       name_table_entry ""             ; Padding for even statement count
 .endmacro
 
 .macro extension_function_keywords
@@ -33,7 +33,7 @@ TOK_VER_S = $98
 .endmacro
 
 .macro extension_statement_flags
-        .byte   0
+        .byte   0                       ; BYE + padding
 .endmacro
 
 .macro extension_function_vectors_l
@@ -45,7 +45,7 @@ TOK_VER_S = $98
 .endmacro
 
 .macro extension_function_flags
-        .byte   PROLOG_NONE | EPILOG_PUSH_STRING
+        .byte   (PROLOG_NONE | EPILOG_PUSH_STRING) | ((PROLOG_NONE | EPILOG_PUSH_STRING) << 4) ; INKEY$, VER$
 .endmacro
 
 .macro extension_code

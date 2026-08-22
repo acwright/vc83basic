@@ -2,14 +2,11 @@
 ;
 ; SPDX-License-Identifier: MIT
 
-ready_message: .byte "READY"
-ready_message_length = * - ready_message
+ready_message: .byte 5, "READY"
 
-error_message: .byte "ERR: "
-error_message_length = * - error_message
+error_message: .byte 5, "ERR: "
 
-error_message_2: .byte " AT "
-error_message_2_length = * - error_message_2
+error_message_2: .byte 4, " AT "
 
 ; Verify that the program states are the affected values so we can use flags.
 
@@ -36,19 +33,22 @@ on_raise:
         sta     program_state           ; Whatever comes back from exception handler is new state
         beq     run                     ; Program is running; do the next thing
         pha                             ; Save the error value and output a newline, which we will need no matter what
-        jsr     newline
+        mva     #$80, channel           ; Reset channel to default console ($80)
+        jsr     io_end_record
         pla
         bmi     handle_error
-        ldax    #ready_message
-        ldy     #ready_message_length
-        jsr     write
-        jsr     newline
+        lday    #ready_message
+        jsr     print_string
+        jsr     io_end_record
 
 get_command:
         ldax    #line_buffer            ; Reset next_line_ptr to line_buffer
         jsr     reset_next_line_ptr_2
         stax    line_ptr                ; Reset line_ptr too, so line number reported correctly on error
-        jsr     readline
+        jsr     io_read_record
+        tay
+        lda     #0
+        sta     buffer,y
         jsr     parse_line
         lda     line_buffer+Line::number+1  ; Get high byte of line number
         bmi     immediate_mode          ; If line number is negative then we're in immediate mode
@@ -92,31 +92,30 @@ handle_error:
         and     #$7F                    ; Clear the high bit
         beq     @not_error              ; For STOPPED we don't print "ERROR"
         pha                             ; Save the error value again
-        ldax    #error_message
-        ldy     #error_message_length
-        jsr     write
+        lday    #error_message
+        jsr     print_string
         pla     
 @not_error:
-        tay                             ; Prepare to look up the program_state message
+        tay
         ldax    #error_message_table
         jsr     get_name
+        mvaa    name_ptr, S0
         sec
-        lda     next_name_ptr           ; Length of message is next_name_ptr - name_ptr
+        lda     next_name_ptr
         sbc     name_ptr
-        tay
-        ldax    name_ptr
-        jsr     write
+        jsr     print_s0
         ldy     #Line::number+1         ; Print line number if >= 0, else we're in immediate mode
         lda     (line_ptr),y
         bmi     @no_line_number
-        ldax    #error_message_2
-        ldy     #error_message_2_length
-        jsr     write
-        mva     #0, buffer_pos
+        lday    #error_message_2
+        jsr     print_string
+        mva     #1, buffer_pos
         jsr     line_number_to_string
-        ldy     buffer_pos
-        ldax    #buffer
-        jsr     write
+        ldx     buffer_pos
+        dex
+        stx     buffer
+        lday    #buffer
+        jsr     print_string
 @no_line_number:
-        jsr     newline
+        jsr     io_end_record
         jmp     get_command

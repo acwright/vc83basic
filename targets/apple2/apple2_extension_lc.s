@@ -4,16 +4,16 @@
 
 TOK_AT    = $15
 
-TOK_GR    = $5A
-TOK_TEXT  = $5B
-TOK_HOME  = $5C
-TOK_COLOR = $5D
-TOK_PLOT  = $5E
-TOK_HLIN  = $5F
-TOK_VLIN  = $60
+TOK_GR    = $5E
+TOK_TEXT  = $5F
+TOK_HOME  = $60
+TOK_COLOR = $61
+TOK_PLOT  = $62
+TOK_HLIN  = $63
+TOK_VLIN  = $64
 
-TOK_PDL   = $98
-TOK_SCRN  = $99
+TOK_PDL   = $99
+TOK_SCRN  = $9A
 
 .macro extension_custom_keywords
 :       name_table_entry "AT"
@@ -22,11 +22,11 @@ TOK_SCRN  = $99
 .macro extension_statement_keywords
 :       name_table_entry "GR"
 :       name_table_entry "TEXT"
+KEYWORD_BLOCK_6_OFFSET = keyword_counter
 :       name_table_entry "HOME"
 :       name_table_entry "COLOR"
 :       name_table_entry "PLOT"
 :       name_table_entry "HLIN"
-KEYWORD_BLOCK_6_OFFSET = keyword_counter
 :       name_table_entry "VLIN"
 :       name_table_entry ""             ; Padding for even statement count
 .endmacro
@@ -81,15 +81,18 @@ KEYWORD_BLOCK_6_OFFSET = keyword_counter
 .macro extension_function_vectors_l
         .byte   <(fun_pdl-1)
         .byte   <(fun_scrn-1)
+        .byte   0
 .endmacro
 
 .macro extension_function_vectors_h
         .byte   >(fun_pdl-1)
         .byte   >(fun_scrn-1)
+        .byte   0
 .endmacro
 
 .macro extension_function_flags
-        .byte   (PROLOG_POP_INT | EPILOG_PUSH_INT) | ((PROLOG_POP_INT | EPILOG_PUSH_INT) << 4)
+        .byte   (PROLOG_NONE | EPILOG_PUSH_STRING) | ((PROLOG_POP_INT | EPILOG_PUSH_INT) << 4)        ; INKEY$, PDL
+        .byte   (PROLOG_POP_INT | EPILOG_PUSH_INT) | (0 << 4)                                           ; SCRN, padding
 .endmacro
 
 .macro extension_parser_code
@@ -102,8 +105,12 @@ pvm_hlin_vlin:
 .macro extension_code
 exec_color:
         jsr     evaluate_expression
-        jsr     pop_int_fp0             ; Pop the color value
+        bne     @type_mismatch
+        jsr     truncate_fp_to_int      ; Color value in AX
         jmp     SETCOL
+
+@type_mismatch:
+        jmp     raise_type_mismatch
 
 exec_plot:
         jsr     evaluate_argument_list
@@ -132,7 +139,8 @@ get_hlin_vlin_arguments:
         jsr     evaluate_argument_list  ; Evaluate start and end
         inc     line_pos                ; Skip TOK_AT
         jsr     evaluate_expression
-        jsr     pop_int_fp0             ; Get coordinate (Row for HLIN, Column for VLIN)
+        bne     @type_mismatch
+        jsr     truncate_fp_to_int      ; Get coordinate (Row for HLIN, Column for VLIN)
         pha                             ; Save on hardware stack
         jsr     pop_int_fp0             ; Get end point (H2/V2)
         sta     H2
@@ -141,6 +149,9 @@ get_hlin_vlin_arguments:
         tay                             ; Start point into Y
         pla                             ; Coordinate into A
         rts
+
+@type_mismatch:
+        jmp     raise_type_mismatch
 
 fun_pdl:
         tax

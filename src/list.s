@@ -21,18 +21,11 @@ exec_list:
         sta     line_number+1
         jsr     peek_byte               ; Look to see if there are arguments
         beq     @next_line              ; Nothing after LIST, just go
-        cmp     #TOK_NUM
-        bne     @next_line
         jsr     get_line_number         ; Go get start line number
         jsr     find_line               ; Stores the line number in line_number
         jsr     peek_byte               ; Anything else?
         beq     @next_line              ; Nope: the value in line_number becomes the terminating line number
-        cmp     #TOK_COMMA
-        bne     @next_line
         inc     line_pos                ; There's another arg, so skip over the ','
-        jsr     peek_byte
-        cmp     #TOK_NUM
-        bne     @next_line
         jsr     get_line_number         ; Save the ending line number in line_number
         stax    line_number
 
@@ -44,13 +37,13 @@ exec_list:
 @print:
         mvaa    next_line_ptr, line_ptr
         jsr     list_line
-        ldax    #buffer
-        ldy     buffer_pos              ; buffer_pos will be the amount of data written to the buffer
+        mvaa    #buffer, S0
+        lda     buffer_pos              ; buffer_pos will be the amount of data written to the buffer
         beq     @done                   ; If it was zero bytes then no more lines
-        jsr     write
-        jsr     newline
+        jsr     print_s0
+        jsr     io_end_record
         jsr     advance_next_line_ptr
-        jmp     @next_line
+        bne     @next_line              ; Unconditional: advance_next_line_ptr leaves Y=3 (Z=0)
 
 @done:
         plsta   next_line_pos
@@ -166,12 +159,11 @@ expand_tokenized_name:
 
 @next_name_byte:
         lda     (name_ptr),y
-        pha                             ; Remember if EOT bit was set
-        and     #<~EOT                  ; Clear if it was
-        jsr     append_buffer
-        iny
-        pla
-        bpl     @next_name_byte
+        cmp     #EOT                    ; Sets C=1 if EOT bit was set
+        and     #<~EOT                  ; Clear if it was (preserves C)
+        jsr     append_buffer           ; Preserves C
+        iny                             ; Preserves C
+        bcc     @next_name_byte         ; Loop if EOT was not set
 
 @done:
         rts

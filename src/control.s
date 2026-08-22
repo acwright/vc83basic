@@ -30,10 +30,11 @@ exec_goto:
 
 exec_on_goto_gosub:
         jsr     evaluate_expression     ; Evaluate the "ON" expression
+        bne     @type_mismatch
         jsr     decode_byte             ; Next byte tells us if it's GOTO or GOSUB
         cmp     #TOK_GOTO               ; If Z flag then we're GOTO, else GOSUB
         php                             ; Remember what we learned
-        jsr     pop_int_fp0             ; FP0 -> integer in AX
+        jsr     truncate_fp_to_int      ; FP0 -> integer in AX
         sta     B
         txa                             ; Check the high byte
         bne     @out_of_range           ; If high byte is set then value is out of range (either <0 or >255)
@@ -50,6 +51,9 @@ exec_on_goto_gosub:
         bne     @next_byte
         sty     line_pos                ; Update line_pos with the position after the next ','
         jmp     @loop                   ; Unconditional
+
+@type_mismatch:
+        jmp     raise_type_mismatch
 
 @found:
         plp                             ; Recover the flags from the GOSUB check
@@ -101,18 +105,17 @@ exec_for:
         lda     name_ptr+1
         sbc     #0
         sta     stack+Control::variable_name_ptr+1,x
-        jsr     evaluate_expression     ; End value
-        jsr     pop_fp0                 ; Get the evaluated value
+        jsr     evaluate_expression     ; End value (now in FP0)
+        bne     @type_mismatch
         lda     stack_pos               ; Stack pointer
         adc     #Control::end_value     ; Add the offset of the end value; carry is clear
         ldy     #>stack                 ; Stack page
         jsr     store_fp0               ; Store FP0 there
         jsr     peek_byte               ; Check for STEP
-        cmp     #TOK_STEP
-        bne     @no_step
+        beq     @no_step
         inc     line_pos
-        jsr     evaluate_expression
-        jsr     pop_fp0
+        jsr     evaluate_expression     ; Step value (now in FP0)
+        bne     @type_mismatch
         jmp     @store_step
 @no_step:
         jsr     load_one_fp0
@@ -122,6 +125,9 @@ exec_for:
         adc     #Control::step_value    ; Add the offset of the step value
         ldy     #>stack
         jmp     store_fp0               ; Store the step value
+
+@type_mismatch:
+        jmp     raise_type_mismatch
         
 raise_invalid_variable:
         raise   ERR_INVALID_VARIABLE
@@ -188,7 +194,7 @@ raise_next_without_for:
 
 exec_pop:
         ldx     stack_pos               ; Check stack pointer
-        cpx     #PRIMARY_STACK_SIZE     ; Stack empty?
+        cpx     #PRIMARY_STACK_SIZE     ; Check if stack empty
         bne     exec_pop_2
         jmp     raise_err_stack
 exec_pop_2:
@@ -197,14 +203,17 @@ exec_pop_2:
 
 exec_if:
         jsr     evaluate_expression     ; Evaluate the expression
+        bne     @if_type_mismatch
         inc     line_pos                ; Skip terminator
-        jsr     pop_fp0
         lda     FP0e                    ; Check if zero
         beq     @next_line              ; If zero then don't execute the THEN or any other statements on this line
         jsr     peek_byte
         cmp     #TOK_NUM
         beq     @goto
         jmp     dispatch_statement      ; Otherwise execute the THEN
+
+@if_type_mismatch:
+        jmp     raise_type_mismatch
 
 @goto:
         jmp     exec_goto

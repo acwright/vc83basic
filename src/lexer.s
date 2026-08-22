@@ -79,8 +79,18 @@ KEYWORD_BLOCK_2_OFFSET = keyword_counter
 :       name_table_entry ">="
 :       name_table_entry "AND"
 :       name_table_entry "OR"
-; Block 3 ($30..$3F) - unused
+; Block 3 ($30..$37)
 KEYWORD_BLOCK_3_OFFSET = keyword_counter
+.ifdef enable_io_channels
+:       name_table_entry "#0"
+:       name_table_entry "#1"
+:       name_table_entry "#2"
+:       name_table_entry "#3"
+:       name_table_entry "#4"
+:       name_table_entry "#5"
+:       name_table_entry "#6"
+:       name_table_entry "#7"
+.endif
 ; Block 4 ($40..$4F)
 KEYWORD_BLOCK_4_OFFSET = keyword_counter
 :       name_table_entry "PRINT"
@@ -111,8 +121,22 @@ KEYWORD_BLOCK_5_OFFSET = keyword_counter
 :       name_table_entry "CLR"
 :       name_table_entry "RETURN"
 :       name_table_entry "POP"
-        invoke_if_defined extension_statement_keywords
-; Block 6 ($60..$6F) - unused unless defined by target
+:       name_table_entry "GET"
+:       name_table_entry "PUT"
+:       name_table_entry "SAVE"
+:       name_table_entry "LOAD"
+.ifdef enable_io_channels
+:       name_table_entry "OPEN"
+:       name_table_entry "CLOSE"
+; Block 6 ($60..$6F)
+KEYWORD_BLOCK_6_OFFSET = keyword_counter
+:       name_table_entry "XIO"
+:       name_table_entry ""             ; Pad core statements to even count
+.endif
+.if .definedmacro(extension_statement_keywords)
+        extension_statement_keywords
+.endif
+; Block 6 ($60..$6F) - unused unless defined by target or enable_io_channels
 .ifndef KEYWORD_BLOCK_6_OFFSET
 KEYWORD_BLOCK_6_OFFSET = keyword_counter
 .endif
@@ -148,6 +172,7 @@ KEYWORD_BLOCK_9_OFFSET = keyword_counter
 :       name_table_entry "USR"
 :       name_table_entry "MID$"
 :       name_table_entry "FRE"
+:       name_table_entry "INKEY$"
         invoke_if_defined extension_function_keywords
 :       name_table_end
 ; Block A ($A0..$AF) - unused unless defined by target

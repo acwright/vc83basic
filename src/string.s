@@ -11,6 +11,7 @@
 load_s1:
         ldx     #S1
         bne     load_s        
+
 load_s0:
         ldx     #S0
 load_s:

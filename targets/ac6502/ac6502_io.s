@@ -13,7 +13,13 @@
 ;
 ; See https://github.com/acwright/6502 for more info
 
+.export io_get, io_put, io_inkey
+.export io_read_record, io_end_record, io_end_field
+.export io_save, io_load
+.export putch, newline, putch_raw, get_key, check_break
+
 .code
+
 
 ; ---------------------------------------------------------------------------
 ; Keyboard input primitives
@@ -87,12 +93,84 @@ check_break:
         rts
 
 ; ---------------------------------------------------------------------------
-; Line input
+; Console I/O interface
 ; ---------------------------------------------------------------------------
 
-; readline -- collect a line into `buffer`, echoing as it is typed.
-; Returns the length in A; the line is null-terminated.
+; Gets a single byte/key from console (blocking).
+; Returns carry clear and byte in A if ok, carry set if error.
 
+io_get:
+        jsr     io_inkey
+        bcs     io_get
+        rts
+
+; Polls for a key from console without blocking.
+; Returns carry clear and ASCII char in A if key available, carry set if no key.
+
+io_inkey:
+        jsr     get_key                 ; C=1 if key available
+        bcs     @got_key
+        sec
+        rts
+@got_key:
+        clc
+        rts
+
+; Puts a single character to the console.
+; A = ASCII character
+; Polls for ESC or CTRL-C while a BASIC program is running to allow break.
+
+io_put:
+putch:
+        pha                             ; Save character to output
+        lda     program_state           ; Only poll keyboard while a program is running
+        bne     @output                 ; PS_READY (non-zero): skip break check
+        jsr     check_break             ; Does not return if a break key is waiting
+@output:
+        pla                             ; Restore character
+
+; putch_raw -- output one character with no break check, for echo and for
+; anything else that has already decided about breaking.
+
+putch_raw:
+        jmp     Chrout
+
+; Emits record delimiter (CR + LF).
+
+io_end_record:
+newline:
+        lda     #CH_CR
+        jsr     io_put
+        lda     #CH_LF
+        jmp     io_put
+
+; Emits field separator (tabs across zones).
+
+io_end_field:
+        bit     HW_PRESENT              ; Video present? (Bit 7 = HW_VID)
+        bpl     @serial_tab
+        lda     IO_MODE                 ; Video mode (0)?
+        bne     @serial_tab
+:       lda     #' '
+        jsr     io_put
+        lda     VID_CURSOR_X
+        and     #$07                    ; 8-column tab zone
+        bne     :-
+        clc
+        rts
+@serial_tab:
+        ldx     #4
+:       lda     #' '
+        jsr     io_put
+        dex
+        bne     :-
+        clc
+        rts
+
+; Reads a text record (line) from console into buffer.
+; NUL-terminates at EOL, returns length in A.
+
+io_read_record:
 readline:
         ldy     #0
 @waitchar:
@@ -144,51 +222,113 @@ readline:
         lda     #CH_LF
         jsr     putch_raw
         tya                             ; Return the line length
+        clc
         rts
 
 ; ---------------------------------------------------------------------------
-; Output
+; Program storage (CompactFlash)
 ; ---------------------------------------------------------------------------
 
-write:
-        stax    BC
-        tya
-        tax
-        beq     @done
+; Copies string currently described in S0 (length in BC) to buffer with a NUL terminator.
+
+copy_s0_to_buffer_nul:
         ldy     #0
-@next:
-        lda     (BC),y
-        jsr     putch
+        lda     (BC),y                  ; Length byte
+        tay
+        beq     @empty
+        tax                             ; Length in X
+        ldy     #0
+@loop:
+        lda     (S0),y
+        sta     buffer,y
         iny
         dex
-        bne     @next
-@done:
+        bne     @loop
+@empty:
+        lda     #0                      ; NUL terminator
+        sta     buffer,y
         rts
 
-; putch -- output one character, polling for a break first so the user can
-; stop a running BASIC program.  The poll only peeks, so a key that is not ESC
-; or CTRL-C stays in the buffer for INPUT / INKEY rather than being eaten and
-; echoed into the middle of the program's output.  Skipped entirely when no
-; program is running, so it costs nothing at the READY prompt.
+; Saves program memory to file via CompactFlash filesystem.
+; S0 = filename string
 
-putch:
-        pha                             ; Save the character to output
-        lda     program_state
-        bne     @output                 ; PS_READY (non-zero): nothing to break
-        jsr     check_break             ; Does not return if a break key is waiting
-@output:
-        pla                             ; Restore the character
+io_save:
+        jsr     copy_s0_to_buffer_nul
+        lda     #<buffer
+        sta     STR_PTR
+        lda     #>buffer
+        sta     STR_PTR+1
+        lda     #<(__BSS_RUN__ + __BSS_SIZE__)
+        sta     FS_IO_ADDR
+        lda     #>(__BSS_RUN__ + __BSS_SIZE__)
+        sta     FS_IO_ADDR+1
+        sec
+        lda     variable_name_table_ptr
+        sbc     #<(__BSS_RUN__ + __BSS_SIZE__)
+        sta     FS_FILE_SIZE
+        lda     variable_name_table_ptr+1
+        sbc     #>(__BSS_RUN__ + __BSS_SIZE__)
+        sta     FS_FILE_SIZE+1
+        jsr     FsSaveFileAddr
+        rts                             ; FsSaveFileAddr returns C=0 on success, C=1 on error
 
-; putch_raw -- output one character with no break check, for echo and for
-; anything else that has already decided about breaking.
+; Loads program memory from file via CompactFlash filesystem.
+; S0 = filename string
 
-putch_raw:
-        jmp     CHROUT
+io_load:
+        jsr     copy_s0_to_buffer_nul
+        lda     #<buffer
+        sta     STR_PTR
+        lda     #>buffer
+        sta     STR_PTR+1
+        lda     #<(__BSS_RUN__ + __BSS_SIZE__)
+        sta     FS_IO_ADDR
+        lda     #>(__BSS_RUN__ + __BSS_SIZE__)
+        sta     FS_IO_ADDR+1
+        jsr     FsLoadFileAddr
+        bcs     @err                    ; Carry set = file not found or card error
 
-newline:
-        lda     #CH_CR
-        jsr     putch
-        lda     #CH_LF
-        jmp     putch
+        ; Validate header signature
+        ldy     #3
+@check_magic:
+        lda     __BSS_RUN__ + __BSS_SIZE__,y
+        cmp     vbas_header,y
+        bne     @format_err
+        dey
+        bpl     @check_magic
 
-.code
+        ; Walk line offsets to rebuild variable_name_table_ptr
+        mvax    #(__BSS_RUN__ + __BSS_SIZE__ + 4), BC
+        ldy     #Line::next_line_offset
+@walk_loop:
+        lda     (BC),y
+        beq     @found_end
+        clc
+        adc     BC
+        sta     BC
+        bcc     @walk_loop
+        inc     BC+1
+        bne     @walk_loop
+@found_end:
+        clc
+        lda     BC
+        adc     #.sizeof(Line)
+        sta     variable_name_table_ptr
+        lda     BC+1
+        adc     #0
+        sta     variable_name_table_ptr+1
+
+        jsr     clear_variables
+        jsr     reset_program
+        clc
+        rts
+
+@format_err:
+        jsr     initialize_program
+        sec
+        rts
+
+@err:
+        sec
+        rts
+

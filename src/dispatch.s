@@ -13,7 +13,23 @@ dispatch_statement:
         jsr     decode_byte                     ; Get statement number
         cmp     #TOK_NAME
         beq     exec_impl_let
-        sbc     #TOK_PRINT                      ; C is set from CMP; convert token to unified index
+.ifdef enable_io_channels
+        pha                                     ; Save statement token
+        ldx     #$80                            ; Default channel = $80 (bit 7 set = default)
+        jsr     peek_byte
+        sec
+        sbc     #TOK_CHANNEL_0
+        cmp     #8                              ; Channel in range 0..7?
+        bcs     @not_channel                    ; If taken, C is already set!
+        inc     line_pos                        ; Consume channel token
+        tax                                     ; Channel index 0..7 into X (bit 7 clear)
+        sec                                     ; Set C for sbc when branch was not taken
+@not_channel:
+        stx     channel                         ; Store final channel (default $80 or explicit 0..7)
+        pla                                     ; Restore statement token
+.endif
+        sec
+        sbc     #TOK_PRINT                      ; Convert token to unified index
         bpl     dispatch                        ; Unconditional (index < 128)
 
 ; LET statement:
@@ -25,28 +41,28 @@ exec_impl_let:
         jsr     find_or_add_variable
         inc     line_pos                ; Skip terminator
         ldphaa  name_ptr                ; Remember name_ptr 
-        jsr     evaluate_expression     ; Value is now on the evaluation stack
+        jsr     evaluate_expression     ; Result in FP0 or S0
         plstaa  name_ptr                ; Restore name so we can assign it
+        lda     decode_name_type        ; Check types match
+        cmp     expr_type
+        beq     assign_variable
+        jmp     raise_type_mismatch
 
-; Fall through
-
-; Pops a value from the stack and copies it into the variable identified by name_ptr.
+; Copies a value from FP0/S0 into the variable identified by name_ptr.
 ; name_ptr = pointer to the variable's data in the variable name table
 
 assign_variable:
-        ldy     decode_name_type        ; Load the target variable type index
-        tya                             ; Pass type in A
-        jsr     stack_free_value_with_type  ; Drop the actively evaluated item from top of stack and yield X (preserves Y)
-        lda     type_size_table,y       ; Fetch structural footprint directly mapping index (5 for numeric, 2 for string offset)
-        sta     B                       ; Save loop delimiter threshold inside B locally
-        ldy     #0                      ; Init sequence relative iteration pointer to exactly 0 to offset naturally up
-@copy_loop:
-        lda     stack,x                 ; Pull byte directly mapping baseline evaluation layer
-        sta     (name_ptr),y            ; Bind into memory aligned table space
-        inx                             ; Traverse source footprint
-        iny                             ; Traverse destination footprint
-        cpy     B                       ; Evaluate alignment matching our explicitly retained structural delimiter
-        bne     @copy_loop
+        lda     decode_name_type
+        bne     @string
+        lday    name_ptr
+        jmp     store_fp0
+@string:
+        ldy     #0
+        lda     S0
+        sta     (name_ptr),y
+        iny
+        lda     S0+1
+        sta     (name_ptr),y
         rts
 
 dispatch_function:
@@ -99,10 +115,24 @@ dispatch_prologs:
         .word   pop_int_fp0-1
         .word   pop_string_s0-1
 
+epilog_set_fp0:
+        mva     #TYPE_NUMBER, expr_type
+        rts
+
+epilog_set_int_fp0:
+        ldy     #TYPE_NUMBER
+        sty     expr_type
+        jmp     int_to_fp
+
+epilog_set_string:
+        mvax    string_ptr, S0
+        mva     #TYPE_STRING, expr_type
+        rts
+
 dispatch_epilogs:
-        .word   push_fp0-1
-        .word   push_int_fp0-1
-        .word   push_string-1
+        .word   epilog_set_fp0-1
+        .word   epilog_set_int_fp0-1
+        .word   epilog_set_string-1
 
 dispatch_vectors_l:
         ; --- Statements ---
@@ -132,7 +162,19 @@ dispatch_vectors_l:
         .byte   <(clear_variables-1)
         .byte   <(exec_return-1)
         .byte   <(exec_pop-1)
-        invoke_if_defined extension_statement_vectors_l
+        .byte   <(exec_get-1)
+        .byte   <(exec_put-1)
+        .byte   <(exec_save-1)
+        .byte   <(exec_load-1)
+.ifdef enable_io_channels
+        .byte   <(exec_open-1)
+        .byte   <(exec_close-1)
+        .byte   <(exec_xio-1)
+        .byte   0                       ; Pad core statements to even count
+.endif
+.if .definedmacro(extension_statement_vectors_l)
+        extension_statement_vectors_l
+.endif
 
 statement_count = * - dispatch_vectors_l
 
@@ -161,7 +203,12 @@ statement_count = * - dispatch_vectors_l
         .byte   <(fun_usr-1)
         .byte   <(fun_mid_s-1)
         .byte   <(fun_fre-1)
-        invoke_if_defined extension_function_vectors_l
+        .byte   <(fun_inkey_s-1)
+.if .definedmacro(extension_function_vectors_l)
+        extension_function_vectors_l
+.else
+        .byte   0
+.endif
 
 dispatch_count = * - dispatch_vectors_l
 function_count = dispatch_count - statement_count
@@ -194,7 +241,19 @@ dispatch_vectors_h:
         .byte   >(clear_variables-1)
         .byte   >(exec_return-1)
         .byte   >(exec_pop-1)
-        invoke_if_defined extension_statement_vectors_h
+        .byte   >(exec_get-1)
+        .byte   >(exec_put-1)
+        .byte   >(exec_save-1)
+        .byte   >(exec_load-1)
+.ifdef enable_io_channels
+        .byte   >(exec_open-1)
+        .byte   >(exec_close-1)
+        .byte   >(exec_xio-1)
+        .byte   0                       ; Pad core statements to even count
+.endif
+.if .definedmacro(extension_statement_vectors_h)
+        extension_statement_vectors_h
+.endif
 
         ; --- Functions ---
         .byte   >(fun_len-1)
@@ -221,14 +280,25 @@ dispatch_vectors_h:
         .byte   >(fun_usr-1)
         .byte   >(fun_mid_s-1)
         .byte   >(fun_fre-1)
-        invoke_if_defined extension_function_vectors_h
+        .byte   >(fun_inkey_s-1)
+.if .definedmacro(extension_function_vectors_h)
+        extension_function_vectors_h
+.else
+        .byte   0
+.endif
 
 .assert (* - dispatch_vectors_h) = dispatch_count, error
 
 dispatch_flags:
         ; --- Statements ---
-        .byte   PROLOG_POP_INT | (PROLOG_POP_INT << 4)  ; POKE, DPOKE
-        .byte   0, 0, 0, 0                              ; RUN..POP
+        .byte   PROLOG_POP_INT | (PROLOG_POP_INT << 4)                                                  ; POKE, DPOKE
+        .byte   0, 0, 0, 0                                                                              ; RUN..POP
+        .byte   PROLOG_NONE | (PROLOG_POP_INT << 4)                                                    ; GET, PUT
+        .byte   PROLOG_POP_STRING | (PROLOG_POP_STRING << 4)                                            ; SAVE, LOAD
+.ifdef enable_io_channels
+        .byte   0                                                                                       ; OPEN, CLOSE
+        .byte   0                                                                                       ; XIO + padding
+.endif
         invoke_if_defined extension_statement_flags
 
         ; --- Functions ---
@@ -244,6 +314,10 @@ dispatch_flags:
         .byte   (PROLOG_POP_FP | EPILOG_PUSH_FP) | ((PROLOG_POP_INT | EPILOG_PUSH_STRING) << 4)       ; RND, LEFT$
         .byte   (PROLOG_POP_INT | EPILOG_PUSH_STRING) | ((PROLOG_POP_INT | EPILOG_PUSH_INT) << 4)     ; RIGHT$, USR
         .byte   (PROLOG_POP_INT | EPILOG_PUSH_STRING) | ((PROLOG_NONE | EPILOG_PUSH_INT) << 4)        ; MID$, FRE
-        invoke_if_defined extension_function_flags
+.if .definedmacro(extension_function_flags)
+        extension_function_flags
+.else
+        .byte   (PROLOG_NONE | EPILOG_PUSH_STRING) | (0 << 4)                                           ; INKEY$ + padding
+.endif
 
 .assert (* - dispatch_flags) = ((dispatch_count - 16 + 1) / 2), error

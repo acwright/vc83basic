@@ -73,8 +73,9 @@ RUN
 2
 2
 2
+2
 
-ERR: STACK AT 20
+ERR: STACK AT 30
 }
 
 # ON...GOSUB

@@ -1,0 +1,91 @@
+# SPDX-FileCopyrightText: 2022-2026 Willis Blackburn
+#
+# SPDX-License-Identifier: MIT
+
+source [file join [file dirname [info script]] common.expinc]
+spawn_basic
+
+exec rm -f /tmp/vc83_test_1.txt /tmp/vc83_test_bin.dat
+
+# Test OPEN, PRINT #, PUT, CLOSE
+test {
+10 OPEN #1 "/tmp/vc83_test_1.txt", 2
+20 PRINT #1 "LINE ONE"
+30 PRINT #1 "LINE TWO,123"
+40 PUT #1 65
+50 PUT #1 10
+60 CLOSE #1
+70 PRINT "DONE WRITE"
+RUN
+} {
+DONE WRITE
+
+READY
+}
+
+test {
+NEW
+} {
+READY
+}
+
+# Test OPEN (read), INPUT #, GET, CLOSE
+test {
+10 OPEN #1 "/tmp/vc83_test_1.txt", 1
+20 INPUT #1 A$
+30 PRINT A$
+40 INPUT #1 B$, N
+50 PRINT B$, N
+60 GET #1 C
+70 PRINT C
+80 GET #1 C
+90 PRINT C
+100 GET #1 C
+110 PRINT C
+120 CLOSE #1
+RUN
+} {
+LINE ONE
+LINE TWO        123
+65
+10
+-1
+
+READY
+}
+
+# Test OPEN (append mode 6), PRINT #, CLOSE
+test {
+NEW
+10 OPEN #1 "/tmp/vc83_test_1.txt", 6
+20 PRINT #1 "LINE THREE"
+30 CLOSE #1
+RUN
+} {
+READY
+}
+
+# Test reading back all four lines
+test {
+NEW
+10 OPEN #1 "/tmp/vc83_test_1.txt", 1
+20 INPUT #1 A$
+30 PRINT A$
+40 INPUT #1 B$, N
+50 PRINT B$, N
+60 INPUT #1 C$
+70 PRINT C$
+80 INPUT #1 D$
+90 PRINT D$
+100 CLOSE #1
+RUN
+} {
+LINE ONE
+LINE TWO        123
+A
+LINE THREE
+
+READY
+}
+
+exec rm -f /tmp/vc83_test_1.txt /tmp/vc83_test_bin.dat

@@ -18,8 +18,7 @@ exec_dim:
         bcc     @already_dimensioned
         jsr     dimension_array         ; Go do it
         jsr     peek_byte               ; Check for comma (more arrays)
-        cmp     #TOK_COMMA
-        bne     @done                   ; No more arrays
+        beq     @done                   ; No more arrays
         inc     line_pos                ; Skip ','
         bne     exec_dim                ; Unconditional: loop for next array
 

@@ -33,4 +33,5 @@ KEYIN       := $FD1B
 GETLN       := $FD6A
 GETLNNOPMPT := $FD6F
 CROUT       := $FD8E
+PRBYTE      := $FDDA
 COUT        := $FDED

@@ -96,8 +96,13 @@ IRQ_PTR             := $0300
 BRK_PTR             := $0302
 NMI_PTR             := $0304
 IO_MODE             := $0306
+VID_CURSOR_X        := $0307
+VID_CURSOR_Y        := $0308
+RTC_BUF_CENT        := $030B             ; Century register for RTC read/write
 HW_PRESENT          := $030D
+FS_FILE_SIZE        := $034A             ; 2 bytes - File size in bytes
 BOOT_VECTOR         := $035B
+FS_IO_ADDR          := $037F             ; 2 bytes - Load/save transfer address
 
 ; Legacy aliases used by earlier ac6502 code.
 CHROUT              := Chrout
@@ -114,10 +119,8 @@ HW_GPIO             = %00100000
 HW_SID              = %01000000
 HW_VID              = %10000000
 
-; --- RTC variables used by kernal routines ---
-RTC_BUF_CENT        := $030B             ; Century register for RTC read/write
-
 ; --- Hardware registers touched directly ---
 RAM_BANK_L          := $83FF             ; Write-only bank latch for low RAM card
 SC_CMD              := $9002             ; Serial card (R65C51) command register
 SC_CMD_RX_READY     = $09                ; No parity/echo, RTSB low, RX interrupts on
+

@@ -131,6 +131,9 @@ byte(reset_stack_pos)
 comment Minimum operator precedence used in process_operators
 byte(min_precedence)
 
+comment The type of the most recently evaluated expression value (0=number, 1=string)
+byte(expr_type)
+
 comment Where to resume execution after STOP
 word(resume_line_ptr, Line*)
 
@@ -143,10 +146,6 @@ word(data_line_ptr, Line*)
 comment Position we're reading within the DATA line
 byte(data_line_pos)
 
-comment Tracks how many characters have been printed so tabs work correctly.
-comment Is reset to 0 by printing the banner message and/or READY.
-byte(print_column)
-
 comment The size of the array element. Used to calculate array offsets.
 word(array_element_size)
 
@@ -158,5 +157,8 @@ word(pvm_program_ptr, const char*)
 
 comment True if we're parsing or LISTing a string
 byte(string_flag)
+
+comment Active I/O channel for current statement (bit 7 set if default console channel 0)
+byte(channel)
 
 finalize()

@@ -7,6 +7,10 @@
 .assert TYPE_NUMBER = $00, error
 
 exec_input:
+.ifdef enable_io_channels
+        bit     channel                 ; Bit 7 is clear if explicit channel was given
+        bpl     @get_input              ; Skip prompt if explicit channel
+.endif
         jsr     peek_byte
         cmp     #TOK_STRING
         bne     @default_prompt
@@ -19,9 +23,13 @@ exec_input:
 
 @default_prompt:
         lda     #'?'                    ; Prepare to print '?' prompt
-        jsr     putch
+        jsr     io_put
 @get_input:
-        jsr     readline
+        jsr     io_read_record
+        bcs     @eof_error              ; If io_read_record returns carry set -> EOF
+        tay
+        lda     #0
+        sta     buffer,y                ; NUL-terminate based on length in A
         mva     #0, buffer_pos          ; Reset the read position
 @next_var:
         inc     line_pos                ; Skip TOK_NAME
@@ -35,7 +43,6 @@ exec_input:
         jsr     string_to_fp            ; Parse the number
         bcs     @format_error           ; Failed to read a number
         sty     buffer_pos              ; Update buffer_pos
-        jsr     push_fp0                ; Push FP0 onto the value stack
 
 @assign:
         jsr     assign_variable         ; Store the value
@@ -44,12 +51,22 @@ exec_input:
         ldy     buffer_pos              ; Prepare to skip past the argument separator, if present
         jsr     skip_whitespace         ; We read something from this line so need a ',' to continue
         cmp     #','                    ; Was it the separator?
-        bne     exec_input              ; Nope, just issue a new prompt
+        bne     @more_input             ; Nope, just get more input
         iny                             ; Skip separator        
         sty     buffer_pos              ; Save back new buffer_pos
         bne     @next_var               ; Read the next variable
 @done:
         rts
+
+@more_input:
+.ifdef enable_io_channels
+        bit     channel
+        bpl     @get_input              ; Explicit channel: skip prompt
+.endif
+        jmp     @default_prompt
+
+@eof_error:
+        jmp     raise_io_error
 
 @string:
         ldax    #buffer
@@ -57,7 +74,7 @@ exec_input:
         jsr     read_string
         bcs     @format_error
         sty     buffer_pos              ; Update buffer_pos to next read position
-        jsr     push_string             ; Push result string onto the stack
+        mvax    string_ptr, S0          ; S0 = string header pointer
         jmp     @assign
 
 @format_error:

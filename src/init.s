@@ -8,7 +8,10 @@
 ; program data. Free memory is a constant; subtract 5 in order to account for null line (3 bytes) and end byte
 ; for variable and array name tables.
 
-startup_message:  .byte "VC83 BASIC "
+startup_message:
+        .byte   startup_message_text_end - startup_message_text
+startup_message_text:
+        .byte   "VC83 BASIC "
 .if .defined(__APPLE2__)    ; If Apple II then remap version number to uppercase
                 .pushcharmap
                 .repeat 26, i
@@ -19,19 +22,17 @@ startup_message:  .byte "VC83 BASIC "
 .if .defined(__APPLE2__)
                 .popcharmap
 .endif
-startup_message_length = * - startup_message
+startup_message_text_end:
 
-free_message:   .byte " BYTES FREE"
-free_message_length = * - free_message
+free_message:   .byte 11, " BYTES FREE"
 
 fp_64k:         .byte $00, $00, $00, $00, 144
 
 display_startup_banner:
-        ldax    #startup_message
-        ldy     #startup_message_length
-        jsr     write
-        jsr     newline
-        ldax    #((__MAIN_START__ + __MAIN_SIZE__) - (__BSS_RUN__ + __BSS_SIZE__) - 5)
+        lday    #startup_message
+        jsr     print_string
+        jsr     io_end_record
+        ldax    #((__MAIN_START__ + __MAIN_SIZE__) - (__BSS_RUN__ + __BSS_SIZE__ + 4) - 5)
         jsr     int_to_fp               ; Load into FP0
         lda     FP0s                    ; Check if it was negative
         bpl     @positive
@@ -39,9 +40,8 @@ display_startup_banner:
         jsr     fadd
 @positive:
         jsr     print_number
-        ldax    #free_message
-        ldy     #free_message_length
-        jsr     write
-        jmp     newline
+        lday    #free_message
+        jsr     print_string
+        jmp     io_end_record
 
 .code

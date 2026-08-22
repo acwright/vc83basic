@@ -2,7 +2,7 @@
 ;
 ; SPDX-License-Identifier: MIT
 
-TOK_DOS   = $5A
+TOK_DOS   = $62
 
 .macro extension_statement_keywords
 :       name_table_entry "DOS"
@@ -24,8 +24,9 @@ TOK_DOS   = $5A
 .endmacro
 
 .macro extension_statement_flags
-        .byte   0
+        .byte   0                       ; DOS + padding
 .endmacro
+
 
 .macro extension_code
 exec_dos:

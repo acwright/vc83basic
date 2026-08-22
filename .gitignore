@@ -12,3 +12,5 @@ src/zeropage.inc
 src/zeropage.h
 src/zeropage.s
 src/version.inc
+scratch/
+*.o

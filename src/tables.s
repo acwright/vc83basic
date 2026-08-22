@@ -26,4 +26,5 @@ error_message_table:
 :       .byte :+ - *, "ARITY?"
 :       .byte :+ - *, "SYNTAX"
 :       .byte :+ - *, "DIV/0"
+:       .byte :+ - *, "IO ERROR"
 :       .byte 0
