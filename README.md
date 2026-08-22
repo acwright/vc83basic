@@ -96,6 +96,24 @@ loads at `$4000`.
     4000R
     ```
 
+### ac6502
+
+The `basic_ac6502` binary targets the [ac6502](https://github.com/acwright/6502) computer system and runs as a 32 KB cartridge image overlaying `$C000–$FFFF`.
+
+1.  **Install the emulator**:
+    Install Node.js (e.g., via Homebrew with `brew install node`) and install the `ac6502` emulator package globally:
+    ```bash
+    npm install -g ac6502
+    ```
+
+2.  **Obtain the BIOS ROM**:
+    The emulator requires the system BIOS ROM (`BIOS.bin`), which can be obtained from the [6502-BIOS](https://github.com/acwright/6502-BIOS) repository on GitHub.
+
+3.  **Run the cartridge**:
+    ```bash
+    ac6502 -r /path/to/BIOS.bin -c build/basic_ac6502
+    ```
+
 ## Memory Map
 
 The interpreter manages memory using several zero-page pointers:
