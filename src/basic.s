@@ -95,5 +95,3 @@ S1 = FPX+2
 .include "string.s"
 .include "tables.s"
 .include "util.s"
-
-invoke_if_defined extension_code

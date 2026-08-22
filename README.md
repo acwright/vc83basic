@@ -207,7 +207,8 @@ To add support for a new hardware platform:
 2.  **Initialization**: Implement platform-specific startup and mandatory I/O (`io_get`, `io_put`, `io_inkey`, `io_read_record`, `io_end_record`, `io_end_field`, `io_save`, `io_load`) in its own directory. On failure, I/O routines should invoke `raise ERR_IO_ERROR`.
 3.  **Master assembly file**: Create a `basic_{platform}.s` file that `.include`s `basic.inc` and all your platform-specific assembly files.
 4.  **Makefile**: Add the new target to the `TARGETS` list in the `Makefile` and define the build rules.
-5.  **Extensions (optional)**: Implement platform-specific extensions via macros (`extension_statement_keywords`, `extension_pvm_statements`, split vectors `extension_statement_vectors_l/h`, and `extension_statement_flags`). See `ac6502_extension.s` or `apple2_extension_lc.s` for examples.
+5.  **Extensions (optional)**: Implement platform-specific extension macros in `{platform}.inc` (`extension_statement_keywords`, `extension_pvm_statements`, `extension_pvm_code`, split vectors `extension_statement_vectors_l/h`, and `extension_statement_flags`) and handler code in `{platform}_extension.s`. See `ac6502.inc` / `ac6502_extension.s` or `apple2_lc.inc` / `apple2_extension_lc.s` for examples.
+
 
 ## License
 

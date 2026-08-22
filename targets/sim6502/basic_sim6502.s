@@ -5,9 +5,10 @@
 enable_io_channels = 1
 enable_trig_functions = 1
 
-.include "sim6502_extension.s"
+.include "sim6502.inc"
 .include "basic.s"
 .include "main.s"
 .include "sim6502_startup.s"
 .include "sim6502_init.s"
+.include "sim6502_extension.s"
 .include "sim6502_io.s"

@@ -6,9 +6,9 @@ enable_io_channels = 1
 enable_trig_functions = 1
 
 .include "atari.inc"
-.include "atari_extension.s"
 .include "basic.s"
 .include "main.s"
 .include "atari_startup.s"
 .include "atari_init.s"
+.include "atari_extension.s"
 .include "atari_io.s"

@@ -5,7 +5,6 @@
 enable_trig_functions = 1
 
 .include "apple1.inc"
-.include "apple1_extension.s"
 .include "basic.s"
 .include "main.s"
 .include "apple1_startup.s"

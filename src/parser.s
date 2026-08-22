@@ -548,4 +548,4 @@ pvm_arg_list:
         BRANCH_IF TOK_COMMA, pvm_arg_list
         RETURN
 
-        invoke_if_defined extension_parser_code
+        invoke_if_defined extension_pvm_code

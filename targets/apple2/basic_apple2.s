@@ -4,10 +4,9 @@
 
 initialize_target = initialize_target_apple2
 
-.include "apple2_extension.s"
+.include "apple2.inc"
 .include "basic.s"
 .include "main.s"
-.include "apple2.inc"
 .include "apple2_startup.s"
 .include "apple2_reset.s"
 .include "apple2_init.s"
