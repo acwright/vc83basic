@@ -1,13 +1,100 @@
 ; SPDX-FileCopyrightText: 2022-2026 Willis Blackburn / 2026 A.C. Wright
 ;
 ; SPDX-License-Identifier: MIT
+;
+; ac6502 console I/O.
+;
+; The Kernal's Chrin ($A003) echoes every byte it hands back -- it is the
+; BIOS's line-input primitive, not a raw poll.  That is wrong for a break
+; check (the key lands in the middle of a running program's output) and wrong
+; for INKEY (the key appears on screen), and in both cases the byte is
+; swallowed, so a later INPUT never sees it.  So this target reads the input
+; ring buffer directly and decides for itself when to echo.
+;
+; See https://github.com/acwright/6502 for more info
 
 .export io_get, io_put, io_inkey
 .export io_read_record, io_end_record, io_end_field
 .export io_save, io_load
-.export putch, newline
+.export putch, newline, putch_raw, get_key, check_break
 
 .code
+
+
+; ---------------------------------------------------------------------------
+; Keyboard input primitives
+; ---------------------------------------------------------------------------
+
+; get_key -- take the next byte out of the BIOS input buffer, without echo.
+; Out: C=1 and A = the byte if one was waiting, C=0 otherwise.
+; X and Y are preserved.
+
+get_key:
+        phx
+        jsr     BufferSize              ; A = unread bytes
+        beq     @none
+        jsr     ReadBuffer              ; A = the byte (clobbers X)
+        pha
+        ; Chrin also releases RTS once the buffer has drained.  Irq asserts it
+        ; when the buffer passes $F0 and nothing else ever lets go again, so a
+        ; serial console would accept one bufferful and then wedge for good if
+        ; this were left out.
+        lda     HW_PRESENT
+        and     #HW_SC
+        beq     @done                   ; No serial card -- nothing to release
+        jsr     BufferSize
+        cmp     #$B0
+        bcs     @done                   ; Still nearly full -- keep RTS asserted
+        lda     #SC_CMD_RX_READY
+        sta     SC_CMD
+@done:
+        pla
+        plx
+        sec
+        rts
+@none:
+        plx
+        clc
+        rts
+
+; peek_key -- look at the next byte without removing it, so anything that is
+; not a break key stays in the buffer for INPUT / INKEY.
+; Out: C=1 and A = the byte if one is waiting, C=0 otherwise.
+; X and Y are preserved.
+
+peek_key:
+        phx
+        jsr     BufferSize
+        beq     @none
+        ldx     READ_PTR                ; Irq only ever advances WRITE_PTR, so a
+        lda     INPUT_BUFFER,x          ;   non-zero count means this byte is ours
+        plx
+        sec
+        rts
+@none:
+        plx
+        clc
+        rts
+
+; check_break -- raise ERR_STOPPED if ESC or CTRL-C is waiting.  Any other key
+; is left in the buffer.  X and Y are preserved; A is clobbered.
+
+check_break:
+        jsr     peek_key
+        bcc     @done
+        cmp     #CH_ESC
+        beq     @break
+        cmp     #CH_CTRLC
+        bne     @done                   ; Not a break key -- leave it for INPUT
+@break:
+        jsr     get_key                 ; Consume the break key itself
+        raise   ERR_STOPPED
+@done:
+        rts
+
+; ---------------------------------------------------------------------------
+; Console I/O interface
+; ---------------------------------------------------------------------------
 
 ; Gets a single byte/key from console (blocking).
 ; Returns carry clear and byte in A if ok, carry set if error.
@@ -21,7 +108,7 @@ io_get:
 ; Returns carry clear and ASCII char in A if key available, carry set if no key.
 
 io_inkey:
-        jsr     Chrin                   ; C=1 if char available
+        jsr     get_key                 ; C=1 if key available
         bcs     @got_key
         sec
         rts
@@ -38,17 +125,14 @@ putch:
         pha                             ; Save character to output
         lda     program_state           ; Only poll keyboard while a program is running
         bne     @output                 ; PS_READY (non-zero): skip break check
-        jsr     Chrin                   ; Non-blocking poll (C=1 if char available)
-        bcc     @output                 ; Nothing in the buffer
-        cmp     #CH_ESC
-        beq     @break
-        cmp     #CH_CTRLC
-        bne     @output                 ; Not a break key; continue
-@break:
-        pla                             ; Discard the saved character
-        raise   ERR_STOPPED
+        jsr     check_break             ; Does not return if a break key is waiting
 @output:
         pla                             ; Restore character
+
+; putch_raw -- output one character with no break check, for echo and for
+; anything else that has already decided about breaking.
+
+putch_raw:
         jmp     Chrout
 
 ; Emits record delimiter (CR + LF).
@@ -90,31 +174,27 @@ io_read_record:
 readline:
         ldy     #0
 @waitchar:
-        jsr     Chrin
+        jsr     get_key
         bcc     @waitchar
-        ; Check for break keys (ESC or CTRL-C) to interrupt a running program
-        cmp     #CH_ESC
+        cmp     #CH_CR                  ; End of line
+        beq     @done
+        cmp     #CH_ESC                 ; Break keys interrupt a running program
         beq     @check_break
         cmp     #CH_CTRLC
         beq     @check_break
-        ; Check for backspace / delete
         cmp     #CH_BKSP
         beq     @backspace
         cmp     #CH_DEL
         beq     @backspace
-        ; Check for CR (end of line)
-        cmp     #CH_CR
-        beq     @done
-        ; Skip other non-printable control characters (< space)
         cmp     #CH_SPACE
-        bcc     @waitchar
-        ; Ignore if buffer full
-        cpy     #BAS_LINBUF_SIZE
-        bcs     @waitchar
-        ; Store character and echo
+        bcc     @waitchar               ; Other control codes: discard
+        cmp     #CH_DEL
+        bcs     @waitchar               ; $80 and up: not printable here
+        cpy     #MAX_LINE_LENGTH
+        bcs     @waitchar               ; Line full: discard, and do not echo it
         sta     buffer,y
         iny
-        jsr     io_put
+        jsr     putch_raw               ; Echo the character we kept
         jmp     @waitchar
 
 @check_break:
@@ -126,19 +206,28 @@ readline:
         cpy     #0
         beq     @waitchar               ; Nothing to delete
         dey
+        lda     #CH_BKSP                ; BS, space, BS.  The BIOS's video Chrout
+        jsr     putch_raw               ;   erases on BS by itself, but a serial
+        lda     #CH_SPACE               ;   terminal only moves the cursor, so
+        jsr     putch_raw               ;   spell the erase out and satisfy both.
         lda     #CH_BKSP
-        jsr     io_put
+        jsr     putch_raw
         jmp     @waitchar
 
 @done:
         lda     #0
         sta     buffer,y                ; Null-terminate
-        tya                             ; Return length in A
-        pha
-        jsr     io_end_record           ; Echo newline
-        pla
+        lda     #CH_CR                  ; Echo the newline: we never echoed the CR
+        jsr     putch_raw
+        lda     #CH_LF
+        jsr     putch_raw
+        tya                             ; Return the line length
         clc
         rts
+
+; ---------------------------------------------------------------------------
+; Program storage (CompactFlash)
+; ---------------------------------------------------------------------------
 
 ; Copies string currently described in S0 (length in BC) to buffer with a NUL terminator.
 
@@ -243,4 +332,3 @@ io_load:
         sec
         rts
 
-        
