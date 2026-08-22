@@ -156,6 +156,7 @@ void add_variable(void);
 void dimension_array(void);
 void find_array_element(void);
 int imul_16(/* AX */ int value);
+void clear_memory(/* AX */ void* ptr, /* Y */ char size);
 
 // parser.s
 void parse_line(void);
@@ -181,8 +182,6 @@ void compact(void);
 // util.s
 void copy(/* AX */ size_t size);
 void reverse_copy(/* AX */ size_t size);
-void clear_memory(/* AX */ void* ptr, /* Y */ char size);
-void read_argument_separator(char pos);
 void skip_whitespace(char pos);
 
 #define HEXDUMP(data, length) hexdump(#data, (char*)(data), (length))

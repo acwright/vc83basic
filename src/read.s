@@ -67,10 +67,14 @@ exec_read:
 
 @post_read:
         bcs     @format_error           ; If we got here with carry set then number or string read failed
-        jsr     read_argument_separator
+        jsr     skip_whitespace         ; Read forward to find separator or 0
+        beq     @save_pos               ; Found 0 (end of line)
+        cmp     #','                    ; Check for separator
+        bne     @format_error           ; Found unexpected character
+        iny                             ; Skip past comma
+@save_pos:
         sty     data_line_pos           ; Update data_line_pos to next read position
-        bcc     @done                   ; Read separator
-        beq     @done                   ; No separator, but did find EOL
+        rts
 
 @format_error:
         jmp     raise_format_error

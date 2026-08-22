@@ -386,6 +386,13 @@ _list_line:
 
 ; name.s
 
+_clear_memory:
+.export _clear_memory
+        sta     B                       ; Size in A; we need it in Y
+        jsr     popax                   ; Address of memory
+        ldy     B      
+        jmp     clear_memory
+
 _find_name:
 .export _find_name
         jsr     find_name
@@ -528,20 +535,6 @@ _copy:
 _reverse_copy:
 .export _reverse_copy
         jmp     reverse_copy
-
-_clear_memory:
-.export _clear_memory
-        sta     B                       ; Size in A; we need it in Y
-        jsr     popax                   ; Address of memory
-        ldy     B      
-        jmp     clear_memory
-
-_read_argument_separator:
-.export _read_argument_separator
-        tay
-        jsr     read_argument_separator
-        sty     _Y
-        jmp     set_err
 
 _skip_whitespace:
 .export _skip_whitespace

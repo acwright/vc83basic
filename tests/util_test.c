@@ -17,28 +17,7 @@ void fill_test_data(size_t offset, size_t size) {
     }
 }
 
-void test_clear_memory(void) {
-    PRINT_TEST_NAME();
 
-    // Clear <256 bytes
-    fill_test_data(0, 100);
-    HEXDUMP(test_data, 16);
-    clear_memory(test_data, 10);
-    HEXDUMP(test_data, 16);
-    // Should clear offsets 0-9, offset 10 remains the same.
-    ASSERT_EQ(test_data[0], 0);
-    ASSERT_EQ(test_data[9], 0);
-    ASSERT_EQ(test_data[10], 10);
-
-    // Passing size = 0 should clear 256 bytes
-    fill_test_data(0, 258);
-    clear_memory(test_data, 0);
-    // Should clear offsets 0-255
-    ASSERT_EQ(test_data[0], 0);
-    ASSERT_EQ(test_data[255], 0);
-    ASSERT_EQ(test_data[256], 0); // fill_test_data sets offset 256 to 0
-    ASSERT_EQ(test_data[257], 1);
-}
 
 void verify_test_data(const char* p, size_t size) {
     // Check first 4 and last 4 bytes.
@@ -127,33 +106,10 @@ void test_skip_whitespace(void) {
     ASSERT_EQ(Y, 3);
 }
 
-void test_read_argument_separator(void) {
-
-    const char data[] = { 'X', ',', '1', ' ', ',', ' ', 'Y' };
-
-    PRINT_TEST_NAME();
-
-    read_ptr = data;
-
-    read_argument_separator(0);
-    ASSERT_NE(err, 0);
-    ASSERT_EQ(Y, 0);
-
-    read_argument_separator(1);
-    ASSERT_EQ(err, 0);
-    ASSERT_EQ(Y, 2);
-
-    read_argument_separator(3);
-    ASSERT_EQ(err, 0);
-    ASSERT_EQ(Y, 5);
-}
-
 int main(void) {
     initialize_target();
-    test_clear_memory();
     test_copy();
     test_reverse_copy();
     test_skip_whitespace();
-    test_read_argument_separator();
     return 0;
 }

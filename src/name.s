@@ -150,7 +150,22 @@ add_variable:
         ldy     type_size_table,x
         iny                             ; Clear one more byte to recreate the 0 that terminates the name table
         ldax    name_ptr
-        jmp     clear_memory            ; Clear the variable data
+
+; Fall through
+
+; Clears 1-256 bytes of memory to zero.
+; AX = address of memory to clear
+; Y = number of bytes (if Y=0, will clear 256 bytes)
+; The set_memory entry point just writes whatever is in A to 1-256 bytes starting at dst_ptr.
+
+clear_memory:
+        stax    dst_ptr                 ; Store the address
+        lda     #0 
+set_memory:
+        dey
+        sta     (dst_ptr),y             ; Does not affect Z
+        bne     set_memory
+        rts
 
 ; Reads a variable name at the current line_pos (skipping TOK_NAME) and finds or adds the variable.
 
@@ -246,7 +261,6 @@ name_out_of_range:
 
 raise_arity_mismatch:
         raise   ERR_ARITY_MISMATCH
-
 
 ARRAY_TRIAL_GROW_SIZE = $80
 

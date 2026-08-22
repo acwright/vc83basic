@@ -491,6 +491,32 @@ void test_find_array_element() {
 }
 
 
+static char clear_test_data[300];
+
+void test_clear_memory(void) {
+    size_t i;
+    PRINT_TEST_NAME();
+
+    for (i = 0; i < sizeof clear_test_data; ++i) {
+        clear_test_data[i] = (char)(i + 1);
+    }
+
+    // Clear <256 bytes
+    clear_memory(clear_test_data, 10);
+    ASSERT_EQ(clear_test_data[0], 0);
+    ASSERT_EQ(clear_test_data[9], 0);
+    ASSERT_EQ(clear_test_data[10], 11);
+
+    // Passing size = 0 should clear 256 bytes
+    for (i = 0; i < sizeof clear_test_data; ++i) {
+        clear_test_data[i] = (char)(i + 1);
+    }
+    clear_memory(clear_test_data, 0);
+    ASSERT_EQ(clear_test_data[0], 0);
+    ASSERT_EQ(clear_test_data[255], 0);
+    ASSERT_EQ(clear_test_data[256], (char)257);
+}
+
 int main(void) {
     initialize_target();
     test_initialize_name_ptr();
@@ -499,6 +525,7 @@ int main(void) {
     test_find_name_operators();
     test_get_name();
     test_add_variable();
+    test_clear_memory();
     test_imul_16();
     test_dimension_array();
     test_find_array_element();

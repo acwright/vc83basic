@@ -101,38 +101,6 @@ reverse_copy:
 @done:
         rts
 
-; Clears 1-256 bytes of memory to zero.
-; AX = address of memory to clear
-; Y = number of bytes (if Y=0, will clear 256 bytes)
-; The set_memory entry point just writes whatever is in A to 1-256 bytes starting at dst_ptr.
-
-clear_memory:
-        stax    dst_ptr                 ; Store the address
-        lda     #0 
-set_memory:
-        dey
-        sta     (dst_ptr),y             ; Does not affect Z
-        bne     set_memory
-        rts
-
-; Reads a comma beween arguments. Also recognizes 0 as end of input.
-; read_ptr = the read address
-; Y = the starting position
-; Returns carry clear if we found a separator, or carry set if we didn't. If we didn't, then the Z flag indicates
-; whether we found a 0 or something else.
-
-read_argument_separator:
-        jsr     skip_whitespace
-        sec                             ; Set carry in case it's 0
-        beq     @done                   ; Read 0; just exit
-        cmp     #','                    ; If it wasn't 0 then it better be ','
-        sec                             ; Set carry in case it's not ','
-        bne     @done                   ; And it's not
-        iny                             ; Skip past the commma
-        clc                             ; Clear carry to return success
-@done:
-        rts
-
 ; Reads forward and finds the next non-whitespace character, which might be 0.
 ; read_ptr = the read address
 ; Y = the starting position
