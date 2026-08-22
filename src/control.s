@@ -111,14 +111,12 @@ exec_for:
         adc     #Control::end_value     ; Add the offset of the end value; carry is clear
         ldy     #>stack                 ; Stack page
         jsr     store_fp0               ; Store FP0 there
+        jsr     load_one_fp0            ; Default step value is 1
         jsr     peek_byte               ; Check for STEP
-        beq     @no_step
+        beq     @store_step
         inc     line_pos
         jsr     evaluate_expression     ; Step value (now in FP0)
         bne     @type_mismatch
-        jmp     @store_step
-@no_step:
-        jsr     load_one_fp0
 @store_step:
         lda     stack_pos               ; Stack pointer again
         clc

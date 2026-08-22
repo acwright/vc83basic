@@ -759,13 +759,13 @@ string_to_fp_2:
 @multiply:
         jsr     fmul_2                  ; Multiply by FP1
 @whole:
-        ldy     E                       ; Return buffer read position in Y
         clc                             ; Signal success
-        rts
+        bcc     @exit                   ; Unconditional
 
 @err:
-        ldy     E                       ; Reset position to start for return
         sec                             ; Signal error
+@exit:
+        ldy     E                       ; Return buffer read position in Y
         rts
 
 ; Clears FP0 and FPX, parses an optional sign ('+' or '-'), setting bit 7 of FP0s if negative,
@@ -1153,7 +1153,6 @@ fmul_2:
         sta     FP0t+1
         lda     FPX
         sta     FP0t
-        mva     #0, FPX                 ; Clear extended significand
 
 ; Calculate exponent and sign.
 
@@ -1161,10 +1160,7 @@ fmul_2:
         ldy     #BIAS                   ; Subtract bias
         jsr     adjust_exponent         ; Do the math stuff; C is high byte of exponent
         inc     FP0e                    ; Account for the binary point being off by 1
-        lda     FP0s                    ; Get sign of FP0
-        eor     FP1s                    ; If both are pos or neg, then pos, else neg
-        sta     FP0s
-        jmp     normalize               ; Normalize and return
+        jmp     fmul_fdiv_done
 
 ; Divides FP0 by the value referenced by the pointer AY, returning the quotient in FP0.
 ; AY = pointer to the value
@@ -1194,20 +1190,20 @@ fdiv_2:
 ; shift left.
 
         mva     #1, B                   ; Set B to 1 in order to generate 8 quotient bits
-        jsr     @divide_skip_shift
+        jsr     divide_step_skip_shift
         ldx     #3                      ; Store this value FP0 position 3
         bne     @store_quotient         ; Unconditional
 
 @next_quotient_byte:
         mva     #1, B                   ; 8 more quotient bits
-        jsr     @divide                 ; Call divide function; next 8 bits of quotient bits now in B
+        jsr     divide_step             ; Call divide function; next 8 bits of quotient bits now in B
 @store_quotient:
         lda     B                       ; Get quotient byte
         sta     FP0,x
         dex
         bpl     @next_quotient_byte     ; If X is still >= 0 then more bytes to do
         mva     #32, B                  ; Set B to 32 to generate 3 more quotient bits and leave them in B
-        jsr     @divide
+        jsr     divide_step
         lsr     B                       ; Need to shift them left 5; easier to roll right 4 through carry
         ror     B
         ror     B
@@ -1218,10 +1214,14 @@ fdiv_2:
         ldy     FP1e                    ; Subtract FP1e from FP0e
         lda     #BIAS                   ; Add bias
         jsr     adjust_exponent         ; Do the math stuff; replaces C with the high byte of exponent
+
+; Common exit for fmul and fdiv: clear FPX, calculate product/quotient sign, and normalize.
+
+fmul_fdiv_done:
+        mva     #0, FPX                 ; Clear extended significand
         lda     FP0s                    ; Get sign of FP0
         eor     FP1s                    ; If both are pos or neg, then pos, else neg
         sta     FP0s
-        mva     #0, FPX                 ; Clear FPX, which normalize will use as the extended significand
         jmp     normalize               ; Normalize and return
 
 ; Compare the dividend in FPX+C to the divisor FP1.
@@ -1229,13 +1229,13 @@ fdiv_2:
 ; out of B. The value of B on entry determines how many times this function will carry out this operation. If it is
 ; initialized to 1, then it will loop 8 times.
 
-@divide:
+divide_step:
         asl     FPX                     ; Shift dividend left one bit
         rol     FPX+1
         rol     FPX+2
         rol     FPX+3
         rol     C
-@divide_skip_shift:
+divide_step_skip_shift:
         sec                             ; If FPX is >0 then divisor FP1 <= dividend FPX so we want carry to be set
         lda     C                       ; Dividend extended significand
         bne     @compare_done
@@ -1269,7 +1269,7 @@ fdiv_2:
         sta     C
 @skip_subtract:
         rol     B                       ; Roll the carry left into quotient
-        bcc     @divide                 ; Continue if 1 bit has not emerged from B
+        bcc     divide_step             ; Continue if 1 bit has not emerged from B
         rts
 
 ; Raise the value in FP0 to the power of the argument.
