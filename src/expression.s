@@ -91,13 +91,34 @@ evaluate_paren:
         rts
 
 evaluate_number:
-        jmp     decode_number           ; Returns number in FP0; expr_type already 0
+        ldax    line_ptr
+        ldy     line_pos
+        jsr     string_to_fp            ; May fail with carry set
+        bcs     raise_format_error
+        sty     line_pos                ; Update line_pos
+        rts
+
+raise_format_error:
+        raise   ERR_FORMAT_ERROR
 
 evaluate_string:
-        jsr     decode_string           ; Sets string_ptr
+        jsr     decode_byte             ; A = length, line_pos now points to first character
+        jsr     string_alloc_for_copy   ; Allocates on heap, sets dst_ptr = string_ptr + 1
         mvax    string_ptr, S0          ; S0 = string header pointer
         inc     expr_type               ; TYPE_STRING
-        rts
+        lda     line_ptr                ; Calculate source address: line_ptr + line_pos
+        clc
+        adc     line_pos
+        sta     src_ptr
+        lda     line_ptr+1
+        adc     #0
+        sta     src_ptr+1               ; src_ptr points to source characters
+        tya                             ; A = length
+        sec                             ; SEC + ADC = length + line_pos + 1
+        adc     line_pos
+        sta     line_pos                ; Advance line_pos past characters and ending quote
+        tya                             ; A = length
+        jmp     copy_a                  ; Copies A bytes from src_ptr to dst_ptr and returns
 
 evaluate_variable:
         jsr     decode_name

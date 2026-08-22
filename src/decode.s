@@ -5,40 +5,6 @@
 ; Functions to decode values from the token stream.
 ; For all functions, line_pos is the read position in line_ptr.
 
-; Decodes a number and returns it in FP0.
-; BC SAFE, DE SAFE
-
-decode_number:
-        ldax    line_ptr
-        ldy     line_pos
-        jsr     string_to_fp            ; May fail with carry set
-        bcs     raise_format_error
-        sty     line_pos                ; Update line_pos
-        rts
-
-raise_format_error:
-        raise   ERR_FORMAT_ERROR
-
-; Decodes a string.
-; On return, string_ptr will point to the decoded string.
-
-decode_string:
-        jsr     decode_byte             ; A = length, line_pos now points to first character
-        jsr     string_alloc_for_copy   ; Allocates on heap, sets dst_ptr = string_ptr + 1
-        lda     line_ptr                ; Calculate source address: line_ptr + line_pos
-        clc
-        adc     line_pos
-        sta     src_ptr
-        lda     line_ptr+1
-        adc     #0
-        sta     src_ptr+1               ; src_ptr points to source characters
-        tya                             ; A = length
-        sec                             ; SEC + ADC = length + line_pos + 1
-        adc     line_pos
-        sta     line_pos                ; Advance line_pos past characters and ending quote
-        tya                             ; A = length
-        jmp     copy_a                  ; Copies A bytes from src_ptr to dst_ptr and returns                                                                                        
-
 ; Decodes a variable name and set up decode_name_ptr, decode_name_length, and decode_name_type.
 ; BC SAFE, DE SAFE
 
@@ -46,16 +12,16 @@ decode_string:
 .assert TYPE_STRING = $01, error
 
 decode_name:
+        ldy     #0                      ; Initialize Y to 0, start searching for end of name at offset 0
+        sty     decode_name_type        ; Variable is TYPE_NUMBER (0) unless we learn otherwise
+        sty     decode_name_arity       ; Default to arity 0 meaning not an array
         lda     line_pos                ; Add line_pos to line_ptr to get decode_name_ptr
         clc
         adc     line_ptr
         sta     decode_name_ptr
-        lda     line_ptr+1
-        adc     #0                      ; Will leave carry clear since decode_name_ptr calculation should not roll over
+        tya                             ; A = 0
+        adc     line_ptr+1              ; Will leave carry clear since decode_name_ptr calculation should not roll over
         sta     decode_name_ptr+1
-        ldy     #0                      ; Search for the end of the name starting at position 0
-        sty     decode_name_type        ; Variable is TYPE_NUMBER (0) unless we learn otherwise
-        sty     decode_name_arity       ; Default to arity 0 meaning not an array
 @next:
         lda     (decode_name_ptr),y
         bmi     @last

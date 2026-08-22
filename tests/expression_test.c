@@ -269,8 +269,59 @@ void test_evaluate_argument_list(void) {
     ASSERT_EQ(stack_pos, PRIMARY_STACK_SIZE);
 }
 
+void test_evaluate_number(void) {
+    const char line_data[] = { '1', '0', '0', ',', '4', '1', '1', '2', ',', '3', '.', '1', '4', '1', '5', '9', ',', '1', 'E', '5' | EOT };
+    Float result_1 = { 0x48000000, 134 };
+    Float result_2 = { 0x00800000, 140 };
+    Float result_3 = { 0x490FCF81, 129 };
+    Float result_4 = { 0x43500000, 144 };
+    Float result;
+
+    PRINT_TEST_NAME();
+
+    set_line(0, line_data, sizeof line_data);
+
+    evaluate_number();
+    decode_byte();
+    store_fp0(&result);
+    ASSERT_FLOAT_EQ(result, result_1);
+
+    evaluate_number();
+    decode_byte();
+    store_fp0(&result);
+    ASSERT_FLOAT_EQ(result, result_2);
+
+    evaluate_number();
+    decode_byte();
+    store_fp0(&result);
+    ASSERT_FLOAT_EQ(result, result_3);
+
+    evaluate_number();
+    store_fp0(&result);
+    ASSERT_FLOAT_EQ(result, result_4);
+}
+
+void test_evaluate_string(void) {
+    const char line_data[] = {
+        5, 'H', 'E', 'L', 'L', 'O', '"' | EOT
+    };
+
+    PRINT_TEST_NAME();
+
+    initialize_program();
+
+    set_line(0, line_data, sizeof line_data);
+
+    evaluate_string();
+    ASSERT_EQ(string_ptr->length, 5);
+    ASSERT_EQ(memcmp(string_ptr->data, "HELLO", 5), 0);
+    ASSERT_EQ(line_pos, 10);
+}
+
 int main(void) {
     initialize_target();
+    test_evaluate_number();
+    test_evaluate_string();
     test_stack_alloc_free();
     test_evaluate_expression_op();
     test_evaluate_expression_op_precedence();

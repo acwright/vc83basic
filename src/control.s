@@ -235,5 +235,5 @@ push_next_line_ptr:
 
 get_line_number:
         inc     line_pos                ; Skip TOK_NUM
-        jsr     decode_number
+        jsr     evaluate_number
         jmp     truncate_fp_to_int

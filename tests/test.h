@@ -94,12 +94,12 @@ extern const char pvm_name[];
 // Prototypes for C wrapper functions
 
 // decode.s
-void decode_number(void);
-void decode_string(void);
 void decode_name(void);
 char decode_byte(void);
 
 // expression.s
+void evaluate_number(void);
+void evaluate_string(void);
 void evaluate_expression(void);
 signed char evaluate_argument_list(signed char expected_arguments);
 void push_fp0(void);

@@ -114,16 +114,6 @@ raise_ps_running:
 
 ; decode.s
 
-_decode_number:
-.export _decode_number
-        jmp     decode_number
-
-_decode_string:
-.export _decode_string
-        jsr     decode_string
-        sty     _Y
-        rts
-
 _decode_name:
 .export _decode_name
         jmp     decode_name
@@ -133,6 +123,16 @@ _decode_byte:
         jmp     decode_byte
 
 ; expression.s
+
+_evaluate_number:
+.export _evaluate_number
+        jmp     evaluate_number
+
+_evaluate_string:
+.export _evaluate_string
+        jsr     evaluate_string
+        sty     _Y
+        rts
 
 _evaluate_expression:
 .export _evaluate_expression

@@ -26,54 +26,7 @@ void test_decode_byte(void) {
     ASSERT_EQ(byte_value, 0x03);
 }
 
-void test_decode_number(void) {
-    const char line_data[] = { '1', '0', '0', ',', '4', '1', '1', '2', ',', '3', '.', '1', '4', '1', '5', '9', ',', '1', 'E', '5' | EOT };
-    Float result_1 = { 0x48000000, 134 };
-    Float result_2 = { 0x00800000, 140 };
-    Float result_3 = { 0x490FCF81, 129 };
-    Float result_4 = { 0x43500000, 144 };
-    Float result;
 
-    PRINT_TEST_NAME();
-
-    set_line(0, line_data, sizeof line_data);
-
-    decode_number();
-    decode_byte();
-    store_fp0(&result);
-    ASSERT_FLOAT_EQ(result, result_1);
-
-    decode_number();
-    decode_byte();
-    store_fp0(&result);
-    ASSERT_FLOAT_EQ(result, result_2);
-
-    decode_number();
-    decode_byte();
-    store_fp0(&result);
-    ASSERT_FLOAT_EQ(result, result_3);
-
-    decode_number();
-    store_fp0(&result);
-    ASSERT_FLOAT_EQ(result, result_4);
-}
-
-void test_decode_string(void) {
-    const char line_data[] = {
-        5, 'H', 'E', 'L', 'L', 'O', '"' | EOT
-    };
-
-    PRINT_TEST_NAME();
-
-    initialize_program();
-
-    set_line(0, line_data, sizeof line_data);
-
-    decode_string();
-    ASSERT_EQ(string_ptr->length, 5);
-    ASSERT_EQ(memcmp(string_ptr->data, "HELLO", 5), 0);
-    ASSERT_EQ(line_pos, 10);
-}
 
 void test_decode_name(void) {
     const char line_data[] = {
@@ -122,8 +75,6 @@ void test_decode_name(void) {
 int main(void) {
     initialize_target();
     test_decode_byte();
-    test_decode_number();
-    test_decode_string();
     test_decode_name();
     return 0;
 }

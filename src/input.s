@@ -15,7 +15,7 @@ exec_input:
         cmp     #TOK_STRING
         bne     @default_prompt
         inc     line_pos                ; Skip TOK_STRING
-        jsr     decode_string
+        jsr     evaluate_string
         lday    string_ptr
         jsr     print_string
         inc     line_pos                ; Skip the ';'
