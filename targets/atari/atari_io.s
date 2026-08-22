@@ -174,13 +174,6 @@ io_inkey:
 ; channel = channel (0..7 or $80), A = ASCII character
 
 io_put:
-        cmp     #10                     ; Line feed?
-        beq     @lf
-        cmp     #13                     ; Carriage return?
-        bne     @out
-@lf:
-        lda     #$9B                    ; Atari EOL
-@out:
         jsr     get_iocb_index          ; Sets IOCB index in X based on channel
         tay                             ; Save char in Y
         lda     ICPTH,x                 ; Push device put-byte handler address

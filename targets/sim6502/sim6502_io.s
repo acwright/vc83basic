@@ -235,16 +235,7 @@ io_put:
         jmp     @write_fd
 
 @stdout:
-        lda     put_byte_buf
-        cmp     #$0A                    ; LF
-        beq     @reset_col
-        cmp     #$0D                    ; CR
-        beq     @reset_col
         inc     console_column
-        bne     @do_stdout
-@reset_col:
-        mva     #0, console_column
-@do_stdout:
         lda     #1                      ; fd 1 (stdout)
 
 @write_fd:
@@ -353,7 +344,9 @@ io_read_record:
 
 io_end_record:
         lda     #$0A
-        jmp     io_put
+        jsr     io_put
+        mva     #0, console_column
+        rts
 
 ; Emits field separator (tabs to next 16-column boundary).
 

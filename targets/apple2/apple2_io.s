@@ -61,10 +61,6 @@ io_inkey:
 ; channel = channel (0..7), A = ASCII character
 
 io_put:
-        cmp     #10                     ; Line feed?
-        bne     @not_lf
-        lda     #$8D                    ; Apple II CR
-@not_lf:
         ora     #$80
         jmp     COUT
 
