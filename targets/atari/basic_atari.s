@@ -3,6 +3,7 @@
 ; SPDX-License-Identifier: MIT
 
 enable_io_channels = 1
+enable_trig_functions = 1
 
 .include "atari.inc"
 .include "atari_extension.s"

@@ -2,6 +2,8 @@
 ;
 ; SPDX-License-Identifier: MIT
 
+enable_trig_functions = 1
+
 .include "apple1.inc"
 .include "apple1_extension.s"
 .include "basic.s"

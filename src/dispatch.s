@@ -190,10 +190,6 @@ statement_count = * - dispatch_vectors_l
         .byte   <(floor-1)
         .byte   <(flog-1)
         .byte   <(fexp-1)
-        .byte   <(fsin-1)
-        .byte   <(fcos-1)
-        .byte   <(ftan-1)
-        .byte   <(fatn-1)
         .byte   <(fun_abs-1)
         .byte   <(fun_sgn-1)
         .byte   <(fun_sqr-1)
@@ -204,11 +200,14 @@ statement_count = * - dispatch_vectors_l
         .byte   <(fun_mid_s-1)
         .byte   <(fun_fre-1)
         .byte   <(fun_inkey_s-1)
-.if .definedmacro(extension_function_vectors_l)
-        extension_function_vectors_l
-.else
-        .byte   0
+.ifdef enable_trig_functions
+        .byte   <(fsin-1)
+        .byte   <(fcos-1)
+        .byte   <(ftan-1)
+        .byte   <(fatn-1)
 .endif
+        .byte   0                       ; Pad core functions to even count
+        invoke_if_defined extension_function_vectors_l
 
 dispatch_count = * - dispatch_vectors_l
 function_count = dispatch_count - statement_count
@@ -267,10 +266,6 @@ dispatch_vectors_h:
         .byte   >(floor-1)
         .byte   >(flog-1)
         .byte   >(fexp-1)
-        .byte   >(fsin-1)
-        .byte   >(fcos-1)
-        .byte   >(ftan-1)
-        .byte   >(fatn-1)
         .byte   >(fun_abs-1)
         .byte   >(fun_sgn-1)
         .byte   >(fun_sqr-1)
@@ -281,11 +276,14 @@ dispatch_vectors_h:
         .byte   >(fun_mid_s-1)
         .byte   >(fun_fre-1)
         .byte   >(fun_inkey_s-1)
-.if .definedmacro(extension_function_vectors_h)
-        extension_function_vectors_h
-.else
-        .byte   0
+.ifdef enable_trig_functions
+        .byte   >(fsin-1)
+        .byte   >(fcos-1)
+        .byte   >(ftan-1)
+        .byte   >(fatn-1)
 .endif
+        .byte   0                       ; Pad core functions to even count
+        invoke_if_defined extension_function_vectors_h
 
 .assert (* - dispatch_vectors_h) = dispatch_count, error
 
@@ -307,17 +305,18 @@ dispatch_flags:
         .byte   (PROLOG_POP_STRING | EPILOG_PUSH_FP) | ((PROLOG_POP_INT | EPILOG_PUSH_INT) << 4)       ; VAL, PEEK
         .byte   (PROLOG_POP_INT | EPILOG_PUSH_INT) | ((PROLOG_POP_STRING | EPILOG_PUSH_INT) << 4)     ; DPEEK, ADR
         .byte   (PROLOG_POP_FP | EPILOG_PUSH_FP) | ((PROLOG_POP_FP | EPILOG_PUSH_FP) << 4)             ; INT, LOG
-        .byte   (PROLOG_POP_FP | EPILOG_PUSH_FP) | ((PROLOG_POP_FP | EPILOG_PUSH_FP) << 4)             ; EXP, SIN
-        .byte   (PROLOG_POP_FP | EPILOG_PUSH_FP) | ((PROLOG_POP_FP | EPILOG_PUSH_FP) << 4)             ; COS, TAN
-        .byte   (PROLOG_POP_FP | EPILOG_PUSH_FP) | ((PROLOG_POP_FP | EPILOG_PUSH_FP) << 4)             ; ATN, ABS
+        .byte   (PROLOG_POP_FP | EPILOG_PUSH_FP) | ((PROLOG_POP_FP | EPILOG_PUSH_FP) << 4)             ; EXP, ABS
         .byte   (PROLOG_POP_FP | EPILOG_PUSH_FP) | ((PROLOG_POP_FP | EPILOG_PUSH_FP) << 4)             ; SGN, SQR
         .byte   (PROLOG_POP_FP | EPILOG_PUSH_FP) | ((PROLOG_POP_INT | EPILOG_PUSH_STRING) << 4)       ; RND, LEFT$
         .byte   (PROLOG_POP_INT | EPILOG_PUSH_STRING) | ((PROLOG_POP_INT | EPILOG_PUSH_INT) << 4)     ; RIGHT$, USR
         .byte   (PROLOG_POP_INT | EPILOG_PUSH_STRING) | ((PROLOG_NONE | EPILOG_PUSH_INT) << 4)        ; MID$, FRE
-.if .definedmacro(extension_function_flags)
-        extension_function_flags
+.ifdef enable_trig_functions
+        .byte   (PROLOG_NONE | EPILOG_PUSH_STRING) | ((PROLOG_POP_FP | EPILOG_PUSH_FP) << 4)           ; INKEY$, SIN
+        .byte   (PROLOG_POP_FP | EPILOG_PUSH_FP) | ((PROLOG_POP_FP | EPILOG_PUSH_FP) << 4)             ; COS, TAN
+        .byte   (PROLOG_POP_FP | EPILOG_PUSH_FP) | (0 << 4)                                             ; ATN + padding
 .else
         .byte   (PROLOG_NONE | EPILOG_PUSH_STRING) | (0 << 4)                                           ; INKEY$ + padding
 .endif
+        invoke_if_defined extension_function_flags
 
 .assert (* - dispatch_flags) = ((dispatch_count - 16 + 1) / 2), error

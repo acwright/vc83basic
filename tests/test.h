@@ -13,10 +13,13 @@
 #include <stddef.h>
 #include <stdlib.h>
 
+#define enable_io_channels 1
+#define enable_trig_functions 1
+
 #include "../src/constants.h"
 
 #define TOK_BYE   0x62
-#define TOK_VER_S 0x99
+#define TOK_VER_S 0x9A
 
 // Types
 // These are not the actual types used by the interpeter! They are C structs that mirror the structures used in

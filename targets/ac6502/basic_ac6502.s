@@ -2,6 +2,8 @@
 ;
 ; SPDX-License-Identifier: MIT
 
+enable_trig_functions = 1
+
 .include "ac6502.inc"
 .include "ac6502_extension.s"
 .include "basic.s"

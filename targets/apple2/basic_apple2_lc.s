@@ -2,6 +2,8 @@
 ;
 ; SPDX-License-Identifier: MIT
 
+enable_trig_functions = 1
+
 initialize_target = initialize_target_apple2_lc
 
 .include "apple2.inc"

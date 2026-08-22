@@ -29,9 +29,9 @@ TOK_BANK    = $6A
 TOK_MEM     = $6B
 TOK_SYS     = $6C
 
-TOK_JOY     = $99
-TOK_INKEY   = $9A
-TOK_NVRAM_F = $9B
+TOK_JOY     = $9A
+TOK_INKEY   = $9B
+TOK_NVRAM_F = $9C
 
 .macro extension_statement_keywords
 :       name_table_entry "CLS"
@@ -57,6 +57,7 @@ KEYWORD_BLOCK_6_OFFSET = keyword_counter
 :       name_table_entry "JOY"
 :       name_table_entry "INKEY"
 :       name_table_entry "NVRAM"
+:       name_table_entry ""             ; Padding for even function count
 .endmacro
 
 .macro extension_pvm_statements
@@ -141,17 +142,19 @@ pvm_arg_4:
         .byte   <(fun_joy-1)
         .byte   <(fun_inkey-1)
         .byte   <(fun_nvram-1)
+        .byte   0
 .endmacro
 
 .macro extension_function_vectors_h
         .byte   >(fun_joy-1)
         .byte   >(fun_inkey-1)
         .byte   >(fun_nvram-1)
+        .byte   0
 .endmacro
 
 .macro extension_function_flags
-        .byte   (PROLOG_NONE | EPILOG_PUSH_STRING) | ((PROLOG_POP_INT | EPILOG_PUSH_INT) << 4) ; INKEY$, JOY
-        .byte   (PROLOG_POP_INT | EPILOG_PUSH_INT) | ((PROLOG_POP_INT | EPILOG_PUSH_INT) << 4) ; INKEY, NVRAM
+        .byte   (PROLOG_POP_INT | EPILOG_PUSH_INT) | ((PROLOG_POP_INT | EPILOG_PUSH_INT) << 4) ; JOY, INKEY
+        .byte   (PROLOG_POP_INT | EPILOG_PUSH_INT) | (0 << 4)                                   ; NVRAM, padding
 .endmacro
 
 .macro extension_code

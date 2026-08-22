@@ -2,6 +2,8 @@
 ;
 ; SPDX-License-Identifier: MIT
 
+enable_trig_functions = 1
+
 .include "vc83_serial.inc"
 .include "vc83_serial_extension.s"
 .include "basic.s"

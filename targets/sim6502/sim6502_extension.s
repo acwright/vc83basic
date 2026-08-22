@@ -3,7 +3,7 @@
 ; SPDX-License-Identifier: MIT
 
 TOK_BYE   = $62
-TOK_VER_S = $99
+TOK_VER_S = $9A
 
 .macro extension_statement_keywords
 :       name_table_entry "BYE"
@@ -12,6 +12,7 @@ TOK_VER_S = $99
 
 .macro extension_function_keywords
 :       name_table_entry "VER$"
+:       name_table_entry ""             ; Padding for even function count
 .endmacro
 
 .macro extension_pvm_statements
@@ -38,14 +39,16 @@ TOK_VER_S = $99
 
 .macro extension_function_vectors_l
         .byte   <(fun_ver_s-1)
+        .byte   0
 .endmacro
 
 .macro extension_function_vectors_h
         .byte   >(fun_ver_s-1)
+        .byte   0
 .endmacro
 
 .macro extension_function_flags
-        .byte   (PROLOG_NONE | EPILOG_PUSH_STRING) | ((PROLOG_NONE | EPILOG_PUSH_STRING) << 4) ; INKEY$, VER$
+        .byte   (PROLOG_NONE | EPILOG_PUSH_STRING) | (0 << 4)                                   ; VER$ + padding
 .endmacro
 
 .macro extension_code

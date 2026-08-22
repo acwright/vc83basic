@@ -157,22 +157,25 @@ KEYWORD_BLOCK_8_OFFSET = keyword_counter
 :       name_table_entry "INT"
 :       name_table_entry "LOG"
 :       name_table_entry "EXP"
-:       name_table_entry "SIN"
-:       name_table_entry "COS"
-:       name_table_entry "TAN"
-:       name_table_entry "ATN"
 :       name_table_entry "ABS"
-; Block 9 ($90..$9F)
-KEYWORD_BLOCK_9_OFFSET = keyword_counter
 :       name_table_entry "SGN"
 :       name_table_entry "SQR"
 :       name_table_entry "RND"
 :       name_table_entry "LEFT$"
+; Block 9 ($90..$9F)
+KEYWORD_BLOCK_9_OFFSET = keyword_counter
 :       name_table_entry "RIGHT$"
 :       name_table_entry "USR"
 :       name_table_entry "MID$"
 :       name_table_entry "FRE"
 :       name_table_entry "INKEY$"
+.ifdef enable_trig_functions
+:       name_table_entry "SIN"
+:       name_table_entry "COS"
+:       name_table_entry "TAN"
+:       name_table_entry "ATN"
+.endif
+:       name_table_entry ""             ; Padding for even function count
         invoke_if_defined extension_function_keywords
 :       name_table_end
 ; Block A ($A0..$AF) - unused unless defined by target

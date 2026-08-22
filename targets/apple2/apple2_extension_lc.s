@@ -12,8 +12,8 @@ TOK_PLOT  = $62
 TOK_HLIN  = $63
 TOK_VLIN  = $64
 
-TOK_PDL   = $99
-TOK_SCRN  = $9A
+TOK_PDL   = $9A
+TOK_SCRN  = $9B
 
 .macro extension_custom_keywords
 :       name_table_entry "AT"
@@ -81,18 +81,15 @@ KEYWORD_BLOCK_6_OFFSET = keyword_counter
 .macro extension_function_vectors_l
         .byte   <(fun_pdl-1)
         .byte   <(fun_scrn-1)
-        .byte   0
 .endmacro
 
 .macro extension_function_vectors_h
         .byte   >(fun_pdl-1)
         .byte   >(fun_scrn-1)
-        .byte   0
 .endmacro
 
 .macro extension_function_flags
-        .byte   (PROLOG_NONE | EPILOG_PUSH_STRING) | ((PROLOG_POP_INT | EPILOG_PUSH_INT) << 4)        ; INKEY$, PDL
-        .byte   (PROLOG_POP_INT | EPILOG_PUSH_INT) | (0 << 4)                                           ; SCRN, padding
+        .byte   (PROLOG_POP_INT | EPILOG_PUSH_INT) | ((PROLOG_POP_INT | EPILOG_PUSH_INT) << 4)        ; PDL, SCRN
 .endmacro
 
 .macro extension_parser_code

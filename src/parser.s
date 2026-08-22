@@ -481,11 +481,14 @@ pvm_primary_expression:
         BRANCH_IF TOK_SUB, pvm_primary_expression   ; Unary -
         BRANCH_IF TOK_NOT, pvm_primary_expression   ; Unary NOT
         BRANCH_IF TOK_NAME, pvm_optional_array
-        BRANCH_IF_RANGE TOK_LEN, 16, pvm_fun_1      ; 1-arg functions ($80..$8F)
-        BRANCH_IF_RANGE TOK_SGN, 3, pvm_fun_1       ; 1-arg functions ($90..$92)
-        BRANCH_IF_RANGE TOK_LEFT_S, 3, pvm_fun_2    ; 2-arg functions ($93..$95)
-        BRANCH_IF TOK_MID_S, pvm_fun_3              ; 3-arg function ($96)
-        BRANCH_IF_RANGE TOK_FRE, 2, pvm_fun_0       ; 0-arg functions ($97..$98: FRE, INKEY$)
+        BRANCH_IF_RANGE TOK_LEN, 15, pvm_fun_1      ; 1-arg functions ($80..$8E: LEN..RND)
+        BRANCH_IF TOK_LEFT_S, pvm_fun_2             ; 2-arg function ($8F: LEFT$)
+        BRANCH_IF_RANGE TOK_RIGHT_S, 2, pvm_fun_2   ; 2-arg functions ($90..$91: RIGHT$, USR)
+        BRANCH_IF TOK_MID_S, pvm_fun_3              ; 3-arg function ($92: MID$)
+        BRANCH_IF_RANGE TOK_FRE, 2, pvm_fun_0       ; 0-arg functions ($93..$94: FRE, INKEY$)
+.ifdef enable_trig_functions
+        BRANCH_IF_RANGE TOK_SIN, 4, pvm_fun_1       ; 1-arg functions ($95..$98: SIN..ATN)
+.endif
         invoke_if_defined extension_pvm_functions
         BRANCH_IF TOK_NUM, @done
         MATCH TOK_STRING

@@ -42,7 +42,9 @@ fp_string_max:  .byte $00, $28, $6B, $6E, 157       ; 10^9     (1,000,000,000)
 fp_string_min:  .byte $00, $20, $BC, $3E, 154       ; 10^8     (100,000,000)
 fp_log_2:       .byte $F8, $17, $72, $31, 127
 fp_sqrt_2:      .byte $34, $F3, $04, $35, 128
+.ifdef enable_trig_functions
 fp_pi:          .byte $81, $CF, $0F, $49, 129
+.endif
 
 ; Loads a new Float value from memory into FP0 or FP1.
 ; AY = a pointer to the value to load
@@ -1454,6 +1456,7 @@ fexp:
         sta     FP0e
         rts
 
+.ifdef enable_trig_functions
 fsin_x = fp_scratch + .sizeof(Float) * 2
 ftan_x = fp_scratch + .sizeof(Float) * 3
 ftan_cos_x = fp_scratch + .sizeof(Float) * 4
@@ -1584,3 +1587,4 @@ fatn:
         ldax    #fp_atn_coefficients
         ldy     #12
         jmp     fpoly_odd
+.endif
