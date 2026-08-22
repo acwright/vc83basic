@@ -20,5 +20,3 @@ op_stack: .res OP_STACK_SIZE
 initialize_target:
         jsr     init_k_vector
         jmp     display_startup_banner
-
-.code

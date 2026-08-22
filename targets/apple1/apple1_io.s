@@ -2,12 +2,6 @@
 ;
 ; SPDX-License-Identifier: MIT
 
-.export io_get, io_put, io_inkey
-.export io_read_record, io_end_record, io_end_field
-.export io_save, io_load
-
-.code
-
 ; Gets a single byte/key from keyboard (blocking).
 ; Returns carry clear and byte in A if ok, carry set if error.
 

@@ -2,10 +2,6 @@
 ;
 ; SPDX-License-Identifier: MIT
 
-.export io_open, io_close, io_close_all, io_get, io_put, io_inkey
-.export io_read_record, io_end_record, io_end_field
-.export io_save, io_load, io_xio
-
 .bss
 
 open_mode:      .res 1

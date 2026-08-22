@@ -8,10 +8,6 @@
 ; sim65 POSIX vectors
 .import _open, _close, _read, _write
 
-.export io_open, io_close, io_close_all, io_get, io_put, io_inkey
-.export io_read_record, io_end_record, io_end_field
-.export io_save, io_load, io_xio
-.export channel_fds
 
 ; Mode flag constants for cc65 / POSIX open()
 ; Mode 1 (Read):   O_RDONLY = $01

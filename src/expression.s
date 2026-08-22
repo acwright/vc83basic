@@ -101,7 +101,6 @@ evaluate_string:
 
 evaluate_variable:
         jsr     decode_name
-evaluate_decoded_variable:
         jsr     find_or_add_variable
         lda     decode_name_type
         beq     @number

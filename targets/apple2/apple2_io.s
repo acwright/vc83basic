@@ -3,15 +3,6 @@
 ; SPDX-License-Identifier: MIT
 
 .ifdef enable_io_channels
-.export io_open, io_close, io_close_all, io_xio
-.endif
-.export io_get, io_put, io_inkey
-.export io_read_record, io_end_record, io_end_field
-.export io_save, io_load
-
-.code
-
-.ifdef enable_io_channels
 ; Opens a file on channel.
 ; channel = channel (0..7), A = mode, S0 = filename string
 ; Returns carry clear if ok, carry set if error.

@@ -148,5 +148,3 @@ debug_handler:
         ldx     save_x
         ldy     save_y
         rti
-
-.code

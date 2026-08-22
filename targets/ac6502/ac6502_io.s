@@ -13,14 +13,6 @@
 ;
 ; See https://github.com/acwright/6502 for more info
 
-.export io_get, io_put, io_inkey
-.export io_read_record, io_end_record, io_end_field
-.export io_save, io_load
-.export putch, newline, putch_raw, get_key, check_break
-
-.code
-
-
 ; ---------------------------------------------------------------------------
 ; Keyboard input primitives
 ; ---------------------------------------------------------------------------
@@ -95,7 +87,6 @@ check_break:
 ; ---------------------------------------------------------------------------
 ; Console I/O interface
 ; ---------------------------------------------------------------------------
-
 ; Gets a single byte/key from console (blocking).
 ; Returns carry clear and byte in A if ok, carry set if error.
 

@@ -7,20 +7,21 @@
 ; Does not set next_line_ptr since the program is not running.
 ; Inserts an empty zero-length line -1 into the program space.
 
-.export vbas_header
+.assert Line::next_line_offset = 0, error
+.assert Line::number = 1, error
+
 vbas_header:
-        .byte   "VBAS"
+        .byte   "VBAS", 0, $FF, $FF                             ; "VBAS" header followed by null line (0, $FF, $FF)
 
 initialize_program:
         mvax    #(__MAIN_START__ + __MAIN_SIZE__), himem_ptr
-        ldy     #3
+        ldy     #6
 @vbas_loop:
         lda     vbas_header,y
-        sta     __BSS_RUN__ + __BSS_SIZE__,y                    ; Store "VBAS" in memory right before program_ptr
+        sta     __BSS_RUN__ + __BSS_SIZE__,y                    ; Store "VBAS" and null line at start of program
         dey
         bpl     @vbas_loop
-        mvax    #(__BSS_RUN__ + __BSS_SIZE__ + 4), program_ptr  ; Set program_ptr to start of program space (leaves in AX)
-        jsr     append_null_line                                ; Build a null line at program_ptr
+        mvax    #(__BSS_RUN__ + __BSS_SIZE__ + 4), program_ptr  ; Set program_ptr to start of program space
         jsr     reset_program
         mvax    #(__BSS_RUN__ + __BSS_SIZE__ + 4 + .sizeof(Line)), variable_name_table_ptr
 
@@ -99,23 +100,6 @@ reset_next_line_ptr:
 reset_next_line_ptr_2:
         stax    next_line_ptr
         bne     set_next_line_pos       ; Unconditional: stax doesn't affect flags, ldax sets Z from high byte
-
-; Builds a null line at the location passed in AX. The null line has line number -1 and a length of zero.
-; The zero length prevents advance_next_line_ptr from advancing past the line.
-; This function makes assumptions about these offsets:
-
-.assert Line::next_line_offset = 0, error
-.assert Line::number = 1, error
-
-null_line:
-        .byte 0                         ; next_line_offset
-        .byte $FF, $FF                  ; number
-
-append_null_line:
-        stax    dst_ptr
-        ldy     #.sizeof(Line)
-        ldax    #null_line
-        jmp     copy_y_from
 
 ; Searches for a line in the program.
 ; This function needs to be reasonably fast because it will be called every time the program executes GOTO, 

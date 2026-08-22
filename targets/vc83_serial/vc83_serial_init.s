@@ -26,3 +26,5 @@ initialize_target:
 .align 256
 stack:          .res PRIMARY_STACK_SIZE
 op_stack:       .res OP_STACK_SIZE
+
+.code
