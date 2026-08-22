@@ -163,6 +163,8 @@ push_operator:
 ; Process operators with a precedence >= the precedence passed in A.
 ; The open and close parens will never be handled through the jump table: close paren is never actually put on the
 ; operator stack, and open parens have such a low precedence that they will never be evaluated.
+; Because evaluate_expression always pushes a PR_OPEN_PAREN sentinel ($00) beforehand and min_precedence is always
+; >= PR_CLOSE_PAREN ($20), the operator stack will never underflow.
 ; A = minimum precedence
 
 process_operators:
