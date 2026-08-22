@@ -119,8 +119,9 @@ exec_save:
 exec_load:
         ldy     #Line::next_line_offset
         lda     (program_ptr),y
-        raine   ERR_ALREADY_DIMENSIONED ; Program exists: user must do NEW first!
-
+        beq     :+
+        jmp     raise_exists            ; Program exists: user must do NEW first!
+:
         jsr     io_load
         bcs     raise_io_error
         rts

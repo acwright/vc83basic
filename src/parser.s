@@ -61,14 +61,14 @@ parse_line:
         mva     line_pos, line_buffer+Line::next_line_offset    ; Write position is next line offset
         ldx     buffer_pos
         lda     buffer,x                ; Verify the line ends with 0 as expected
-        bne     syntax_error            ; Nope, fail
+        bne     raise_syntax_error      ; Nope, fail
         rts
 
 @check_separator:
         cmp     #TOK_COLON              ; Otherwise it had better be a statement separator
         beq     @next_statement         ; It was ':'
 
-syntax_error:
+raise_syntax_error:
         raise   ERR_SYNTAX_ERROR
 
 ; Invokes parsing virtual machine (PVM).
@@ -79,7 +79,7 @@ syntax_error:
 parse_pvm:
         stax    pvm_program_ptr
         jsr     run_pvm_next_token
-        bcs     syntax_error
+        bcs     raise_syntax_error
         mva     D, buffer_pos           ; Put back the last token that was read but not matched
         mva     E, line_pos
         rts

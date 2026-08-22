@@ -15,7 +15,7 @@ exec_dim:
         sta     decode_name_arity
         ldax    array_name_table_ptr    ; Look for the name in the name table
         jsr     find_name
-        bcc     @already_dimensioned
+        bcc     raise_exists
         jsr     dimension_array         ; Go do it
         jsr     peek_byte               ; Check for comma (more arrays)
         beq     @done                   ; No more arrays
@@ -28,5 +28,5 @@ exec_dim:
 @invalid_variable:
         jmp     raise_invalid_variable
 
-@already_dimensioned:
-        raise   ERR_ALREADY_DIMENSIONED
+raise_exists:
+        raise   ERR_EXISTS

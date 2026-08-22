@@ -194,7 +194,7 @@ exec_pop:
         ldx     stack_pos               ; Check stack pointer
         cpx     #PRIMARY_STACK_SIZE     ; Check if stack empty
         bne     exec_pop_2
-        jmp     raise_err_stack
+        jmp     raise_stack
 exec_pop_2:
         lda     #.sizeof(Control)       ; Free the control record
         jmp     stack_free

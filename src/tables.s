@@ -12,7 +12,7 @@ error_message_table:
 :       .byte :+ - *, "OUT MEM"
 :       .byte :+ - *, "TYPE?"
 :       .byte :+ - *, "NO STOP"
-:       .byte :+ - *, "OUT DATA"
+:       .byte :+ - *, "NO DATA"
 :       .byte :+ - *, "STACK"
 :       .byte :+ - *, "NO GOSUB"
 :       .byte :+ - *, "NO FOR"
@@ -26,5 +26,5 @@ error_message_table:
 :       .byte :+ - *, "ARITY?"
 :       .byte :+ - *, "SYNTAX"
 :       .byte :+ - *, "DIV/0"
-:       .byte :+ - *, "IO ERROR"
+:       .byte :+ - *, "I/O"
 :       .byte 0
