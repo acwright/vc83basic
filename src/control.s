@@ -30,6 +30,7 @@ exec_goto:
 
 exec_on_goto_gosub:
         jsr     evaluate_expression     ; Evaluate the "ON" expression
+        bne     @type_mismatch
         jsr     decode_byte             ; Next byte tells us if it's GOTO or GOSUB
         cmp     #TOK_GOTO               ; If Z flag then we're GOTO, else GOSUB
         php                             ; Remember what we learned
@@ -50,6 +51,9 @@ exec_on_goto_gosub:
         bne     @next_byte
         sty     line_pos                ; Update line_pos with the position after the next ','
         jmp     @loop                   ; Unconditional
+
+@type_mismatch:
+        jmp     raise_type_mismatch
 
 @found:
         plp                             ; Recover the flags from the GOSUB check
@@ -102,6 +106,7 @@ exec_for:
         sbc     #0
         sta     stack+Control::variable_name_ptr+1,x
         jsr     evaluate_expression     ; End value (now in FP0)
+        bne     @type_mismatch
         lda     stack_pos               ; Stack pointer
         adc     #Control::end_value     ; Add the offset of the end value; carry is clear
         ldy     #>stack                 ; Stack page
@@ -110,6 +115,7 @@ exec_for:
         beq     @no_step
         inc     line_pos
         jsr     evaluate_expression     ; Step value (now in FP0)
+        bne     @type_mismatch
         jmp     @store_step
 @no_step:
         jsr     load_one_fp0
@@ -119,6 +125,9 @@ exec_for:
         adc     #Control::step_value    ; Add the offset of the step value
         ldy     #>stack
         jmp     store_fp0               ; Store the step value
+
+@type_mismatch:
+        jmp     raise_type_mismatch
         
 raise_invalid_variable:
         raise   ERR_INVALID_VARIABLE
@@ -185,7 +194,7 @@ raise_next_without_for:
 
 exec_pop:
         ldx     stack_pos               ; Check stack pointer
-        cpx     #PRIMARY_STACK_SIZE     ; Stack empty?
+        cpx     #PRIMARY_STACK_SIZE     ; Check if stack empty
         bne     exec_pop_2
         jmp     raise_err_stack
 exec_pop_2:
@@ -194,6 +203,7 @@ exec_pop_2:
 
 exec_if:
         jsr     evaluate_expression     ; Evaluate the expression
+        bne     @if_type_mismatch
         inc     line_pos                ; Skip terminator
         lda     FP0e                    ; Check if zero
         beq     @next_line              ; If zero then don't execute the THEN or any other statements on this line
@@ -201,6 +211,9 @@ exec_if:
         cmp     #TOK_NUM
         beq     @goto
         jmp     dispatch_statement      ; Otherwise execute the THEN
+
+@if_type_mismatch:
+        jmp     raise_type_mismatch
 
 @goto:
         jmp     exec_goto

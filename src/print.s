@@ -15,8 +15,7 @@ exec_print:
         beq     @empty_space
         cmp     #TOK_COMMA
         beq     @tab
-        jsr     evaluate_expression     ; Leaves value in FP0 or S0
-        lda     expr_type               ; Get the type of the expression
+        jsr     evaluate_expression     ; Leaves value in FP0 or S0, type in A
         beq     @print_num
         lday    S0
         jsr     print_string

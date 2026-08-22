@@ -16,15 +16,19 @@ exec_open:
         beq     @no_mode
         inc     line_pos
         jsr     evaluate_expression     ; Evaluates mode -> FP0
+        bne     @open_type_mismatch
         jsr     truncate_fp_to_int      ; Mode in AX
         tsx
         sta     $101,x                  ; Replace default mode on stack
 @no_mode:
-        jsr     pop_string_s0           ; Pop filename into S0
+        jsr     pop_string_s0           ; Pop filename into S0 (checks string type)
         pla                             ; Mode in A
         jsr     io_open
         bcs     raise_io_error
         rts
+
+@open_type_mismatch:
+        jmp     raise_type_mismatch
 
 ; CLOSE [#channel]
 
@@ -70,6 +74,7 @@ raise_io_error:
 
 exec_xio:
         jsr     evaluate_expression     ; Command -> FP0
+        bne     @xio_type_mismatch
         jsr     truncate_fp_to_int
         sta     B                       ; Command in B
         lda     #0
@@ -81,12 +86,14 @@ exec_xio:
         beq     @do_xio
         inc     line_pos
         jsr     evaluate_expression     ; Arg1 -> FP0
+        bne     @xio_type_mismatch
         jsr     truncate_fp_to_int
         stax    BC
         jsr     peek_byte
         beq     @do_xio
         inc     line_pos
         jsr     evaluate_expression     ; Arg2 -> FP0
+        bne     @xio_type_mismatch
         jsr     truncate_fp_to_int
         stax    DE
 
@@ -95,6 +102,9 @@ exec_xio:
         jsr     io_xio
         bcs     raise_io_error
         rts
+
+@xio_type_mismatch:
+        jmp     raise_type_mismatch
 .endif
 
 ; SAVE {name}

@@ -42,6 +42,7 @@ next_expression:
         jsr     process_operators
         inc     op_stack_pos            ; Pop the open paren
         plzp    DECODE_NAME_STATE, DECODE_NAME_STATE_SIZE   ; Recover the decoded name
+        lda     expr_type               ; Return expr_type in A and set flags (Z=1 for number, Z=0 for string)
         rts
 
 @unary_operator:
@@ -188,6 +189,12 @@ process_operators:
         rts                             ; This is either RTS from process_operators or JMP to operator handler
 
 op_concat:
+        lda     expr_type
+        ldx     stack_pos
+        and     stack+Value::type,x     ; Must both be TYPE_STRING ($01)
+        bne     @type_ok
+        jmp     raise_type_mismatch
+@type_ok:
         jsr     push_string_s0          ; Push right operand for GC safety
         lday    S0                      ; Right string header
         jsr     load_s1                 ; Convert to data pointer in S1, A = right length
@@ -263,7 +270,8 @@ op_ne_tail:
 op_le:
         jsr     compare_values
         bcc     set_value_1             ; A < B
-        bcs     op_eq_tail              ; A >= B
+        beq     set_value_1             ; A = B
+        bne     set_value_0             ; A > B
 
 op_lt:
         jsr     compare_values
@@ -314,9 +322,11 @@ compare_values:
 
 call_binary_operator:
         phax                            ; Push operator handler address -1 onto the stack so we can RTS to it
-        lda     #TYPE_NUMBER            ; Make sure that the first value is a number
-        sta     expr_type               ; Result is always TYPE_NUMBER
-        jsr     stack_free_value_with_type
+        lda     expr_type               ; Make sure right operand is TYPE_NUMBER (0)
+        beq     @type_ok
+        jmp     raise_type_mismatch
+@type_ok:
+        jsr     stack_free_value_with_type ; A is 0, so checks left operand is TYPE_NUMBER (0)
         txa                             ; Original value of stack_pos, returned in X
         ldy     #>stack                 ; Stack page
         rts                             ; JMP to the operator handler
@@ -365,11 +375,22 @@ op_add:
         bne     call_binary_operator
 
 unary_op_not:
+        lda     expr_type
+        beq     @type_ok
+        jmp     raise_type_mismatch
+@type_ok:
         lda     FP0e
         bne     @false
         jmp     load_one_fp0
 @false:
         jmp     clear_fp0
+
+unary_op_minus:
+        lda     expr_type
+        bne     @type_mismatch
+        jmp     fneg
+@type_mismatch:
+        jmp     raise_type_mismatch
 
 ; Push the value in FP0 onto the value stack.
 ; FP0 = the value to push
@@ -516,6 +537,8 @@ op_or:
         jmp     finish_logical_op
 
 set_up_logical_op:
+        lda     expr_type
+        bne     raise_type_mismatch
         jsr     truncate_fp_to_int      ; FP0 right operand -> int in AX
         stax    DE                      ; Store returned value in DE
         jsr     pop_fp0                 ; Left operand -> FP0
@@ -536,7 +559,7 @@ operator_vectors_l:
         .byte   <(op_ge-1)
         .byte   <(op_and-1)
         .byte   <(op_or-1)
-        .byte   <(fneg-1)
+        .byte   <(unary_op_minus-1)
         .byte   <(unary_op_not-1)
 
 operator_count = * - operator_vectors_l
@@ -559,7 +582,7 @@ operator_vectors_h:
         .byte   >(op_ge-1)
         .byte   >(op_and-1)
         .byte   >(op_or-1)
-        .byte   >(fneg-1)
+        .byte   >(unary_op_minus-1)
         .byte   >(unary_op_not-1)
 
 .assert (* - operator_vectors_h) = operator_count, error
