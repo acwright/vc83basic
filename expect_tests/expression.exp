@@ -95,7 +95,156 @@ test "PRINT (3*(2+1))*3\n" "27\n"
 
 test {
 PRINT 1/0
-RUN
 } {
 ERR: DIV/0
 }
+
+# Type checking for arithmetic operators
+test {
+PRINT 1+"A"
+} {
+ERR: TYPE?
+}
+
+test {
+PRINT "A"+1
+} {
+ERR: TYPE?
+}
+
+test {
+PRINT "A"+"B"
+} {
+ERR: TYPE?
+}
+
+test {
+PRINT 1-"A"
+} {
+ERR: TYPE?
+}
+
+test {
+PRINT "A"-1
+} {
+ERR: TYPE?
+}
+
+test {
+PRINT 1*"A"
+} {
+ERR: TYPE?
+}
+
+test {
+PRINT "A"*1
+} {
+ERR: TYPE?
+}
+
+test {
+PRINT 1/"A"
+} {
+ERR: TYPE?
+}
+
+test {
+PRINT "A"/1
+} {
+ERR: TYPE?
+}
+
+test {
+PRINT 2^"A"
+} {
+ERR: TYPE?
+}
+
+test {
+PRINT "A"^2
+} {
+ERR: TYPE?
+}
+
+# Type checking for unary operators
+test {
+PRINT -"A"
+} {
+ERR: TYPE?
+}
+
+test {
+PRINT NOT "A"
+} {
+ERR: TYPE?
+}
+
+# Type checking for logical operators
+test {
+PRINT 1 AND "A"
+} {
+ERR: TYPE?
+}
+
+test {
+PRINT "A" AND 1
+} {
+ERR: TYPE?
+}
+
+test {
+PRINT 1 OR "A"
+} {
+ERR: TYPE?
+}
+
+test {
+PRINT "A" OR 1
+} {
+ERR: TYPE?
+}
+
+# Type checking for string concatenation
+test {
+PRINT "A" & 1
+} {
+ERR: TYPE?
+}
+
+test {
+PRINT 1 & "A"
+} {
+ERR: TYPE?
+}
+
+test {
+PRINT 1 & 2
+} {
+ERR: TYPE?
+}
+
+# Type checking for comparisons
+test {
+PRINT 1 = "A"
+} {
+ERR: TYPE?
+}
+
+test {
+PRINT "A" = 1
+} {
+ERR: TYPE?
+}
+
+test {
+PRINT 1 < "A"
+} {
+ERR: TYPE?
+}
+
+test {
+PRINT "A" < 1
+} {
+ERR: TYPE?
+}
+
