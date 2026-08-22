@@ -10,9 +10,10 @@
 dispatch_statement:
         mva     stack_pos, reset_stack_pos      ; Save stack pos in case we have to roll it back
         mva     #OP_STACK_SIZE, op_stack_pos    ; Clear op stack
-        jsr     decode_byte                     ; Get statement number
+        jsr     peek_byte                       ; Peek statement token
         cmp     #TOK_NAME
-        beq     exec_impl_let
+        beq     exec_let
+        inc     line_pos                        ; Consume statement token
 .ifdef enable_io_channels
         pha                                     ; Save statement token
         ldx     #$80                            ; Default channel = $80 (bit 7 set = default)
@@ -35,10 +36,7 @@ dispatch_statement:
 ; LET statement:
 
 exec_let:
-        inc     line_pos                ; Skip TOK_NAME
-exec_impl_let:
-        jsr     decode_name             ; Sets decode_name_ptr and decode_name_length
-        jsr     find_or_add_variable
+        jsr     read_variable
         inc     line_pos                ; Skip terminator
         ldphaa  name_ptr                ; Remember name_ptr 
         jsr     evaluate_expression     ; Result in FP0 or S0

@@ -32,9 +32,7 @@ exec_input:
         sta     buffer,y                ; NUL-terminate based on length in A
         mva     #0, buffer_pos          ; Reset the read position
 @next_var:
-        inc     line_pos                ; Skip TOK_NAME
-        jsr     decode_name             ; Read the variable name
-        jsr     find_or_add_variable
+        jsr     read_variable
         bcs     @done
         lda     decode_name_type        ; Is it a number or a string?
         bne     @string                 ; It's a string

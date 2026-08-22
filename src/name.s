@@ -152,6 +152,12 @@ add_variable:
         ldax    name_ptr
         jmp     clear_memory            ; Clear the variable data
 
+; Reads a variable name at the current line_pos (skipping TOK_NAME) and finds or adds the variable.
+
+read_variable:
+        inc     line_pos
+        jsr     decode_name
+
 ; Finds a variable, or adds it.
 ; decode_name_ptr = pointer to the variable name
 ; decode_name_length = the length of the variable

@@ -41,9 +41,7 @@ exec_close:
 ; GET [#channel] {numeric_variable}
 
 exec_get:
-        inc     line_pos                ; Skip TOK_NAME
-        jsr     decode_name
-        jsr     find_or_add_variable
+        jsr     read_variable
         lda     decode_name_type
         bne     @type_mismatch
         jsr     io_get

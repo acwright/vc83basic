@@ -39,9 +39,7 @@ exec_read:
 
 ; Now we're left with case 1 or case 2: somewhere on a DATA line
 
-        inc     line_pos                ; Skip TOK_NAME
-        jsr     decode_name             ; Read the variable name
-        jsr     find_or_add_variable
+        jsr     read_variable
         lda     decode_name_type        ; Is it a number or a string?
         bne     @string                 ; It's a string
         ldax    data_line_ptr           ; Point to data line
