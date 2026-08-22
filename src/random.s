@@ -6,15 +6,8 @@
 ; Separated out from the rest of functions so we can replace it on a machine that includes a hardware random
 ; number generator.
 
-.bss
-
-rnd_value:      .res .sizeof(Float::t)
-
-.code
-
-rnd_mask:       .byte $B7, $1D, $C1, $04
-
 ; Generates a new random value in rnd_value and outputs it in FP0.
+
 fun_rnd:
         lda     FP0e                    ; 0 -> return previous number, >0 -> return next number, <0 -> reseed
         beq     @output
@@ -34,13 +27,16 @@ fun_rnd:
         rol     rnd_value+2
         rol     rnd_value+3
         bcc     @skip_feedback
-        ldx     #4
-@next_feedback:
-        lda     rnd_mask-1,x
-        eor     rnd_value-1,x
-        sta     rnd_value-1,x
-        dex
-        bne     @next_feedback
+
+; Apply polynomial taps: x^32 + x^22 + x^17 + x + 1
+
+        lda     rnd_value+0
+        eor     #$03                    ; Taps at x^1 and x^0 (+1)
+        sta     rnd_value+0
+        lda     rnd_value+2
+        eor     #$42                    ; Taps at x^22 ($40) and x^17 ($02)
+        sta     rnd_value+2
+
 @skip_feedback:
         dey
         bne     @next_shift

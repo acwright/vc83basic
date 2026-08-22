@@ -161,4 +161,7 @@ byte(string_flag)
 comment Active I/O channel for current statement (bit 7 set if default console channel 0)
 byte(channel)
 
+comment State of the pseudo-random number generator
+var(rnd_value, .sizeof(UnpackedFloat::t), unsigned long)
+
 finalize()
