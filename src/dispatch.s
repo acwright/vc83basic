@@ -39,7 +39,7 @@ exec_let:
         jsr     get_variable
         inc     line_pos                ; Skip terminator
         ldphaa  name_ptr                ; Remember name_ptr 
-        jsr     evaluate_expression     ; Result in FP0 or S0
+        jsr     evaluate_expression_save ; Result in FP0 or S0
         plstaa  name_ptr                ; Restore name so we can assign it
         lda     var_name_type           ; Check types match
         cmp     expr_type

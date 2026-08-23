@@ -13,6 +13,16 @@
 .assert TOK_LEN = $80, error
 .assert PR_OPEN_PAREN = TYPE_NUMBER, error
 
+; Wrapper that preserves DECODE_NAME_STATE across expression evaluation. Used by callers that set up
+; DECODE_NAME_STATE before evaluating (exec_let, exec_for) and by evaluate_argument_list to protect
+; the array name state during recursive subscript evaluation.
+
+evaluate_expression_save:
+        phzp    DECODE_NAME_STATE, DECODE_NAME_STATE_SIZE   ; Remember the decoded name
+        jsr     evaluate_expression
+        plzp    DECODE_NAME_STATE, DECODE_NAME_STATE_SIZE   ; Recover the decoded name
+        rts
+
 ; Evaluates an expression and leaves the result in FP0 (number) or S0 (string header), with type in expr_type.
 ; An expression is a primary expression, optionally followed by a binary operator and another expression.
 ; If we're here, there *must* be an expression. The expression ends when we don't find a binary operator
@@ -159,7 +169,7 @@ evaluate_argument_list:
         cmp     #TOK_RPAREN
         beq     @done
 @loop:
-        jsr     evaluate_expression
+        jsr     evaluate_expression_save
         jsr     push_pending            ; Push result for function prolog / statement
         tsx
         dec     $101,x                  ; Decrement remaining
