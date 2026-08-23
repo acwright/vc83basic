@@ -120,9 +120,24 @@ putch:
         pla                             ; Restore character
 
 ; putch_raw -- output one character with no break check, for echo and for
-; anything else that has already decided about breaking.
+; anything else that has already decided about breaking.  It also keeps
+; console_column current, which is what `tab` uses to find the next tab stop
+; when the console is the serial port.
 
 putch_raw:
+        cmp     #CH_CR                  ; CR returns to the left margin
+        bne     @advance
+        stz     console_column          ; STZ, not MVA: A still holds the CR to emit
+        bra     putch_emit
+@advance:
+        cmp     #CH_SPACE
+        bcc     putch_emit              ; Other control codes do not move the cursor
+        inc     console_column
+
+; putch_emit -- output a character without touching console_column, for callers
+; that account for the column themselves.
+
+putch_emit:
         jmp     Chrout
 
 ; Emits record delimiter (CR + LF).
@@ -148,10 +163,10 @@ tab:
         clc
         rts
 @serial_tab:
-        ldx     #4
 :       lda     #' '
         jsr     putch
-        dex
+        lda     console_column
+        and     #$07                    ; 8-column tab zone, as on the video path
         bne     :-
         clc
         rts
@@ -194,12 +209,13 @@ readline:
         cpy     #0
         beq     @waitchar               ; Nothing to delete
         dey
+        dec     console_column          ; One character came off the line
         lda     #CH_BKSP                ; BS, space, BS.  The BIOS's video Chrout
         jsr     putch_raw               ;   erases on BS by itself, but a serial
         lda     #CH_SPACE               ;   terminal only moves the cursor, so
-        jsr     putch_raw               ;   spell the erase out and satisfy both.
-        lda     #CH_BKSP
-        jsr     putch_raw
+        jsr     putch_emit              ;   spell the erase out and satisfy both.
+        lda     #CH_BKSP                ;   The space goes via putch_emit: it
+        jsr     putch_raw               ;   repaints a cell, it does not advance.
         jmp     @waitchar
 
 @done:

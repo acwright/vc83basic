@@ -25,4 +25,11 @@ line_buffer:    .res BUFFER_SIZE
 stack:          .res PRIMARY_STACK_SIZE
 op_stack:       .res OP_STACK_SIZE
 
+; Column the console cursor sits at, maintained by putch_raw.  The video path
+; can read the BIOS cursor (VID_CURSOR_X) directly, but the serial path has no
+; equivalent, so `tab` needs this to find the next tab stop.  Placed after the
+; stacks so it cannot disturb the page alignment `stack` asserts on.
+
+console_column: .res 1
+
 .code
