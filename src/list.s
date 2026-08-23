@@ -12,6 +12,8 @@
 ; It's possible that LIST is being called from within the program, so we save the existing next_line_ptr value
 ; on the stack and restore it after so we can resume execution after the LIST statement.
 
+.assert TOK_PRINT = $40, error
+
 exec_list:
         ldphaa  next_line_ptr
         ldpha   next_line_pos
@@ -91,30 +93,33 @@ list_statement:
         beq     @list_num_or_name
         cmp     #TOK_STRING
         beq     @list_string
-        pha                             ; Store the original token
+        sta     C                       ; Save token in C
         lsr     A                       ; Divide by 16 to get block index of token
         lsr     A
         lsr     A
         lsr     A
         tax
-        lda     keyword_block_offsets,x ; Base keyword index for block
-        sta     B
-        pla                             ; Get back the token
-        pha                             ; Store it again
-        and     #$0F                    ; Intra-block offset i
+        lda     C                       ; Intra-block offset
+        and     #$0F
         clc
-        adc     B                       ; Keyword index k
+        adc     keyword_block_offsets,x ; Base keyword index for block
         tay
         ldax    #keywords
         jsr     expand_tokenized_name
-        pla                             ; Get back the original token
+        lda     C                       ; Get back the original token
+        sbc     #TOK_PRINT              ; Range $40..$7F maps to 0..63 (C=1 from expand_tokenized_name)
+        cmp     #64                     ; Statement token?
+        bcs     @skip_statement_space
+        jsr     peek_byte               ; Check if more tokens on line
+        beq     @skip_statement_space   ; If at EOL, don't add space
+        jsr     add_whitespace          ; Space after keyword (ignores '?')
+
+@skip_statement_space:
+        lda     C                       ; Get back original token
         cmp     #TOK_DATA
-        beq     @list_rem_data
+        beq     @rem_data_loop
         cmp     #TOK_REM
         bne     @next_token
-
-@list_rem_data:
-        jsr     add_whitespace
 
 @rem_data_loop:
         jsr     get_byte
@@ -147,7 +152,6 @@ list_statement:
 
 expand_tokenized_name:
         jsr     lookup_name             ; Get the statement name
-        bcs     @done                   ; Shouldn't happen, but just in case
         ldy     #0
         lda     (name_ptr),y
         and     #<~EOT                  ; In case EOT is set
@@ -164,8 +168,6 @@ expand_tokenized_name:
         jsr     append_buffer           ; Preserves C
         iny                             ; Preserves C
         bcc     @next_name_byte         ; Loop if EOT was not set
-
-@done:
         rts
 
 ; Adds whitespace to the output if necessary.
@@ -176,6 +178,8 @@ add_whitespace:
         ldx     buffer_pos              ; Current write position
         beq     @done                   ; Just return if it's zero
         lda     buffer-1,x              ; Get buffer[x-1]
+        cmp     #'$'
+        beq     append_buffer_space
         cmp     #')'
         beq     append_buffer_space
         cmp     #'"'
