@@ -147,11 +147,10 @@ fun_sqr:
         jmp     fexp                    ; Raise again
 
 fun_str_s:
-        mva     #0, buffer_pos          ; Write at buffer position 0
         jsr     fp_to_string
-        lda     buffer_pos              ; The string length
+        lda     buffer                  ; The string length
         jsr     string_alloc_for_copy
-        ldax    #buffer                 ; Source
+        ldax    #buffer+1               ; Source
         jmp     copy_y_from
 
 fun_usr:

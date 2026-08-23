@@ -117,17 +117,28 @@ skip_whitespace:
 @done:
         rts
 
-; Outputs the line number from line_ptr into buffer.
-; buffer_pos = something reasonable, like zero.
+; Converts the 16-bit line number from (line_ptr) to FP in FP0.
+; Y = Line::number (modified)
+; AX = line number (modified)
 
-line_number_to_string:
+line_number_to_fp:
         ldy     #Line::number+1         ; Load line number high byte
         lda     (line_ptr),y
         tax                             ; Move into X
         dey                             ; Position of line number low byte
         lda     (line_ptr),y
-        jsr     int_to_fp
-        jmp     fp_to_string            ; Format into buffer
+        jmp     int_to_fp
+
+; Updates buffer_pos with X, and stores the string length (X-1) in buffer[0].
+; X = next buffer write position (modified)
+; buffer[0] = X - 1
+; buffer_pos = X
+
+finalize_buffer_string:
+        stx     buffer_pos              ; Update buffer_pos
+        dex                             ; Length of string
+        stx     buffer                  ; Store length at buffer[0]
+        rts
 
 ; Gets a single byte and returns it in A.
 ; The last instruction loads A, so this function will return with the Z and N flags set accordingly.

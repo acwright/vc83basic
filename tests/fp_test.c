@@ -579,10 +579,10 @@ void call_fp_to_string(unsigned long t, char e, const char* expect_string, int l
     value.e = e;
     fprintf(stderr, "  %s:%d: fp_to_string(t=$%08LX e=%02X)\n", __FILE__, line, t, e);
     load_fp0(&value);
-    buffer_pos = 0;
     fp_to_string();
     buffer[buffer_pos] = '\0';
-    ASSERT_STRING_EQ(buffer, expect_string);
+    ASSERT_STRING_EQ(buffer + 1, expect_string);
+    ASSERT_EQ((unsigned char)buffer[0], strlen(expect_string));
 }
 
 void test_fp_to_string(void) {

@@ -39,10 +39,8 @@ exec_list:
 @print:
         mvaa    next_line_ptr, line_ptr
         jsr     list_line
-        mvaa    #buffer, S0
-        lda     buffer_pos              ; buffer_pos will be the amount of data written to the buffer
         beq     @done                   ; If it was zero bytes then no more lines
-        jsr     print_s0
+        jsr     print_buffer
         jsr     newline
         jsr     advance_next_line_ptr
         bne     @next_line              ; Unconditional: advance_next_line_ptr leaves Y=3 (Z=0)
@@ -55,24 +53,32 @@ exec_list:
 ; Outputs a line with a line number and all statements separated by ':'.
 ; line_ptr = the line to write
 
+.assert Line::next_line_offset = 0, error
+
 list_line:
-        mvy     #0, buffer_pos          ; Initialize write position in buffer (also set Y to next_line_offset)
-        lda     (line_ptr),y            ; Next line offset into A
-        beq     @done                   ; If it's the null statement then we're at the end of the program
-        jsr     line_number_to_string
+        ldy     #Line::next_line_offset ; Load next_line_offset
+        lda     (line_ptr),y
+        beq     @null_line              ; If it's the null statement then we're at the end of the program
+        jsr     line_number_to_fp
+        jsr     fp_to_string
         mva     #.sizeof(Line), line_pos
 
 @next:
         jsr     list_statement
-        ldy     #0
+        ldy     #Line::next_line_offset
         lda     line_pos                ; Current position
         cmp     (line_ptr),y            ; At next line offset?
-        bcs     @done                   ; Yep
+        bcs     @finish                 ; Yep
         lda     #':'                    ; Else write ':' and next statement
         jsr     append_buffer
         bcc     @next
 
-@done:
+@finish:
+        ldx     buffer_pos
+        jmp     finalize_buffer_string
+
+@null_line:
+        sta     buffer                  ; Store 0 length
         rts
 
 ; Outputs a statement.

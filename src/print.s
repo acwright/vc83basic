@@ -36,14 +36,16 @@ exec_print:
 @newline:
         jmp     newline
 
+; Prints the line number of line_ptr to standard output.
+
+print_line_number:
+        jsr     line_number_to_fp       ; Convert line number in (line_ptr) to FP0 and fall through
+
 ; Prints the value in FP0 to standard output.
 
 print_number:
-        mva     #1, buffer_pos          ; Start printing at buffer column 1
-        jsr     fp_to_string            ; Format into buffer
-        ldx     buffer_pos              ; Load length (including the length byte)
-        dex                             ; Length is one less than buffer_pos
-        stx     buffer                  ; Store the length in the first character of buffer; it is now a string
+        jsr     fp_to_string            ; Format into buffer (buffer[0] = length, buffer[1..] = chars)
+print_buffer:
         lday    #buffer                 ; Load the address in AY and fall through to print_string
 
 ; Prints the string pointed to by AY to standard output.

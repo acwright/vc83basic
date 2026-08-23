@@ -114,8 +114,9 @@ void call_list_line(const Line* test_line, const char* expect_buffer, int line) 
     memcpy(&line_buffer, test_line, test_line->next_line_offset);
     line_ptr = &line_buffer;
     list_line();
-    ASSERT_MEMORY_EQ(buffer, expect_buffer, strlen(expect_buffer));
-    ASSERT_EQ(buffer_pos, strlen(expect_buffer));
+    ASSERT_MEMORY_EQ(buffer + 1, expect_buffer, strlen(expect_buffer));
+    ASSERT_EQ((unsigned char)buffer[0], strlen(expect_buffer));
+    ASSERT_EQ(buffer_pos, strlen(expect_buffer) + 1);
 }
 
 void test_list_line(void) {
