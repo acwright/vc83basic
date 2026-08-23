@@ -38,34 +38,7 @@ on_raise:
         pla
         bmi     handle_error
         lday    #ready_message
-        jsr     print_string
-        jsr     newline
-
-get_command:
-        ldax    #line_buffer            ; Reset next_line_ptr to line_buffer
-        jsr     reset_next_line_ptr_2
-        stax    line_ptr                ; Reset line_ptr too, so line number reported correctly on error
-        jsr     readline
-        tay
-        lda     #0
-        sta     buffer,y
-        jsr     parse_line
-        lda     line_buffer+Line::number+1  ; Get high byte of line number
-        bmi     immediate_mode          ; If line number is negative then we're in immediate mode
-        jsr     reset_program           ; Clear program line pointers
-        jsr     insert_or_update_line   ; Update the program
-        jmp     get_command
-
-immediate_mode:
-        lda     line_buffer+Line::next_line_offset  ; See if there is any data in the buffer
-        cmp     #.sizeof(Line) + 2      ; Less than minimum line length with statement?
-        bcc     get_command             ; Yes, just ignore input
-        tax
-        lda     #0                      ; Set next_line_offset of subsequent line to 0 to signal end of execution
-        sta     line_buffer,x
-
-raise_ps_running:
-        raise   PS_RUNNING
+        bne     print_message           ; Unconditional
 
 ; Program is running; set line_ptr and line_pos to next statement and execute it.
 ; If the next statement is the end of the line, then go to the next statement. This is the *only* place where we
@@ -106,7 +79,7 @@ handle_error:
         jsr     print_s0
         ldy     #Line::number+1         ; Print line number if >= 0, else we're in immediate mode
         lda     (line_ptr),y
-        bmi     @no_line_number
+        bmi     nl_get_command
         lday    #error_message_2
         jsr     print_string
         mva     #1, buffer_pos
@@ -115,7 +88,35 @@ handle_error:
         dex
         stx     buffer
         lday    #buffer
+
+print_message:
         jsr     print_string
-@no_line_number:
+
+nl_get_command:
         jsr     newline
+
+get_command:
+        ldax    #line_buffer            ; Reset next_line_ptr to line_buffer
+        jsr     reset_next_line_ptr_2
+        stax    line_ptr                ; Reset line_ptr too, so line number reported correctly on error
+        jsr     readline
+        tay
+        lda     #0
+        sta     buffer,y
+        jsr     parse_line
+        lda     line_buffer+Line::number+1  ; Get high byte of line number
+        bmi     immediate_mode          ; If line number is negative then we're in immediate mode
+        jsr     reset_program           ; Clear program line pointers
+        jsr     insert_or_update_line   ; Update the program
         jmp     get_command
+
+immediate_mode:
+        lda     line_buffer+Line::next_line_offset  ; See if there is any data in the buffer
+        cmp     #.sizeof(Line) + 2      ; Less than minimum line length with statement?
+        bcc     get_command             ; Yes, just ignore input
+        tax
+        lda     #0                      ; Set next_line_offset of subsequent line to 0 to signal end of execution
+        sta     line_buffer,x
+
+raise_ps_running:
+        raise   PS_RUNNING
