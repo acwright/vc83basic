@@ -40,8 +40,7 @@ exec_list:
         mvaa    next_line_ptr, line_ptr
         jsr     list_line
         beq     @done                   ; If it was zero bytes then no more lines
-        lday    #buffer
-        jsr     print_string
+        jsr     print_buffer
         jsr     newline
         jsr     advance_next_line_ptr
         bne     @next_line              ; Unconditional: advance_next_line_ptr leaves Y=3 (Z=0)

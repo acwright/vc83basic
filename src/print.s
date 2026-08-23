@@ -45,6 +45,7 @@ print_line_number:
 
 print_number:
         jsr     fp_to_string            ; Format into buffer (buffer[0] = length, buffer[1..] = chars)
+print_buffer:
         lday    #buffer                 ; Load the address in AY and fall through to print_string
 
 ; Prints the string pointed to by AY to standard output.
