@@ -95,8 +95,7 @@ open:
         ldax    #buffer
         jsr     pushax                  ; Push filename pointer
         lda     open_flags
-        ldx     #0
-        jsr     pushax                  ; Push open flags
+        jsr     pusha0                  ; Push open flags
         lda     #$FF                    ; Mode 0777 permission ($01FF)
         ldx     #$01
         jsr     pushax
@@ -171,8 +170,7 @@ getch:
         cmp     #$FF
         beq     @error
 @do_read:
-        ldx     #0
-        jsr     pushax                  ; Push fd
+        jsr     pusha0                  ; Push fd
         ldax    #get_byte_buf           ; Buffer = &get_byte_buf
         jsr     pushax                  ; Push buffer address
         lda     #1                      ; Length = 1
@@ -235,8 +233,7 @@ putch:
         lda     #1                      ; fd 1 (stdout)
 
 @write_fd:
-        ldx     #0
-        jsr     pushax                  ; Push fd
+        jsr     pusha0                  ; Push fd
         ldax    #put_byte_buf           ; Buffer = &put_byte_buf
         jsr     pushax                  ; Push buffer address
         lda     #1                      ; Length = 1
@@ -362,8 +359,7 @@ save:
         ldax    #buffer
         jsr     pushax                  ; Filename
         lda     #$32                    ; O_WRONLY | O_CREAT | O_TRUNC
-        ldx     #0
-        jsr     pushax
+        jsr     pusha0
         lda     #$FF                    ; 0777
         ldx     #$01
         jsr     pushax
@@ -373,8 +369,7 @@ save:
         bcs     @err
         sta     save_load_fd            ; Save fd
 
-        ldx     #0
-        jsr     pushax                  ; Push fd
+        jsr     pusha0                  ; Push fd
         lda     #<(__BSS_RUN__ + __BSS_SIZE__)
         ldx     #>(__BSS_RUN__ + __BSS_SIZE__)
         jsr     pushax                  ; Push buffer pointer
@@ -412,8 +407,7 @@ load:
         ldax    #buffer
         jsr     pushax                  ; Filename
         lda     #$01                    ; O_RDONLY
-        ldx     #0
-        jsr     pushax
+        jsr     pusha0
         lda     #$FF                    ; 0777
         ldx     #$01
         jsr     pushax
@@ -423,8 +417,7 @@ load:
         bcs     @err
         sta     save_load_fd
 
-        ldx     #0
-        jsr     pushax                  ; Push fd
+        jsr     pusha0                  ; Push fd
         lda     #<(__BSS_RUN__ + __BSS_SIZE__)
         ldx     #>(__BSS_RUN__ + __BSS_SIZE__)
         jsr     pushax                  ; Push buffer pointer
