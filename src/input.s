@@ -32,7 +32,7 @@ exec_input:
         sta     buffer,y                ; NUL-terminate based on length in A
         mva     #0, buffer_pos          ; Reset the read position
 @next_var:
-        jsr     read_variable
+        jsr     get_variable
         bcs     @done
         lda     decode_name_type        ; Is it a number or a string?
         bne     @string                 ; It's a string
@@ -44,7 +44,7 @@ exec_input:
 
 @assign:
         jsr     assign_variable         ; Store the value
-        jsr     decode_byte             ; Read the next byte, which is either ',' or 0
+        jsr     get_byte                ; Read the next byte, which is either ',' or 0
         beq     @done                   ; It was 0, nothing more to read
         ldy     buffer_pos              ; Prepare to skip past the argument separator, if present
         jsr     skip_whitespace         ; We read something from this line so need a ',' to continue

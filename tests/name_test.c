@@ -131,7 +131,7 @@ void test_find_name_operators(void) {
     call_find_name(">", name_table_3, 2, name_table_3 + 7, __LINE__);
 }
 
-void test_get_name(void) {
+void test_lookup_name(void) {
 
     const char name_table[] = {
         6, 'R', 'E', 'A', 'D', 'Y',
@@ -143,23 +143,23 @@ void test_get_name(void) {
 
     PRINT_TEST_NAME();
 
-    get_name(name_table, 0);
+    lookup_name(name_table, 0);
     ASSERT_EQ(err, 0);
     ASSERT_EQ(name_ptr, name_table + 1);
 
-    get_name(name_table, 1);
+    lookup_name(name_table, 1);
     ASSERT_EQ(err, 0);
     ASSERT_EQ(name_ptr, name_table + 6 + 1);
 
-    get_name(name_table, 2);
+    lookup_name(name_table, 2);
     ASSERT_EQ(err, 0);
     ASSERT_EQ(name_ptr, name_table + 6 + 8 + 1);
 
-    get_name(name_table, 3);
+    lookup_name(name_table, 3);
     ASSERT_EQ(err, 0);
     ASSERT_EQ(name_ptr, name_table + 6 + 8 + 13 + 1);
 
-    get_name(name_table, 10);
+    lookup_name(name_table, 10);
     ASSERT_NE(err, 0);
     ASSERT_EQ(name_ptr, name_table + 6 + 8 + 13 + 7);
 }
@@ -312,7 +312,7 @@ void test_dimension_array() {
 
     // Look up X as an array
     set_line(0, line_data_1, sizeof line_data_1);
-    decode_name();
+    get_name();
     ASSERT_EQ(decode_name_type, TYPE_NUMBER);
     ASSERT_EQ(decode_name_arity, -1);
     index = find_name(array_name_table_ptr);
@@ -347,7 +347,7 @@ void test_dimension_array() {
 
     // Look up Y as an array
     set_line(0, line_data_2, sizeof line_data_2);
-    decode_name();
+    get_name();
     ASSERT_EQ(decode_name_type, TYPE_NUMBER);
     ASSERT_EQ(decode_name_arity, -1);
     index = find_name(array_name_table_ptr);
@@ -382,7 +382,7 @@ void test_dimension_array() {
 
     // Look up A$ as an array
     set_line(0, line_data_3, sizeof line_data_3);
-    decode_name();
+    get_name();
     ASSERT_EQ(decode_name_type, TYPE_STRING);
     ASSERT_EQ(decode_name_arity, -1);
     index = find_name(array_name_table_ptr);
@@ -415,7 +415,7 @@ void call_find_array_element(const char* line_data, size_t line_data_length, cha
     fprintf(stderr, "  %s:%d: find_array_element()\n", __FILE__, line);
 
     set_line(0, line_data, line_data_length);
-    decode_name();
+    get_name();
     ASSERT_EQ(decode_name_type, TYPE_NUMBER);
     ASSERT_EQ(decode_name_arity, -1);
     index = find_name(array_name_table_ptr);
@@ -450,7 +450,7 @@ void test_find_array_element() {
 
     // X
     set_line(0, line_data_1, sizeof line_data_1);
-    decode_name();
+    get_name();
     index = find_name(array_name_table_ptr);
     ASSERT_NE(err, 0);
     ASSERT_EQ(index, 0);
@@ -467,7 +467,7 @@ void test_find_array_element() {
 
     // Y
     set_line(0, line_data_2, sizeof line_data_2);
-    decode_name();
+    get_name();
     index = find_name(array_name_table_ptr);
     ASSERT_NE(err, 0);
     ASSERT_EQ(index, 1);
@@ -483,7 +483,7 @@ void test_find_array_element() {
 
     // Make sure bounds checks work.
     set_line(0, line_data_y_26_1, sizeof line_data_y_26_1);
-    decode_name();
+    get_name();
     find_name(array_name_table_ptr);
     decode_name_arity = -evaluate_argument_list(0);
     find_array_element();
@@ -517,12 +517,57 @@ void test_clear_memory(void) {
     ASSERT_EQ(clear_test_data[256], (char)257);
 }
 
+void test_get_name(void) {
+    const char line_data[] = {
+        'X' | EOT,
+        'T', 'H', 'I', 'N', 'G', '3' | EOT,
+        'A', '$' | EOT,
+        'X' | EOT, TOK_LPAREN,
+        'A', '$' | EOT, TOK_LPAREN,
+    };
+
+    PRINT_TEST_NAME();
+
+    set_line(0, line_data, sizeof line_data);
+
+    get_name();
+    ASSERT_PTR_EQ(decode_name_ptr, line_buffer.data);
+    ASSERT_EQ(decode_name_length, 1);
+    ASSERT_EQ(decode_name_type, TYPE_NUMBER);
+    ASSERT_EQ(decode_name_arity, 0);
+
+    get_name();
+    ASSERT_PTR_EQ(decode_name_ptr, line_buffer.data + 1);
+    ASSERT_EQ(decode_name_length, 6);
+    ASSERT_EQ(decode_name_type, TYPE_NUMBER);
+    ASSERT_EQ(decode_name_arity, 0);
+
+    get_name();
+    ASSERT_PTR_EQ(decode_name_ptr, line_buffer.data + 7);
+    ASSERT_EQ(decode_name_length, 2);
+    ASSERT_EQ(decode_name_type, TYPE_STRING);
+    ASSERT_EQ(decode_name_arity, 0);
+
+    get_name();
+    ASSERT_PTR_EQ(decode_name_ptr, line_buffer.data + 9);
+    ASSERT_EQ(decode_name_length, 1);
+    ASSERT_EQ(decode_name_type, TYPE_NUMBER);
+    ASSERT_EQ(decode_name_arity, -1);
+
+    get_name();
+    ASSERT_PTR_EQ(decode_name_ptr, line_buffer.data + 11);
+    ASSERT_EQ(decode_name_length, 2);
+    ASSERT_EQ(decode_name_type, TYPE_STRING);
+    ASSERT_EQ(decode_name_arity, -1);
+}
+
 int main(void) {
     initialize_target();
     test_initialize_name_ptr();
     test_advance_name_ptr();
     test_find_name();
     test_find_name_operators();
+    test_lookup_name();
     test_get_name();
     test_add_variable();
     test_clear_memory();

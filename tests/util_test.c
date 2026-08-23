@@ -106,10 +106,31 @@ void test_skip_whitespace(void) {
     ASSERT_EQ(Y, 3);
 }
 
+void test_get_byte(void) {
+    char byte_value;
+    const char line_data[] = {
+        0x00, 0x01, 0x03
+    };
+
+    PRINT_TEST_NAME();
+
+    set_line(0, line_data, sizeof line_data);
+
+    byte_value = get_byte();
+    ASSERT_EQ(byte_value, 0x00);
+
+    byte_value = get_byte();
+    ASSERT_EQ(byte_value, 0x01);
+
+    byte_value = get_byte();
+    ASSERT_EQ(byte_value, 0x03);
+}
+
 int main(void) {
     initialize_target();
     test_copy();
     test_reverse_copy();
     test_skip_whitespace();
+    test_get_byte();
     return 0;
 }

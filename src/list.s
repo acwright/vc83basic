@@ -79,7 +79,7 @@ list_statement:
         inc     line_pos                ; Skip past the next statement offset
 
 @next_token:
-        jsr     decode_byte             ; Get next token byte
+        jsr     get_byte                ; Get next token byte
         bne     @not_eol                ; 0 = TOK_EOL
 @done:
         rts
@@ -117,7 +117,7 @@ list_statement:
         jsr     add_whitespace
 
 @rem_data_loop:
-        jsr     decode_byte
+        jsr     get_byte
         beq     @done
         jsr     append_buffer
         bne     @rem_data_loop          ; Unconditional
@@ -131,7 +131,7 @@ list_statement:
 @list_num_or_name:
         jsr     add_whitespace
 @num_name_loop:
-        jsr     decode_byte
+        jsr     get_byte
 @append:
         pha
         and     #<~EOT
@@ -146,7 +146,7 @@ list_statement:
 ; Y = index number
 
 expand_tokenized_name:
-        jsr     get_name                ; Get the statement name
+        jsr     lookup_name             ; Get the statement name
         bcs     @done                   ; Shouldn't happen, but just in case
         ldy     #0
         lda     (name_ptr),y

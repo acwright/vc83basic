@@ -82,7 +82,7 @@ run:
         beq     run_next_line           ; If yes then restart from next line
         mvax    next_line_ptr, line_ptr ; Move to next statement
         mva     next_line_pos, line_pos
-        jsr     decode_byte             ; The next byte is the next statement offset
+        jsr     get_byte                ; The next byte is the next statement offset
         sta     next_line_pos           ; By default the "next line" is the next statement on this line
         jsr     dispatch_statement
         jmp     run                     ; Keep on truckin'
@@ -98,7 +98,7 @@ handle_error:
 @not_error:
         tay
         ldax    #error_message_table
-        jsr     get_name
+        jsr     lookup_name
         mvaa    name_ptr, S0
         sec
         lda     next_name_ptr

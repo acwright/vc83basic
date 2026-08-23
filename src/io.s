@@ -41,7 +41,7 @@ exec_close:
 ; GET [#channel] {numeric_variable}
 
 exec_get:
-        jsr     read_variable
+        jsr     get_variable
         lda     decode_name_type
         bne     @type_mismatch
         jsr     io_get

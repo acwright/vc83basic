@@ -128,3 +128,21 @@ line_number_to_string:
         lda     (line_ptr),y
         jsr     int_to_fp
         jmp     fp_to_string            ; Format into buffer
+
+; Gets a single byte and returns it in A.
+; The last instruction loads A, so this function will return with the Z and N flags set accordingly.
+; X SAFE, BC SAFE, DE SAFE
+
+get_byte:
+        ldy     line_pos                ; Read line_pos into Y and increment
+        inc     line_pos
+        lda     (line_ptr),y            ; Load and return the byte
+        rts
+
+; EORs the next byte from the stream with a value in A, which sets the Z flag if the values were the same.
+; X SAFE, BC SAFE, DE SAFE
+
+peek_byte:
+        ldy     line_pos                ; Read line_pos into Y and increment
+        lda     (line_ptr),y            ; Load and return the byte
+        rts

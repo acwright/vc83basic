@@ -110,18 +110,6 @@ raise_ps_ready:
 raise_ps_running:
         raise   PS_RUNNING
 
-; Function wrappers
-
-; decode.s
-
-_decode_name:
-.export _decode_name
-        jmp     decode_name
-
-_decode_byte:
-.export _decode_byte
-        jmp     decode_byte
-
 ; expression.s
 
 _evaluate_number:
@@ -407,13 +395,17 @@ _advance_name_ptr:
         jsr     advance_name_ptr
         jmp     set_err
 
-_get_name:
-.export _get_name
+_lookup_name:
+.export _lookup_name
         sta     B                       ; Index arrives in A; we need it in Y
         jsr     popax                   ; Name table pointer
         ldy     B                       ; Load index into Y
-        jsr     get_name
+        jsr     lookup_name
         jmp     set_err
+
+_get_name:
+.export _get_name
+        jmp     get_name
 
 _add_variable:
 .export _add_variable
@@ -542,3 +534,11 @@ _skip_whitespace:
         jsr     skip_whitespace
         sty     _Y
         jmp     set_err
+
+_get_byte:
+.export _get_byte
+        jmp     get_byte
+
+_peek_byte:
+.export _peek_byte
+        jmp     peek_byte

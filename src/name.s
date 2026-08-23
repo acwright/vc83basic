@@ -60,7 +60,7 @@ match_name_y:
 ; On success, return carry clear, and name_ptr points to the name table entry.
 ; If the function reaches the end of the name table, return carry set, and name_ptr will point to the last 0.
 
-get_name:
+lookup_name:
         stax    next_name_ptr           ; This will be copied into name_ptr
         sty     name_index              ; Track the index in name_index
 @next:
@@ -167,12 +167,12 @@ set_memory:
         bne     set_memory
         rts
 
-; Reads a variable name at the current line_pos (skipping TOK_NAME) and finds or adds the variable.
+; Gets a variable at the current line_pos (skipping TOK_NAME) and finds or adds the variable.
 
-read_variable:
+get_variable:
         inc     line_pos
-read_variable_2:
-        jsr     decode_name
+get_variable_2:
+        jsr     get_name
 
 ; Finds a variable, or adds it.
 ; decode_name_ptr = pointer to the variable name
@@ -369,6 +369,50 @@ dimension_array:
         iny                             ; Increment so we also set 0 at the end of the name table
         jsr     set_memory
 @no_remaining_bytes:
+        rts
+
+; Gets a variable name and sets up decode_name_ptr, decode_name_length, and decode_name_type.
+; BC SAFE, DE SAFE
+
+.assert TYPE_NUMBER = $00, error
+.assert TYPE_STRING = $01, error
+
+get_name:
+        ldy     #0                      ; Initialize Y to 0, start searching for end of name at offset 0
+        sty     decode_name_type        ; Variable is TYPE_NUMBER (0) unless we learn otherwise
+        sty     decode_name_arity       ; Default to arity 0 meaning not an array
+        lda     line_pos                ; Add line_pos to line_ptr to get decode_name_ptr
+        clc
+        adc     line_ptr
+        sta     decode_name_ptr
+        tya                             ; A = 0
+        adc     line_ptr+1              ; Will leave carry clear since decode_name_ptr calculation should not roll over
+        sta     decode_name_ptr+1
+@next:
+        lda     (decode_name_ptr),y
+        bmi     @last
+        iny
+        bne     @next
+
+@last:
+        iny                             ; Account for last character
+        sty     decode_name_length
+        tya                             ; Add to line_pos; carry should be clear
+        adc     line_pos
+        sta     line_pos                ; Update line_pos
+        dey                             ; Back up one so we can check if the last character is '$'
+        lda     (decode_name_ptr),y
+        cmp     #'$' | EOT              ; If it's there, it will have the high bit set
+        bne     @not_string
+        inc     decode_name_type        ; Make it TYPE_STRING (1)
+@not_string:
+        iny                             ; Restore Y to where it previously was, past the end of the name
+        lda     (decode_name_ptr),y     ; See if the next character is '('
+        cmp     #TOK_LPAREN
+        bne     @not_array
+        dec     decode_name_arity       ; Remember it was an array (will figure out real arity later)
+        inc     line_pos                ; Skip past the '('
+@not_array:
         rts
 
 ; Copies the decoded name into the name table, ending at a character with the EOT bit set.

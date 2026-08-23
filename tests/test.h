@@ -93,10 +93,6 @@ extern const char pvm_name[];
 
 // Prototypes for C wrapper functions
 
-// decode.s
-void decode_name(void);
-char decode_byte(void);
-
 // expression.s
 void evaluate_number(void);
 void evaluate_string(void);
@@ -149,9 +145,10 @@ void list_statement(void);
 
 // name.s
 char find_name(/* AX */ const char* name_table_ptr);
-void get_name(/* AX */ const char* name_table_ptr, /* Y */ char index);
+void lookup_name(/* AX */ const char* name_table_ptr, /* Y */ char index);
 void initialize_name_ptr(void* name_table_ptr);
 void advance_name_ptr(void);
+void get_name(void);
 void add_variable(void);
 void dimension_array(void);
 void find_array_element(void);
@@ -180,6 +177,8 @@ const String* string_alloc(/* A */ char length);
 void compact(void);
 
 // util.s
+char get_byte(void);
+char peek_byte(void);
 void copy(/* AX */ size_t size);
 void reverse_copy(/* AX */ size_t size);
 void skip_whitespace(char pos);
@@ -273,7 +272,7 @@ void parse_and_decode_name(const char* name) {
     line_buffer.data[length - 1] |= EOT; 
     line_ptr = &line_buffer;
     line_pos = offsetof(Line, data);
-    decode_name();
+    get_name();
 }
 
 #endif

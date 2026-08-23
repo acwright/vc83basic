@@ -31,7 +31,7 @@ exec_goto:
 exec_on_goto_gosub:
         jsr     evaluate_expression     ; Evaluate the "ON" expression
         bne     @type_mismatch
-        jsr     decode_byte             ; Next byte tells us if it's GOTO or GOSUB
+        jsr     get_byte                ; Next byte tells us if it's GOTO or GOSUB
         cmp     #TOK_GOTO               ; If Z flag then we're GOTO, else GOSUB
         php                             ; Remember what we learned
         jsr     truncate_fp_to_int      ; FP0 -> integer in AX
@@ -88,7 +88,7 @@ exec_return:
 exec_for:
         jsr     push_next_line_ptr      ; Save return address
         inc     line_pos                ; Skip TOK_NAME
-        jsr     decode_name             ; Get the name (now in decode_name_ptr)
+        jsr     get_name                ; Get the name (now in decode_name_ptr)
         lda     decode_name_type        ; No string variables or arrays
         ora     decode_name_arity
         bne     raise_invalid_variable
@@ -137,7 +137,7 @@ exec_next:
 ; Decode the variable name and see if it matches the one at the top of the stack.
 
         inc     line_pos                ; Skip TOK_NAME
-        jsr     decode_name             ; Sets decode_name_ptr
+        jsr     get_name                ; Sets decode_name_ptr
         ldx     stack_pos               ; Load stack position
         cpx     #PRIMARY_STACK_SIZE     ; Check if stack empty
         beq     raise_next_without_for  ; If so then fail

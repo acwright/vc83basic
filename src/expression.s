@@ -24,7 +24,7 @@ evaluate_expression:
 after_operator:
         jsr     push_operator
 next_expression:
-        jsr     decode_byte                     ; Get the next thing
+        jsr     get_byte                        ; Get the next thing
         cmp     #TOK_ADD                        ; Check for unary op cases
         beq     next_expression                 ; Unary + does nothing
         ldx     #PR_UNARY_OP | TOK_UNARY_MINUS
@@ -50,7 +50,7 @@ next_expression:
         bne     after_operator          ; Unconditional
 
 @operator:
-        jsr     decode_byte             ; Return the operator in A
+        jsr     get_byte                ; Return the operator in A
         and     #$0F                    ; Get the operator number
         pha                             ; Keep on the stack while we process higher-precedence operators
         lsr     A                       ; Divide by 2        
@@ -102,7 +102,7 @@ raise_format_error:
         raise   ERR_FORMAT_ERROR
 
 evaluate_string:
-        jsr     decode_byte             ; A = length, line_pos now points to first character
+        jsr     get_byte                ; A = length, line_pos now points to first character
         jsr     string_alloc_for_copy   ; Allocates on heap, sets dst_ptr = string_ptr + 1
         mvax    string_ptr, S0          ; S0 = string header pointer
         inc     expr_type               ; TYPE_STRING
@@ -121,7 +121,7 @@ evaluate_string:
         jmp     copy_a                  ; Copies A bytes from src_ptr to dst_ptr and returns
 
 evaluate_variable:
-        jsr     read_variable_2
+        jsr     get_variable_2
         lda     decode_name_type
         beq     @number
         inc     expr_type               ; TYPE_STRING

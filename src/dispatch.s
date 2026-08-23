@@ -36,7 +36,7 @@ dispatch_statement:
 ; LET statement:
 
 exec_let:
-        jsr     read_variable
+        jsr     get_variable
         inc     line_pos                ; Skip terminator
         ldphaa  name_ptr                ; Remember name_ptr 
         jsr     evaluate_expression     ; Result in FP0 or S0

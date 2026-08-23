@@ -282,17 +282,17 @@ void test_evaluate_number(void) {
     set_line(0, line_data, sizeof line_data);
 
     evaluate_number();
-    decode_byte();
+    get_byte();
     store_fp0(&result);
     ASSERT_FLOAT_EQ(result, result_1);
 
     evaluate_number();
-    decode_byte();
+    get_byte();
     store_fp0(&result);
     ASSERT_FLOAT_EQ(result, result_2);
 
     evaluate_number();
-    decode_byte();
+    get_byte();
     store_fp0(&result);
     ASSERT_FLOAT_EQ(result, result_3);
 

@@ -202,7 +202,7 @@ void test_compact_with_array(void) {
 
     // Look up A$ as an array
     set_line(0, line_data, sizeof line_data);
-    decode_name();
+    get_name();
     ASSERT_EQ(decode_name_type, TYPE_STRING);
     ASSERT_EQ(decode_name_arity, -1);
     index = find_name(array_name_table_ptr);
@@ -223,7 +223,7 @@ void test_compact_with_array(void) {
 
     // Look up the name A$ again
     set_line(0, line_data, sizeof line_data);
-    decode_name();
+    get_name();
     index = find_name(array_name_table_ptr);
     ASSERT_EQ(err, 0);
     ASSERT_EQ(index, 0);
@@ -259,7 +259,7 @@ void test_compact_with_array(void) {
 
     // Find the A$ array again
     set_line(0, line_data, sizeof line_data);
-    decode_name();
+    get_name();
     index = find_name(array_name_table_ptr);
     ASSERT_EQ(err, 0);
     ASSERT_EQ(index, 0);
