@@ -121,8 +121,7 @@ evaluate_string:
         jmp     copy_a                  ; Copies A bytes from src_ptr to dst_ptr and returns
 
 evaluate_variable:
-        jsr     decode_name
-        jsr     find_or_add_variable
+        jsr     read_variable_2
         lda     decode_name_type
         beq     @number
         inc     expr_type               ; TYPE_STRING

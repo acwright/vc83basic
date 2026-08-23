@@ -171,6 +171,7 @@ set_memory:
 
 read_variable:
         inc     line_pos
+read_variable_2:
         jsr     decode_name
 
 ; Finds a variable, or adds it.
