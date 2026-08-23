@@ -264,8 +264,8 @@ void set_line(int line, const char* data, size_t length) {
     line_pos = (char)offsetof(Line, data);
 }
 
-void parse_and_decode_name(const char* name) {
-    // Parse given name, then decodes it from line_buffer, in order to set up decode_name_ptr, decode_name_length,
+void parse_and_get_name(const char* name) {
+    // Parse given name, then gets it from line_buffer, in order to set up var_name_ptr, var_name_length,
     // and high bit on final character.
     size_t length = strlen(name);
     memcpy(line_buffer.data, name, length);

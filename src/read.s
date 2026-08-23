@@ -40,7 +40,7 @@ exec_read:
 ; Now we're left with case 1 or case 2: somewhere on a DATA line
 
         jsr     get_variable
-        lda     decode_name_type        ; Is it a number or a string?
+        lda     var_name_type           ; Is it a number or a string?
         bne     @string                 ; It's a string
         ldax    data_line_ptr           ; Point to data line
         ldy     data_line_pos

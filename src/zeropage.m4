@@ -96,22 +96,22 @@ byte(line_pos)
 comment The next value of line_pos (analogous to next_line_ptr)
 byte(next_line_pos)
 
-comment DECODE_NAME_STATE is the set of zero page fields that describe a name decoded from a program line
-block(DECODE_NAME_STATE, 5)
+comment VAR_NAME_STATE is the set of zero page fields that describe a name in a program line
+block(VAR_NAME_STATE, 5)
 
-comment Pointer to name decoded from line
-word(decode_name_ptr, const char*)
+comment Pointer to a name in the program line
+word(var_name_ptr, const char*)
 
-comment Length of the name referred to by decode_name_ptr
-byte(decode_name_length)
+comment Length of the name referred to by var_name_ptr
+byte(var_name_length)
 
-comment The type of the name referred to by decode_name_ptr
-byte(decode_name_type)
+comment The type of the name referred to by var_name_ptr
+byte(var_name_type)
 
-comment The number of array indexes after the decoded name
-byte(decode_name_arity, signed char)
+comment The number of indexes for an array varible
+byte(arity, signed char)
 
-endblock(DECODE_NAME_STATE)
+endblock(VAR_NAME_STATE)
 
 comment Whether the program is not running, running, stopped, or awaiting reset
 byte(program_state)

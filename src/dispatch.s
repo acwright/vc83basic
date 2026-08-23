@@ -41,7 +41,7 @@ exec_let:
         ldphaa  name_ptr                ; Remember name_ptr 
         jsr     evaluate_expression     ; Result in FP0 or S0
         plstaa  name_ptr                ; Restore name so we can assign it
-        lda     decode_name_type        ; Check types match
+        lda     var_name_type           ; Check types match
         cmp     expr_type
         beq     assign_variable
         jmp     raise_type_mismatch
@@ -50,7 +50,7 @@ exec_let:
 ; name_ptr = pointer to the variable's data in the variable name table
 
 assign_variable:
-        lda     decode_name_type
+        lda     var_name_type
         bne     @string
         lday    name_ptr
         jmp     store_fp0

@@ -286,20 +286,20 @@ inlined code, plus `RTS`). It saves 3 bytes per additional call site. So:
 When checking multiple conditions that should all be zero (or all non-zero), combine them with
 `ORA` or `AND` instead of separate branch-on-each:
 
-**Project example** (`60aa5b79`): FOR loop validation checked both `decode_name_type` and
-`decode_name_arity` for zero. Two separate loads and branches (4 bytes: `LDA` + `BNE` + `LDA` +
+**Project example** (`60aa5b79`): FOR loop validation checked both `var_name_type` and
+`arity` for zero. Two separate loads and branches (4 bytes: `LDA` + `BNE` + `LDA` +
 `BMI`) became one combined check (3 bytes: `LDA` + `ORA` + `BNE`):
 
 ```assembly
 ; BEFORE (6 bytes)
-        lda     decode_name_type
+        lda     var_name_type
         bne     raise_invalid_variable
-        lda     decode_name_arity
+        lda     arity
         bmi     raise_invalid_variable
 
 ; AFTER (5 bytes)
-        lda     decode_name_type
-        ora     decode_name_arity
+        lda     var_name_type
+        ora     arity
         bne     raise_invalid_variable
 ```
 

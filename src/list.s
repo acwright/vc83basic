@@ -4,7 +4,7 @@
 
 ; Functions that decode the tokenized program for display on the console.
 ; Most functions decode from the line pointed to by line_ptr, using line_pos as the read position,
-; and decode into buffer, using buffer_pos as the write position.
+; and render the line in buffer, using buffer_pos as the write position.
 
 ; LIST statement:
 ; Scans through the program and prints each line.

@@ -88,9 +88,9 @@ exec_return:
 exec_for:
         jsr     push_next_line_ptr      ; Save return address
         inc     line_pos                ; Skip TOK_NAME
-        jsr     get_name                ; Get the name (now in decode_name_ptr)
-        lda     decode_name_type        ; No string variables or arrays
-        ora     decode_name_arity
+        jsr     get_name                ; Get the name (now in var_name_ptr)
+        lda     var_name_type           ; No string variables or arrays
+        ora     arity
         bne     raise_invalid_variable
         inc     line_pos                ; Skip terminator following name
         jsr     evaluate_expression     ; Start value
@@ -98,9 +98,9 @@ exec_for:
         jsr     find_or_add_variable    ; name_ptr now points to variable data
         jsr     assign_variable         ; Assign start value to variable
         ldx     stack_pos               ; Store pointer to name in variable name table
-        lda     name_ptr                ; Calculate start of name: name_ptr - decode_name_length
+        lda     name_ptr                ; Calculate start of name: name_ptr - var_name_length
         sec
-        sbc     decode_name_length
+        sbc     var_name_length
         sta     stack+Control::variable_name_ptr,x
         lda     name_ptr+1
         sbc     #0
@@ -134,10 +134,10 @@ raise_invalid_variable:
 
 exec_next:
 
-; Decode the variable name and see if it matches the one at the top of the stack.
+; Get the variable name and see if it matches the one at the top of the stack.
 
         inc     line_pos                ; Skip TOK_NAME
-        jsr     get_name                ; Sets decode_name_ptr
+        jsr     get_name                ; Sets var_name_ptr
         ldx     stack_pos               ; Load stack position
         cpx     #PRIMARY_STACK_SIZE     ; Check if stack empty
         beq     raise_next_without_for  ; If so then fail

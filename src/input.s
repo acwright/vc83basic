@@ -34,7 +34,7 @@ exec_input:
 @next_var:
         jsr     get_variable
         bcs     @done
-        lda     decode_name_type        ; Is it a number or a string?
+        lda     var_name_type           ; Is it a number or a string?
         bne     @string                 ; It's a string
         ldax    #buffer                 ; Point to buffer
         ldy     buffer_pos              ; Starting at buffer_pos

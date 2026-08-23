@@ -58,7 +58,7 @@ void call_find_name(const char* name, const char* name_table_ptr, char expect_in
     const char* expect_name_ptr, int line) {        
     char index;
     fprintf(stderr, "  %s:%d: find_name(\"%s\")\n", __FILE__, line, name);
-    parse_and_decode_name(name);
+    parse_and_get_name(name);
     HEXDUMP(name_table_ptr, 32);
     index = find_name(name_table_ptr);
     ASSERT_EQ(err, 0);
@@ -70,7 +70,7 @@ void call_find_name_fail(const char* name, const char* name_table_ptr, char expe
     const char* expect_name_ptr, int line) {
     char index;
     fprintf(stderr, "  %s:%d: find_name(\"%s\")\n", __FILE__, line, name);
-    parse_and_decode_name(name);
+    parse_and_get_name(name);
     HEXDUMP(name_table_ptr, 32);
     index = find_name(name_table_ptr);
     ASSERT_NE(err, 0);
@@ -175,7 +175,7 @@ void test_add_variable(void) {
     ASSERT_PTR_EQ(array_name_table_ptr, variable_name_table_ptr + 1);
 
     // add_variable is used after find_name, which sets up name_ptr.
-    // The call_find_name_fail function sets decode_name_ptr.
+    // The call_find_name_fail function sets var_name_ptr.
     call_find_name_fail("X", variable_name_table_ptr, 0, variable_name_table_ptr, __LINE__);
     add_variable();
     HEXDUMP(variable_name_table_ptr, ((char*)free_ptr - variable_name_table_ptr));
@@ -313,15 +313,15 @@ void test_dimension_array() {
     // Look up X as an array
     set_line(0, line_data_1, sizeof line_data_1);
     get_name();
-    ASSERT_EQ(decode_name_type, TYPE_NUMBER);
-    ASSERT_EQ(decode_name_arity, -1);
+    ASSERT_EQ(var_name_type, TYPE_NUMBER);
+    ASSERT_EQ(arity, -1);
     index = find_name(array_name_table_ptr);
     ASSERT_NE(err, 0);
     ASSERT_EQ(index, 0);
 
     // Parse dimension values (returns input minus number of args read; negate to get arity)
-    decode_name_arity = -evaluate_argument_list(0);
-    ASSERT_EQ(decode_name_arity, 1);
+    arity = -evaluate_argument_list(0);
+    ASSERT_EQ(arity, 1);
 
     // Make sure argument is on the stack
     ASSERT_EQ(stack_pos, PRIMARY_STACK_SIZE - 6);
@@ -348,15 +348,15 @@ void test_dimension_array() {
     // Look up Y as an array
     set_line(0, line_data_2, sizeof line_data_2);
     get_name();
-    ASSERT_EQ(decode_name_type, TYPE_NUMBER);
-    ASSERT_EQ(decode_name_arity, -1);
+    ASSERT_EQ(var_name_type, TYPE_NUMBER);
+    ASSERT_EQ(arity, -1);
     index = find_name(array_name_table_ptr);
     ASSERT_NE(err, 0);
     ASSERT_EQ(index, 1);
 
     // Parse dimension values
-    decode_name_arity = -evaluate_argument_list(0);
-    ASSERT_EQ(decode_name_arity, 2);
+    arity = -evaluate_argument_list(0);
+    ASSERT_EQ(arity, 2);
 
     // Make sure argument is on the stack
     ASSERT_EQ(stack_pos, PRIMARY_STACK_SIZE - 12);
@@ -383,15 +383,15 @@ void test_dimension_array() {
     // Look up A$ as an array
     set_line(0, line_data_3, sizeof line_data_3);
     get_name();
-    ASSERT_EQ(decode_name_type, TYPE_STRING);
-    ASSERT_EQ(decode_name_arity, -1);
+    ASSERT_EQ(var_name_type, TYPE_STRING);
+    ASSERT_EQ(arity, -1);
     index = find_name(array_name_table_ptr);
     ASSERT_NE(err, 0);
     ASSERT_EQ(index, 2);
 
     // Parse dimension values
-    decode_name_arity = -evaluate_argument_list(0);
-    ASSERT_EQ(decode_name_arity, 1);
+    arity = -evaluate_argument_list(0);
+    ASSERT_EQ(arity, 1);
 
     // Make sure argument is on the stack
     ASSERT_EQ(stack_pos, PRIMARY_STACK_SIZE - 6);
@@ -416,13 +416,13 @@ void call_find_array_element(const char* line_data, size_t line_data_length, cha
 
     set_line(0, line_data, line_data_length);
     get_name();
-    ASSERT_EQ(decode_name_type, TYPE_NUMBER);
-    ASSERT_EQ(decode_name_arity, -1);
+    ASSERT_EQ(var_name_type, TYPE_NUMBER);
+    ASSERT_EQ(arity, -1);
     index = find_name(array_name_table_ptr);
     ASSERT_EQ(err, 0);
     ASSERT_EQ(index, expect_index);
 
-    decode_name_arity = -evaluate_argument_list(0);
+    arity = -evaluate_argument_list(0);
     find_array_element();
     ASSERT_EQ(err, 0);
     ASSERT_PTR_EQ(name_ptr, expect_name_ptr);
@@ -454,7 +454,7 @@ void test_find_array_element() {
     index = find_name(array_name_table_ptr);
     ASSERT_NE(err, 0);
     ASSERT_EQ(index, 0);
-    decode_name_arity = -evaluate_argument_list(0);
+    arity = -evaluate_argument_list(0);
     dimension_array();
     ASSERT_EQ(err, 0);
 
@@ -471,7 +471,7 @@ void test_find_array_element() {
     index = find_name(array_name_table_ptr);
     ASSERT_NE(err, 0);
     ASSERT_EQ(index, 1);
-    decode_name_arity = -evaluate_argument_list(0);
+    arity = -evaluate_argument_list(0);
     dimension_array();
     ASSERT_EQ(err, 0);
 
@@ -485,7 +485,7 @@ void test_find_array_element() {
     set_line(0, line_data_y_26_1, sizeof line_data_y_26_1);
     get_name();
     find_name(array_name_table_ptr);
-    decode_name_arity = -evaluate_argument_list(0);
+    arity = -evaluate_argument_list(0);
     find_array_element();
     ASSERT_NE(err, 0);
 }
@@ -531,34 +531,34 @@ void test_get_name(void) {
     set_line(0, line_data, sizeof line_data);
 
     get_name();
-    ASSERT_PTR_EQ(decode_name_ptr, line_buffer.data);
-    ASSERT_EQ(decode_name_length, 1);
-    ASSERT_EQ(decode_name_type, TYPE_NUMBER);
-    ASSERT_EQ(decode_name_arity, 0);
+    ASSERT_PTR_EQ(var_name_ptr, line_buffer.data);
+    ASSERT_EQ(var_name_length, 1);
+    ASSERT_EQ(var_name_type, TYPE_NUMBER);
+    ASSERT_EQ(arity, 0);
 
     get_name();
-    ASSERT_PTR_EQ(decode_name_ptr, line_buffer.data + 1);
-    ASSERT_EQ(decode_name_length, 6);
-    ASSERT_EQ(decode_name_type, TYPE_NUMBER);
-    ASSERT_EQ(decode_name_arity, 0);
+    ASSERT_PTR_EQ(var_name_ptr, line_buffer.data + 1);
+    ASSERT_EQ(var_name_length, 6);
+    ASSERT_EQ(var_name_type, TYPE_NUMBER);
+    ASSERT_EQ(arity, 0);
 
     get_name();
-    ASSERT_PTR_EQ(decode_name_ptr, line_buffer.data + 7);
-    ASSERT_EQ(decode_name_length, 2);
-    ASSERT_EQ(decode_name_type, TYPE_STRING);
-    ASSERT_EQ(decode_name_arity, 0);
+    ASSERT_PTR_EQ(var_name_ptr, line_buffer.data + 7);
+    ASSERT_EQ(var_name_length, 2);
+    ASSERT_EQ(var_name_type, TYPE_STRING);
+    ASSERT_EQ(arity, 0);
 
     get_name();
-    ASSERT_PTR_EQ(decode_name_ptr, line_buffer.data + 9);
-    ASSERT_EQ(decode_name_length, 1);
-    ASSERT_EQ(decode_name_type, TYPE_NUMBER);
-    ASSERT_EQ(decode_name_arity, -1);
+    ASSERT_PTR_EQ(var_name_ptr, line_buffer.data + 9);
+    ASSERT_EQ(var_name_length, 1);
+    ASSERT_EQ(var_name_type, TYPE_NUMBER);
+    ASSERT_EQ(arity, -1);
 
     get_name();
-    ASSERT_PTR_EQ(decode_name_ptr, line_buffer.data + 11);
-    ASSERT_EQ(decode_name_length, 2);
-    ASSERT_EQ(decode_name_type, TYPE_STRING);
-    ASSERT_EQ(decode_name_arity, -1);
+    ASSERT_PTR_EQ(var_name_ptr, line_buffer.data + 11);
+    ASSERT_EQ(var_name_length, 2);
+    ASSERT_EQ(var_name_type, TYPE_STRING);
+    ASSERT_EQ(arity, -1);
 }
 
 int main(void) {

@@ -19,7 +19,7 @@
 ; after the primary expression.
 
 evaluate_expression:
-        phzp    DECODE_NAME_STATE, DECODE_NAME_STATE_SIZE   ; Remember the decoded name
+        phzp    VAR_NAME_STATE, VAR_NAME_STATE_SIZE         ; Remember the decoded name
         lda     #PR_OPEN_PAREN          ; Push the open paren, which will never be removed by process_operators
 after_operator:
         jsr     push_operator
@@ -41,7 +41,7 @@ next_expression:
         lda     #PR_CLOSE_PAREN         ; Process any operators not yet processed (except open paren)
         jsr     process_operators
         inc     op_stack_pos            ; Pop the open paren
-        plzp    DECODE_NAME_STATE, DECODE_NAME_STATE_SIZE   ; Recover the decoded name
+        plzp    VAR_NAME_STATE, VAR_NAME_STATE_SIZE         ; Recover the decoded name
         lda     expr_type               ; Return expr_type in A and set flags (Z=1 for number, Z=0 for string)
         rts
 
@@ -122,7 +122,7 @@ evaluate_string:
 
 evaluate_variable:
         jsr     get_variable_2
-        lda     decode_name_type
+        lda     var_name_type
         beq     @number
         inc     expr_type               ; TYPE_STRING
         ldy     #0

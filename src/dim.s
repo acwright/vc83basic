@@ -7,12 +7,12 @@
 exec_dim:
         inc     line_pos                ; Skip TOK_NAME
         jsr     get_name                ; Get the name and type
-        lda     decode_name_arity       ; See if it's an array name
+        lda     arity                   ; See if it's an array name
         bpl     @invalid_variable       ; Nope
-        jsr     evaluate_argument_list  ; Evaluate the dimensions values (A = decdee_name_arity = $FF)
+        jsr     evaluate_argument_list  ; Evaluate the dimensions values (A = arity = $FF)
         inc     line_pos                ; Skip ')'
         eor     #$FF                    ; Invert to get number of arguments
-        sta     decode_name_arity
+        sta     arity
         ldax    array_name_table_ptr    ; Look for the name in the name table
         jsr     find_name
         bcc     raise_exists

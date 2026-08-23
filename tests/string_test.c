@@ -7,7 +7,7 @@
 #include "test.h"
 
 void add_string_variable_with_name(const char* name, const String* value) {
-    parse_and_decode_name(name);
+    parse_and_get_name(name);
     find_name(variable_name_table_ptr);
     ASSERT_NE(err, 0);
     add_variable();
@@ -144,7 +144,7 @@ void test_compact(void) {
     // Only the "HELLO" string should remain.
     ASSERT_PTR_EQ(string_ptr, (char*)himem_ptr - 5 - STRING_EXTRA);
     // Check A$
-    parse_and_decode_name("A$");
+    parse_and_get_name("A$");
     find_name(variable_name_table_ptr);
     ASSERT_EQ(err, 0);
     s = *(const String**)name_ptr;
@@ -170,14 +170,14 @@ void test_compact(void) {
     // string_ptr should point to B$.
     ASSERT_PTR_EQ(string_ptr, (char*)himem_ptr - 5 - STRING_EXTRA - 255 - STRING_EXTRA);
     // Check A$
-    parse_and_decode_name("A$");
+    parse_and_get_name("A$");
     find_name(variable_name_table_ptr);
     ASSERT_EQ(err, 0);
     s = *(const String**)name_ptr;
     ASSERT_EQ(s->length, 5);
     ASSERT_EQ(memcmp(s->data, "HELLO", 5), 0);
     // Check B$
-    parse_and_decode_name("B$");
+    parse_and_get_name("B$");
     find_name(variable_name_table_ptr);
     ASSERT_EQ(err, 0);
     s = *(const String**)name_ptr;
@@ -203,14 +203,14 @@ void test_compact_with_array(void) {
     // Look up A$ as an array
     set_line(0, line_data, sizeof line_data);
     get_name();
-    ASSERT_EQ(decode_name_type, TYPE_STRING);
-    ASSERT_EQ(decode_name_arity, -1);
+    ASSERT_EQ(var_name_type, TYPE_STRING);
+    ASSERT_EQ(arity, -1);
     index = find_name(array_name_table_ptr);
     ASSERT_NE(err, 0);
     ASSERT_EQ(index, 0);
 
     // Parse dimension values
-    decode_name_arity = -evaluate_argument_list(0);
+    arity = -evaluate_argument_list(0);
 
     // Make sure argument is on the stack
     ASSERT_EQ(stack_pos, PRIMARY_STACK_SIZE - 6);
@@ -366,7 +366,7 @@ void test_string_alloc_retry(void) {
     ASSERT_PTR_EQ(s2, string_ptr);
 
     // Check HELLO$
-    parse_and_decode_name("HELLO$");
+    parse_and_get_name("HELLO$");
     find_name(variable_name_table_ptr);
     ASSERT_EQ(err, 0);
     s = *(const String**)name_ptr;

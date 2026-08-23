@@ -6,7 +6,7 @@
 ; Each name table entry consists of a length (one byte if in the range 0-127, otherwise two bytes, high byte first),
 ; followed by a name, followed by any number of extra data bytes. The last byte of the name must have bit 7 set.
 ; AX = pointer to the first entry in the name table; saved into next_name_ptr
-; decode_name_ptr = pointer to the name to match
+; var_name_ptr = pointer to the name to match
 ; Returns carry clear if the name matched and carry set if it didn't match any name.
 ; On match, updates name_ptr to point to the data following matched name, and returns the index of the matched name
 ; in A.
@@ -27,7 +27,7 @@ find_name_2:
         rts
 
 ; Matches a name found in the input buffer with characters from the name table entry.
-; decode_name_ptr = pointer to the name to match
+; var_name_ptr = pointer to the name to match
 ; name_ptr = pointer to the name within the name table entry that we're going to match
 ; Returns carry clear if the sequence matched. Y will be left set to the length of the matched name.
 ; Returns carry set if no match.
@@ -38,13 +38,13 @@ match_name:
 match_name_y:
         lda     (name_ptr),y            ; Load next byte from name table entry
         bmi     @last                   ; This is the last character
-        cmp     (decode_name_ptr),y     ; Compare to the source name
+        cmp     (var_name_ptr),y        ; Compare to the source name
         bne     @no_match               ; If not match then fail; if we get past this point then we're still matching
         iny
         bne     match_name_y
 
 @last:
-        cmp     (decode_name_ptr),y     ; One last compare
+        cmp     (var_name_ptr),y        ; One last compare
         bne     @no_match
         iny                             ; Account for matching last character
         clc                             ; Signal success
@@ -126,18 +126,18 @@ advance_rebase_name_ptr_done:
         rts
 
 ; Extends the variable name table by adding a new name.
-; The new name consists of the characters defined by decode_name_ptr and decode_name_length.
-; These are both set in decode_name. The name must already end in a character with the high bit set.
-; The type in decode_name_type determines the size of the variable.
+; The new name consists of the characters defined by var_name_ptr and var_name_length.
+; These are both set in get_name. The name must already end in a character with the high bit set.
+; The type in var_name_type determines the size of the variable.
 ; name_ptr = a pointer to the 0 at the end of the variable name table (left by find_name)
 ; Returns carry clear on success or carry set on failure.
 ; On return, updates name_ptr to point to the data following the new name, as if found by find_name.
 
 add_variable:
-        ldx     decode_name_type        ; Figure out the variable size based on the type
+        ldx     var_name_type           ; Figure out the variable size based on the type
         lda     type_size_table,x
         sec                             ; Set carry to add 1 for length byte
-        adc     decode_name_length      ; Add decode_name_length plus 1 (carry) to get total size to allocate
+        adc     var_name_length         ; Add var_name_length plus 1 (carry) to get total size to allocate
         pha                             ; Preserve length while we call grow
         ldy     #array_name_table_ptr   ; Grow variable name table by moving array_name_table_ptr up
         jsr     grow_a                  ; Do the grow
@@ -146,7 +146,7 @@ add_variable:
         sta     (name_ptr),y
         iny
         jsr     copy_name
-        ldx     decode_name_type        ; Set up to clear the data bytes
+        ldx     var_name_type           ; Set up to clear the data bytes
         ldy     type_size_table,x
         iny                             ; Clear one more byte to recreate the 0 that terminates the name table
         ldax    name_ptr
@@ -175,11 +175,11 @@ get_variable_2:
         jsr     get_name
 
 ; Finds a variable, or adds it.
-; decode_name_ptr = pointer to the variable name
-; decode_name_length = the length of the variable
+; var_name_ptr = pointer to the variable name
+; var_name_length = the length of the variable
 
 find_or_add_variable:
-        lda     decode_name_arity       ; Is it an array?
+        lda     arity                   ; Is it an array?
         bmi     @array                  ; Go handle array
         ldax    variable_name_table_ptr
         jsr     find_name               ; Look for a variable with this name
@@ -190,11 +190,11 @@ find_or_add_variable:
         jsr     evaluate_argument_list  ; Evaluate the array arguments: arity $FF is still in A
         inc     line_pos                ; Skip ')'
         eor     #$FF                    ; A is now arity of array reference
-        sta     decode_name_arity
+        sta     arity
         ldax    array_name_table_ptr
         jsr     find_name               ; Look for an array with this name
         bcc     find_array_element
-        mva     decode_name_arity, D    ; Do DIM var(10, 10, ..., 10); D counts down arity
+        mva     arity, D                ; Do DIM var(10, 10, ..., 10); D counts down arity
         jsr     load_ten_fp0            ; Set FP0 to 10
 @push:
         jsr     push_fp0
@@ -213,13 +213,13 @@ find_array_element:
         sty     array_element_offset+1
         sty     array_element_size+1    ; High byte of array element size starts at 0
         lda     (name_ptr),y            ; Get arity
-        cmp     decode_name_arity
+        cmp     arity
         bne     raise_arity_mismatch
 
         sta     D                       ; Use D to count down arity
         iny
         jsr     rebase_name_ptr         ; Advance name_ptr past arity
-        ldx     decode_name_type        ; Figure out the element size from type: start of multiplication process
+        ldx     var_name_type           ; Figure out the element size from type: start of multiplication process
         lda     type_size_table,x       ; Initialize array_element_size to the size of one value of the array's type
         sta     array_element_size
 @next:
@@ -267,7 +267,7 @@ ARRAY_TRIAL_GROW_SIZE = $80
 
 ; Adds a new array variable.
 ; The requirements of add_variable apply: name_ptr must be at the end of the name table etc.
-; The number of dimensions is in decode_name_arity. The dimensions are on the value stack.
+; The number of dimensions is in arity. The dimensions are on the value stack.
 ; Returns carry clear on success or carry set on error.
 
 dimension_array:
@@ -287,19 +287,19 @@ dimension_array:
         mvax    name_ptr, dst_ptr       ; Remember name_ptr in dst_ptr so we can update the length later
         ldy     #2                      ; We don't know the length yet so just skip over it
         jsr     copy_name               ; name_ptr now points past end of name; resets Y to 0
-        lda     decode_name_arity       ; Copy arity into name table
+        lda     arity                   ; Copy arity into name table
         sta     (name_ptr),y            ; This will be the byte after the name
         sta     D                       ; D = arity countdown
         iny                             ; Will start writing the dimension values from here
 
 ; Calculate space required for this array:
 ; 2 bytes for name table entry length
-; decode_name_length bytes for name
+; var_name_length bytes for name
 ; 1 byte for arity
-; 2 * decode_name_arity bytes for dimension values
+; 2 * arity bytes for dimension values
 ; element size * D1 * D2 * ... * Dn bytes for data
 
-        ldx     decode_name_type        ; Figure out the element size from type: start of multiplication process
+        ldx     var_name_type           ; Figure out the element size from type: start of multiplication process
         lda     type_size_table,x
         ldx     #0                      ; AX is the 16-bit size
         stax    array_element_size
@@ -339,7 +339,7 @@ dimension_array:
         tya                             ; Again start with Y and calculate total size of name table entry
         clc
         adc     #2                      ; Add 2 for length bytes at start of name table entry; assume no overflow
-        adc     decode_name_length      ; Name length; assume no overflow
+        adc     var_name_length         ; Name length; assume no overflow
         adc     array_element_size      ; Add in the space required for the data elements; assume no overflow
         sta     size                    ; Save in size
         lda     #0
@@ -371,7 +371,7 @@ dimension_array:
 @no_remaining_bytes:
         rts
 
-; Gets a variable name and sets up decode_name_ptr, decode_name_length, and decode_name_type.
+; Gets a variable name and sets up var_name_ptr, var_name_length, and var_name_type.
 ; BC SAFE, DE SAFE
 
 .assert TYPE_NUMBER = $00, error
@@ -379,44 +379,44 @@ dimension_array:
 
 get_name:
         ldy     #0                      ; Initialize Y to 0, start searching for end of name at offset 0
-        sty     decode_name_type        ; Variable is TYPE_NUMBER (0) unless we learn otherwise
-        sty     decode_name_arity       ; Default to arity 0 meaning not an array
-        lda     line_pos                ; Add line_pos to line_ptr to get decode_name_ptr
+        sty     var_name_type           ; Variable is TYPE_NUMBER (0) unless we learn otherwise
+        sty     arity                   ; Default to arity 0 meaning not an array
+        lda     line_pos                ; Add line_pos to line_ptr to get var_name_ptr
         clc
         adc     line_ptr
-        sta     decode_name_ptr
+        sta     var_name_ptr
         tya                             ; A = 0
-        adc     line_ptr+1              ; Will leave carry clear since decode_name_ptr calculation should not roll over
-        sta     decode_name_ptr+1
+        adc     line_ptr+1              ; Will leave carry clear since var_name_ptr calculation should not roll over
+        sta     var_name_ptr+1
 @next:
-        lda     (decode_name_ptr),y
+        lda     (var_name_ptr),y
         bmi     @last
         iny
         bne     @next
 
 @last:
         iny                             ; Account for last character
-        sty     decode_name_length
+        sty     var_name_length
         tya                             ; Add to line_pos; carry should be clear
         adc     line_pos
         sta     line_pos                ; Update line_pos
         dey                             ; Back up one so we can check if the last character is '$'
-        lda     (decode_name_ptr),y
+        lda     (var_name_ptr),y
         cmp     #'$' | EOT              ; If it's there, it will have the high bit set
         bne     @not_string
-        inc     decode_name_type        ; Make it TYPE_STRING (1)
+        inc     var_name_type           ; Make it TYPE_STRING (1)
 @not_string:
         iny                             ; Restore Y to where it previously was, past the end of the name
-        lda     (decode_name_ptr),y     ; See if the next character is '('
+        lda     (var_name_ptr),y        ; See if the next character is '('
         cmp     #TOK_LPAREN
         bne     @not_array
-        dec     decode_name_arity       ; Remember it was an array (will figure out real arity later)
+        dec     arity                   ; Remember it was an array (will figure out real arity later)
         inc     line_pos                ; Skip past the '('
 @not_array:
         rts
 
-; Copies the decoded name into the name table, ending at a character with the EOT bit set.
-; decode_name_ptr = copy source
+; Copies the variable name into the name table, ending at a character with the EOT bit set.
+; var_name_ptr = copy source
 ; name_ptr = destination
 ; Y = Offset to add to name_ptr prior to start of copy (avoids inevitably having to do this in calling function)
 ; Returns with name_ptr pointing to the byte after the name.
@@ -424,7 +424,7 @@ get_name:
 copy_name:
         jsr     rebase_name_ptr         ; Add Y to name_ptr; resets Y to 0
 @copy_next_character:
-        lda     (decode_name_ptr),y     ; Get name character
+        lda     (var_name_ptr),y        ; Get name character
         sta     (name_ptr),y            ; Store into name table
         bmi     @copy_complete
         iny

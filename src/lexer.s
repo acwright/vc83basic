@@ -244,9 +244,9 @@ next_token:
 
 @init_dfa:
         jsr     append_line_buffer      ; Advance line_pos for token type byte
-        sty     decode_name_ptr         ; Start of token value in decode_name_ptr
+        sty     var_name_ptr            ; Start of token value in var_name_ptr
         lda     #>line_buffer           
-        sta     decode_name_ptr+1       ; High byte
+        sta     var_name_ptr+1          ; High byte
         mva     #0, B                   ; B = current DFA state byte offset (relative to state_0)
 
 @dfa_loop:
@@ -299,12 +299,12 @@ next_token:
         ora     #EOT                    ;     overwritten (single-character tokens), or discarded (strings)
         sta     line_buffer-1,y
         lda     C                       ; Read back the terminal token we saved earlier
-        ldy     decode_name_ptr         ; Get the line_pos+1 value we saved earlier
+        ldy     var_name_ptr            ; Get the line_pos+1 value we saved earlier
         sta     line_buffer-1,y         ; Save the terminal token into the position we reserved for it
 
 ; When we entered this function, line_pos was L. Now we have set up:
 ;     L   = the matched token
-;     L+1 = the first character of the token value (decode_name_ptr points here)
+;     L+1 = the first character of the token value (var_name_ptr points here)
 ;     ...
 ;     L+n = the last character of the token value, with EOT bit set
 ; Note that n may be zero, if the first character didn't match anything in state 0; token will be NON_TERMINAL.
@@ -344,7 +344,7 @@ next_token:
         asl     A
         asl     A
         ora     B
-        ldy     decode_name_ptr         ; Reload line_pos+1 since find_name clobbered it
+        ldy     var_name_ptr            ; Reload line_pos+1 since find_name clobbered it
         sta     line_buffer-1,y         ; Overwrite the original token with the keyword token
         sty     line_pos                ; This will become the new line_pos since we replaced the token
 @encode_number:
@@ -353,17 +353,17 @@ next_token:
 ; When we get here the buffer looks like this:
 ; T"XYZZY"
 ; ^ the TOK_STRING token
-;  ^ decode_name_ptr
+;  ^ var_name_ptr
 ;         ^ line_pos (one last the ending quote, which has EOT set)
 ; We replace the beginning quote with the string length, excluding the end quote, which remains to
-; make LIST easier to implement. The length is (line_pos - 1) - (decode_name_ptr + 1)
-; or (line_pos - decode_name_ptr - 2).
+; make LIST easier to implement. The length is (line_pos - 1) - (var_name_ptr + 1)
+; or (line_pos - var_name_ptr - 2).
 
 @encode_string:
         lda     line_pos
-        sbc     decode_name_ptr         ; Carry will be set because we got here via CMP + BEQ
+        sbc     var_name_ptr            ; Carry will be set because we got here via CMP + BEQ
         sbc     #2
-        ldy     decode_name_ptr         ; Will point to the quote at the start of the string
+        ldy     var_name_ptr            ; Will point to the quote at the start of the string
         sta     line_buffer,y           ; Replace with length byte
 
 @return_terminal_token:

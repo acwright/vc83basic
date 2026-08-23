@@ -42,7 +42,7 @@ exec_close:
 
 exec_get:
         jsr     get_variable
-        lda     decode_name_type
+        lda     var_name_type
         bne     @type_mismatch
         jsr     io_get
         ldx     #0                      ; High byte 0
