@@ -2,12 +2,11 @@
 ;
 ; SPDX-License-Identifier: MIT
 
+DOSINI = $0C
 DOSVEC = $0A
 BRKKEY = $11
 COLCRS = $55
 
-BRKVD  = $0206
-WARMSV = $022E
 CH     = $02FC
 HATABS = $031A
 

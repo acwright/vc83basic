@@ -16,28 +16,20 @@ op_stack: .res OP_STACK_SIZE
 
 .bss
 
-old_brkvd:      .res 2
+old_dosini:     .res 2
 
 .code
 
 initialize_target:
-        mvax    #reset_handler, WARMSV  ; System Reset returns to BASIC
-        mvax    BRKVD, old_brkvd        ; Save original OS Break vector
-        mvax    #brk_handler, BRKVD     ; Install Break handler
+        mvax    DOSINI, old_dosini      ; Save original DOS/OS init vector
+        mvax    #reset_handler, DOSINI  ; System Reset returns to BASIC
         jsr     init_k_vector
         jmp     display_startup_banner
 
 reset_handler:
-        mvax    BRKVD, old_brkvd        ; Re-save vector in case warmstart reset it
-        mvax    #brk_handler, BRKVD     ; Reinstall Break handler
+        jsr     call_old_dosini         ; Initialize DOS buffers / FMS
+        mvax    #reset_handler, DOSINI  ; Reassert in case DOS reset it
         raise   PS_READY
 
-brk_handler:
-        inc     BRKKEY                  ; Acknowledge / clear break flag
-        lda     program_state           ; Only stop if a program is running
-        bne     @default
-        cli                             ; Re-enable interrupts
-        raise   ERR_STOPPED             ; Stop and return to READY
-
-@default:
-        jmp     (old_brkvd)
+call_old_dosini:
+        jmp     (old_dosini)

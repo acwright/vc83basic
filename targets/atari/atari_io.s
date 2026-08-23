@@ -170,6 +170,15 @@ io_inkey:
 ; channel = channel (0..7 or $80), A = ASCII character
 
 io_put:
+        pha                             ; Save character to output
+        lda     program_state           ; Only check break while running
+        bne     @output
+        lda     BRKKEY                  ; $11: 0 = Break pressed
+        bne     @output
+        inc     BRKKEY                  ; Acknowledge / clear break flag
+        raise   ERR_STOPPED             ; Stop and return to READY
+@output:
+        pla                             ; Restore character
         jsr     get_iocb_index          ; Sets IOCB index in X based on channel
         tay                             ; Save char in Y
         lda     ICPTH,x                 ; Push device put-byte handler address
