@@ -23,7 +23,7 @@ exec_open:
 @no_mode:
         jsr     pop_string_s0           ; Pop filename into S0 (checks string type)
         pla                             ; Mode in A
-        jsr     io_open
+        jsr     open
         bcs     raise_io_error
         rts
 
@@ -33,7 +33,7 @@ exec_open:
 ; CLOSE [#channel]
 
 exec_close:
-        jsr     io_close
+        jsr     close
         bcs     raise_io_error
         rts
 .endif
@@ -44,7 +44,7 @@ exec_get:
         jsr     get_variable
         lda     var_name_type
         bne     @type_mismatch
-        jsr     io_get
+        jsr     getch
         ldx     #0                      ; High byte 0
         bcc     @got_byte               ; If not EOF then byte is in A
         lda     #$FF                    ; -1 in AX on EOF ($FFFF)
@@ -60,7 +60,7 @@ exec_get:
 ; PROLOG_POP_INT has already evaluated the expression and popped the byte into A!
 
 exec_put:
-        jsr     io_put
+        jsr     putch
         bcs     raise_io_error
         rts
 
@@ -97,7 +97,7 @@ exec_xio:
 
 @do_xio:
         lda     B                       ; Command in A
-        jsr     io_xio
+        jsr     xio
         bcs     raise_io_error
         rts
 
@@ -109,7 +109,7 @@ exec_xio:
 ; PROLOG_POP_STRING has already evaluated the filename and loaded S0!
 
 exec_save:
-        jsr     io_save
+        jsr     save
         bcs     raise_io_error
         rts
 
@@ -122,7 +122,7 @@ exec_load:
         beq     :+
         jmp     raise_exists            ; Program exists: user must do NEW first!
 :
-        jsr     io_load
+        jsr     load
         bcs     raise_io_error
         rts
 
@@ -130,7 +130,7 @@ exec_load:
 ; EPILOG_PUSH_STRING pushes string returned in S0 / string_ptr
 
 fun_inkey_s:
-        jsr     io_inkey
+        jsr     inkey
         bcs     @no_key
         pha                             ; Save character
         lda     #1

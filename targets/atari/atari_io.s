@@ -48,7 +48,7 @@ copy_s0_to_buffer_eol:
 ; channel = channel index (0..7), A = mode, S0 = filename string
 ; Returns carry clear if ok, carry set if error.
 
-io_open:
+open:
         sta     open_mode
         jsr     copy_s0_to_buffer_eol
         jsr     get_iocb_index          ; Sets IOCB index in X (0..$70) based on channel
@@ -80,7 +80,7 @@ io_open:
 ; channel = channel index (0..7)
 ; Returns carry clear.
 
-io_close:
+close:
         jsr     get_iocb_index          ; Sets IOCB index in X based on channel
         lda     #12                     ; CLOSE
         sta     ICCOM,x
@@ -90,7 +90,7 @@ io_close:
 
 ; Closes all open channels (IOCBs 1..7).
 
-io_close_all:
+close_all:
         ldx     #$70
 @close_loop:
         lda     #12                     ; CLOSE
@@ -134,7 +134,7 @@ init_k_vector:
 ; channel = channel (0..7 or $80)
 ; Returns carry clear and byte in A if ok, carry set if error / EOF.
 
-io_get:
+getch:
         jsr     get_iocb_index          ; Sets IOCB index in X based on channel
         lda     #0
         sta     ICBLL,x
@@ -153,7 +153,7 @@ io_get:
 ; Polls for a key from keyboard without blocking.
 ; Returns carry clear and ASCII char in A if key available, carry set if no key.
 
-io_inkey:
+inkey:
         lda     CH                      ; Hardware key code register
         cmp     #$FF
         beq     @no_key
@@ -169,7 +169,7 @@ io_inkey:
 ; Puts a single character on channel.
 ; channel = channel (0..7 or $80), A = ASCII character
 
-io_put:
+putch:
         pha                             ; Save character to output
         lda     program_state           ; Only check break while running
         bne     @output
@@ -192,7 +192,7 @@ io_put:
 ; channel = channel (0..7 or $80)
 ; Strips trailing $9B, NUL-terminates at EOL, returns length in A.
 
-io_read_record:
+readline:
         jsr     get_iocb_index          ; Sets IOCB index in X based on channel
         lda     #<buffer
         sta     ICBAL,x
@@ -222,15 +222,15 @@ io_read_record:
 
 ; Emits record delimiter (newline).
 
-io_end_record:
+newline:
         lda     #$9B
-        jmp     io_put
+        jmp     putch
 
 ; Emits field separator (tabs across zones).
 
-io_end_field:
+tab:
 :       lda     #' '
-        jsr     io_put
+        jsr     putch
         lda     COLCRS                  ; Cursor column
         and     #$07                    ; 8-column tab zone
         bne     :-
@@ -240,7 +240,7 @@ io_end_field:
 ; Saves program memory to file via CIO.
 ; S0 = filename string
 
-io_save:
+save:
         jsr     copy_s0_to_buffer_eol
         ldx     #$70                    ; Use IOCB 7
         lda     #<buffer
@@ -291,7 +291,7 @@ io_save:
 ; Loads program memory from file via CIO.
 ; S0 = filename string
 
-io_load:
+load:
         jsr     copy_s0_to_buffer_eol
         ldx     #$70                    ; Use IOCB 7
         lda     #<buffer
@@ -383,7 +383,7 @@ io_load:
 ; Device-specific control operation (XIO).
 ; channel = channel (0..7), A = command, BC = arg1, DE = arg2
 
-io_xio:
+xio:
         sta     open_mode
         jsr     get_iocb_index          ; Sets IOCB index in X based on channel
         lda     open_mode

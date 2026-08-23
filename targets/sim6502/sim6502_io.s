@@ -57,7 +57,7 @@ copy_s0_to_buffer_nul:
 ; channel = channel index (0..7)
 ; Returns carry clear if ok, carry set if error.
 
-io_open:
+open:
         sta     open_mode
         lda     channel
         and     #$07
@@ -121,7 +121,7 @@ io_open:
 ; channel = channel (0..7)
 ; Returns carry clear.
 
-io_close:
+close:
         lda     channel
         and     #$07
         tax
@@ -141,11 +141,11 @@ io_close:
 
 ; Closes all open channels (1..7). Called by NEW / CLR.
 
-io_close_all:
+close_all:
         lda     #7
         sta     channel
 @loop:
-        jsr     io_close
+        jsr     close
         dec     channel
         bne     @loop
         rts
@@ -154,7 +154,7 @@ io_close_all:
 ; channel = channel (0..7)
 ; Returns byte in A and carry clear if ok, carry set if EOF / error.
 
-io_get:
+getch:
         txa
         pha
         tya
@@ -205,7 +205,7 @@ io_get:
 ; sim65 simulator does not support non-blocking keyboard polling.
 ; Returns carry set (no key).
 
-io_inkey:
+inkey:
         sec
         rts
 
@@ -214,7 +214,7 @@ io_inkey:
 ; channel = channel (0..7)
 ; Returns carry clear if ok, carry set if error.
 
-io_put:
+putch:
         sta     put_byte_buf            ; Store byte in put_byte_buf
         txa
         pha
@@ -262,7 +262,7 @@ io_put:
 ; Reads a text record (line) from channel into buffer.
 ; Returns line length in A and carry clear if ok, carry set on EOF / error.
 
-io_read_record:
+readline:
         lda     channel
         and     #$07
         tax
@@ -302,7 +302,7 @@ io_read_record:
         tsx
         lda     $102,x                  ; Channel index
         sta     channel
-        jsr     io_get                  ; Read 1 byte
+        jsr     getch                   ; Read 1 byte
         bcs     @eof_check
         tsx
         ldy     $101,x                  ; Buffer offset
@@ -338,26 +338,26 @@ io_read_record:
 
 ; Emits record delimiter (newline) on channel.
 
-io_end_record:
+newline:
         lda     #$0A
-        jsr     io_put
+        jsr     putch
         mva     #0, console_column
         rts
 
 ; Emits field separator (tabs to next 16-column boundary).
 
-io_end_field:
+tab:
         lda     #' '
-        jsr     io_put
+        jsr     putch
         lda     console_column
         and     #$0F
-        bne     io_end_field
+        bne     tab
         rts
 
 ; Saves program memory to file.
 ; S0 = filename string
 
-io_save:
+save:
         jsr     copy_s0_to_buffer_nul
         ldax    #buffer
         jsr     pushax                  ; Filename
@@ -407,7 +407,7 @@ io_save:
 ; Loads program memory from file.
 ; S0 = filename string
 
-io_load:
+load:
         jsr     copy_s0_to_buffer_nul
         ldax    #buffer
         jsr     pushax                  ; Filename
@@ -492,6 +492,6 @@ io_load:
 ; channel = channel (0..7), A = command, BC = arg1, DE = arg2
 ; Returns carry clear if ok, carry set if error.
 
-io_xio:
+xio:
         clc
         rts

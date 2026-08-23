@@ -21,7 +21,7 @@ initialize_target:
 
         ; WozMon leaves the cursor on the same line as the "4000R" command,
         ; so output a newline before the banner to start on a fresh line.
-        jsr     io_end_record
+        jsr     newline
         jmp     display_startup_banner
 
 .bss

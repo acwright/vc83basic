@@ -34,18 +34,18 @@ on_raise:
         beq     run                     ; Program is running; do the next thing
         pha                             ; Save the error value and output a newline, which we will need no matter what
         mva     #$80, channel           ; Reset channel to default console ($80)
-        jsr     io_end_record
+        jsr     newline
         pla
         bmi     handle_error
         lday    #ready_message
         jsr     print_string
-        jsr     io_end_record
+        jsr     newline
 
 get_command:
         ldax    #line_buffer            ; Reset next_line_ptr to line_buffer
         jsr     reset_next_line_ptr_2
         stax    line_ptr                ; Reset line_ptr too, so line number reported correctly on error
-        jsr     io_read_record
+        jsr     readline
         tay
         lda     #0
         sta     buffer,y
@@ -117,5 +117,5 @@ handle_error:
         lday    #buffer
         jsr     print_string
 @no_line_number:
-        jsr     io_end_record
+        jsr     newline
         jmp     get_command

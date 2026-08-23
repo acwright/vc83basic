@@ -90,15 +90,15 @@ check_break:
 ; Gets a single byte/key from console (blocking).
 ; Returns carry clear and byte in A if ok, carry set if error.
 
-io_get:
-        jsr     io_inkey
-        bcs     io_get
+getch:
+        jsr     inkey
+        bcs     getch
         rts
 
 ; Polls for a key from console without blocking.
 ; Returns carry clear and ASCII char in A if key available, carry set if no key.
 
-io_inkey:
+inkey:
         jsr     get_key                 ; C=1 if key available
         bcs     @got_key
         sec
@@ -111,7 +111,7 @@ io_inkey:
 ; A = ASCII character
 ; Polls for ESC or CTRL-C while a BASIC program is running to allow break.
 
-io_put:
+putch:
         pha                             ; Save character to output
         lda     program_state           ; Only poll keyboard while a program is running
         bne     @output                 ; PS_READY (non-zero): skip break check
@@ -127,21 +127,21 @@ putch_raw:
 
 ; Emits record delimiter (CR + LF).
 
-io_end_record:
+newline:
         lda     #CH_CR
-        jsr     io_put
+        jsr     putch
         lda     #CH_LF
-        jmp     io_put
+        jmp     putch
 
 ; Emits field separator (tabs across zones).
 
-io_end_field:
+tab:
         bit     HW_PRESENT              ; Video present? (Bit 7 = HW_VID)
         bpl     @serial_tab
         lda     IO_MODE                 ; Video mode (0)?
         bne     @serial_tab
 :       lda     #' '
-        jsr     io_put
+        jsr     putch
         lda     VID_CURSOR_X
         and     #$07                    ; 8-column tab zone
         bne     :-
@@ -150,7 +150,7 @@ io_end_field:
 @serial_tab:
         ldx     #4
 :       lda     #' '
-        jsr     io_put
+        jsr     putch
         dex
         bne     :-
         clc
@@ -159,7 +159,7 @@ io_end_field:
 ; Reads a text record (line) from console into buffer.
 ; NUL-terminates at EOL, returns length in A.
 
-io_read_record:
+readline:
         ldy     #0
 @waitchar:
         jsr     get_key
@@ -240,7 +240,7 @@ copy_s0_to_buffer_nul:
 ; Saves program memory to file via CompactFlash filesystem.
 ; S0 = filename string
 
-io_save:
+save:
         jsr     copy_s0_to_buffer_nul
         lda     #<buffer
         sta     STR_PTR
@@ -263,7 +263,7 @@ io_save:
 ; Loads program memory from file via CompactFlash filesystem.
 ; S0 = filename string
 
-io_load:
+load:
         jsr     copy_s0_to_buffer_nul
         lda     #<buffer
         sta     STR_PTR

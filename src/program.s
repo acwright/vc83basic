@@ -51,10 +51,9 @@ clear_variables:
         mva     #OP_STACK_SIZE, op_stack_pos
         mva     #PRIMARY_STACK_SIZE, stack_pos
 .ifdef enable_io_channels
-        jmp     io_close_all
-.else
-        rts
+        jsr     close_all
 .endif
+        rts
 
 ; Resets the stack, clears the resume state, and performs RESTORE.
 ; A = the desired program state (RUN sets this to RUNNING)

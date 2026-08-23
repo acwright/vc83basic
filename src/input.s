@@ -23,10 +23,10 @@ exec_input:
 
 @default_prompt:
         lda     #'?'                    ; Prepare to print '?' prompt
-        jsr     io_put
+        jsr     putch
 @get_input:
-        jsr     io_read_record
-        bcs     @eof_error              ; If io_read_record returns carry set -> EOF
+        jsr     readline
+        bcs     @eof_error              ; If readline returns carry set -> EOF
         tay
         lda     #0
         sta     buffer,y                ; NUL-terminate based on length in A

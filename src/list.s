@@ -43,7 +43,7 @@ exec_list:
         lda     buffer_pos              ; buffer_pos will be the amount of data written to the buffer
         beq     @done                   ; If it was zero bytes then no more lines
         jsr     print_s0
-        jsr     io_end_record
+        jsr     newline
         jsr     advance_next_line_ptr
         bne     @next_line              ; Unconditional: advance_next_line_ptr leaves Y=3 (Z=0)
 

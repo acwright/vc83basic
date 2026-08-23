@@ -5,15 +5,15 @@
 ; Gets a single byte/key from serial UART (blocking).
 ; Returns carry clear and byte in A if ok, carry set if error.
 
-io_get:
-        jsr     io_inkey
-        bcs     io_get
+getch:
+        jsr     inkey
+        bcs     getch
         rts
 
 ; Polls for a key from serial UART without blocking.
 ; Returns carry clear and byte in A if available, carry set if no byte.
 
-io_inkey:
+inkey:
         lda     UART_RX_LEVEL
         beq     @no_key
         lda     UART_RX_DATA
@@ -26,7 +26,7 @@ io_inkey:
 ; Outputs a single character to serial UART.
 ; A = character
 
-io_put:
+putch:
         pha
 @wait:
         lda     UART_TX_LEVEL
@@ -38,18 +38,18 @@ io_put:
 
 ; Emits record delimiter (CR + LF).
 
-io_end_record:
+newline:
         lda     #$0D                    ; Carriage Return
-        jsr     io_put
+        jsr     putch
         lda     #$0A                    ; Line Feed
-        jmp     io_put
+        jmp     putch
 
 ; Emits field separator (tabs across zones).
 
-io_end_field:
+tab:
         ldx     #4
 :       lda     #' '
-        jsr     io_put
+        jsr     putch
         dex
         bne     :-
         clc
@@ -58,7 +58,7 @@ io_end_field:
 ; Reads a text record (line) from serial into buffer.
 ; NUL-terminates at EOL, returns length in A.
 
-io_read_record:
+readline:
         ldx     #0
 @loop:
 @wait_rx:
@@ -78,7 +78,7 @@ io_read_record:
 
         ; Standard character
         sta     buffer,x
-        jsr     io_put                  ; Echo
+        jsr     putch                   ; Echo
         inx
         jmp     @loop
 
@@ -87,11 +87,11 @@ io_read_record:
         beq     @loop                   ; Ignore backspace at start of line
         dex
         lda     #$08                    ; BS
-        jsr     io_put
+        jsr     putch
         lda     #' '                    ; Space
-        jsr     io_put
+        jsr     putch
         lda     #$08                    ; BS
-        jsr     io_put
+        jsr     putch
         jmp     @loop
 
 @cr:
@@ -99,14 +99,14 @@ io_read_record:
         sta     buffer,x                ; Null-terminate
         txa                             ; Return length in A
         pha
-        jsr     io_end_record           ; Echo newline
+        jsr     newline                 ; Echo newline
         pla
         clc
         rts
 
 ; Save/load not supported on vc83_serial.
 
-io_save:
-io_load:
+save:
+load:
         sec
         rts

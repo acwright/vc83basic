@@ -26,7 +26,7 @@ exec_print:
         beq     @loop                   ; Unconditional: Z=1 from print_s0
 
 @tab:
-        jsr     io_end_field
+        jsr     tab
 @empty_space:
         inc     line_pos                ; Skip over the empty space or tab token
         jsr     peek_byte               ; Peek at next character
@@ -34,7 +34,7 @@ exec_print:
         rts
         
 @newline:
-        jmp     io_end_record
+        jmp     newline
 
 ; Prints the value in FP0 to standard output.
 
@@ -56,7 +56,7 @@ print_s0:
 @loop:
         ldy     #0
         lda     (S0),y                  ; Load next character
-        jsr     io_put
+        jsr     putch
         inc     S0                      ; Advance S0 pointer
         bne     @no_inc
         inc     S0+1

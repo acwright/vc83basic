@@ -7,7 +7,7 @@
 ; channel = channel (0..7), A = mode, S0 = filename string
 ; Returns carry clear if ok, carry set if error.
 
-io_open:
+open:
         clc
         rts
 
@@ -15,13 +15,13 @@ io_open:
 ; channel = channel (0..7)
 ; Returns carry clear.
 
-io_close:
+close:
         clc
         rts
 
 ; Closes all open channels.
 
-io_close_all:
+close_all:
         rts
 .endif
 
@@ -29,15 +29,15 @@ io_close_all:
 ; channel = channel (0..7)
 ; Returns carry clear and byte in A if ok, carry set if error.
 
-io_get:
-        jsr     io_inkey
-        bcs     io_get
+getch:
+        jsr     inkey
+        bcs     getch
         rts
 
 ; Polls for a key from console without blocking.
 ; Returns carry clear and ASCII char in A if key available, carry set if no key.
 
-io_inkey:
+inkey:
         lda     $C000                   ; Read Apple II keyboard
         bpl     @no_key                 ; Bit 7 clear -> no key pressed
         bit     $C010                   ; Clear keyboard strobe
@@ -51,14 +51,14 @@ io_inkey:
 ; Puts a single character on channel.
 ; channel = channel (0..7), A = ASCII character
 
-io_put:
+putch:
         ora     #$80
         jmp     COUT
 
 ; Reads a text record (line) from console into buffer.
 ; Suppresses prompt, strips bit 7, NUL-terminates at CR, returns length in A.
 
-io_read_record:
+readline:
         mva     #$80, PROMPT            ; Suppress prompt character in GETLN
         jsr     GETLN                   ; Apple II ROM GETLN reads into buffer ($0200), length in X
         lda     #0
@@ -79,11 +79,11 @@ io_read_record:
 
 ; Emits record delimiter (newline).
 
-io_end_record = CROUT
+newline = CROUT
 
 ; Emits field separator (tabs to next 16-column boundary).
 
-io_end_field:
+tab:
 :       lda     #' ' | $80
         jsr     COUT
         lda     $24                     ; Cursor horizontal position CH
@@ -121,7 +121,7 @@ emit_dos_command_and_addr:
 ; Saves program memory to file via DOS CHR$(4) BSAVE.
 ; BC = filename string pointer
 
-io_save:
+save:
         lday    #bsave_cmd
         jsr     emit_dos_command_and_addr
         lday    #len_cmd
@@ -142,7 +142,7 @@ io_save:
 ; Loads program memory from file via DOS CHR$(4) BLOAD.
 ; BC = filename string pointer
 
-io_load:
+load:
         lday    #bload_cmd
         jsr     emit_dos_command_and_addr
         jsr     CROUT
@@ -187,7 +187,7 @@ io_load:
 .ifdef enable_io_channels
 ; Device-specific control operation.
 
-io_xio:
+xio:
         clc
         rts
 .endif

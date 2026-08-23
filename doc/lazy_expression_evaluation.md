@@ -720,7 +720,7 @@ exec_open:
 @no_mode:
         jsr     pop_string_s0           ; Pop filename from stack
         pla
-        jsr     io_open
+        jsr     open
         bcs     raise_io_error
         rts
 ```

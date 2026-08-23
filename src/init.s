@@ -31,7 +31,7 @@ fp_64k:         .byte $00, $00, $00, $00, 144
 display_startup_banner:
         lday    #startup_message
         jsr     print_string
-        jsr     io_end_record
+        jsr     newline
         ldax    #((__MAIN_START__ + __MAIN_SIZE__) - (__BSS_RUN__ + __BSS_SIZE__ + 4) - 5)
         jsr     int_to_fp               ; Load into FP0
         lda     FP0s                    ; Check if it was negative
@@ -42,6 +42,6 @@ display_startup_banner:
         jsr     print_number
         lday    #free_message
         jsr     print_string
-        jmp     io_end_record
+        jmp     newline
 
 .code

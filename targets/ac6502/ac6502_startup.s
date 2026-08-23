@@ -44,7 +44,7 @@ startup:
         ; card, so this is safe on a serial-only console.
         jsr     VideoClear
 
-        ; BSS is not zeroed on bare metal, and `write` -> `io_put` polls for a
+        ; BSS is not zeroed on bare metal, and `write` -> `putch` polls for a
         ; break whenever program_state says a program is running.  Settle it
         ; before the banner, which runs ahead of initialize_program.
         lda     #PS_READY
@@ -71,7 +71,7 @@ brk_handler:
         jsr     ex_print_2h
         lda     D
         jsr     ex_print_2h
-        jsr     io_end_record
+        jsr     newline
         raise   ERR_STOPPED
 
 brk_message:
