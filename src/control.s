@@ -93,7 +93,7 @@ exec_for:
         ora     arity
         bne     raise_invalid_variable
         inc     line_pos                ; Skip terminator following name
-        jsr     evaluate_expression_save    ; Start value
+        jsr     evaluate_expression     ; Start value
         inc     line_pos                ; Skip terminator
         jsr     find_or_add_variable    ; name_ptr now points to variable data
         jsr     assign_variable         ; Assign start value to variable
