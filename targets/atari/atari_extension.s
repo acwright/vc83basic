@@ -5,4 +5,4 @@
 .code
  
 exec_dos:
-        jmp     (DOSVEC)
+        jmp     (old_dosvec)

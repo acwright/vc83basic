@@ -13,6 +13,6 @@ start:
         txs                             ; Initialize the stack to $FF
         jsr     initialize_target
         jsr     main
-        jmp     (DOSVEC)                ; Exit to DOS
+        jmp     (old_dosvec)            ; Exit to DOS
 
 .code

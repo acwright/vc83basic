@@ -17,19 +17,27 @@ op_stack: .res OP_STACK_SIZE
 .bss
 
 old_dosini:     .res 2
+old_dosvec:     .res 2
 
 .code
 
 initialize_target:
-        mvax    DOSINI, old_dosini      ; Save original DOS/OS init vector
-        mvax    #reset_handler, DOSINI  ; System Reset returns to BASIC
+        mvax    DOSINI, old_dosini      ; Save original DOS init vector
+        mvax    DOSVEC, old_dosvec      ; Save original DOS run vector
+        mvax    #dos_init_handler, DOSINI ; Hook DOS init on System Reset
+        mvax    #reset_handler, DOSVEC  ; System Reset jumps to BASIC
         jsr     init_k_vector
         jmp     display_startup_banner
 
-reset_handler:
+dos_init_handler:
         jsr     call_old_dosini         ; Initialize DOS buffers / FMS
-        mvax    #reset_handler, DOSINI  ; Reassert in case DOS reset it
-        raise   PS_READY
+        mvax    #dos_init_handler, DOSINI ; In case DOS reset DOSINI
+        mvax    #reset_handler, DOSVEC  ; Reassert BASIC run vector
+        rts                             ; Return to OS so it can open E:
 
 call_old_dosini:
         jmp     (old_dosini)
+
+reset_handler:
+        jsr     init_k_vector           ; Rescan K: in case HATABS reset
+        raise   PS_READY
