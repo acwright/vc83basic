@@ -438,13 +438,11 @@ floor:
 @done:
         rts
 
-; Converts FP number in FP0 into a string.
-; Writes the string to buffer at the position specified by buffer_pos. Does not perform any error checking; there must 
-; be enough space in the buffer for the write to succeed.
-; buffer_pos = the write position in buffer
+; Converts FP number in FP0 into a length-prefixed string in buffer.
+; Formats the string starting at buffer index 1, setting buffer[0] to the string length and updating buffer_pos.
 
 fp_to_string:
-        ldx     buffer_pos              ; Write index
+        ldx     #1                      ; Write index starts at position 1
         lda     FP0s                    ; Check for negative value
         bpl     @positive               ; Nope
         lda     #'-'                    ; Minus sign
@@ -462,8 +460,7 @@ fp_to_string:
         lda     #'0'
         sta     buffer,x
         inx
-        stx     buffer_pos              ; Update index
-        rts
+        jmp     finalize_buffer_string
 
 @not_zero:
         stx     buffer_pos              ; Update index
@@ -581,8 +578,7 @@ fp_to_string:
         ldy     E
         jsr     output_y_zeros
 @done:
-        stx     buffer_pos
-        rts        
+        jmp     finalize_buffer_string        
 
 ; Generate digits. Repeatedly divide FP0 by 10, generate remainder in A.
 ; Will always generate at least one digit, which cannot be zero because we

@@ -3,9 +3,7 @@
 ; SPDX-License-Identifier: MIT
 
 ready_message: .byte 5, "READY"
-
 error_message: .byte 5, "ERR: "
-
 error_message_2: .byte 4, " AT "
 
 ; Verify that the program states are the affected values so we can use flags.
@@ -38,7 +36,8 @@ on_raise:
         pla
         bmi     handle_error
         lday    #ready_message
-        bne     print_message           ; Unconditional
+        jsr     print_string
+        beq     nl_get_command          ; Unconditional: print_s0 leaves Z=1
 
 ; Program is running; set line_ptr and line_pos to next statement and execute it.
 ; If the next statement is the end of the line, then go to the next statement. This is the *only* place where we
@@ -82,15 +81,7 @@ handle_error:
         bmi     nl_get_command
         lday    #error_message_2
         jsr     print_string
-        mva     #1, buffer_pos
-        jsr     line_number_to_string
-        ldx     buffer_pos
-        dex
-        stx     buffer
-        lday    #buffer
-
-print_message:
-        jsr     print_string
+        jsr     print_line_number
 
 nl_get_command:
         jsr     newline
