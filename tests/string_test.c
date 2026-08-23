@@ -375,6 +375,51 @@ void test_string_alloc_retry(void) {
     ASSERT_EQ(memcmp(s->data, "HELLO", 5), 0);
 }
 
+void test_string_255(void) {
+    const String* s;
+    char len;
+    int i;
+
+    PRINT_TEST_NAME();
+
+    initialize_program();
+
+    // 1. Allocate 255-byte string
+    s = string_alloc(255);
+    ASSERT_EQ(err, 0);
+    ASSERT_EQ(s->length, 255);
+    ASSERT_PTR_EQ(s, string_ptr);
+
+    // 2. Load 255-byte string into S0 and S1
+    len = load_s0(s);
+    ASSERT_EQ(len, 255);
+    ASSERT_PTR_EQ(S0, s->data);
+
+    len = load_s1(s);
+    ASSERT_EQ(len, 255);
+    ASSERT_PTR_EQ(S1, s->data);
+
+    // 3. Read unquoted 255-byte string
+    for (i = 0; i < 255; ++i) {
+        buffer[i] = 'A' + (i % 26);
+    }
+    buffer[255] = '\0';
+    read_string(buffer, 0);
+    ASSERT_EQ(err, 0);
+    ASSERT_EQ(string_ptr->length, 255);
+    ASSERT_EQ(memcmp(string_ptr->data, buffer, 255), 0);
+    ASSERT_EQ(Y, 255);
+
+    // 4. Compact preserving 255-byte string
+    add_string_variable_with_name("LONG$", s);
+    compact();
+    parse_and_get_name("LONG$");
+    find_name(variable_name_table_ptr);
+    ASSERT_EQ(err, 0);
+    s = *(const String**)name_ptr;
+    ASSERT_EQ(s->length, 255);
+}
+
 int main(void) {
     initialize_target();
     test_load_s();
@@ -384,5 +429,6 @@ int main(void) {
     test_compact_with_array();
     test_string_alloc_retry();
     test_compact_with_expression();
+    test_string_255();
     return 0;
 }

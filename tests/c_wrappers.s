@@ -409,11 +409,13 @@ _get_name:
 
 _add_variable:
 .export _add_variable
+        startwrap
         jsr     add_variable
         jmp     set_err
 
 _dimension_array:
 .export _dimension_array
+        startwrap
         jsr     dimension_array
         jmp     set_err
 

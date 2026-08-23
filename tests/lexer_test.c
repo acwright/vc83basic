@@ -13,9 +13,10 @@ void init_buffer(const char *s, int line) {
     line_pos = offsetof(Line, data);
 }
 
-void call_next_token(char expect_token, const char* expect_line_data, char expect_line_data_length) {
+void call_next_token(char expect_token, const char* expect_line_data, char expect_line_data_length, int line) {
     char token;
 
+    fprintf(stderr, "  %s:%d: next_token()\n", __FILE__, line);
     token = next_token();
     ASSERT_EQ(token, expect_token);
     ASSERT_MEMORY_EQ(line_buffer.data, expect_line_data, expect_line_data_length);
@@ -31,17 +32,17 @@ void test_lexer_strings(void) {
     PRINT_TEST_NAME();
 
     init_buffer("", __LINE__);
-    call_next_token(TOK_EOL, NULL, 0);
+    call_next_token(TOK_EOL, NULL, 0, __LINE__);
     init_buffer("  ", __LINE__);
-    call_next_token(TOK_EOL, NULL, 0);
+    call_next_token(TOK_EOL, NULL, 0, __LINE__);
 
     init_buffer("\"CALL ME ISHMAEL\"", __LINE__);
-    call_next_token(TOK_STRING, line_data_1, sizeof line_data_1);
-    call_next_token(TOK_EOL, line_data_1, sizeof line_data_1);
+    call_next_token(TOK_STRING, line_data_1, sizeof line_data_1, __LINE__);
+    call_next_token(TOK_EOL, line_data_1, sizeof line_data_1, __LINE__);
     init_buffer("\"ONE\" \"TWO\"", __LINE__);
-    call_next_token(TOK_STRING, line_data_2, 6);
-    call_next_token(TOK_STRING, line_data_2, sizeof line_data_2);
-    call_next_token(TOK_EOL, line_data_2, sizeof line_data_2);
+    call_next_token(TOK_STRING, line_data_2, 6, __LINE__);
+    call_next_token(TOK_STRING, line_data_2, sizeof line_data_2, __LINE__);
+    call_next_token(TOK_EOL, line_data_2, sizeof line_data_2, __LINE__);
 }
 
 void test_lexer_numbers(void) {
@@ -58,40 +59,40 @@ void test_lexer_numbers(void) {
     PRINT_TEST_NAME();
 
     init_buffer("0", __LINE__);
-    call_next_token(TOK_NUM, line_data_1, sizeof line_data_1);
-    call_next_token(TOK_EOL, line_data_1, sizeof line_data_1);
+    call_next_token(TOK_NUM, line_data_1, sizeof line_data_1, __LINE__);
+    call_next_token(TOK_EOL, line_data_1, sizeof line_data_1, __LINE__);
 
     init_buffer("123", __LINE__);
-    call_next_token(TOK_NUM, line_data_2, sizeof line_data_2);
-    call_next_token(TOK_EOL, line_data_2, sizeof line_data_2);
+    call_next_token(TOK_NUM, line_data_2, sizeof line_data_2, __LINE__);
+    call_next_token(TOK_EOL, line_data_2, sizeof line_data_2, __LINE__);
 
     init_buffer("0.5", __LINE__);
-    call_next_token(TOK_NUM, line_data_5, sizeof line_data_5);
-    call_next_token(TOK_EOL, line_data_5, sizeof line_data_5);
+    call_next_token(TOK_NUM, line_data_5, sizeof line_data_5, __LINE__);
+    call_next_token(TOK_EOL, line_data_5, sizeof line_data_5, __LINE__);
 
     init_buffer(".25", __LINE__);
-    call_next_token(TOK_NUM, line_data_6, sizeof line_data_6);
-    call_next_token(TOK_EOL, line_data_6, sizeof line_data_6);
+    call_next_token(TOK_NUM, line_data_6, sizeof line_data_6, __LINE__);
+    call_next_token(TOK_EOL, line_data_6, sizeof line_data_6, __LINE__);
 
     init_buffer("123.456", __LINE__);
-    call_next_token(TOK_NUM, line_data_8, sizeof line_data_8);
-    call_next_token(TOK_EOL, line_data_8, sizeof line_data_8);
+    call_next_token(TOK_NUM, line_data_8, sizeof line_data_8, __LINE__);
+    call_next_token(TOK_EOL, line_data_8, sizeof line_data_8, __LINE__);
 
     init_buffer("100.", __LINE__);
-    call_next_token(TOK_NUM, line_data_9, sizeof line_data_9);
-    call_next_token(TOK_EOL, line_data_9, sizeof line_data_9);
+    call_next_token(TOK_NUM, line_data_9, sizeof line_data_9, __LINE__);
+    call_next_token(TOK_EOL, line_data_9, sizeof line_data_9, __LINE__);
 
     init_buffer("1E10", __LINE__);
-    call_next_token(TOK_NUM, line_data_e1, sizeof line_data_e1);
-    call_next_token(TOK_EOL, line_data_e1, sizeof line_data_e1);
+    call_next_token(TOK_NUM, line_data_e1, sizeof line_data_e1, __LINE__);
+    call_next_token(TOK_EOL, line_data_e1, sizeof line_data_e1, __LINE__);
 
     init_buffer("1.5E-5", __LINE__);
-    call_next_token(TOK_NUM, line_data_e2, sizeof line_data_e2);
-    call_next_token(TOK_EOL, line_data_e2, sizeof line_data_e2);
+    call_next_token(TOK_NUM, line_data_e2, sizeof line_data_e2, __LINE__);
+    call_next_token(TOK_EOL, line_data_e2, sizeof line_data_e2, __LINE__);
 
     init_buffer(".5e3", __LINE__);
-    call_next_token(TOK_NUM, line_data_e4, sizeof line_data_e4);
-    call_next_token(TOK_EOL, line_data_e4, sizeof line_data_e4);
+    call_next_token(TOK_NUM, line_data_e4, sizeof line_data_e4, __LINE__);
+    call_next_token(TOK_EOL, line_data_e4, sizeof line_data_e4, __LINE__);
 }
 
 void test_lexer_operators(void) {
@@ -100,16 +101,16 @@ void test_lexer_operators(void) {
     const char line_data_2[] = { TOK_ADD, TOK_DIV };
 
     init_buffer("+", __LINE__);
-    call_next_token(TOK_ADD, line_data_1, sizeof line_data_1);
-    call_next_token(TOK_EOL, line_data_1, sizeof line_data_1);
+    call_next_token(TOK_ADD, line_data_1, sizeof line_data_1, __LINE__);
+    call_next_token(TOK_EOL, line_data_1, sizeof line_data_1, __LINE__);
     init_buffer("  +", __LINE__);
-    call_next_token(TOK_ADD, line_data_1, sizeof line_data_1);
-    call_next_token(TOK_EOL, line_data_1, sizeof line_data_1);
+    call_next_token(TOK_ADD, line_data_1, sizeof line_data_1, __LINE__);
+    call_next_token(TOK_EOL, line_data_1, sizeof line_data_1, __LINE__);
 
     init_buffer("+/", __LINE__);
-    call_next_token(TOK_ADD, line_data_2, 1);
-    call_next_token(TOK_DIV, line_data_2, sizeof line_data_2);
-    call_next_token(TOK_EOL, line_data_2, sizeof line_data_2);
+    call_next_token(TOK_ADD, line_data_2, 1, __LINE__);
+    call_next_token(TOK_DIV, line_data_2, sizeof line_data_2, __LINE__);
+    call_next_token(TOK_EOL, line_data_2, sizeof line_data_2, __LINE__);
 }
 
 void test_lexer_symbols(void) {
@@ -118,12 +119,12 @@ void test_lexer_symbols(void) {
     const char line_data_2[] = { TOK_LPAREN, TOK_RPAREN };
 
     init_buffer(",", __LINE__);
-    call_next_token(TOK_COMMA, line_data_1, sizeof line_data_1);
-    call_next_token(TOK_EOL, line_data_1, sizeof line_data_1);
+    call_next_token(TOK_COMMA, line_data_1, sizeof line_data_1, __LINE__);
+    call_next_token(TOK_EOL, line_data_1, sizeof line_data_1, __LINE__);
     init_buffer("()", __LINE__);
-    call_next_token(TOK_LPAREN, line_data_2, 1);
-    call_next_token(TOK_RPAREN, line_data_2, sizeof line_data_2);
-    call_next_token(TOK_EOL, line_data_2, sizeof line_data_2);
+    call_next_token(TOK_LPAREN, line_data_2, 1, __LINE__);
+    call_next_token(TOK_RPAREN, line_data_2, sizeof line_data_2, __LINE__);
+    call_next_token(TOK_EOL, line_data_2, sizeof line_data_2, __LINE__);
 }
 
 void test_lexer_names(void) {
@@ -144,64 +145,64 @@ void test_lexer_names(void) {
     PRINT_TEST_NAME();
 
     init_buffer("PRINT", __LINE__);
-    call_next_token(TOK_PRINT, line_data_1, 1);
-    call_next_token(TOK_EOL, line_data_1, sizeof line_data_1);
+    call_next_token(TOK_PRINT, line_data_1, 1, __LINE__);
+    call_next_token(TOK_EOL, line_data_1, sizeof line_data_1, __LINE__);
 
     init_buffer("GOTO", __LINE__);
-    call_next_token(TOK_GOTO, line_data_2, 1);
-    call_next_token(TOK_EOL, line_data_2, sizeof line_data_2);
+    call_next_token(TOK_GOTO, line_data_2, 1, __LINE__);
+    call_next_token(TOK_EOL, line_data_2, sizeof line_data_2, __LINE__);
 
     init_buffer("FOR", __LINE__);
-    call_next_token(TOK_FOR, line_data_3, 1);
-    call_next_token(TOK_EOL, line_data_3, sizeof line_data_3);
+    call_next_token(TOK_FOR, line_data_3, 1, __LINE__);
+    call_next_token(TOK_EOL, line_data_3, sizeof line_data_3, __LINE__);
 
     init_buffer("NEXT", __LINE__);
-    call_next_token(TOK_NEXT, line_data_4, 1);
-    call_next_token(TOK_EOL, line_data_4, sizeof line_data_4);
+    call_next_token(TOK_NEXT, line_data_4, 1, __LINE__);
+    call_next_token(TOK_EOL, line_data_4, sizeof line_data_4, __LINE__);
 
     init_buffer("IF", __LINE__);
-    call_next_token(TOK_IF, line_data_5, 1);
-    call_next_token(TOK_EOL, line_data_5, sizeof line_data_5);
+    call_next_token(TOK_IF, line_data_5, 1, __LINE__);
+    call_next_token(TOK_EOL, line_data_5, sizeof line_data_5, __LINE__);
 
     init_buffer("THEN", __LINE__);
-    call_next_token(TOK_THEN, line_data_6, 1);
-    call_next_token(TOK_EOL, line_data_6, sizeof line_data_6);
+    call_next_token(TOK_THEN, line_data_6, 1, __LINE__);
+    call_next_token(TOK_EOL, line_data_6, sizeof line_data_6, __LINE__);
 
     // Lowercase keywords (should be case-insensitive and match TOK_PRINT etc.)
     init_buffer("print", __LINE__);
-    call_next_token(TOK_PRINT, line_data_1, 1);
-    call_next_token(TOK_EOL, line_data_1, sizeof line_data_1);
+    call_next_token(TOK_PRINT, line_data_1, 1, __LINE__);
+    call_next_token(TOK_EOL, line_data_1, sizeof line_data_1, __LINE__);
 
     init_buffer("goto", __LINE__);
-    call_next_token(TOK_GOTO, line_data_2, 1);
-    call_next_token(TOK_EOL, line_data_2, sizeof line_data_2);
+    call_next_token(TOK_GOTO, line_data_2, 1, __LINE__);
+    call_next_token(TOK_EOL, line_data_2, sizeof line_data_2, __LINE__);
 
     // '?' is an alternative syntax for PRINT
     init_buffer("?", __LINE__);
-    call_next_token(TOK_ALT_PRINT, line_data_7, 1);
-    call_next_token(TOK_EOL, line_data_7, sizeof line_data_7);
+    call_next_token(TOK_ALT_PRINT, line_data_7, 1, __LINE__);
+    call_next_token(TOK_EOL, line_data_7, sizeof line_data_7, __LINE__);
 
     // Lowercase variable names (should convert to uppercase in line_buffer with EOT set)
     init_buffer("foo", __LINE__);
-    call_next_token(TOK_NAME, line_data_foo, 4);
-    call_next_token(TOK_EOL, line_data_foo, sizeof line_data_foo);
+    call_next_token(TOK_NAME, line_data_foo, 4, __LINE__);
+    call_next_token(TOK_EOL, line_data_foo, sizeof line_data_foo, __LINE__);
 
     // Variable names (not in keyword table) should return TOK_NAME with EOT set on the last character
     init_buffer("FOO", __LINE__);
-    call_next_token(TOK_NAME, line_data_foo, 4);
-    call_next_token(TOK_EOL, line_data_foo, sizeof line_data_foo);
+    call_next_token(TOK_NAME, line_data_foo, 4, __LINE__);
+    call_next_token(TOK_EOL, line_data_foo, sizeof line_data_foo, __LINE__);
 
     init_buffer("VAR123", __LINE__);
-    call_next_token(TOK_NAME, line_data_var123, 7);
-    call_next_token(TOK_EOL, line_data_var123, sizeof line_data_var123);
+    call_next_token(TOK_NAME, line_data_var123, 7, __LINE__);
+    call_next_token(TOK_EOL, line_data_var123, sizeof line_data_var123, __LINE__);
 
     init_buffer("MY_VAR", __LINE__);
-    call_next_token(TOK_NAME, line_data_myvar, 7);
-    call_next_token(TOK_EOL, line_data_myvar, sizeof line_data_myvar);
+    call_next_token(TOK_NAME, line_data_myvar, 7, __LINE__);
+    call_next_token(TOK_EOL, line_data_myvar, sizeof line_data_myvar, __LINE__);
 
     // Invalid character input should return TOK_NON_TERMINAL
     init_buffer("!", __LINE__);
-    call_next_token(TOK_NON_TERMINAL, line_data_non_terminal, sizeof line_data_non_terminal);
+    call_next_token(TOK_NON_TERMINAL, line_data_non_terminal, sizeof line_data_non_terminal, __LINE__);
 }
 
 int main(void) {

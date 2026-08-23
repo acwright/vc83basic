@@ -296,3 +296,20 @@ PRINT SIN(1,2)
 } {
 ERR: SYNTAX
 }
+
+# 255-byte string operations
+
+test {
+10 LET A$=""
+20 FOR I=1 TO 255:LET A$=A$&"A":NEXT I
+30 PRINT LEN(A$)
+40 PRINT LEFT$(A$,3)
+50 PRINT RIGHT$(A$,3)
+60 PRINT MID$(A$,127,3)
+RUN
+} {
+255
+AAA
+AAA
+AAA
+}

@@ -209,9 +209,19 @@ void test_parse_line(void) {
 void test_max_line_length(void) {
     char buf[256];
     int pos;
+    int i;
 
     PRINT_TEST_NAME();
 
+    // 1. Long valid line (REM statement fitting in line_buffer)
+    memset(buf, 'X', 230);
+    buf[230] = '\0';
+    sprintf(buffer, "10 REM %s", buf);
+    parse_line();
+    ASSERT_EQ(err, 0);
+    ASSERT_EQ(line_buffer.number, 10);
+
+    // 2. Long expression that exceeds MAX_LINE_LENGTH
     memset(buf, 0, sizeof buf);
     strcpy(buf, "10 PRINT ");
     pos = strlen(buf);
@@ -222,6 +232,19 @@ void test_max_line_length(void) {
     buf[pos] = '1';
     buf[pos + 1] = '\0';
 
+    strcpy(buffer, buf);
+    parse_line();
+    ASSERT_EQ(err, ERR_LINE_TOO_LONG);
+
+    // 3. Many chained statements that exceed MAX_LINE_LENGTH
+    pos = 0;
+    strcpy(buf, "10 ");
+    pos = 3;
+    for (i = 0; i < 40; ++i) {
+        strcpy(buf + pos, "LET X=1:");
+        pos += 8;
+    }
+    buf[pos] = '\0';
     strcpy(buffer, buf);
     parse_line();
     ASSERT_EQ(err, ERR_LINE_TOO_LONG);

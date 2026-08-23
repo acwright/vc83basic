@@ -628,22 +628,23 @@ void test_fp_to_string(void) {
     call_fp_to_string(0x9502F900, 161, "-1E10", __LINE__);
 }
 
-void call_string_to_fp(const char* string, unsigned long expect_t, char expect_e, int line) {
+void call_string_to_fp(const char* input, unsigned long expect_t, char expect_e, char expect_y, int line) {
     Float expect_result;
     Float result;
     expect_result.t = expect_t;
     expect_result.e = expect_e;
-    fprintf(stderr, "  %s:%d: string_to_fp(\"%s\")\n", __FILE__, line, string);
-    strcpy(buffer, string);
+    fprintf(stderr, "  %s:%d: string_to_fp(\"%s\")\n", __FILE__, line, input);
+    strcpy(buffer, input);
     string_to_fp(buffer, 0);
     store_fp0(&result);
     ASSERT_EQ(err, 0);
     ASSERT_FLOAT_EQ(result, expect_result);
+    ASSERT_EQ(Y, expect_y);
 }
 
-void fail_string_to_fp(const char* string, int line) {
-    fprintf(stderr, "  %s:%d: string_to_fp(\"%s\")\n", __FILE__, line, string);
-    strcpy(buffer, string);
+void fail_string_to_fp(const char* input, int line) {
+    fprintf(stderr, "  %s:%d: string_to_fp(\"%s\")\n", __FILE__, line, input);
+    strcpy(buffer, input);
     string_to_fp(buffer, 0);
     ASSERT_NE(err, 0);
     ASSERT_EQ(Y, 0);
@@ -653,64 +654,64 @@ void test_string_to_fp(void) {
     PRINT_TEST_NAME();
 
     // 0
-    call_string_to_fp("0", 0x00000000, 0, __LINE__);
+    call_string_to_fp("0", 0x00000000, 0, 1, __LINE__);
     // 1
-    call_string_to_fp("1", 0x00000000, 128, __LINE__);
+    call_string_to_fp("1", 0x00000000, 128, 1, __LINE__);
     // -1
-    call_string_to_fp("-1", 0x80000000, 128, __LINE__);
+    call_string_to_fp("-1", 0x80000000, 128, 2, __LINE__);
     // +1
-    call_string_to_fp("+1", 0x00000000, 128, __LINE__);
+    call_string_to_fp("+1", 0x00000000, 128, 2, __LINE__);
     // 10
-    call_string_to_fp("10", 0x20000000, 131, __LINE__);
+    call_string_to_fp("10", 0x20000000, 131, 2, __LINE__);
     // 25
-    call_string_to_fp("25", 0x48000000, 132, __LINE__);
+    call_string_to_fp("25", 0x48000000, 132, 2, __LINE__);
     // 100
-    call_string_to_fp("100", 0x48000000, 134, __LINE__);
+    call_string_to_fp("100", 0x48000000, 134, 3, __LINE__);
     // -100
-    call_string_to_fp("-100", 0xC8000000, 134, __LINE__);
+    call_string_to_fp("-100", 0xC8000000, 134, 4, __LINE__);
     // 3.14159
-    call_string_to_fp("3.14159", 0x490FCF81, 129, __LINE__);
+    call_string_to_fp("3.14159", 0x490FCF81, 129, 7, __LINE__);
     // 0.0314159
-    call_string_to_fp("0.0314159", 0x00ADF571, 123, __LINE__);
+    call_string_to_fp("0.0314159", 0x00ADF571, 123, 9, __LINE__);
     // 2,147,483,647
-    call_string_to_fp("2147483647", 0x7FFFFFFE, 158, __LINE__);
+    call_string_to_fp("2147483647", 0x7FFFFFFE, 158, 10, __LINE__);
     // -2,147,483,648
-    call_string_to_fp("-2147483648", 0x80000000, 159, __LINE__);
+    call_string_to_fp("-2147483648", 0x80000000, 159, 11, __LINE__);
     // 1.025
-    call_string_to_fp("1.025", 0x03333333, 128, __LINE__);
+    call_string_to_fp("1.025", 0x03333333, 128, 5, __LINE__);
     // log(2)                                         
-    call_string_to_fp("0.693147181", 0x317217FA, 127, __LINE__);
+    call_string_to_fp("0.693147181", 0x317217FA, 127, 11, __LINE__);
     // sqrt(2)                                         
-    call_string_to_fp("1.414213562", 0x3504F333, 128, __LINE__);
+    call_string_to_fp("1.414213562", 0x3504F333, 128, 11, __LINE__);
     // 10,000
-    call_string_to_fp("1E5", 0x43500000, 144, __LINE__);
+    call_string_to_fp("1E5", 0x43500000, 144, 3, __LINE__);
     // 10,000 (alternate)
-    call_string_to_fp("10E4", 0x43500000, 144, __LINE__);
+    call_string_to_fp("10E4", 0x43500000, 144, 4, __LINE__);
     // -10,000
-    call_string_to_fp("-1E5", 0xC3500000, 144, __LINE__);
+    call_string_to_fp("-1E5", 0xC3500000, 144, 4, __LINE__);
     // 3.14159
-    call_string_to_fp("31415.9E-4", 0x490FCF81, 129, __LINE__);
+    call_string_to_fp("31415.9E-4", 0x490FCF81, 129, 10, __LINE__);
     // 3.14159
-    call_string_to_fp(".0314159E2", 0x490FCF81, 129, __LINE__);
+    call_string_to_fp(".0314159E2", 0x490FCF81, 129, 10, __LINE__);
     // 1
-    call_string_to_fp("1E0", 0x00000000, 128, __LINE__);
+    call_string_to_fp("1E0", 0x00000000, 128, 3, __LINE__);
     // -1
-    call_string_to_fp("-1E0", 0x80000000, 128, __LINE__);
+    call_string_to_fp("-1E0", 0x80000000, 128, 4, __LINE__);
     // 0
-    call_string_to_fp("0E5", 0x00000000, 0, __LINE__);
+    call_string_to_fp("0E5", 0x00000000, 0, 3, __LINE__);
     // 0.1
-    call_string_to_fp("100E-2", 0x00000000, 128, __LINE__);
+    call_string_to_fp("100E-2", 0x00000000, 128, 6, __LINE__);
     // 1
-    call_string_to_fp("1E", 0x00000000, 128, __LINE__);
+    call_string_to_fp("1E", 0x00000000, 128, 2, __LINE__);
 
     // Verify that string_to_fp stops on non-digit.
-    call_string_to_fp("10X", 0x20000000, 131, __LINE__);
-    call_string_to_fp("-100-", 0xC8000000, 134, __LINE__);
+    call_string_to_fp("10X", 0x20000000, 131, 2, __LINE__);
+    call_string_to_fp("-100-", 0xC8000000, 134, 4, __LINE__);
 
     // Verify that string_to_fp handles characters with EOT set.
-    call_string_to_fp("10\xB0", 0x48000000, 134, __LINE__);
-    call_string_to_fp("100\xAE", 0x48000000, 134, __LINE__);
-    call_string_to_fp("1E\xB5", 0x43500000, 144, __LINE__);
+    call_string_to_fp("10\xB0", 0x48000000, 134, 3, __LINE__);
+    call_string_to_fp("100\xAE", 0x48000000, 134, 4, __LINE__);
+    call_string_to_fp("1E\xB5", 0x43500000, 144, 3, __LINE__);
     
     // Verify that string_to_fp leaves buffer_pos alone when faced with non-numbers.
     fail_string_to_fp("X10", __LINE__);

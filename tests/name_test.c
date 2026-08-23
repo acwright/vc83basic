@@ -212,6 +212,14 @@ void test_add_variable(void) {
     call_find_name("Y", variable_name_table_ptr, 2, variable_name_table_ptr + 7 + 8 + 2, __LINE__);
 
     ASSERT_PTR_EQ(array_name_table_ptr, variable_name_table_ptr + 7 + 8 + 7 + 1);
+    ASSERT_EQ(array_name_table_ptr[-1], 0);     // Terminator at end of variable name table
+    ASSERT_EQ(array_name_table_ptr[0], 0);      // Terminator at end of array name table
+
+    // Test out of memory on add_variable
+    string_ptr = (String*)free_ptr;
+    call_find_name_fail("Z", variable_name_table_ptr, 3, array_name_table_ptr - 1, __LINE__);
+    add_variable();
+    ASSERT_EQ(err, ERR_OUT_OF_MEMORY);
 }
 
 int call_test_imul_16(int value1, int value2) {
@@ -265,6 +273,8 @@ void test_dimension_array() {
     const char line_data_1[] = { 'X' | EOT, TOK_LPAREN, TOK_NUM, '3' | EOT, TOK_RPAREN };
     const char line_data_2[] = { 'Y' | EOT, TOK_LPAREN, TOK_NUM, '2', '5' | EOT, TOK_COMMA, TOK_NUM, '5' | EOT, TOK_RPAREN };
     const char line_data_3[] = { 'A', '$' | EOT, TOK_LPAREN, TOK_NUM, '5' | EOT, TOK_RPAREN };
+    const char line_data_too_big_1d[] = { 'B', 'I', 'G' | EOT, TOK_LPAREN, TOK_NUM, '7', '0', '0', '0' | EOT, TOK_RPAREN };
+    const char line_data_too_big_2d[] = { 'B', '2' | EOT, TOK_LPAREN, TOK_NUM, '1', '0', '0' | EOT, TOK_COMMA, TOK_NUM, '1', '0', '0' | EOT, TOK_RPAREN };
     const char expect_array_data_1[] = {
         0x80, 0x1A,     // size (26 bytes)
         'X' | EOT,      // name
@@ -406,6 +416,20 @@ void test_dimension_array() {
 
     ASSERT_PTR_EQ(free_ptr, array_name_table_ptr + 26 + 788 + 19 + 1);
     ASSERT_MEMORY_EQ(array_name_table_ptr + 26 + 788, expect_array_data_3, sizeof expect_array_data_3);
+    ASSERT_EQ(((char*)free_ptr)[-1], 0); // Terminator at end of array name table is set to 0
+
+    // Test array size > 32K returns ERR_OUT_OF_RANGE
+    set_line(0, line_data_too_big_1d, sizeof line_data_too_big_1d);
+    get_name();
+    arity = -evaluate_argument_list(0);
+    dimension_array();
+    ASSERT_EQ(err, ERR_OUT_OF_RANGE);
+
+    set_line(0, line_data_too_big_2d, sizeof line_data_too_big_2d);
+    get_name();
+    arity = -evaluate_argument_list(0);
+    dimension_array();
+    ASSERT_EQ(err, ERR_OUT_OF_RANGE);
 }
 
 void call_find_array_element(const char* line_data, size_t line_data_length, char expect_index,
