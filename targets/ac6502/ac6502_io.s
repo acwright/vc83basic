@@ -112,7 +112,6 @@ io_inkey:
 ; Polls for ESC or CTRL-C while a BASIC program is running to allow break.
 
 io_put:
-putch:
         pha                             ; Save character to output
         lda     program_state           ; Only poll keyboard while a program is running
         bne     @output                 ; PS_READY (non-zero): skip break check
@@ -129,7 +128,6 @@ putch_raw:
 ; Emits record delimiter (CR + LF).
 
 io_end_record:
-newline:
         lda     #CH_CR
         jsr     io_put
         lda     #CH_LF
@@ -162,7 +160,6 @@ io_end_field:
 ; NUL-terminates at EOL, returns length in A.
 
 io_read_record:
-readline:
         ldy     #0
 @waitchar:
         jsr     get_key

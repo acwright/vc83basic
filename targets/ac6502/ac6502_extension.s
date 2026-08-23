@@ -26,7 +26,7 @@ ex_print_cstr:
 @next:
         lda     (BC),y
         beq     @done
-        jsr     putch
+        jsr     io_put
         iny
         bne     @next
 @done:
@@ -35,7 +35,7 @@ ex_print_cstr:
 ; Print a null-terminated string pointed to by AX followed by a newline.
 ex_print_cstr_nl:
         jsr     ex_print_cstr
-        jmp     newline
+        jmp     io_end_record
 
 ; Print "NO DEVICE" + newline.
 ex_no_device:
@@ -60,11 +60,11 @@ ex_print_2d:
         txa
         clc
         adc     #'0'
-        jsr     putch
+        jsr     io_put
         pla
         clc
         adc     #'0'
-        jmp     putch
+        jmp     io_put
 
 ; Print A as two hex digits.
 ex_print_2h:
@@ -81,11 +81,11 @@ ex_print_nib:
         bcc     @digit
         clc
         adc     #'A' - 10
-        jmp     putch
+        jmp     io_put
 @digit:
         clc
         adc     #'0'
-        jmp     putch
+        jmp     io_put
 
 ; Convert AX (16-bit signed int) to FP0 and print as a number.
 ex_print_ax:
@@ -243,14 +243,14 @@ exec_time:
         phx                             ; save minutes
         jsr     ex_print_2d             ; hours
         lda     #':'
-        jsr     putch
+        jsr     io_put
         pla                             ; minutes
         jsr     ex_print_2d
         lda     #':'
-        jsr     putch
+        jsr     io_put
         pla                             ; seconds
         jsr     ex_print_2d
-        jmp     newline
+        jmp     io_end_record
 
 exec_date:
         lda     HW_PRESENT
@@ -266,14 +266,14 @@ exec_date:
         pla                             ; year
         jsr     ex_print_2d
         lda     #'-'
-        jsr     putch
+        jsr     io_put
         pla                             ; month
         jsr     ex_print_2d
         lda     #'-'
-        jsr     putch
+        jsr     io_put
         pla                             ; day
         jsr     ex_print_2d
-        jmp     newline
+        jmp     io_end_record
 
 exec_settime:
         sta     C                       ; C = seconds (from prolog)
@@ -345,10 +345,10 @@ exec_mem:
         ldax    #ex_str_hw
         jsr     ex_print_cstr
         lda     #'$'
-        jsr     putch
+        jsr     io_put
         lda     HW_PRESENT
         jsr     ex_print_2h
-        jsr     newline
+        jsr     io_end_record
         ldax    #ex_str_io
         jsr     ex_print_cstr
         lda     IO_MODE
