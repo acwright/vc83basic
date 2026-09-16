@@ -14,3 +14,8 @@ src/zeropage.s
 src/version.inc
 scratch/
 *.o
+
+# Planning documents are kept local
+VDP-ASSESSMENT.md
+VDP-PLAN.md
+/PLAN.md
