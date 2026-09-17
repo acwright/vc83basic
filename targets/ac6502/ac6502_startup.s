@@ -25,9 +25,10 @@ startup:
                                         ; Sets IRQ/BRK/NMI RAM vectors and IO_MODE.
                                         ; Leaves interrupts disabled; caller must CLI.
 
-        ; KernalInit points BRK_PTR at the BIOS handler, which ends in a jump
-        ; to the Monitor at $EE00 -- an address this cartridge has overlaid
-        ; with its own code.  Take the vector over before anything can BRK.
+        ; KernalInit points BRK_PTR at the BIOS handler.  On BIOS 1.x that
+        ; jumps to the Monitor at $EE00; on 2.x it prints a report and
+        ; warm-starts BIOS BASIC at $C000.  This cartridge overlays both
+        ; with its own code, so take the vector over before anything can BRK.
         lda     #<brk_handler
         sta     BRK_PTR
         lda     #>brk_handler
@@ -36,12 +37,14 @@ startup:
         jsr     Beep                    ; Play the startup beep
         cli                             ; Enable interrupts (keyboard, serial RX)
 
-        ; Clear the screen.  Neither KernalInit nor InitVideo touches the name
-        ; table -- InitVideo only writes the mode registers and reloads the
-        ; character set -- so without this a reset leaves the previous
-        ; session's text on screen underneath the banner.  VideoClear tests
-        ; HW_PRESENT itself and returns immediately on a machine with no video
-        ; card, so this is safe on a serial-only console.
+        ; Clear the screen.  On BIOS 1.x, KernalInit's InitVideo sets the mode
+        ; and reloads the character set but leaves the name table, so without
+        ; this a reset leaves the previous session's text on screen underneath
+        ; the banner.  On 2.x, KernalInit leaves the card in its legacy
+        ; submode and this is the first console call, so it brings the Text
+        ; console up.  Both need the clear.  VideoClear tests HW_PRESENT itself
+        ; and returns immediately on a machine with no video card, so this is
+        ; safe on a serial-only console.
         jsr     VideoClear
 
         ; BSS is not zeroed on bare metal, and `write` -> `putch` polls for a
@@ -61,8 +64,9 @@ startup:
 
 brk_handler:
         pla                             ; Discard the pushed P
-        pla                             ; PCL -- as with the BIOS Monitor, the
-        sta     D                       ;   reported address is the BRK + 2
+        pla                             ; PCL -- the pushed return address,
+        sta     D                       ;   BRK + 2 (1.x's Monitor reported the
+                                        ;   same; 2.x's report subtracts 2)
         pla                             ; PCH
         sta     E
         ldax    #brk_message

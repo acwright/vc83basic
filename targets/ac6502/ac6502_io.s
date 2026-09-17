@@ -27,10 +27,12 @@ get_key:
         beq     @none
         jsr     ReadBuffer              ; A = the byte (clobbers X)
         pha
-        ; Chrin also releases RTS once the buffer has drained.  Irq asserts it
-        ; when the buffer passes $F0 and nothing else ever lets go again, so a
-        ; serial console would accept one bufferful and then wedge for good if
-        ; this were left out.
+        ; Chrin also releases RTS once the buffer has drained.  On BIOS 1.x,
+        ; Irq asserts it when the buffer passes $F0 and nothing but Chrin ever
+        ; lets go again, so a serial console would accept one bufferful and
+        ; then wedge for good if this were left out.  On 2.x, ReadBuffer
+        ; releases it itself, so this is redundant there but harmless: same
+        ; threshold, same $09.
         lda     HW_PRESENT
         and     #HW_SC
         beq     @done                   ; No serial card -- nothing to release

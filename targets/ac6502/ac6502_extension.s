@@ -113,6 +113,10 @@ exec_locate:
 @skip:
         rts
 
+; COLOR fg,bg -- on BIOS 1.x this recolours the whole text screen.  On 2.x it
+; sets the pen for later output, and the border follows the background
+; (COLOR f,b : CLS fills the screen on both).
+
 exec_color:
         and     #$0F
         sta     D                       ; D = bg nibble (last arg popped by prolog)
