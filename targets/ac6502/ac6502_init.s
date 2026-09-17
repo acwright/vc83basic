@@ -2,12 +2,12 @@
 ;
 ; SPDX-License-Identifier: MIT
 ;
-; ac6502 BASIC workspace (buffers and interpreter stacks).  All mutable
+; AC6502 BASIC workspace (buffers and interpreter stacks).  All mutable
 ; storage is placed in the BSS segment so __BSS_SIZE__ correctly reflects
 ; how much RAM is consumed before the user program area.  BASIC's
 ; program_ptr is computed from __BSS_RUN__ + __BSS_SIZE__ (see program.s).
 ; 
-; See https://github.com/acwright/6502 for more info
+; See https://github.com/acwright/6502-ACE for more info
 
 .segment "BSS"
 

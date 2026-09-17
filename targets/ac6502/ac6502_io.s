@@ -2,7 +2,7 @@
 ;
 ; SPDX-License-Identifier: MIT
 ;
-; ac6502 console I/O.
+; AC6502 console I/O.
 ;
 ; The Kernal's Chrin ($A003) echoes every byte it hands back -- it is the
 ; BIOS's line-input primitive, not a raw poll.  That is wrong for a break
@@ -11,7 +11,7 @@
 ; swallowed, so a later INPUT never sees it.  So this target reads the input
 ; ring buffer directly and decides for itself when to echo.
 ;
-; See https://github.com/acwright/6502 for more info
+; See https://github.com/acwright/6502-ACE for more info
 
 ; ---------------------------------------------------------------------------
 ; Keyboard input primitives

@@ -2,7 +2,7 @@
 ;
 ; SPDX-License-Identifier: MIT
 ;
-; ac6502 BASIC extensions. Adds hardware-specific statements and
+; AC6502 BASIC extensions. Adds hardware-specific statements and
 ; functions that mirror the Integer BASIC built into the 6502-BIOS:
 ; CLS, LOCATE, COLOR, SOUND, VOL, PAUSE, WAIT, TIME, DATE, SETTIME,
 ; SETDATE, NVRAM, BANK, MEM, SYS and JOY(), INKEY(), NVRAM().

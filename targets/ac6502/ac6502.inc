@@ -2,7 +2,7 @@
 ;
 ; SPDX-License-Identifier: MIT
 ;
-; ac6502 target include -- symbolic names for BIOS Kernal routines and
+; AC6502 target include -- symbolic names for BIOS Kernal routines and
 ; system variables used by VC83 BASIC.  Mirrors the Kernal ABI of BIOS 1.5
 ; and 1.6 (TMS9918A).  Runs unchanged on BIOS 2.x (6502-PICOVDP): 2.0 keeps
 ; every address listed here.  The 2.x additions are not listed, because

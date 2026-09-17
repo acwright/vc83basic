@@ -2,7 +2,7 @@
 ;
 ; SPDX-License-Identifier: MIT
 ;
-; ac6502 cartridge entry point.  The cartridge ROM occupies $C000-$FFFF
+; AC6502 cartridge entry point.  The cartridge ROM occupies $C000-$FFFF
 ; and owns the CPU vectors at $FFFA-$FFFF.  On RESET the CPU jumps to
 ; `startup`, which performs BIOS hardware initialization via KernalInit
 ; and then transfers control to the BASIC interpreter.
@@ -10,7 +10,7 @@
 ; This is the BIOS README's "Pattern B" (KernalInit + beep), with the
 ; cartridge taking over the BRK vector -- see brk_handler below.
 ;
-; See https://github.com/acwright/6502 for more info
+; See https://github.com/acwright/6502-ACE for more info
 
 .export startup
 
