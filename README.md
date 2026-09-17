@@ -98,21 +98,21 @@ loads at `$4000`.
 
 ### ac6502
 
-The `basic_ac6502` binary targets the [ac6502](https://github.com/acwright/6502) computer system and runs as a 32 KB cartridge image overlaying `$C000–$FFFF`.
+The `basic_ac6502` binary targets the [AC6502](https://github.com/acwright/6502-ACE) family of computers and runs as a 32 KB cartridge image overlaying `$C000–$FFFF`. It runs on BIOS 1.5 and 1.6 with a TMS9918A video card, and unchanged on BIOS 2.x with a 6502-PICOVDP.
 
 1.  **Install the emulator**:
-    Install Node.js (e.g., via Homebrew with `brew install node`) and install the `ac6502` emulator package globally:
-    ```bash
-    npm install -g ac6502
-    ```
+    Install the AC6502 emulator, version 3.1 or later, from [6502-EMULATOR](https://github.com/acwright/6502-EMULATOR): the desktop app, or its `6502` command line. The BIOS ROMs come bundled with it.
 
-2.  **Obtain the BIOS ROM**:
-    The emulator requires the system BIOS ROM (`BIOS.bin`), which can be obtained from the [6502-BIOS](https://github.com/acwright/6502-BIOS) repository on GitHub.
-
-3.  **Run the cartridge**:
+2.  **Run the cartridge**:
+    On BIOS 1.6 with a TMS9918A:
     ```bash
-    ac6502 -r /path/to/BIOS.bin -c build/basic_ac6502
+    6502 run --cart build/basic_ac6502
     ```
+    On BIOS 2.0 with a 6502-PICOVDP:
+    ```bash
+    6502 run --vdp picovdp --cart build/basic_ac6502
+    ```
+    To paste programs over the serial console, add `--flow-control`. Without it, a long paste can lose lines.
 
 ## Memory Map
 
