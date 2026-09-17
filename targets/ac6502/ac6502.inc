@@ -3,9 +3,11 @@
 ; SPDX-License-Identifier: MIT
 ;
 ; ac6502 target include -- symbolic names for BIOS Kernal routines and
-; system variables used by VC83 BASIC.  Mirrors the Kernal ABI as of
-; BIOS v1.5; see 6502-BIOS/BIOS.inc and the "Cartridge Support" section
-; of its README for the full documentation.
+; system variables used by VC83 BASIC.  Mirrors the Kernal ABI of BIOS 1.5
+; and 1.6 (TMS9918A).  Runs unchanged on BIOS 2.x (6502-PICOVDP): 2.0 keeps
+; every address listed here.  The 2.x additions are not listed, because
+; this target stays a 1.x program.  See 6502-BIOS/BIOS.inc and the
+; "Cartridge Support" section of its README for the full documentation.
 ;
 ; See https://github.com/acwright/6502-BIOS for more info
 
@@ -31,7 +33,8 @@ STR_PTR             := $02               ; $02-$03 - BIOS string pointer
 
 ; --- BIOS Kernal jump table ($A000-$A0FF) ---
 ; Every entry is a stable 3-byte JMP; the addresses do not move between BIOS
-; versions, so this table is safe to list in full even where VC83 does not
+; versions (checked against 6502-BIOS tests/fixtures/jumptable.json for 1.6
+; and 2.0), so this table is safe to list in full even where VC83 does not
 ; (yet) call an entry.
 Chrout              := $A000             ; Output character (routed by IO_MODE)
 Chrin               := $A003             ; Input char, ECHOES it (see get_key in ac6502_io.s)
@@ -89,6 +92,13 @@ PrintDecU16         := $A096
 ; --- Added in BIOS v1.4: raw keyboard-encoder control ---
 KBDisable           := $A099
 KBEnable            := $A09C
+; --- Added in BIOS v1.6: NVRAM save slots ---
+NvStat              := $A09F
+NvRead              := $A0A2
+NvWrite             := $A0A5
+NvErase             := $A0A8
+NvFind              := $A0AB
+NvFormat            := $A0AE
 
 ; --- System RAM variables used here ---
 INPUT_BUFFER        := $0200             ; $0200-$02FF - BIOS keyboard/serial ring buffer
