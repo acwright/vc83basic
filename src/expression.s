@@ -244,6 +244,47 @@ op_concat:
 @out_of_range:
         jmp     raise_out_of_range
 
+op_eq:
+        jsr     compare_values
+op_eq_tail:
+        beq     set_value_1             ; A = B
+        bne     set_value_0             ; A <> B
+
+op_ne:
+        jsr     compare_values
+op_ne_tail:
+        bne     set_value_1             ; A <> B
+        beq     set_value_0             ; A = B
+
+op_lt:
+        jsr     compare_values
+        bcc     set_value_1             ; A < B
+        bcs     set_value_0             ; A >= B
+
+op_ge:
+        jsr     compare_values
+        bcc     set_value_0             ; A < B
+        bcs     set_value_1             ; A >= B
+
+op_gt:
+        jsr     compare_values
+        bcs     op_ne_tail              ; A >= B
+
+set_value_0:
+        jmp     clear_fp0
+
+op_le:
+        jsr     compare_values
+        bcs     op_eq_tail
+
+set_value_1:
+        jmp     load_one_fp0
+
+compare_num_values:
+        jsr     load_fp1
+        jsr     swap_fp0_fp1
+        jmp     fcmp_2
+
 ; Compares two strings: right operand in S0, left on stack.
 ; Returns flags based on comparison.
 ; CMP s1 len, s2 len
@@ -275,50 +316,6 @@ compare_string_values:
         lda     D                       ; Characters are the same, so shorter string is lesser or equal
         cmp     E
         rts
-
-op_eq:
-        jsr     compare_values
-op_eq_tail:
-        beq     set_value_1             ; A = B
-        bne     set_value_0             ; A <> B
-
-op_ne:
-        jsr     compare_values
-op_ne_tail:
-        bne     set_value_1             ; A <> B
-        beq     set_value_0             ; A = B
-
-op_le:
-        jsr     compare_values
-        bcc     set_value_1             ; A < B
-        beq     set_value_1             ; A = B
-        bne     set_value_0             ; A > B
-
-op_lt:
-        jsr     compare_values
-        bcc     set_value_1             ; A < B
-        bcs     set_value_0             ; A >= B
-
-op_ge:
-        jsr     compare_values
-        bcc     set_value_0             ; A < B
-        bcs     set_value_1             ; A >= B
-
-op_gt:
-        jsr     compare_values
-        bcc     set_value_0             ; A < B
-        bcs     op_ne_tail              ; A >= B
-
-set_value_0:
-        jmp     clear_fp0
-
-set_value_1:
-        jmp     load_one_fp0
-
-compare_num_values:
-        jsr     load_fp1
-        jsr     swap_fp0_fp1
-        jmp     fcmp_2
 
 compare_values:
         lda     expr_type               ; Right operand type
@@ -454,10 +451,8 @@ pop_fp0:
 ; Pushes the pending value (FP0 or S0 based on expr_type) onto the value stack.
 push_pending:
         lda     expr_type
-        bne     @string
-        jmp     push_fp0
-@string:
-        jmp     push_string_s0
+        beq     push_fp0
+        bne     push_string_s0
 
 ; Pushes the string referenced by string_ptr onto the stack. This works because this function is only called after
 ; we have generated a new string.
@@ -466,7 +461,9 @@ push_pending:
 
 push_string:
         mvax    string_ptr, S0
+
 ; Fall through
+
 push_string_s0:
         jsr     stack_alloc_value
         tay
@@ -540,6 +537,14 @@ op_and:
         pha
         txa                             ; High byte into A
         and     E                       ; AND high bytes
+        jmp     finish_logical_op
+
+op_or:
+        jsr     set_up_logical_op
+        ora     D                       ; OR low bytes
+        pha
+        txa                             ; High byte into A
+        ora     E                       ; OR low bytes
 
 ; Fall through
 
@@ -548,14 +553,6 @@ finish_logical_op:
         mva     #TYPE_NUMBER, expr_type ; Result is TYPE_NUMBER
         pla                             ; Recover low byte
         jmp     int_to_fp
-
-op_or:
-        jsr     set_up_logical_op
-        ora     D                       ; OR low bytes
-        pha
-        txa                             ; High byte into A
-        ora     E                       ; OR low bytes
-        jmp     finish_logical_op
 
 set_up_logical_op:
         lda     expr_type
