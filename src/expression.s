@@ -77,6 +77,7 @@ next_expression:
         beq     evaluate_string
         cmp     #TOK_NAME
         beq     evaluate_variable
+        invoke_if_defined extension_function_token  ; Target may map a token to a function (C must stay set)
         inc     line_pos                ; None of the above; assume it's a function and skip '('
         jsr     dispatch_function
         inc     line_pos                ; Skip ')'

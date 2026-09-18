@@ -151,8 +151,14 @@ TOK_BANK    = $6A
 TOK_MEM     = $6B
 TOK_SYS     = $6C
 
-TOK_JOY     = $99
-TOK_NVRAM_F = $9A
+; The core pads its functions to an even count, so with trig functions on they
+; end at $99 (ATN is $98) and extension functions start at $9A.
+; NVRAM is both a statement and a function, as in the BIOS's own BASIC.  The
+; lexer takes the first keyword that matches, so NVRAM always lexes as
+; TOK_NVRAM_W: the parser accepts that token in an expression, and
+; extension_function_token turns it into TOK_NVRAM_F when it is evaluated.
+TOK_JOY     = $9A
+TOK_NVRAM_F = $9B
 
 .macro extension_statement_keywords
 :       name_table_entry "CLS"
@@ -205,7 +211,16 @@ pvm_arg_4:
 .endmacro
 
 .macro extension_pvm_functions
-        BRANCH_IF_RANGE TOK_JOY, 2, pvm_fun_1
+        BRANCH_IF TOK_JOY, pvm_fun_1
+        BRANCH_IF TOK_NVRAM_W, pvm_fun_1
+.endmacro
+
+.macro extension_function_token
+        .local  not_nvram
+        cmp     #TOK_NVRAM_W            ; Leaves C set: every token that gets here is >= TOK_NVRAM_W
+        bne     not_nvram
+        lda     #TOK_NVRAM_F
+not_nvram:
 .endmacro
 
 .macro extension_statement_vectors_l
