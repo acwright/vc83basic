@@ -103,10 +103,14 @@ exec_cls:
 @skip:
         rts
 
+; pop_int_fp0 keeps only D and E (it clobbers B, C, X and Y), so a handler that
+; pops more arguments holds the ones it already has in D, E or on the CPU stack.
+
 exec_locate:
-        tay                             ; Y = row (last arg popped by prolog)
+        sta     D                       ; D = row (last arg popped by prolog)
         jsr     pop_int_fp0             ; col -> AX
         tax                             ; X = col
+        ldy     D                       ; Y = row
         bit     HW_PRESENT
         bpl     @skip
         jmp     VideoSetCursor
@@ -280,35 +284,37 @@ exec_date:
         jmp     newline
 
 exec_settime:
-        sta     C                       ; C = seconds (from prolog)
+        sta     D                       ; D = seconds (from prolog)
         jsr     pop_int_fp0             ; mm -> AX
-        sta     D                       ; D = minutes
+        sta     E                       ; E = minutes
         jsr     pop_int_fp0             ; hh -> AX
-        sta     E                       ; E = hours
+        sta     B                       ; B = hours (safe now: no more pops)
         lda     HW_PRESENT
         and     #HW_RTC
         bne     :+
         jmp     ex_no_device
-:       lda     E                       ; A = hours
-        ldx     D                       ; X = minutes
-        ldy     C                       ; Y = seconds
+:       lda     B                       ; A = hours
+        ldx     E                       ; X = minutes
+        ldy     D                       ; Y = seconds
         jmp     RtcWriteTime
 
 exec_setdate:
-        sta     B                       ; B = day (from prolog)
+        pha                             ; Save day (from prolog) on CPU stack
         jsr     pop_int_fp0             ; mm -> AX
-        sta     C                       ; C = month
+        sta     D                       ; D = month
         jsr     pop_int_fp0             ; yy -> AX
-        sta     D                       ; D = year
+        sta     E                       ; E = year
         jsr     pop_int_fp0             ; cc -> AX
         sta     RTC_BUF_CENT
+        pla
+        sta     B                       ; B = day (safe now: no more pops)
         lda     HW_PRESENT
         and     #HW_RTC
         bne     :+
         jmp     ex_no_device
 :       lda     B                       ; A = day
-        ldx     C                       ; X = month
-        ldy     D                       ; Y = year
+        ldx     D                       ; X = month
+        ldy     E                       ; Y = year
         jmp     RtcWriteDate
 
 ; ---------------------------------------------------------------------------
