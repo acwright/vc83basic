@@ -215,6 +215,13 @@ pvm_arg_4:
         BRANCH_IF TOK_NVRAM_W, pvm_fun_1
 .endmacro
 
+; Check for ESC or CTRL-C before every statement, so a loop that never prints
+; (10 GOTO 10) can still be broken.
+
+.macro extension_before_statement
+        jsr     check_break
+.endmacro
+
 .macro extension_function_token
         .local  not_nvram
         cmp     #TOK_NVRAM_W            ; Leaves C set: every token that gets here is >= TOK_NVRAM_W

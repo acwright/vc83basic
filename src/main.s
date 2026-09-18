@@ -56,6 +56,7 @@ run:
         mva     next_line_pos, line_pos
         jsr     get_byte                ; The next byte is the next statement offset
         sta     next_line_pos           ; By default the "next line" is the next statement on this line
+        invoke_if_defined extension_before_statement    ; Target hook, e.g. to check for a break key
         jsr     dispatch_statement
         jmp     run                     ; Keep on truckin'
 
