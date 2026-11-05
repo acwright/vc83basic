@@ -131,7 +131,7 @@ HW_VID              = %10000000
 
 ; --- Hardware registers touched directly ---
 RAM_BANK_L          := $83FF             ; Write-only bank latch for low RAM card
-SC_CMD              := $9002             ; Serial card (R65C51) command register
+SC_CMD              := $9002             ; Serial card (R6551AP) command register
 SC_CMD_RX_READY     = $09                ; No parity/echo, RTSB low, RX interrupts on
 
 ; --- BASIC extension tokens and macros ---
